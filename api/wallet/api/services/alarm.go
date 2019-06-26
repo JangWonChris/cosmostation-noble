@@ -2,19 +2,17 @@ package services
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
-	"time"
-
-	"github.com/go-pg/pg"
-	"github.com/cosmostation/cosmostation-cosmos/api/wallet/app/exception"
-	"github.com/cosmostation/cosmostation-cosmos/api/wallet/app/models"
-	u "github.com/cosmostation/cosmostation-cosmos/api/wallet/app/utils"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmostation/cosmostation-cosmos/api/wallet/api/errors"
+	"github.com/cosmostation/cosmostation-cosmos/api/wallet/api/models"
+	"github.com/go-pg/pg"
 )
 
-func Register(DB *pg.DB, w http.ResponseWriter, r *http.Request) {
+func UpdateAlarmStatus(DB *pg.DB, w http.ResponseWriter, r *http.Request) {
 	// Get post data from request
 	var account models.Account
 	decoder := json.NewDecoder(r.Body)
@@ -26,7 +24,7 @@ func Register(DB *pg.DB, w http.ResponseWriter, r *http.Request) {
 
 	// Check the validity of cosmos address
 	if !strings.Contains(account.Address, sdk.Bech32PrefixAccAddr) || len(account.Address) != 45 {
-		exception.ErrInvalidFormat(w, http.StatusBadRequest)
+		errors.ErrInvalidFormat(w, http.StatusBadRequest)
 		return
 	}
 
@@ -34,23 +32,19 @@ func Register(DB *pg.DB, w http.ResponseWriter, r *http.Request) {
 	exist, err := DB.Model(&account).
 		Where("alarm_token = ? AND address = ?", account.AlarmToken, account.Address).
 		Exists()
-	if exist {
-		exception.ErrDuplicateAccount(w, http.StatusConflict)
+	if !exist {
+		errors.ErrNotExist(w, http.StatusBadRequest)
 		return
 	}
 
-	// Current time
-	account.Timestamp = time.Now()
-
-	// Insert account
+	// Update alarm status
 	err = DB.Insert(&account)
+	fmt.Println(err)
 	if err != nil {
-		exception.ErrInternalServer(w, http.StatusInternalServerError)
+		errors.ErrInternalServer(w, http.StatusInternalServerError)
 		return
 	}
 
-	// resp := u.RespondSuccessMessage("Account has been created")
-
-	u.Respond(w, account)
-	return
+	// resp := models.Message(101, "UpdateAlarm")
+	// models.Respond(w, resp)
 }

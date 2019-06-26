@@ -3,8 +3,8 @@ package services
 import (
 	"net/http"
 
-	"github.com/cosmostation/cosmostation-cosmos/api/wallet/app/models"
-	u "github.com/cosmostation/cosmostation-cosmos/api/wallet/app/utils"
+	"github.com/cosmostation/cosmostation-cosmos/api/wallet/api/models"
+	u "github.com/cosmostation/cosmostation-cosmos/api/wallet/api/utils"
 
 	"github.com/go-pg/pg"
 	"github.com/gorilla/mux"

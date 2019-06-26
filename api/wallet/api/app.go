@@ -6,9 +6,9 @@ import (
 	"net/http"
 
 	gaiaApp "github.com/cosmos/cosmos-sdk/cmd/gaia/app"
-	"github.com/cosmostation/cosmostation-cosmos/api/wallet/app/config"
-	"github.com/cosmostation/cosmostation-cosmos/api/wallet/app/controllers"
-	"github.com/cosmostation/cosmostation-cosmos/api/wallet/app/models"
+	"github.com/cosmostation/cosmostation-cosmos/api/wallet/api/controllers"
+	"github.com/cosmostation/cosmostation-cosmos/api/wallet/api/models"
+	"github.com/cosmostation/cosmostation-cosmos/api/wallet/config"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/go-pg/pg"

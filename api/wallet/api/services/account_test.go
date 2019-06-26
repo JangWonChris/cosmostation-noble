@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/cosmostation/cosmostation-cosmos/api/wallet/app/models"
+	"github.com/cosmostation/cosmostation-cosmos/api/wallet/api/models"
 )
 
 // Sample accounts

@@ -3,7 +3,7 @@ package controllers
 import (
 	"net/http"
 
-	"github.com/cosmostation/cosmostation-cosmos/api/wallet/app/services"
+	"github.com/cosmostation/cosmostation-cosmos/api/wallet/api/services"
 
 	"github.com/tendermint/tendermint/rpc/client"
 

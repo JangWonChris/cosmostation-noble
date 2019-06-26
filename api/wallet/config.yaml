@@ -1,13 +1,27 @@
+active: "dev"
 
-# dev
-ElasticHost: "https://search-cosmoshub-2-dev-at3nx4pn24k74sxe5uoxdmgghi.ap-northeast-2.es.amazonaws.com"
-Region:      "ap-northeast-2"
-AccessKey:   "AKIAJYCEXW3A3FBCO5UA"
-SecretKey:   "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"
-Sniff:       false
-RPCEndPoint: "http://52.78.163.36:26657"
+prod:
+  node: 
+    gaiad_url: "http://52.78.163.36:26657"
+    lcd_url: "https://lcd.cosmostation.io"
+  database:
+    host: "cosmostation.ci6bhjszmrb3.ap-northeast-2.rds.amazonaws.com:5432"
+    user: "root"
+    password: "CosmosGo00!!"
+    table: "mainnet"
+  port: 5000
+  jwt: 
+    token: "SecureCosmostation!@#50291230728"
 
-# live
-
-
-# app
+dev:
+  node: 
+    gaiad_url: "http://52.78.163.36:26657"
+    lcd_url: "https://lcd-mainnet-dev.cosmostation.io"
+  database:
+    host: "cosmostation-dev.ci6bhjszmrb3.ap-northeast-2.rds.amazonaws.com:5432"
+    user: "root"
+    password: "dnpfqldwhr00!!"
+    table: "dev-test"
+  port: 5000
+  jwt:
+    token: "SecureCosmostation!@#50291230728"

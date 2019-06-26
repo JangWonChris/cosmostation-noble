@@ -4,11 +4,12 @@ type Config struct {
 	Node *NodeConfig
 	DB   *DBConfig
 	JWT  *JWTConfig
+	Web  *WebConfig
 }
 
 type NodeConfig struct {
 	GaiadURL string
-	LCDUrl   string
+	LcdURL   string
 }
 
 type DBConfig struct {
@@ -17,6 +18,11 @@ type DBConfig struct {
 	Password string
 	Table    string
 }
+
+type WebConfig struct {
+	Port string
+}
+
 type JWTConfig struct {
 	Token string
 }

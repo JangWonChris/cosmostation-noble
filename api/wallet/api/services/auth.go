@@ -3,9 +3,9 @@ package services
 import (
 	"net/http"
 
-	"github.com/cosmostation/cosmostation-cosmos/api/wallet/app/exception"
-	"github.com/cosmostation/cosmostation-cosmos/api/wallet/app/models"
-	u "github.com/cosmostation/cosmostation-cosmos/api/wallet/app/utils"
+	"github.com/cosmostation/cosmostation-cosmos/api/wallet/api/errors"
+	"github.com/cosmostation/cosmostation-cosmos/api/wallet/api/models"
+	u "github.com/cosmostation/cosmostation-cosmos/api/wallet/api/utils"
 
 	"github.com/go-pg/pg"
 )
@@ -13,7 +13,7 @@ import (
 func Test(DB *pg.DB, w http.ResponseWriter, r *http.Request) error {
 	status := false
 	if status {
-		exception.ErrDuplicateAccount(w, http.StatusUnauthorized)
+		errors.ErrDuplicateAccount(w, http.StatusUnauthorized)
 		return nil
 	}
 

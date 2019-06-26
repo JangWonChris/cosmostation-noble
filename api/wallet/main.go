@@ -1,17 +1,15 @@
 package main
 
 import (
-	"github.com/cosmostation/cosmostation-cosmos/api/wallet/app"
-	"github.com/cosmostation/cosmostation-cosmos/api/wallet/app/config"
+	app "github.com/cosmostation/cosmostation-cosmos/api/wallet/api"
+	"github.com/cosmostation/cosmostation-cosmos/api/wallet/config"
 )
 
 func main() {
-
-	// Deployment Type
-	// config := config.GetMainnetConfig()
-	config := config.GetMainnetDevConfig()
+	// Configuration in config.yaml
+	config := config.NewAPIConfig()
 
 	app := &app.App{}
 	app.Initialize(config)
-	app.Run(":5000")
+	app.Run(":" + string(config.Web.Port))
 }
