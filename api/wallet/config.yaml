@@ -1,0 +1,13 @@
+
+# dev
+ElasticHost: "https://search-cosmoshub-2-dev-at3nx4pn24k74sxe5uoxdmgghi.ap-northeast-2.es.amazonaws.com"
+Region:      "ap-northeast-2"
+AccessKey:   "AKIAJYCEXW3A3FBCO5UA"
+SecretKey:   "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"
+Sniff:       false
+RPCEndPoint: "http://52.78.163.36:26657"
+
+# live
+
+
+# app
