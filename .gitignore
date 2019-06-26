@@ -10,3 +10,8 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+
+
+# chain-exporter-es
+/cosmostation-cosmos/chain-exporter-es/chain-exporter-es
+/cosmostation-cosmos/chain-exporter-es/config.yaml
