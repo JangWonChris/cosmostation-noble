@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"github.com/cosmostation/cosmostation-cosmos/api/wallet/config"
+	"github.com/cosmostation/cosmostation-cosmos/api/wallet/exporter/databases"
+	"github.com/cosmostation/cosmostation-cosmos/api/wallet/exporter/models"
 
 	gaiaApp "github.com/cosmos/cosmos-sdk/cmd/gaia/app"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -32,7 +34,6 @@ var (
 // Monitor wraps Tendermint RPC client and PostgreSQL database
 type ChainExporterService struct {
 	cmn.BaseService
-	// private fields
 	Codec     *codec.Codec
 	Config    *config.Config
 	DB        *pg.DB
@@ -44,9 +45,9 @@ type ChainExporterService struct {
 // Initializes all the required configs
 func NewChainExporterService(config *config.Config) *ChainExporterService {
 	ces := &ChainExporterService{
-		// initialization
 		Codec:     gaiaApp.MakeCodec(), // Register Cosmos SDK codecs
 		Config:    config,
+		DB:        databases.ConnectDatabase(config), // Connect to PostgreSQL
 		WsCtx:     context.Background(),
 		RPCClient: client.NewHTTP(config.Node.GaiadURL, "/websocket"), // Connect to Tendermint RPC client
 	}
@@ -72,15 +73,16 @@ func (ces *ChainExporterService) OnStart() error {
 
 	// start routine
 	for {
-		fmt.Println("start - subscribe tx from full node")
 		select {
 		case eventData, ok := <-ces.WsOut:
+			fmt.Println("start - subscribe tx from full node")
 			if ok {
 				ces.handleNewEventData(eventData) // returns Data, Query, Tags
 			}
+			fmt.Println("finish - subscribe tx from full node")
+			fmt.Println("")
 		}
-		fmt.Println("finish - subscribe tx from full node")
-		fmt.Println("")
+
 	}
 }
 
@@ -91,12 +93,10 @@ func (ces *ChainExporterService) OnStop() {
 }
 
 // Handle new event data
-func (a *ChainExporterService) handleNewEventData(eventData ctypes.ResultEvent) error {
-	// MarshalJSON to []byte format
-	bytes, _ := a.Codec.MarshalJSON(eventData.Data)
-
+func (ces *ChainExporterService) handleNewEventData(eventData ctypes.ResultEvent) error {
 	var eventDataTx tmtypes.EventDataTx
-	err := a.Codec.UnmarshalJSON(bytes, &eventDataTx) // []byte로 들어와야 해서 위에 MarshalJSON을 한번 해줘야 된다
+	bytes, _ := ces.Codec.MarshalJSON(eventData.Data)   // // MarshalJSON to []byte format
+	err := ces.Codec.UnmarshalJSON(bytes, &eventDataTx) // []byte로 들어와야 해서 위에 MarshalJSON을 한번 해줘야 된다
 	if err != nil {
 		return errors.New("UnmarshalJSON cannot decode eventData bytes")
 	}
@@ -118,7 +118,7 @@ func (a *ChainExporterService) handleNewEventData(eventData ctypes.ResultEvent) 
 	for _, log := range logs {
 		if log.Success == true {
 			var stdTx auth.StdTx
-			err = a.Codec.UnmarshalBinaryLengthPrefixed(eventDataTx.Tx, &stdTx) // Tx{} Prefix 포함하고 있기 때문에 UnmarshalBinaryLengthPrefixed 사용
+			err = ces.Codec.UnmarshalBinaryLengthPrefixed(eventDataTx.Tx, &stdTx) // Tx{} Prefix 포함하고 있기 때문에 UnmarshalBinaryLengthPrefixed 사용
 			if err != nil {
 				return errors.New("UnmarshalJSON cannot decode eventDataTx.Tx bytes")
 			}
@@ -128,30 +128,49 @@ func (a *ChainExporterService) handleNewEventData(eventData ctypes.ResultEvent) 
 				switch msg.Type() {
 				case "send":
 					var sendTx bank.MsgSend
-					_ = a.Codec.UnmarshalJSON(msg.GetSignBytes(), &sendTx)
+					_ = ces.Codec.UnmarshalJSON(msg.GetSignBytes(), &sendTx)
 
 					// Convert to bech32 cosmos address format
 					fromAddress, _ := bech32.ConvertAndEncode(sdk.Bech32PrefixAccAddr, sendTx.FromAddress)
 					toAddress, _ := bech32.ConvertAndEncode(sdk.Bech32PrefixAccAddr, sendTx.ToAddress)
 
-					fmt.Println("=======================================[send]")
+					// DB에 저장된 address 가져온 뒤
+					// fromAddress면 successfully sent (메시지는 imToken 참고)
+					// toAddress면 successfully receive (메시지는 imToken 참고 - atom received successfully)
+					var accounts []models.Account
+					_ = ces.DB.Model(&accounts).
+						Select()
+
+					fmt.Println("=======================================================[send]")
+					for _, account := range accounts {
+						fmt.Println("IdfAccount: ", account.IdfAccount)
+						fmt.Println("Address: ", account.Address)
+
+						switch {
+						case fromAddress == account.Address:
+							fmt.Println("-----[Sucessfully Sent] ", sendTx.Amount)
+						case toAddress == account.Address:
+							fmt.Println("-----[Sucessfully Received] ", sendTx.Amount)
+						}
+					}
+					fmt.Println("")
 					fmt.Println("height: ", eventDataTx.Height)
 					fmt.Println("txHash: ", strings.ToUpper(txHash))
 					fmt.Println("fromAddress: ", fromAddress)
 					fmt.Println("toAddress: ", toAddress)
-					fmt.Println(sendTx.Amount)
-					fmt.Println("=======================================")
+					fmt.Println("Amount: ", sendTx.Amount)
+					fmt.Println("=======================================================")
 
 				case "multisend":
 					var multiSendTx bank.MsgMultiSend
-					_ = a.Codec.UnmarshalJSON(msg.GetSignBytes(), &multiSendTx)
+					_ = ces.Codec.UnmarshalJSON(msg.GetSignBytes(), &multiSendTx)
 
-					fmt.Println("=======================================[multisend]")
+					fmt.Println("=======================================================[multisend]")
 					fmt.Println("height: ", eventDataTx.Height)
 					fmt.Println("txHash: ", strings.ToUpper(txHash))
 					fmt.Println(multiSendTx.Inputs)
 					fmt.Println(multiSendTx.Outputs)
-					fmt.Println("=======================================")
+					fmt.Println("=======================================================")
 
 				default:
 					return nil
