@@ -6,15 +6,14 @@ import (
 	"net/http"
 
 	gaiaApp "github.com/cosmos/cosmos-sdk/cmd/gaia/app"
-	"github.com/cosmostation/cosmostation-cosmos/api/wallet/api/controllers"
-	"github.com/cosmostation/cosmostation-cosmos/api/wallet/api/databases"
-	"github.com/cosmostation/cosmostation-cosmos/api/wallet/config"
+	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/controllers"
+	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/databases"
+	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/config"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/go-pg/pg"
 	"github.com/gorilla/mux"
 	"github.com/tendermint/tendermint/rpc/client"
-	"github.com/tendermint/tendermint/libs/log"
 )
 
 // App wraps up the required variables that are needed in this app
@@ -37,9 +36,6 @@ func (a *App) NewApp(config *config.Config) {
 	// Connect to PostgreSQL
 	a.DB = databases.ConnectDatabase(config)
 
-	// Setup database schema
-	databases.CreateSchema(a.DB)
-
 	// Register Cosmos SDK codecs
 	a.Codec = gaiaApp.MakeCodec()
 
@@ -51,12 +47,16 @@ func (a *App) NewApp(config *config.Config) {
 func (a *App) setRouters() {
 	a.Router = mux.NewRouter()
 	a.Router = a.Router.PathPrefix("/v1").Subrouter()
-	// 지금은 사용안함
-	// a.Router.Use(auth.JwtAuthentication) // attach JWT auth middleware
-	// controllers.AuthController(a.Router, a.RPCClient, a.DB)
-	controllers.AccountController(a.Router, a.RPCClient, a.DB)
-	controllers.AlarmController(a.Router, a.RPCClient, a.DB)
-	controllers.VersionController(a.Router, a.RPCClient, a.DB)
+	controllers.AccountController(a.Router, a.RPCClient, a.DB, a.Config)
+	controllers.BlockController(a.Router, a.RPCClient, a.DB, a.Config)
+	controllers.DistributionController(a.Config, a.DB, a.Router, a.RPCClient)
+	controllers.GovernanceController(a.Router, a.RPCClient, a.DB, a.Config)
+	controllers.MintingController(a.Router, a.RPCClient, a.DB, a.Config)
+	controllers.TransactionController(a.Router, a.RPCClient, a.DB, a.Codec, a.Config)
+	controllers.ValidatorController(a.Router, a.RPCClient, a.DB, a.Codec, a.Config)
+	controllers.StatusController(a.Router, a.RPCClient, a.DB, a.Config)
+	controllers.StatsController(a.Router, a.RPCClient, a.DB, a.Config)
+	// a.Router.NotFoundHandler = http.HandleFunc("/", notFound)
 }
 
 // Run the app
