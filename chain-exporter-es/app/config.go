@@ -17,10 +17,12 @@ func validateBasic(config *Config) error {
 	return nil
 }
 
-func InitConfig(env string) (*Config, error)  {
+func InitConfig(network string, env string) (*Config, error)  {
 	config := &Config{
-		RPCEndPoint:viper.GetString(fmt.Sprintf("%s.RPCEndPoint", env)),
+		RPCEndPoint:viper.GetString(fmt.Sprintf("%s.%s.RPCEndPoint", network, env)),
 	}
+
+
 
 	err := validateBasic(config)
 	if err != nil {

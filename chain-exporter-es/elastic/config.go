@@ -35,15 +35,15 @@ func validateBasic(config *Config) error {
 	return nil
 }
 
-func InitConfig(env string) (*Config, error)  {
-	logrus.Info("viper test", viper.GetString(fmt.Sprintf("%s.ElasticHost", env)))
+func InitConfig(network string, env string) (*Config, error)  {
+	logrus.Info("viper test", viper.GetString(fmt.Sprintf("%s.%s.ElasticHost", network, env)))
 	config := &Config{
-		ElasticHost:viper.GetString(fmt.Sprintf("%s.ElasticHost", env)),
-		Region:viper.GetString(fmt.Sprintf("%s.Region", env)),
-		AccessKey:viper.GetString(fmt.Sprintf("%s.AccessKey", env)),
-		SecretKey:viper.GetString(fmt.Sprintf("%s.SecretKey", env)),
-		RPCEndPoint:viper.GetString(fmt.Sprintf("%s.RPCEndPoint", env)),
-		Sniff:viper.GetBool(fmt.Sprintf("%s.Sniff", env)),
+		ElasticHost:viper.GetString(fmt.Sprintf("%s.%s.ElasticHost", network, env)),
+		Region:viper.GetString(fmt.Sprintf("%s.%s.Region", network, env)),
+		AccessKey:viper.GetString(fmt.Sprintf("%s.%s.AccessKey", network, env)),
+		SecretKey:viper.GetString(fmt.Sprintf("%s.%s.SecretKey", network, env)),
+		RPCEndPoint:viper.GetString(fmt.Sprintf("%s.%s.RPCEndPoint", network, env)),
+		Sniff:viper.GetBool(fmt.Sprintf("%s.%s.Sniff", network, env)),
 	}
 
 	err := validateBasic(config)
