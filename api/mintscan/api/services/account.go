@@ -8,20 +8,19 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-pg/pg"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/errors"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models"
-	ctypes "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models/sync"
+	u "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/utils"
+	dbtypes "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/gorilla/mux"
+	"github.com/go-pg/pg"
 	resty "gopkg.in/resty.v1"
 )
 
 func GetAccountInfo(DB *pg.DB, Config *config.Config, w http.ResponseWriter, r *http.Request) error {
-	w.Header().Set("Content-Type", "application/json")
-
 	// Receive address
 	vars := mux.Vars(r)
 	address := vars["address"]
@@ -87,7 +86,7 @@ func GetAccountInfo(DB *pg.DB, Config *config.Config, w http.ResponseWriter, r *
 			fmt.Printf("Distribution Rewards unmarshal error - %v\n", err)
 		}
 
-		var validatorInfo ctypes.ValidatorInfo
+		var validatorInfo dbtypes.ValidatorInfo
 		_ = DB.Model(&validatorInfo).
 			Column("moniker").
 			Where("operator_address = ?", delegation.ValidatorAddress).
@@ -148,7 +147,7 @@ func GetAccountInfo(DB *pg.DB, Config *config.Config, w http.ResponseWriter, r *
 
 	var resultUnbondingDelegations []models.UnbondingDelegations
 	for _, unbondingDelegation := range unbondingDelegations {
-		var validatorInfo ctypes.ValidatorInfo
+		var validatorInfo dbtypes.ValidatorInfo
 		_ = DB.Model(&validatorInfo).
 			Column("moniker").
 			Where("operator_address = ?", unbondingDelegation.ValidatorAddress).
@@ -171,5 +170,6 @@ func GetAccountInfo(DB *pg.DB, Config *config.Config, w http.ResponseWriter, r *
 		accountResponse.UnbondingDelegations = resultUnbondingDelegations
 	}
 
-	return json.NewEncoder(w).Encode(accountResponse)
+	u.Respond(w, accountResponse)
+	return nil
 }

@@ -16,7 +16,6 @@ import (
 // Passes requests to its respective service
 func AccountController(r *mux.Router, c *client.HTTP, DB *pg.DB, Config *config.Config) {
 	r.HandleFunc("/account/{address}", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
 		// TEST
 		clientIP := realip.FromRequest(r) // FromRequest return client's real public IP address from http request headers.
 		log.Println("GET /account/{address}: ", clientIP)

@@ -36,6 +36,7 @@ github.com/cosmos/cosmos-sdk v0.34.3/go.mod h1:a0NaOtHsrPNIS+uIbIeCuPINqUjgE4AVL
 github.com/cosmos/go-bip39 v0.0.0-20180618194314-52158e4697b8/go.mod h1:tSxLoYXyBmiFeKpvmq4dzayMdCjCnu8uqmCysIGBT2Y=
 github.com/cosmos/ledger-cosmos-go v0.9.11/go.mod h1:RWldjvUf4Hfi46ti/8etBH3eQ2rOqqz2hstdzROQSHo=
 github.com/cosmos/ledger-go v0.9.1/go.mod h1:oZJ2hHAZROdlHiwTg4t7kP+GKIIkBT+o6c9QWFanOyI=
+github.com/cosmostation/cosmostation-cosmos v0.0.0-20190701065301-276d29422004 h1:4jIFxB6Vc0Fyxuc+uQGC79lMxWEt530lyVv1szcmf6c=
 github.com/davecgh/go-spew v0.0.0-20171005155431-ecdeabc65495/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

@@ -14,7 +14,6 @@ import (
 // Passes requests to its respective service
 func StatusController(r *mux.Router, RPCClient *client.HTTP, DB *pg.DB, Config *config.Config) {
 	r.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
 		services.GetStatus(RPCClient, DB, Config, w, r)
 	})
 }

@@ -14,7 +14,6 @@ import (
 // Passes requests to its respective service
 func MintingController(r *mux.Router, RPCClient *client.HTTP, DB *pg.DB, Config *config.Config) {
 	r.HandleFunc("/minting/inflation", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
 		services.GetMintingInflation(RPCClient, DB, Config, w, r)
 	}).Methods("GET")
 }

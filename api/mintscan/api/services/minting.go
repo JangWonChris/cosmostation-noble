@@ -8,6 +8,7 @@ import (
 
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models"
+	u "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/utils"
 
 	"github.com/go-pg/pg"
 	"github.com/tendermint/tendermint/rpc/client"
@@ -26,7 +27,10 @@ func GetMintingInflation(RPCClient *client.HTTP, DB *pg.DB, Config *config.Confi
 	// Conversion
 	inflation, _ := strconv.ParseFloat(tempInflation, 64)
 
-	return json.NewEncoder(w).Encode(&models.ResultMinting{
+	resultMinting := &models.ResultMinting{
 		Inflation: inflation,
-	})
+	}
+
+	u.Respond(w, resultMinting)
+	return nil
 }

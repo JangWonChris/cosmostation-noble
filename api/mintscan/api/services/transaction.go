@@ -9,10 +9,11 @@ import (
 	"strconv"
 	"strings"
 
-	ctypes "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models/sync"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/errors"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models"
+	dbtypes "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models/types"
+	u "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/utils"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -46,7 +47,7 @@ func GetTxs(Codec *codec.Codec, RPCClient *client.HTTP, DB *pg.DB, w http.Respon
 		from, _ = strconv.Atoi(r.URL.Query()["from"][0])
 	} else {
 		// Check current height in db
-		var blocks []ctypes.BlockInfo
+		var blocks []dbtypes.BlockInfo
 		_ = DB.Model(&blocks).
 			Order("height DESC").
 			Limit(1).
@@ -57,7 +58,7 @@ func GetTxs(Codec *codec.Codec, RPCClient *client.HTTP, DB *pg.DB, w http.Respon
 	}
 
 	// Query a number of txs
-	transactionInfos := make([]*ctypes.TransactionInfo, 0)
+	transactionInfos := make([]*dbtypes.TransactionInfo, 0)
 	_ = DB.Model(&transactionInfos).
 		Where("height <= ?", from).
 		Limit(limit).
@@ -78,7 +79,9 @@ func GetTxs(Codec *codec.Codec, RPCClient *client.HTTP, DB *pg.DB, w http.Respon
 		}
 		resultTransactionInfo = append(resultTransactionInfo, tempResultTransactionInfo)
 	}
-	return json.NewEncoder(w).Encode(resultTransactionInfo)
+
+	u.Respond(w, resultTransactionInfo)
+	return nil
 }
 
 // GetTx receives transaction hash and returns that transaction
@@ -108,7 +111,8 @@ func GetTx(Codec *codec.Codec, RPCClient *client.HTTP, DB *pg.DB, Config *config
 		fmt.Printf("GeneralTx unmarshal error - %v\n", err)
 	}
 
-	return json.NewEncoder(w).Encode(generalTx)
+	u.Respond(w, generalTx)
+	return nil
 }
 
 // BroadcastTx sends transaction
@@ -150,5 +154,6 @@ func BroadcastTx(Codec *codec.Codec, RPCClient *client.HTTP, w http.ResponseWrit
 		return nil
 	}
 
-	return json.NewEncoder(w).Encode(result)
+	u.Respond(w, result)
+	return nil
 }

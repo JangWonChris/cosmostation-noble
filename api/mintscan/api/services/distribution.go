@@ -10,12 +10,13 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/go-pg/pg"
 	"github.com/gorilla/mux"
-	"github.com/tendermint/tendermint/rpc/client"
 
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/errors"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models"
+	u "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/utils"
 
+	"github.com/tendermint/tendermint/rpc/client"
 	resty "gopkg.in/resty.v1"
 )
 
@@ -46,7 +47,8 @@ func GetDelegatorWithdrawAddress(Config *config.Config, DB *pg.DB, RPCClient *cl
 	result := make(map[string]string)
 	result["withdraw_address"] = address
 
-	return json.NewEncoder(w).Encode(result)
+	u.Respond(w, result)
+	return nil
 }
 
 // GetDelegatorRewards returns a withdrawn delegation rewards
@@ -75,7 +77,8 @@ func GetDelegatorRewards(Config *config.Config, DB *pg.DB, RPCClient *client.HTT
 		fmt.Printf("distribution/community_pool unmarshal pool error - %v\n", err)
 	}
 
-	return json.NewEncoder(w).Encode(coin)
+	u.Respond(w, coin)
+	return nil
 }
 
 // GetCommunityPool returns current community pool
@@ -91,5 +94,6 @@ func GetCommunityPool(Config *config.Config, DB *pg.DB, RPCClient *client.HTTP, 
 		fmt.Printf("distribution/community_pool unmarshal pool error - %v\n", err)
 	}
 
-	return json.NewEncoder(w).Encode(coin)
+	u.Respond(w, coin)
+	return nil
 }

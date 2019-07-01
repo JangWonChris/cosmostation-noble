@@ -47,6 +47,7 @@ func (a *App) NewApp(config *config.Config) {
 func (a *App) setRouters() {
 	a.Router = mux.NewRouter()
 	a.Router = a.Router.PathPrefix("/v1").Subrouter()
+	
 	controllers.AccountController(a.Router, a.RPCClient, a.DB, a.Config)
 	controllers.BlockController(a.Router, a.RPCClient, a.DB, a.Config)
 	controllers.DistributionController(a.Config, a.DB, a.Router, a.RPCClient)

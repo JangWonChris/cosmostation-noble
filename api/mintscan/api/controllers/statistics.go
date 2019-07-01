@@ -14,12 +14,10 @@ import (
 // Passes requests to its respective service
 func StatsController(r *mux.Router, RPCClient *client.HTTP, DB *pg.DB, Config *config.Config) {
 	r.HandleFunc("/stats/market", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
 		services.GetMarketInfo(RPCClient, DB, Config, w, r)
 	})
 
 	r.HandleFunc("/stats/network", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
 		services.GetNetworkStats(RPCClient, DB, Config, w, r)
 	})
 }

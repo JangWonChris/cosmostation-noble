@@ -12,8 +12,8 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/errors"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models/stats"
-	ctypes "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models/sync"
-	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/utils"
+	dbtypes "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models/types"
+	u "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/utils"
 
 	resty "gopkg.in/resty.v1"
 
@@ -29,7 +29,7 @@ import (
 // GetValidators returns all existing validators
 func GetValidators(RPCClient *client.HTTP, DB *pg.DB, w http.ResponseWriter, r *http.Request) error {
 	// Query all validators order by their tokens
-	validatorInfo := make([]*ctypes.ValidatorInfo, 0)
+	validatorInfo := make([]*dbtypes.ValidatorInfo, 0)
 
 	// Check status param
 	statusParam := r.FormValue("status")
@@ -71,10 +71,10 @@ func GetValidators(RPCClient *client.HTTP, DB *pg.DB, w http.ResponseWriter, r *
 	resultValidator := make([]*models.ResultValidator, 0)
 	for _, validator := range validatorInfo {
 		// Convert to proposer address
-		proposerAddress := utils.ConsensusPubkeyToProposer(validator.ConsensusPubkey)
+		proposerAddress := u.ConsensusPubkeyToProposer(validator.ConsensusPubkey)
 
 		// Query how many missed blocks each validator has for the last 100 blocks
-		var missDetailInfo []ctypes.MissDetailInfo
+		var missDetailInfo []dbtypes.MissDetailInfo
 		missBlockCount, _ := DB.Model(&missDetailInfo).
 			Where("address = ? AND height BETWEEN ? AND ?", proposerAddress, currentHeight-100, currentHeight).
 			Count()
@@ -116,7 +116,9 @@ func GetValidators(RPCClient *client.HTTP, DB *pg.DB, w http.ResponseWriter, r *
 		}
 		resultValidator = append(resultValidator, tempResultValidator)
 	}
-	return json.NewEncoder(w).Encode(resultValidator)
+
+	u.Respond(w, resultValidator)
+	return nil
 }
 
 // GetValidator receives validator address and returns that validator
@@ -126,7 +128,7 @@ func GetValidator(RPCClient *client.HTTP, DB *pg.DB, w http.ResponseWriter, r *h
 	address := vars["address"]
 
 	// Convert to proposer address format
-	validatorInfo, _ := utils.ConvertToProposer(address, DB)
+	validatorInfo, _ := u.ConvertToProposer(address, DB)
 
 	// Check if the input validator address exists
 	if validatorInfo.Proposer == "" {
@@ -142,8 +144,8 @@ func GetValidator(RPCClient *client.HTTP, DB *pg.DB, w http.ResponseWriter, r *h
 	currentHeight := status.SyncInfo.LatestBlockHeight
 
 	// Query how many missed blocks each validator has for the last 100 blocks
-	proposerAddress := utils.ConsensusPubkeyToProposer(validatorInfo.ConsensusPubkey)
-	var missDetailInfo []ctypes.MissDetailInfo
+	proposerAddress := u.ConsensusPubkeyToProposer(validatorInfo.ConsensusPubkey)
+	var missDetailInfo []dbtypes.MissDetailInfo
 	missBlockCount, _ := DB.Model(&missDetailInfo).
 		Where("address = ? AND height BETWEEN ? AND ?", proposerAddress, currentHeight-100, currentHeight).
 		Count()
@@ -160,12 +162,12 @@ func GetValidator(RPCClient *client.HTTP, DB *pg.DB, w http.ResponseWriter, r *h
 	}
 
 	// Validator's bonded height and its timestamp
-	var validatorSetInfo ctypes.ValidatorSetInfo
+	var validatorSetInfo dbtypes.ValidatorSetInfo
 	_ = DB.Model(&validatorSetInfo).
 		Where("proposer = ? AND event_type = ?", proposerAddress, "create_validator").
 		Select()
 
-	return json.NewEncoder(w).Encode(&models.ResultValidatorDetail{
+	resultValidatorDetail := &models.ResultValidatorDetail{
 		Rank:                 validatorInfo.Rank,
 		OperatorAddress:      validatorInfo.OperatorAddress,
 		ConsensusPubkey:      validatorInfo.ConsensusPubkey,
@@ -188,7 +190,10 @@ func GetValidator(RPCClient *client.HTTP, DB *pg.DB, w http.ResponseWriter, r *h
 		Uptime:               *tempUptime,
 		MinSelfDelegation:    validatorInfo.MinSelfDelegation,
 		KeybaseURL:           validatorInfo.KeybaseURL,
-	})
+	}
+
+	u.Respond(w, resultValidatorDetail)
+	return nil
 }
 
 // GetValidatorBlockMisses receives validator address and returns the validator's block consencutive misses
@@ -198,7 +203,7 @@ func GetValidatorBlockMisses(RPCClient *client.HTTP, DB *pg.DB, w http.ResponseW
 	address := vars["address"]
 
 	// Change to proposer address format
-	validatorInfo, _ := utils.ConvertToProposerSlice(address, DB)
+	validatorInfo, _ := u.ConvertToProposerSlice(address, DB)
 
 	// Check if the validator address exists
 	if len(validatorInfo) <= 0 {
@@ -210,7 +215,7 @@ func GetValidatorBlockMisses(RPCClient *client.HTTP, DB *pg.DB, w http.ResponseW
 	address = validatorInfo[0].Proposer
 
 	// Query a validator's missing blocks
-	var missInfos []ctypes.MissInfo
+	var missInfos []dbtypes.MissInfo
 	err := DB.Model(&missInfos).
 		Where("address = ?", address).
 		Limit(50).
@@ -231,7 +236,9 @@ func GetValidatorBlockMisses(RPCClient *client.HTTP, DB *pg.DB, w http.ResponseW
 		}
 		resultMisses = append(resultMisses, tempResultMisses)
 	}
-	return json.NewEncoder(w).Encode(resultMisses)
+
+	u.Respond(w, resultMisses)	
+	return nil
 }
 
 // GetValidatorBlockMissesDetail receives validator address and returns the validator's block misses (uptime)
@@ -241,7 +248,7 @@ func GetValidatorBlockMissesDetail(RPCClient *client.HTTP, DB *pg.DB, w http.Res
 	address := vars["address"]
 
 	// Change to proposer address format
-	validatorInfo, _ := utils.ConvertToProposerSlice(address, DB)
+	validatorInfo, _ := u.ConvertToProposerSlice(address, DB)
 
 	// Check if the input validator address exists
 	if len(validatorInfo) <= 0 {
@@ -254,7 +261,7 @@ func GetValidatorBlockMissesDetail(RPCClient *client.HTTP, DB *pg.DB, w http.Res
 
 	// Query the current block
 	// * Second highest block number saved in a database due to client's handling
-	var blockInfo []ctypes.BlockInfo
+	var blockInfo []dbtypes.BlockInfo
 	_ = DB.Model(&blockInfo).
 		Column("height").
 		Order("id DESC").
@@ -262,7 +269,7 @@ func GetValidatorBlockMissesDetail(RPCClient *client.HTTP, DB *pg.DB, w http.Res
 		Select()
 
 	// Query a validator's missing blocks
-	var missDetailInfos []ctypes.MissDetailInfo
+	var missDetailInfos []dbtypes.MissDetailInfo
 	_ = DB.Model(&missDetailInfos).
 		Where("address = ? AND height >= ?", address, blockInfo[1].Height-100).
 		Limit(100).
@@ -281,7 +288,9 @@ func GetValidatorBlockMissesDetail(RPCClient *client.HTTP, DB *pg.DB, w http.Res
 		}
 		resultMissesDetail = append(resultMissesDetail, tempResultMissesDetail)
 	}
-	return json.NewEncoder(w).Encode(resultMissesDetail)
+
+	u.Respond(w, resultMissesDetail)	
+	return nil
 }
 
 // GetValidatorEvents receives validator address and returns the validator's events
@@ -314,7 +323,7 @@ func GetValidatorEvents(DB *pg.DB, w http.ResponseWriter, r *http.Request) error
 		from = tempFrom
 	} else {
 		// Get current height in DB
-		var blocks ctypes.BlockInfo
+		var blocks dbtypes.BlockInfo
 		_ = DB.Model(&blocks).
 			Order("id DESC").
 			Limit(1).
@@ -323,7 +332,7 @@ func GetValidatorEvents(DB *pg.DB, w http.ResponseWriter, r *http.Request) error
 	}
 
 	// Change to proposer address format
-	validatorInfo, _ := utils.ConvertToProposerSlice(address, DB)
+	validatorInfo, _ := u.ConvertToProposerSlice(address, DB)
 
 	// Check if the input validator address exists
 	if len(validatorInfo) <= 0 {
@@ -335,7 +344,7 @@ func GetValidatorEvents(DB *pg.DB, w http.ResponseWriter, r *http.Request) error
 	address = validatorInfo[0].Proposer
 
 	// Query id_validator
-	var idValidatorSetInfo ctypes.ValidatorSetInfo
+	var idValidatorSetInfo dbtypes.ValidatorSetInfo
 	_ = DB.Model(&idValidatorSetInfo).
 		Column("id_validator").
 		Where("proposer = ?", address).
@@ -344,7 +353,7 @@ func GetValidatorEvents(DB *pg.DB, w http.ResponseWriter, r *http.Request) error
 
 	resultVotingPowerHistory := make([]*models.ResultVotingPowerHistory, 0)
 	if idValidatorSetInfo.IDValidator != 0 {
-		var validatorSetInfo []ctypes.ValidatorSetInfo
+		var validatorSetInfo []dbtypes.ValidatorSetInfo
 		_ = DB.Model(&validatorSetInfo).
 			Where("id_validator = ? AND height <= ?", idValidatorSetInfo.IDValidator, from).
 			Limit(limit).
@@ -363,7 +372,9 @@ func GetValidatorEvents(DB *pg.DB, w http.ResponseWriter, r *http.Request) error
 			resultVotingPowerHistory = append(resultVotingPowerHistory, tempResultValidatorSet)
 		}
 	}
-	return json.NewEncoder(w).Encode(resultVotingPowerHistory)
+
+	u.Respond(w, resultVotingPowerHistory)	
+	return nil
 }
 
 // GetRedelegations receives delegator, srcvalidator, dstvalidator address and returns redelegations information
@@ -391,7 +402,8 @@ func GetRedelegations(DB *pg.DB, Config *config.Config, w http.ResponseWriter, r
 		fmt.Printf("staking/redelegations? unmarshal error - %v\n", err)
 	}
 
-	return json.NewEncoder(w).Encode(redelegations)
+	u.Respond(w, redelegations)	
+	return nil
 }
 
 // GetValidatorDelegations receives validator address and returns all existing delegations that are delegated to the validator
@@ -401,7 +413,7 @@ func GetValidatorDelegations(Codec *codec.Codec, RPCClient *client.HTTP, DB *pg.
 	operatorAddress := vars["address"]
 
 	// Change to proposer address format
-	validatorInfo, _ := utils.ConvertToProposerSlice(operatorAddress, DB)
+	validatorInfo, _ := u.ConvertToProposerSlice(operatorAddress, DB)
 
 	// Check if the input validator address exists
 	if len(validatorInfo) <= 0 {
@@ -480,4 +492,7 @@ func GetValidatorDelegations(Codec *codec.Codec, RPCClient *client.HTTP, DB *pg.
 		DelegatorNumChange24H: delegatorNumChange24H,
 		ValidatorDelegations:  validatorDelegations,
 	})
+
+	// u.Respond(w, redelegations)	
+	// return nil
 }

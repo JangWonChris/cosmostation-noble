@@ -10,8 +10,8 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/errors"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models"
-	ctypes "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models/sync"
-	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/utils"
+	u "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/utils"
+	dbtypes "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/go-pg/pg"
@@ -24,7 +24,7 @@ import (
 // GetProposals returns all existing proposals
 func GetProposals(DB *pg.DB, Config *config.Config, w http.ResponseWriter, r *http.Request) error {
 	// Query all proposals
-	proposalInfo := make([]*ctypes.ProposalInfo, 0)
+	proposalInfo := make([]*dbtypes.ProposalInfo, 0)
 	_ = DB.Model(&proposalInfo).Select()
 
 	// Check if any proposal exists
@@ -39,7 +39,7 @@ func GetProposals(DB *pg.DB, Config *config.Config, w http.ResponseWriter, r *ht
 		cosmosOperAddress, _ := bech32.ConvertAndEncode(sdk.Bech32PrefixValAddr, decoded)
 
 		// Check if the address matches any moniker in our DB
-		var validatorInfo ctypes.ValidatorInfo
+		var validatorInfo dbtypes.ValidatorInfo
 		_ = DB.Model(&validatorInfo).
 			Column("moniker").
 			Where("operator_address = ?", cosmosOperAddress).
@@ -71,7 +71,9 @@ func GetProposals(DB *pg.DB, Config *config.Config, w http.ResponseWriter, r *ht
 		}
 		resultProposal = append(resultProposal, tempProposal)
 	}
-	return json.NewEncoder(w).Encode(resultProposal)
+
+	u.Respond(w, resultProposal)
+	return nil
 }
 
 // GetProposal receives proposal id and returns particular proposal
@@ -81,7 +83,7 @@ func GetProposal(DB *pg.DB, Config *config.Config, w http.ResponseWriter, r *htt
 	proposalID := vars["proposalId"]
 
 	// Query particular proposal
-	var proposalInfo ctypes.ProposalInfo
+	var proposalInfo dbtypes.ProposalInfo
 	err := DB.Model(&proposalInfo).
 		Where("id = ?", proposalID).
 		Select()
@@ -95,14 +97,14 @@ func GetProposal(DB *pg.DB, Config *config.Config, w http.ResponseWriter, r *htt
 	cosmosOperAddress, _ := bech32.ConvertAndEncode(sdk.Bech32PrefixValAddr, decoded)
 
 	// Check if the address matches any moniker in our DB
-	var validatorInfo ctypes.ValidatorInfo
+	var validatorInfo dbtypes.ValidatorInfo
 	_ = DB.Model(&validatorInfo).
 		Column("moniker").
 		Where("operator_address = ?", cosmosOperAddress).
 		Limit(1).
 		Select()
 
-	return json.NewEncoder(w).Encode(&models.ResultProposal{
+	resultProposal := &models.ResultProposal{
 		ProposalID:           proposalInfo.ID,
 		TxHash:               proposalInfo.TxHash,
 		Proposer:             proposalInfo.Proposer,
@@ -123,7 +125,10 @@ func GetProposal(DB *pg.DB, Config *config.Config, w http.ResponseWriter, r *htt
 		DepositEndtime:       proposalInfo.DepositEndtime,
 		VotingStartTime:      proposalInfo.VotingStartTime,
 		VotingEndTime:        proposalInfo.VotingEndTime,
-	})
+	}
+
+	u.Respond(w, resultProposal)
+	return nil
 }
 
 // GetProposalVotes receives proposal id and returns voting information
@@ -133,7 +138,7 @@ func GetProposalVotes(DB *pg.DB, Config *config.Config, w http.ResponseWriter, r
 	proposalID := vars["proposalId"]
 
 	// Check if proposal id exists
-	var proposalInfo ctypes.ProposalInfo
+	var proposalInfo dbtypes.ProposalInfo
 	err := DB.Model(&proposalInfo).
 		Where("id = ?", proposalID).
 		Select()
@@ -143,7 +148,7 @@ func GetProposalVotes(DB *pg.DB, Config *config.Config, w http.ResponseWriter, r
 	}
 
 	// Query all votes
-	voteInfo := make([]*ctypes.VoteInfo, 0)
+	voteInfo := make([]*dbtypes.VoteInfo, 0)
 	_ = DB.Model(&voteInfo).
 		Where("proposal_id = ?", proposalID).
 		Order("id DESC").
@@ -174,7 +179,7 @@ func GetProposalVotes(DB *pg.DB, Config *config.Config, w http.ResponseWriter, r
 	// Votes
 	votes := make([]*models.Votes, 0)
 	for _, vote := range voteInfo {
-		moniker := utils.ConvertCosmosAddressToMoniker(vote.Voter, DB)
+		moniker := u.ConvertCosmosAddressToMoniker(vote.Voter, DB)
 
 		tempVoteInfo := &models.Votes{
 			Voter:   vote.Voter,
@@ -212,10 +217,13 @@ func GetProposalVotes(DB *pg.DB, Config *config.Config, w http.ResponseWriter, r
 		NoWithVetoNum:    noWithVetoCnt,
 	}
 
-	return json.NewEncoder(w).Encode(&models.ResultVoteInfo{
+	resultVoteInfo := &models.ResultVoteInfo{
 		Tally: tempTally,
 		Votes: votes,
-	})
+	}
+
+	u.Respond(w, resultVoteInfo)
+	return nil
 }
 
 // GetProposalDeposits receives proposal id and returns deposit information
@@ -225,7 +233,7 @@ func GetProposalDeposits(db *pg.DB, w http.ResponseWriter, r *http.Request) erro
 	proposalID := vars["proposalId"]
 
 	// Check if proposal id exists
-	var proposalInfo ctypes.ProposalInfo
+	var proposalInfo dbtypes.ProposalInfo
 	err := db.Model(&proposalInfo).
 		Where("id = ?", proposalID).
 		Select()
@@ -238,7 +246,7 @@ func GetProposalDeposits(db *pg.DB, w http.ResponseWriter, r *http.Request) erro
 	resultDepositInfo := make([]*models.DepositInfo, 0)
 
 	// Query all deposit info
-	depositInfo := make([]*ctypes.DepositInfo, 0)
+	depositInfo := make([]*dbtypes.DepositInfo, 0)
 	_ = db.Model(&depositInfo).
 		Where("proposal_id = ?", proposalID).
 		Order("id DESC").
@@ -251,7 +259,7 @@ func GetProposalDeposits(db *pg.DB, w http.ResponseWriter, r *http.Request) erro
 
 	for _, deposit := range depositInfo {
 		// Convert Cosmos Address to Opeartor Address
-		moniker := utils.ConvertCosmosAddressToMoniker(deposit.Depositor, db)
+		moniker := u.ConvertCosmosAddressToMoniker(deposit.Depositor, db)
 
 		// Insert deposits
 		tempDepositInfo := &models.DepositInfo{
@@ -266,7 +274,8 @@ func GetProposalDeposits(db *pg.DB, w http.ResponseWriter, r *http.Request) erro
 		resultDepositInfo = append(resultDepositInfo, tempDepositInfo)
 	}
 
-	return json.NewEncoder(w).Encode(resultDepositInfo)
+	u.Respond(w, resultDepositInfo)
+	return nil
 }
 
 func Test(RPCClient *client.HTTP, DB *pg.DB, w http.ResponseWriter, r *http.Request) {
@@ -309,7 +318,7 @@ func Test(RPCClient *client.HTTP, DB *pg.DB, w http.ResponseWriter, r *http.Requ
 	}
 
 	// Query all validators' operating addresses
-	var validatorInfo []ctypes.ValidatorInfo
+	var validatorInfo []dbtypes.ValidatorInfo
 	_ = DB.Model(&validatorInfo).
 		Column("cosmos_address", "operator_address").
 		Order("id ASC").
@@ -372,7 +381,7 @@ func Test(RPCClient *client.HTTP, DB *pg.DB, w http.ResponseWriter, r *http.Requ
 	// 	var validatorDelegations []ValidatorDelegations
 	// 	_ = json.Unmarshal(validatorDelegationsResp.Body(), &validatorDelegations)
 
-	// 	validatorCosmosAddress := utils.OperatorAddressToCosmosAddress(validatorDetailInfo.OperatorAddress)
+	// 	validatorCosmosAddress := u.OperatorAddressToCosmosAddress(validatorDetailInfo.OperatorAddress)
 	// 	for _, validatorDelegation := range validatorDelegations {
 	// 		// Calculate Self-Delegated Shares
 	// 		if validatorDelegation.DelegatorAddress == validatorCosmosAddress {

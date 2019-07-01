@@ -9,7 +9,8 @@ import (
 
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models"
-	ctypes "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models/sync"
+	dbtypes "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models/types"
+	u "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/utils"
 
 	"github.com/go-pg/pg"
 	"github.com/tendermint/tendermint/rpc/client"
@@ -34,19 +35,19 @@ func GetStatus(RPCClient *client.HTTP, DB *pg.DB, Config *config.Config, w http.
 	bondedTokens, err := strconv.ParseFloat(pool.BondedTokens, 64)
 
 	// Get a number of unjailed validators
-	var unjailedValidators ctypes.ValidatorInfo
+	var unjailedValidators dbtypes.ValidatorInfo
 	unJailedNum, _ := DB.Model(&unjailedValidators).
 		Where("jailed = ?", false).
 		Count()
 
 	// Get a number of jailed validators
-	var jailedValidators ctypes.ValidatorInfo
+	var jailedValidators dbtypes.ValidatorInfo
 	jailedNum, _ := DB.Model(&jailedValidators).
 		Where("jailed = ?", true).
 		Count()
 
 	// Total Txs Num
-	var blockInfo ctypes.BlockInfo
+	var blockInfo dbtypes.BlockInfo
 	_ = DB.Model(&blockInfo).
 		Column("total_txs").
 		Order("height DESC").
@@ -57,7 +58,7 @@ func GetStatus(RPCClient *client.HTTP, DB *pg.DB, Config *config.Config, w http.
 	status, _ := RPCClient.Status()
 
 	// Query the lastly saved block time
-	var lastBlockTime []ctypes.BlockInfo
+	var lastBlockTime []dbtypes.BlockInfo
 	_ = DB.Model(&lastBlockTime).
 		Column("time").
 		Order("height DESC").
@@ -72,7 +73,7 @@ func GetStatus(RPCClient *client.HTTP, DB *pg.DB, Config *config.Config, w http.
 	// Get the block time that is taken from the previous block
 	diff := lastBlocktime.Sub(secondLastBlocktime)
 
-	return json.NewEncoder(w).Encode(&models.ResultStatus{
+	resultStatus := &models.ResultStatus{
 		ChainID:                status.NodeInfo.Network,
 		BlockHeight:            status.SyncInfo.LatestBlockHeight,
 		BlockTime:              diff.Seconds(),
@@ -84,5 +85,8 @@ func GetStatus(RPCClient *client.HTTP, DB *pg.DB, Config *config.Config, w http.
 		BondedTokens:           bondedTokens,
 		NotBondedTokens:        notBondedTokens,
 		Time:                   status.SyncInfo.LatestBlockTime,
-	})
+	}
+
+	u.Respond(w, resultStatus)
+	return nil
 }

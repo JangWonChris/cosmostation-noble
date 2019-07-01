@@ -15,15 +15,12 @@ import (
 // Passes requests to its respective service
 func DistributionController(Config *config.Config, DB *pg.DB, r *mux.Router, RPCClient *client.HTTP) {
 	r.HandleFunc("/distribution/delegators/{delegatorAddr}/withdraw_address", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
 		services.GetDelegatorWithdrawAddress(Config, DB, RPCClient, w, r)
 	})
 	r.HandleFunc("/distribution/delegators/{delegatorAddr}/rewards/{validatorAddr}", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
 		services.GetDelegatorRewards(Config, DB, RPCClient, w, r)
 	})
 	r.HandleFunc("/distribution/community_pool", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
 		services.GetCommunityPool(Config, DB, RPCClient, w, r)
 	})
 }

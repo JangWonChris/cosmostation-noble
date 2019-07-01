@@ -9,13 +9,14 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models/stats"
+	u "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/utils"
 
 	"github.com/go-pg/pg"
 	"github.com/tendermint/tendermint/rpc/client"
 	resty "gopkg.in/resty.v1"
 )
 
-const (
+var (
 	CoinGeckoAPIURL = "https://api.coingecko.com/api/v3/coins/cosmos"
 )
 
@@ -60,14 +61,17 @@ func GetMarketInfo(RPCClient *client.HTTP, DB *pg.DB, Config *config.Config, w h
 		priceStats = append(priceStats, tempPriceStats)
 	}
 
-	return json.NewEncoder(w).Encode(&models.MarketInfo{
+	resultMarketInfo := &models.MarketInfo{
 		Price:            coinGeckoMarketInfo.MarketData.CurrentPrice.Usd,
 		Currency:         marketInfo.Currency,
 		PercentChange1H:  marketInfo.PercentChange1H,
 		PercentChange24H: marketInfo.PercentChange24H,
 		LastUpdated:      marketInfo.LastUpdated,
 		PriceStats:       priceStats,
-	})
+	}
+
+	u.Respond(w, resultMarketInfo)
+	return nil
 }
 
 // GetNetworkStats returns network stats
@@ -121,8 +125,11 @@ func GetNetworkStats(RPCClient *client.HTTP, DB *pg.DB, Config *config.Config, w
 		percentChange24H = (float64(diff) / float64(before24HBondedTokens)) * 100
 	}
 
-	return json.NewEncoder(w).Encode(&models.NetworkInfo{
+	resultNetworkInfo := &models.NetworkInfo{
 		BondendTokensPercentChange24H: percentChange24H,
 		BondedTokensStats:             bondedTokensStats,
-	})
+	}
+
+	u.Respond(w, resultNetworkInfo)
+	return nil
 }
