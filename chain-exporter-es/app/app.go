@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"os"
 	"time"
 
@@ -36,28 +37,31 @@ func (a *App) NewContext() *Context  {
 	}
 }
 
-func New(env string) (app *App, err error)  {
+func NewApp(network string, env string) (app *App, err error)  {
 	app = &App{}
 
-	elasticConfig, err := elastic.InitConfig(env)
+	elasticConfig, err := elastic.InitConfig(network, env)
 	if err != nil {
+		logrus.Error(err)
 		return nil, err
 	}
 
-	appConfig, err := InitConfig(env)
+	appConfig, err := InitConfig(network, env)
 	if err != nil {
+		logrus.Error(err)
 		return nil, err
 	}
 
 	appContext := app.NewContext()
 
-	app.ElasticSearch, err = elastic.New(elasticConfig)
+	app.ElasticSearch, err = elastic.NewElastic(elasticConfig)
 	app.Client = client.NewHTTP(appConfig.RPCEndPoint, "/websocket")
 	app.Client.SetLogger(appContext.Logger)
 	app.Client.WSEvents.SetLogger(appContext.Logger)
 	app.BaseService = *cmn.NewBaseService(appContext.Logger, "ES Crawler Server", app)
 
 	if err != nil {
+		logrus.Error(err)
 		return nil, err
 	}
 
@@ -84,7 +88,7 @@ func (a *App) OnStart() error  {
 		return err
 	}
 
-	//비동기로 실행
+	// 고루틴 실행
 	go a.routine()
 	return nil
 }
@@ -93,6 +97,7 @@ func (a *App) OnStart() error  {
 func (a *App) routine()  {
 	a.IsCaughtUp = false
 	height, err := a.ElasticSearch.GetCurrHeight(a.WsCtx)
+	a.Logger.Info("sync start at height : ", height )
 	if err != nil {
 		a.Logger.Error(fmt.Sprintf("Error on GetCurrHeightFromES: %s", err.Error()), "height", height)
 	}
