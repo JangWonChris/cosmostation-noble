@@ -17,8 +17,17 @@ config.yaml은 따로 공유하는 것으로 한다.
     ( * env, network 플래그는 필수 / env는 dev/prod, network는 cosmos/kava)
 ```
 
-## [참고]escrawler.service
+## 3. 서버에서 빌드 및 구동
+```
+1. cd $HOME/chain-exporter-es/chain-exporter-es
+2. go build -o $HOME/go/bin/chain-exporter-es
+3. sudo systemctl start es-crawler.service
+```
 
+
+###Cosmos - escralwer.service 
+(kava와 동일하게 변경예정)
+<br/>
 위치 : /lib/systemd/system/escrawler.service
 
 파일내용
@@ -37,4 +46,35 @@ RestartSec=10s
 
 [Install]
 WantedBy=multi-user.target
+```
+
+<br/>
+
+### Kava - es-cralwer.service
+*위치 : /etc/systemd/system/es-cralwer.service*
+
+```
+[Unit]
+Description=ES Crawler Service
+Requires=network-online.target
+After=network-online.target
+
+[Service]
+EnvironmentFile=/etc/es-crawler.conf
+Type=simple
+ExecStart=/home/ubuntu/go/bin/chain-exporter-es server --env=${ENV_DEV} --network=${NETWORK_KAVA}
+Restart=on-failure
+RestartSec=10s
+
+
+[Install]
+WantedBy=multi-user.target
+```
+
+*EnvironmentFile*
+```
+ENV_DEV = dev
+ENV_PROD = prod
+NETWORK_COSMOS = cosmos
+NETWORK_KAVA = kava
 ```
