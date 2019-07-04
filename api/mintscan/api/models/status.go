@@ -15,6 +15,7 @@ type ResultStatus struct {
 	TotalValidatorNum      int       `json:"total_validator_num"`
 	UnjailedValidatorNum   int       `json:"unjailed_validator_num"`
 	JailedValidatorNum     int       `json:"jailed_validator_num"`
+	TotalSupplyTokens      float64   `json:"total_supply_tokens"`
 	TotalCirculatingTokens float64   `json:"total_circulating_tokens"`
 	BondedTokens           float64   `json:"bonded_tokens"`
 	NotBondedTokens        float64   `json:"not_bonded_tokens"`

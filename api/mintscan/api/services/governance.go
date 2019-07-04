@@ -5,19 +5,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/config"
-	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/errors"
+	errors "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/errors"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models"
-	u "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/utils"
 	dbtypes "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models/types"
+	u "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/utils"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/go-pg/pg"
 	"github.com/gorilla/mux"
 	"github.com/tendermint/tendermint/libs/bech32"
-	"github.com/tendermint/tendermint/rpc/client"
 	resty "gopkg.in/resty.v1"
 )
 
@@ -179,7 +177,7 @@ func GetProposalVotes(DB *pg.DB, Config *config.Config, w http.ResponseWriter, r
 	// Votes
 	votes := make([]*models.Votes, 0)
 	for _, vote := range voteInfo {
-		moniker := u.ConvertCosmosAddressToMoniker(vote.Voter, DB)
+		moniker, _ := u.ConvertCosmosAddressToMoniker(vote.Voter, DB)
 
 		tempVoteInfo := &models.Votes{
 			Voter:   vote.Voter,
@@ -259,7 +257,7 @@ func GetProposalDeposits(db *pg.DB, w http.ResponseWriter, r *http.Request) erro
 
 	for _, deposit := range depositInfo {
 		// Convert Cosmos Address to Opeartor Address
-		moniker := u.ConvertCosmosAddressToMoniker(deposit.Depositor, db)
+		moniker, _ := u.ConvertCosmosAddressToMoniker(deposit.Depositor, db)
 
 		// Insert deposits
 		tempDepositInfo := &models.DepositInfo{
@@ -276,164 +274,4 @@ func GetProposalDeposits(db *pg.DB, w http.ResponseWriter, r *http.Request) erro
 
 	u.Respond(w, resultDepositInfo)
 	return nil
-}
-
-func Test(RPCClient *client.HTTP, DB *pg.DB, w http.ResponseWriter, r *http.Request) {
-	// q, _ := tmquery.New("account.owner='Cosmostation'")
-	// fmt.Println(q.String())
-	// fmt.Println(reflect.TypeOf(q))
-
-	// tx, _ := rpcClient.TxSearch(q.String(), false, 1, 1)
-
-	// fmt.Println(tx)
-
-	type ValidatorDelegations struct {
-		DelegatorAddress string  `json:"delegator_address"`
-		ValidatorAddress string  `json:"validator_address"`
-		Shares           sdk.Dec `json:"shares"`
-	}
-
-	type ValidatorDetailInfo struct {
-		OperatorAddress string  `json:"operator_address"`
-		ConsensusPubkey string  `json:"consensus_pubkey"`
-		Jailed          bool    `json:"jailed"`
-		Status          int     `json:"status"`
-		Tokens          sdk.Dec `json:"tokens"`
-		DelegatorShares sdk.Dec `json:"delegator_shares"`
-		Description     struct {
-			Moniker  string `json:"moniker"`
-			Identity string `json:"identity"`
-			Website  string `json:"website"`
-			Details  string `json:"details"`
-		} `json:"description"`
-		UnbondingHeight string    `json:"unbonding_height"`
-		UnbondingTime   time.Time `json:"unbonding_time"`
-		Commission      struct {
-			Rate          sdk.Dec   `json:"rate"`
-			MaxRate       sdk.Dec   `json:"max_rate"`
-			MaxChangeRate sdk.Dec   `json:"max_change_rate"`
-			UpdateTime    time.Time `json:"update_time"`
-		} `json:"commission"`
-		MinSelfDelegation string `json:"min_self_delegation"`
-	}
-
-	// Query all validators' operating addresses
-	var validatorInfo []dbtypes.ValidatorInfo
-	_ = DB.Model(&validatorInfo).
-		Column("cosmos_address", "operator_address").
-		Order("id ASC").
-		Select()
-
-	/*
-		시도 3 : LCD 서버가 요청을 느리게 받아주는 건지, RPC Full Node가 느리게 받아주는 건지 확인 (lcd-do-not-abuse 로 테스트)
-	*/
-
-	// // 여기서부터 test
-	// validatorAddr, err := sdktypes.ValAddressFromBech32(operatorAddress)
-	// if err != nil {
-	// 	fmt.Println("err", err)
-	// }
-	// params := staking.NewQueryValidatorParams(validatorAddr)
-
-	// bz, err := cdc.MarshalJSON(params)
-	// if err != nil {
-	// 	fmt.Println("MarshalJSON", err)
-	// }
-
-	// opts := rpcclient.ABCIQueryOptions{
-	// 	// Height: height,
-	// 	// Prove: true,
-	// }
-
-	// result, err := client.ABCIQueryWithOptions(fmt.Sprintf("custom/%s/%s", staking.QuerierRoute, staking.QueryValidatorDelegations), bz, opts)
-	// if err != nil {
-	// 	fmt.Println("ABCIQueryWithOptions", err)
-	// }
-
-	// resp := result.Response
-	// if !resp.IsOK() {
-	// 	fmt.Println("err", err)
-	// }
-
-	// var validatorDelegations []*models.ValidatorDelegations
-	// err = json.Unmarshal(resp.Value, &validatorDelegations)
-	// if err != nil {
-	// 	fmt.Printf("staking/validators/{address}/delegations unmarshal error - %v\n", err)
-	// }
-
-	/*
-		시도 2 : 느림
-	*/
-	// Query each validator's delegations
-	// for _, validator := range validatorInfo {
-	// 	validatorResp, _ := resty.R().Get("https://lcd-do-not-abuse.cosmostation.io/staking/validators/" + validator.OperatorAddress)
-	// 	validatorDelegationsResp, _ := resty.R().Get("https://lcd-do-not-abuse.cosmostation.io/staking/validators/" + validator.OperatorAddress + "/delegations")
-
-	// 	var totalDelegatorShares float64
-	// 	var selfDelegatedShares float64
-	// 	var othersShares float64
-
-	// 	// Parse ValidatorDelegations struct
-	// 	var validatorDetailInfo ValidatorDetailInfo
-	// 	_ = json.Unmarshal(validatorResp.Body(), &validatorDetailInfo)
-
-	// 	// Parse ValidatorDelegations struct
-	// 	var validatorDelegations []ValidatorDelegations
-	// 	_ = json.Unmarshal(validatorDelegationsResp.Body(), &validatorDelegations)
-
-	// 	validatorCosmosAddress := u.OperatorAddressToCosmosAddress(validatorDetailInfo.OperatorAddress)
-	// 	for _, validatorDelegation := range validatorDelegations {
-	// 		// Calculate Self-Delegated Shares
-	// 		if validatorDelegation.DelegatorAddress == validatorCosmosAddress {
-	// 			selfDelegatedShares, _ = strconv.ParseFloat(validatorDelegation.Shares.String(), 64)
-	// 		}
-	// 	}
-
-	// 	othersShares, _ = strconv.ParseFloat(validatorDetailInfo.DelegatorShares.String(), 64)
-	// 	totalDelegatorShares = selfDelegatedShares + othersShares
-
-	// 	fmt.Println("validator.OperatorAddress: ", validatorDetailInfo.OperatorAddress)
-	// 	fmt.Println("totalDelegatorShares: ", totalDelegatorShares)
-	// 	fmt.Println("selfDelegatedShares: ", selfDelegatedShares)
-	// 	fmt.Println("othersShares: ", othersShares-selfDelegatedShares)
-	// 	fmt.Println("")
-	// }
-
-	/*
-		시도 1 : 정석대로 요청한 결과 느림
-	*/
-	// Query each validator's delegations
-	// for _, validator := range validatorInfo {
-	// 	resp, _ := resty.R().Get("https://lcd-do-not-abuse.cosmostation.io/staking/validators/" + validator.OperatorAddress + "/delegations")
-
-	// 	// Parse ValidatorDelegations struct
-	// 	var validatorDelegations []ValidatorDelegations
-	// 	_ = json.Unmarshal(resp.Body(), &validatorDelegations)
-
-	// 	fmt.Println("validatorDelegations: ", validatorDelegations)
-	// 	fmt.Println("")
-
-	// 	var totalDelegatorShares float64
-	// 	var selfDelegatedShares float64
-	// 	var othersShares float64
-
-	// 	for _, validatorDelegation := range validatorDelegations {
-	// 		// Calculate self-delegated and others shares
-	// 		if validatorDelegation.DelegatorAddress == validator.CosmosAddress {
-	// 			selfDelegatedShares, _ = strconv.ParseFloat(validatorDelegation.Shares.String(), 64)
-	// 		} else {
-	// 			tempOthersShares, _ := strconv.ParseFloat(validatorDelegation.Shares.String(), 64)
-	// 			othersShares += tempOthersShares
-	// 		}
-	// 	}
-
-	// 	totalDelegatorShares = selfDelegatedShares + othersShares
-
-	// 	fmt.Println("validator.OperatorAddress: ", validator.OperatorAddress)
-	// 	fmt.Println("totalDelegatorShares: ", totalDelegatorShares)
-	// 	fmt.Println("selfDelegatedShares: ", selfDelegatedShares)
-	// 	fmt.Println("othersShares: ", othersShares)
-	// 	fmt.Println("")
-	// }
-
 }

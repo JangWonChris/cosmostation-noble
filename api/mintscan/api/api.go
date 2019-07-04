@@ -1,19 +1,22 @@
 package api
 
 import (
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
 
 	gaiaApp "github.com/cosmos/cosmos-sdk/cmd/gaia/app"
+	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/controllers"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/databases"
-	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/config"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/go-pg/pg"
 	"github.com/gorilla/mux"
 	"github.com/tendermint/tendermint/rpc/client"
+
+	resty "gopkg.in/resty.v1"
 )
 
 // App wraps up the required variables that are needed in this app
@@ -41,13 +44,15 @@ func (a *App) NewApp(config *config.Config) {
 
 	// Register routers
 	a.setRouters()
+
+	resty.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true}) // Local 환경에서 테스트를 위해
 }
 
 // Sets the all required routers
 func (a *App) setRouters() {
 	a.Router = mux.NewRouter()
 	a.Router = a.Router.PathPrefix("/v1").Subrouter()
-	
+
 	controllers.AccountController(a.Router, a.RPCClient, a.DB, a.Config)
 	controllers.BlockController(a.Router, a.RPCClient, a.DB, a.Config)
 	controllers.DistributionController(a.Config, a.DB, a.Router, a.RPCClient)

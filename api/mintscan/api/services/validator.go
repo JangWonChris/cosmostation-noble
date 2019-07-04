@@ -1,7 +1,6 @@
 package services
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -14,14 +13,11 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models/stats"
 	dbtypes "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models/types"
 	u "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/utils"
-
 	resty "gopkg.in/resty.v1"
 
 	"github.com/go-pg/pg"
 	"github.com/gorilla/mux"
 	"github.com/tendermint/tendermint/rpc/client"
-
-	// resty "gopkg.in/resty.v1"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 )
@@ -71,7 +67,7 @@ func GetValidators(RPCClient *client.HTTP, DB *pg.DB, w http.ResponseWriter, r *
 	resultValidator := make([]*models.ResultValidator, 0)
 	for _, validator := range validatorInfo {
 		// Convert to proposer address
-		proposerAddress := u.ConsensusPubkeyToProposer(validator.ConsensusPubkey)
+		proposerAddress, _ := u.ConsensusPubkeyToProposer(validator.ConsensusPubkey)
 
 		// Query how many missed blocks each validator has for the last 100 blocks
 		var missDetailInfo []dbtypes.MissDetailInfo
@@ -144,7 +140,7 @@ func GetValidator(RPCClient *client.HTTP, DB *pg.DB, w http.ResponseWriter, r *h
 	currentHeight := status.SyncInfo.LatestBlockHeight
 
 	// Query how many missed blocks each validator has for the last 100 blocks
-	proposerAddress := u.ConsensusPubkeyToProposer(validatorInfo.ConsensusPubkey)
+	proposerAddress, _ := u.ConsensusPubkeyToProposer(validatorInfo.ConsensusPubkey)
 	var missDetailInfo []dbtypes.MissDetailInfo
 	missBlockCount, _ := DB.Model(&missDetailInfo).
 		Where("address = ? AND height BETWEEN ? AND ?", proposerAddress, currentHeight-100, currentHeight).
@@ -237,7 +233,7 @@ func GetValidatorBlockMisses(RPCClient *client.HTTP, DB *pg.DB, w http.ResponseW
 		resultMisses = append(resultMisses, tempResultMisses)
 	}
 
-	u.Respond(w, resultMisses)	
+	u.Respond(w, resultMisses)
 	return nil
 }
 
@@ -289,7 +285,7 @@ func GetValidatorBlockMissesDetail(RPCClient *client.HTTP, DB *pg.DB, w http.Res
 		resultMissesDetail = append(resultMissesDetail, tempResultMissesDetail)
 	}
 
-	u.Respond(w, resultMissesDetail)	
+	u.Respond(w, resultMissesDetail)
 	return nil
 }
 
@@ -373,7 +369,7 @@ func GetValidatorEvents(DB *pg.DB, w http.ResponseWriter, r *http.Request) error
 		}
 	}
 
-	u.Respond(w, resultVotingPowerHistory)	
+	u.Respond(w, resultVotingPowerHistory)
 	return nil
 }
 
@@ -393,7 +389,6 @@ func GetRedelegations(DB *pg.DB, Config *config.Config, w http.ResponseWriter, r
 	}
 
 	// Query LCD
-	resty.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
 	resp, _ := resty.R().Get(Config.Node.LCDURL + endpoint)
 
 	var redelegations []models.Redelegations
@@ -402,13 +397,13 @@ func GetRedelegations(DB *pg.DB, Config *config.Config, w http.ResponseWriter, r
 		fmt.Printf("staking/redelegations? unmarshal error - %v\n", err)
 	}
 
-	u.Respond(w, redelegations)	
+	u.Respond(w, redelegations)
 	return nil
 }
 
+// Currently not used due to Full Node requests performance issue
 // GetValidatorDelegations receives validator address and returns all existing delegations that are delegated to the validator
 func GetValidatorDelegations(Codec *codec.Codec, RPCClient *client.HTTP, DB *pg.DB, Config *config.Config, w http.ResponseWriter, r *http.Request) error {
-	// Receive address
 	vars := mux.Vars(r)
 	operatorAddress := vars["address"]
 
@@ -426,7 +421,6 @@ func GetValidatorDelegations(Codec *codec.Codec, RPCClient *client.HTTP, DB *pg.
 	proposer := validatorInfo[0].Proposer
 
 	// Query a validator's information
-	resty.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true}) // Local 환경에서 테스트를 위해
 	validatorResp, _ := resty.R().Get(Config.Node.LCDURL + "/staking/validators/" + operatorAddress)
 
 	var validator models.Validator
@@ -493,6 +487,6 @@ func GetValidatorDelegations(Codec *codec.Codec, RPCClient *client.HTTP, DB *pg.
 		ValidatorDelegations:  validatorDelegations,
 	})
 
-	// u.Respond(w, redelegations)	
+	// u.Respond(w, redelegations)
 	// return nil
 }

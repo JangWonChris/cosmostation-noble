@@ -1,7 +1,6 @@
 package services
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -17,10 +16,30 @@ import (
 	resty "gopkg.in/resty.v1"
 )
 
+/*
+	아래 두 기관에 분배된 토큰 수량 - 236,198,958.12
+
+		All in Bits Inc
+		Interchain Foundation
+
+	Total Supply (not_bonded_tokens + bonded_tokens)
+		- 1,777,707
+		- 21,842,188.81
+		+ 992826.76 * 2 (지금까지 총 두번) - 언제 정확히 풀리는지는 알아야 매월마다 합산된 량을 + 해준다.
+
+	vesting end time (UNIX Epoch time) - https://www.epochconverter.com/
+	1584140400 - GMT: 2020년 March 13일 Friday PM 11:00:00 (About 8 months left till now) - 45 accounts
+
+	Endtime
+*/
+
+var (
+	FoundationLockedTokens = 1777707
+)
+
 // GetStatus returns ResultStatus, which includes current network status
 func GetStatus(RPCClient *client.HTTP, DB *pg.DB, Config *config.Config, w http.ResponseWriter, r *http.Request) error {
 	// Query LCD - stake pool to get bonded and unbonded tokens
-	resty.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
 	resp, _ := resty.R().Get(Config.Node.LCDURL + "/staking/pool")
 
 	// Unmarshal Pool struct
@@ -73,15 +92,19 @@ func GetStatus(RPCClient *client.HTTP, DB *pg.DB, Config *config.Config, w http.
 	// Get the block time that is taken from the previous block
 	diff := lastBlocktime.Sub(secondLastBlocktime)
 
+	totalSupplyTokens := bondedTokens + notBondedTokens
+	// totalCirculatingTokens := 2
+
 	resultStatus := &models.ResultStatus{
 		ChainID:                status.NodeInfo.Network,
 		BlockHeight:            status.SyncInfo.LatestBlockHeight,
 		BlockTime:              diff.Seconds(),
 		TotalTxsNum:            blockInfo.TotalTxs,
 		TotalValidatorNum:      unJailedNum + jailedNum,
-		UnjailedValidatorNum:   unJailedNum,
-		JailedValidatorNum:     jailedNum,
+		TotalSupplyTokens:      totalSupplyTokens,
 		TotalCirculatingTokens: bondedTokens + notBondedTokens,
+		JailedValidatorNum:     jailedNum,
+		UnjailedValidatorNum:   unJailedNum,
 		BondedTokens:           bondedTokens,
 		NotBondedTokens:        notBondedTokens,
 		Time:                   status.SyncInfo.LatestBlockTime,

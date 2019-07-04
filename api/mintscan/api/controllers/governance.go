@@ -26,7 +26,4 @@ func GovernanceController(r *mux.Router, RPCClient *client.HTTP, DB *pg.DB, Conf
 	r.HandleFunc("/gov/proposal/deposits/{proposalId}", func(w http.ResponseWriter, r *http.Request) {
 		services.GetProposalDeposits(DB, w, r)
 	})
-	r.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
-		services.Test(RPCClient, DB, w, r)
-	})
 }
