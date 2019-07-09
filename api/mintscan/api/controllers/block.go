@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 
+	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/services"
 
@@ -12,11 +13,11 @@ import (
 )
 
 // Passes requests to its respective service
-func BlockController(r *mux.Router, RPCClient *client.HTTP, DB *pg.DB, Config *config.Config) {
-	r.HandleFunc("/blocks", func(w http.ResponseWriter, r *http.Request) {
-		services.GetBlocks(DB, w, r)
+func BlockController(codec *codec.Codec, config *config.Config, db *pg.DB, router *mux.Router, rpcClient *client.HTTP) {
+	router.HandleFunc("/blocks", func(w http.ResponseWriter, r *http.Request) {
+		services.GetBlocks(db, w, r)
 	})
-	r.HandleFunc("/blocks/{address}", func(w http.ResponseWriter, r *http.Request) {
-		services.GetProposedBlocks(DB, w, r)
+	router.HandleFunc("/blocks/{address}", func(w http.ResponseWriter, r *http.Request) {
+		services.GetProposedBlocks(db, w, r)
 	})
 }

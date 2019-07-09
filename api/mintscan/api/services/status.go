@@ -9,7 +9,7 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models"
 	dbtypes "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models/types"
-	u "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/utils"
+	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/utils"
 
 	"github.com/go-pg/pg"
 	"github.com/tendermint/tendermint/rpc/client"
@@ -33,14 +33,10 @@ import (
 	Endtime
 */
 
-var (
-	FoundationLockedTokens = 1777707
-)
-
 // GetStatus returns ResultStatus, which includes current network status
-func GetStatus(RPCClient *client.HTTP, DB *pg.DB, Config *config.Config, w http.ResponseWriter, r *http.Request) error {
+func GetStatus(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	// Query LCD - stake pool to get bonded and unbonded tokens
-	resp, _ := resty.R().Get(Config.Node.LCDURL + "/staking/pool")
+	resp, _ := resty.R().Get(config.Node.LCDURL + "/staking/pool")
 
 	// Unmarshal Pool struct
 	var pool *models.Pool
@@ -55,30 +51,30 @@ func GetStatus(RPCClient *client.HTTP, DB *pg.DB, Config *config.Config, w http.
 
 	// Get a number of unjailed validators
 	var unjailedValidators dbtypes.ValidatorInfo
-	unJailedNum, _ := DB.Model(&unjailedValidators).
+	unJailedNum, _ := db.Model(&unjailedValidators).
 		Where("jailed = ?", false).
 		Count()
 
 	// Get a number of jailed validators
 	var jailedValidators dbtypes.ValidatorInfo
-	jailedNum, _ := DB.Model(&jailedValidators).
+	jailedNum, _ := db.Model(&jailedValidators).
 		Where("jailed = ?", true).
 		Count()
 
 	// Total Txs Num
 	var blockInfo dbtypes.BlockInfo
-	_ = DB.Model(&blockInfo).
+	_ = db.Model(&blockInfo).
 		Column("total_txs").
 		Order("height DESC").
 		Limit(1).
 		Select()
 
 	// Query status
-	status, _ := RPCClient.Status()
+	status, _ := rpcClient.Status()
 
 	// Query the lastly saved block time
 	var lastBlockTime []dbtypes.BlockInfo
-	_ = DB.Model(&lastBlockTime).
+	_ = db.Model(&lastBlockTime).
 		Column("time").
 		Order("height DESC").
 		Limit(2).
@@ -110,6 +106,6 @@ func GetStatus(RPCClient *client.HTTP, DB *pg.DB, Config *config.Config, w http.
 		Time:                   status.SyncInfo.LatestBlockTime,
 	}
 
-	u.Respond(w, resultStatus)
+	utils.Respond(w, resultStatus)
 	return nil
 }

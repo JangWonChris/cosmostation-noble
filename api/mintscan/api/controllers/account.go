@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/services"
 
@@ -14,12 +15,12 @@ import (
 )
 
 // Passes requests to its respective service
-func AccountController(r *mux.Router, c *client.HTTP, DB *pg.DB, Config *config.Config) {
-	r.HandleFunc("/account/{address}", func(w http.ResponseWriter, r *http.Request) {
+func AccountController(codec *codec.Codec, config *config.Config, db *pg.DB, router *mux.Router, rpcClient *client.HTTP) {
+	router.HandleFunc("/account/{address}", func(w http.ResponseWriter, r *http.Request) {
 		// TEST
 		clientIP := realip.FromRequest(r) // FromRequest return client's real public IP address from http request headers.
 		log.Println("GET /account/{address}: ", clientIP)
 
-		services.GetAccountInfo(DB, Config, w, r)
+		services.GetAccountInfo(db, config, w, r)
 	}).Methods("GET")
 }

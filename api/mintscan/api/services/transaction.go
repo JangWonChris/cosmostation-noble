@@ -1,7 +1,6 @@
 package services
 
 import (
-	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -13,7 +12,7 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/errors"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models"
 	dbtypes "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models/types"
-	u "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/utils"
+	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/utils"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -26,7 +25,7 @@ import (
 )
 
 // GetTxs returns latest transactions
-func GetTxs(Codec *codec.Codec, RPCClient *client.HTTP, DB *pg.DB, w http.ResponseWriter, r *http.Request) error {
+func GetTxs(codec *codec.Codec, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	// Declare default variables
 	limit := int(10)
 	from := int(1)
@@ -48,7 +47,7 @@ func GetTxs(Codec *codec.Codec, RPCClient *client.HTTP, DB *pg.DB, w http.Respon
 	} else {
 		// Check current height in db
 		var blocks []dbtypes.BlockInfo
-		_ = DB.Model(&blocks).
+		_ = db.Model(&blocks).
 			Order("height DESC").
 			Limit(1).
 			Select()
@@ -59,7 +58,7 @@ func GetTxs(Codec *codec.Codec, RPCClient *client.HTTP, DB *pg.DB, w http.Respon
 
 	// Query a number of txs
 	transactionInfos := make([]*dbtypes.TransactionInfo, 0)
-	_ = DB.Model(&transactionInfos).
+	_ = db.Model(&transactionInfos).
 		Where("height <= ?", from).
 		Limit(limit).
 		Order("height DESC").
@@ -80,12 +79,12 @@ func GetTxs(Codec *codec.Codec, RPCClient *client.HTTP, DB *pg.DB, w http.Respon
 		resultTransactionInfo = append(resultTransactionInfo, tempResultTransactionInfo)
 	}
 
-	u.Respond(w, resultTransactionInfo)
+	utils.Respond(w, resultTransactionInfo)
 	return nil
 }
 
 // GetTx receives transaction hash and returns that transaction
-func GetTx(Codec *codec.Codec, RPCClient *client.HTTP, DB *pg.DB, Config *config.Config, w http.ResponseWriter, r *http.Request) error {
+func GetTx(codec *codec.Codec, config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	// Get transaction hash
 	vars := mux.Vars(r)
 	txHexStr := vars["hash"]
@@ -101,8 +100,7 @@ func GetTx(Codec *codec.Codec, RPCClient *client.HTTP, DB *pg.DB, Config *config
 	}
 
 	// Query LCD
-	resty.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
-	resp, _ := resty.R().Get(Config.Node.LCDURL + "/txs/" + txHexStr)
+	resp, _ := resty.R().Get(config.Node.LCDURL + "/txs/" + txHexStr)
 
 	// Parse struct
 	var generalTx models.GeneralTx
@@ -111,12 +109,12 @@ func GetTx(Codec *codec.Codec, RPCClient *client.HTTP, DB *pg.DB, Config *config
 		fmt.Printf("GeneralTx unmarshal error - %v\n", err)
 	}
 
-	u.Respond(w, generalTx)
+	utils.Respond(w, generalTx)
 	return nil
 }
 
 // BroadcastTx sends transaction
-func BroadcastTx(Codec *codec.Codec, RPCClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
+func BroadcastTx(codec *codec.Codec, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	// Get transaction hash
 	vars := mux.Vars(r)
 	txHexStr := vars["hash"]
@@ -135,25 +133,25 @@ func BroadcastTx(Codec *codec.Codec, RPCClient *client.HTTP, w http.ResponseWrit
 
 	// Unmarshalling JSON
 	var stdTx auth.StdTx
-	err = Codec.UnmarshalJSON(txByteStr, &stdTx)
+	err = codec.UnmarshalJSON(txByteStr, &stdTx)
 	if err != nil {
 		errors.ErrFailedUnmarshalJSON(w, http.StatusBadRequest)
 		return nil
 	}
 
 	// Marshalling binary length prefix
-	bz, err := Codec.MarshalBinaryLengthPrefixed(stdTx)
+	bz, err := codec.MarshalBinaryLengthPrefixed(stdTx)
 	if err != nil {
 		errors.ErrFailedMarshalBinaryLengthPrefixed(w, http.StatusBadRequest)
 		return nil
 	}
 
 	// Broadcast transaction
-	result, err := RPCClient.BroadcastTxCommit(bz)
+	result, err := rpcClient.BroadcastTxCommit(bz)
 	if err != nil {
 		return nil
 	}
 
-	u.Respond(w, result)
+	utils.Respond(w, result)
 	return nil
 }

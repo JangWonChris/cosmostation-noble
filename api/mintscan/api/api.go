@@ -21,26 +21,26 @@ import (
 
 // App wraps up the required variables that are needed in this app
 type App struct {
-	Codec     *codec.Codec
-	Config    *config.Config
-	DB        *pg.DB
-	Router    *mux.Router
-	RPCClient *client.HTTP
+	codec     *codec.Codec
+	config    *config.Config
+	db        *pg.DB
+	router    *mux.Router
+	rpcClient *client.HTTP
 }
 
 // NewApp initializes the app with predefined configuration
 func (a *App) NewApp(config *config.Config) {
 	// Configuration
-	a.Config = config
+	a.config = config
 
 	// Connect to Tendermint RPC client through websocket
-	a.RPCClient = client.NewHTTP(a.Config.Node.GaiadURL, "/websocket")
+	a.rpcClient = client.NewHTTP(a.config.Node.GaiadURL, "/websocket")
 
 	// Connect to PostgreSQL
-	a.DB = databases.ConnectDatabase(config)
+	a.db = databases.ConnectDatabase(config)
 
 	// Register Cosmos SDK codecs
-	a.Codec = gaiaApp.MakeCodec()
+	a.codec = gaiaApp.MakeCodec()
 
 	// Register routers
 	a.setRouters()
@@ -50,23 +50,22 @@ func (a *App) NewApp(config *config.Config) {
 
 // Sets the all required routers
 func (a *App) setRouters() {
-	a.Router = mux.NewRouter()
-	a.Router = a.Router.PathPrefix("/v1").Subrouter()
+	a.router = mux.NewRouter()
+	a.router = a.router.PathPrefix("/v1").Subrouter()
 
-	controllers.AccountController(a.Router, a.RPCClient, a.DB, a.Config)
-	controllers.BlockController(a.Router, a.RPCClient, a.DB, a.Config)
-	controllers.DistributionController(a.Config, a.DB, a.Router, a.RPCClient)
-	controllers.GovernanceController(a.Router, a.RPCClient, a.DB, a.Config)
-	controllers.MintingController(a.Router, a.RPCClient, a.DB, a.Config)
-	controllers.TransactionController(a.Router, a.RPCClient, a.DB, a.Codec, a.Config)
-	controllers.ValidatorController(a.Router, a.RPCClient, a.DB, a.Codec, a.Config)
-	controllers.StatusController(a.Router, a.RPCClient, a.DB, a.Config)
-	controllers.StatsController(a.Router, a.RPCClient, a.DB, a.Config)
-	// a.Router.NotFoundHandler = http.HandleFunc("/", notFound)
+	controllers.AccountController(a.codec, a.config, a.db, a.router, a.rpcClient)
+	controllers.BlockController(a.codec, a.config, a.db, a.router, a.rpcClient)
+	controllers.DistributionController(a.codec, a.config, a.db, a.router, a.rpcClient)
+	controllers.GovernanceController(a.codec, a.config, a.db, a.router, a.rpcClient)
+	controllers.MintingController(a.codec, a.config, a.db, a.router, a.rpcClient)
+	controllers.TransactionController(a.codec, a.config, a.db, a.router, a.rpcClient)
+	controllers.ValidatorController(a.codec, a.config, a.db, a.router, a.rpcClient)
+	controllers.StatusController(a.codec, a.config, a.db, a.router, a.rpcClient)
+	controllers.StatsController(a.codec, a.config, a.db, a.router, a.rpcClient)
 }
 
 // Run the app
 func (a *App) Run(host string) {
 	fmt.Print("Server is Starting on http://localhost", host, "\n")
-	log.Fatal(http.ListenAndServe(host, a.Router))
+	log.Fatal(http.ListenAndServe(host, a.router))
 }

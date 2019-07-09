@@ -96,7 +96,7 @@ func (ces *ChainExporterService) OnStart() error {
 
 	for {
 		select {
-		case <-time.Tick(7 * time.Second):
+		case <-time.Tick(10 * time.Second):
 			fmt.Println("start - sync LCD governance & validators")
 			lcd.SaveGovernance(ces.DB, ces.Config)
 			lcd.SaveBondedValidators(ces.DB, ces.Config)

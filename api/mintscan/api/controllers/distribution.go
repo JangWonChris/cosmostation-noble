@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 
+	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/services"
 
@@ -13,14 +14,14 @@ import (
 )
 
 // Passes requests to its respective service
-func DistributionController(Config *config.Config, DB *pg.DB, r *mux.Router, RPCClient *client.HTTP) {
-	r.HandleFunc("/distribution/delegators/{delegatorAddr}/withdraw_address", func(w http.ResponseWriter, r *http.Request) {
-		services.GetDelegatorWithdrawAddress(Config, DB, RPCClient, w, r)
+func DistributionController(codec *codec.Codec, config *config.Config, db *pg.DB, router *mux.Router, rpcClient *client.HTTP) {
+	router.HandleFunc("/distribution/delegators/{delegatorAddr}/withdraw_address", func(w http.ResponseWriter, r *http.Request) {
+		services.GetDelegatorWithdrawAddress(config, db, rpcClient, w, r)
 	})
-	r.HandleFunc("/distribution/delegators/{delegatorAddr}/rewards/{validatorAddr}", func(w http.ResponseWriter, r *http.Request) {
-		services.GetDelegatorRewards(Config, DB, RPCClient, w, r)
+	router.HandleFunc("/distribution/delegators/{delegatorAddr}/rewards/{validatorAddr}", func(w http.ResponseWriter, r *http.Request) {
+		services.GetDelegatorRewards(config, db, rpcClient, w, r)
 	})
-	r.HandleFunc("/distribution/community_pool", func(w http.ResponseWriter, r *http.Request) {
-		services.GetCommunityPool(Config, DB, RPCClient, w, r)
+	router.HandleFunc("/distribution/community_pool", func(w http.ResponseWriter, r *http.Request) {
+		services.GetCommunityPool(config, db, rpcClient, w, r)
 	})
 }

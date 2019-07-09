@@ -12,27 +12,24 @@ import (
 	"github.com/tendermint/tendermint/libs/bech32"
 )
 
-// Conver from operator address to cosmos address
-func OperatorAddressToCosmosAddress(operatorAddress string) (string, error) {
-	_, decoded, err := bech32.DecodeAndConvert(operatorAddress)
-	if err != nil {
-		return "", err
+func ValidateAddressFormat(address string) bool {
+	if !strings.Contains(address, sdk.Bech32PrefixAccAddr) || len(address) != 45 {
+		return false
 	}
-
-	cosmosAddress, err := bech32.ConvertAndEncode(sdk.Bech32PrefixAccAddr, decoded)
-	if err != nil {
-		return "", err
-	}
-	return cosmosAddress, nil
+	return true
 }
 
-func ConsensusPubkeyToProposer(consensusPubKey string) (string, error) {
-	pk, err := sdk.GetConsPubKeyBech32(consensusPubKey)
-	if err != nil {
-		return "", err
-	}
+// Conver from operator address to cosmos address
+func OperatorAddressToAddress(operatorAddress string) string {
+	_, decoded, _ := bech32.DecodeAndConvert(operatorAddress)
+	address, _ := bech32.ConvertAndEncode(sdk.Bech32PrefixAccAddr, decoded)
+	return address
+}
+
+func ConsensusPubkeyToProposer(consensusPubKey string) string {
+	pk, _ := sdk.GetConsPubKeyBech32(consensusPubKey)
 	hexAddr := pk.Address().String()
-	return hexAddr, nil
+	return hexAddr
 }
 
 // ConvertCosmosAddressToMoniker() converts from cosmos address to moniker

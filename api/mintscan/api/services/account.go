@@ -1,32 +1,33 @@
 package services
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/errors"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models"
-	u "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/utils"
 	dbtypes "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models/types"
+	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/utils"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/gorilla/mux"
 	"github.com/go-pg/pg"
+	"github.com/gorilla/mux"
 	resty "gopkg.in/resty.v1"
 )
 
-func GetAccountInfo(DB *pg.DB, Config *config.Config, w http.ResponseWriter, r *http.Request) error {
+/*
+	Address Validation check 는 utils 로 빼거나 SDK 에 있는거 사용
+*/
+
+// Balance, Rewards, Commission, Delegations, UnbondingDelegations
+func GetAccountInfo(db *pg.DB, config *config.Config, w http.ResponseWriter, r *http.Request) error {
 	// Receive address
 	vars := mux.Vars(r)
 	address := vars["address"]
 
-	// Check the validity of cosmos address
-	if !strings.Contains(address, sdk.Bech32PrefixAccAddr) || len(address) != 45 {
+	if !utils.ValidateAddressFormat(address) {
 		errors.ErrNotExist(w, http.StatusNotFound)
 		return nil
 	}
@@ -35,8 +36,7 @@ func GetAccountInfo(DB *pg.DB, Config *config.Config, w http.ResponseWriter, r *
 	var accountResponse models.AccountResponse
 
 	// Query LCD: Bank Balance
-	resty.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
-	balanceResp, _ := resty.R().Get(Config.Node.LCDURL + "/bank/balances/" + address)
+	balanceResp, _ := resty.R().Get(config.Node.LCDURL + "/bank/balances/" + address)
 
 	var balance []models.Balance
 	err := json.Unmarshal(balanceResp.Body(), &balance)
@@ -52,7 +52,7 @@ func GetAccountInfo(DB *pg.DB, Config *config.Config, w http.ResponseWriter, r *
 	}
 
 	// Query LCD: Rewards
-	rewardsResp, _ := resty.R().Get(Config.Node.LCDURL + "/distribution/delegators/" + address + "/rewards")
+	rewardsResp, _ := resty.R().Get(config.Node.LCDURL + "/distribution/delegators/" + address + "/rewards")
 
 	var rewards []models.Rewards
 	err = json.Unmarshal(rewardsResp.Body(), &rewards)
@@ -68,7 +68,7 @@ func GetAccountInfo(DB *pg.DB, Config *config.Config, w http.ResponseWriter, r *
 	}
 
 	// Query LCD: Delegator Rewards
-	delegationsResp, _ := resty.R().Get(Config.Node.LCDURL + "/staking/delegators/" + address + "/delegations")
+	delegationsResp, _ := resty.R().Get(config.Node.LCDURL + "/staking/delegators/" + address + "/delegations")
 
 	var delegations []models.Delegations
 	err = json.Unmarshal(delegationsResp.Body(), &delegations)
@@ -78,7 +78,7 @@ func GetAccountInfo(DB *pg.DB, Config *config.Config, w http.ResponseWriter, r *
 
 	var resultDelegations []models.Delegations
 	for _, delegation := range delegations {
-		delegatorRewardsResp, _ := resty.R().Get(Config.Node.LCDURL + "/distribution/delegators/" + address + "/rewards/" + delegation.ValidatorAddress)
+		delegatorRewardsResp, _ := resty.R().Get(config.Node.LCDURL + "/distribution/delegators/" + address + "/rewards/" + delegation.ValidatorAddress)
 
 		var delegatorRewards []models.Rewards
 		err = json.Unmarshal(delegatorRewardsResp.Body(), &delegatorRewards)
@@ -87,7 +87,7 @@ func GetAccountInfo(DB *pg.DB, Config *config.Config, w http.ResponseWriter, r *
 		}
 
 		var validatorInfo dbtypes.ValidatorInfo
-		_ = DB.Model(&validatorInfo).
+		_ = db.Model(&validatorInfo).
 			Column("moniker").
 			Where("operator_address = ?", delegation.ValidatorAddress).
 			Limit(1).
@@ -103,7 +103,7 @@ func GetAccountInfo(DB *pg.DB, Config *config.Config, w http.ResponseWriter, r *
 		}
 
 		// Query a validator's information
-		validatorResp, _ := resty.R().Get(Config.Node.LCDURL + "/staking/validators/" + delegation.ValidatorAddress)
+		validatorResp, _ := resty.R().Get(config.Node.LCDURL + "/staking/validators/" + delegation.ValidatorAddress)
 
 		var validator models.Validator
 		err = json.Unmarshal(validatorResp.Body(), &validator)
@@ -137,7 +137,7 @@ func GetAccountInfo(DB *pg.DB, Config *config.Config, w http.ResponseWriter, r *
 	}
 
 	// Query LCD: Unbonding Delegations
-	unbondingDelegationsResp, _ := resty.R().Get(Config.Node.LCDURL + "/staking/delegators/" + address + "/unbonding_delegations")
+	unbondingDelegationsResp, _ := resty.R().Get(config.Node.LCDURL + "/staking/delegators/" + address + "/unbonding_delegations")
 
 	var unbondingDelegations []models.UnbondingDelegations
 	err = json.Unmarshal(unbondingDelegationsResp.Body(), &unbondingDelegations)
@@ -148,7 +148,7 @@ func GetAccountInfo(DB *pg.DB, Config *config.Config, w http.ResponseWriter, r *
 	var resultUnbondingDelegations []models.UnbondingDelegations
 	for _, unbondingDelegation := range unbondingDelegations {
 		var validatorInfo dbtypes.ValidatorInfo
-		_ = DB.Model(&validatorInfo).
+		_ = db.Model(&validatorInfo).
 			Column("moniker").
 			Where("operator_address = ?", unbondingDelegation.ValidatorAddress).
 			Limit(1).
@@ -170,6 +170,6 @@ func GetAccountInfo(DB *pg.DB, Config *config.Config, w http.ResponseWriter, r *
 		accountResponse.UnbondingDelegations = resultUnbondingDelegations
 	}
 
-	u.Respond(w, accountResponse)
+	utils.Respond(w, accountResponse)
 	return nil
 }

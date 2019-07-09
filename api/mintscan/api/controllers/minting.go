@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 
+	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/services"
 
@@ -12,8 +13,8 @@ import (
 )
 
 // Passes requests to its respective service
-func MintingController(r *mux.Router, RPCClient *client.HTTP, DB *pg.DB, Config *config.Config) {
-	r.HandleFunc("/minting/inflation", func(w http.ResponseWriter, r *http.Request) {
-		services.GetMintingInflation(RPCClient, DB, Config, w, r)
+func MintingController(codec *codec.Codec, config *config.Config, db *pg.DB, router *mux.Router, rpcClient *client.HTTP) {
+	router.HandleFunc("/minting/inflation", func(w http.ResponseWriter, r *http.Request) {
+		services.GetMintingInflation(config, db, w, r)
 	}).Methods("GET")
 }

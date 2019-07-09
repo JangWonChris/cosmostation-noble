@@ -1,7 +1,6 @@
 package services
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -14,14 +13,14 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/errors"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models"
-	u "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/utils"
+	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/utils"
 
 	"github.com/tendermint/tendermint/rpc/client"
 	resty "gopkg.in/resty.v1"
 )
 
 // GetDelegatorWithdrawAddress returns delegator's reward withdraw address
-func GetDelegatorWithdrawAddress(Config *config.Config, DB *pg.DB, RPCClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
+func GetDelegatorWithdrawAddress(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	// Receive address
 	vars := mux.Vars(r)
 	delegatorAddr := vars["delegatorAddr"]
@@ -33,8 +32,7 @@ func GetDelegatorWithdrawAddress(Config *config.Config, DB *pg.DB, RPCClient *cl
 	}
 
 	// Query LCD - delegator's withdraw_address
-	resty.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
-	resp, _ := resty.R().Get(Config.Node.LCDURL + "/distribution/delegators/" + delegatorAddr + "/withdraw_address")
+	resp, _ := resty.R().Get(config.Node.LCDURL + "/distribution/delegators/" + delegatorAddr + "/withdraw_address")
 
 	// Unmarshal struct
 	var address string
@@ -47,28 +45,25 @@ func GetDelegatorWithdrawAddress(Config *config.Config, DB *pg.DB, RPCClient *cl
 	result := make(map[string]string)
 	result["withdraw_address"] = address
 
-	u.Respond(w, result)
+	utils.Respond(w, result)
 	return nil
 }
 
 // GetDelegatorRewards returns a withdrawn delegation rewards
-func GetDelegatorRewards(Config *config.Config, DB *pg.DB, RPCClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
+func GetDelegatorRewards(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	// Receive address
 	vars := mux.Vars(r)
 	delegatorAddr := vars["delegatorAddr"]
 	validatorAddr := vars["validatorAddr"]
 
 	// Check the validity of cosmos address & validator address
-	if !strings.Contains(delegatorAddr, sdk.Bech32PrefixAccAddr) ||
-		!strings.Contains(validatorAddr, sdk.Bech32PrefixValAddr) ||
-		len(delegatorAddr) != 45 {
+	if !strings.Contains(delegatorAddr, sdk.Bech32PrefixAccAddr) || !strings.Contains(validatorAddr, sdk.Bech32PrefixValAddr) {
 		errors.ErrNotExist(w, http.StatusNotFound)
 		return nil
 	}
 
 	// Query LCD - Query a delegation reward
-	resty.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
-	resp, _ := resty.R().Get(Config.Node.LCDURL + "/distribution/delegators/" + delegatorAddr + "/rewards/" + validatorAddr)
+	resp, _ := resty.R().Get(config.Node.LCDURL + "/distribution/delegators/" + delegatorAddr + "/rewards/" + validatorAddr)
 
 	// Unmarshal struct
 	var coin []models.Coin
@@ -77,15 +72,14 @@ func GetDelegatorRewards(Config *config.Config, DB *pg.DB, RPCClient *client.HTT
 		fmt.Printf("distribution/community_pool unmarshal pool error - %v\n", err)
 	}
 
-	u.Respond(w, coin)
+	utils.Respond(w, coin)
 	return nil
 }
 
 // GetCommunityPool returns current community pool
-func GetCommunityPool(Config *config.Config, DB *pg.DB, RPCClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
+func GetCommunityPool(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	// Query LCD - stake pool to get bonded and unbonded tokens
-	resty.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
-	resp, _ := resty.R().Get(Config.Node.LCDURL + "/distribution/community_pool")
+	resp, _ := resty.R().Get(config.Node.LCDURL + "/distribution/community_pool")
 
 	// Unmarshal struct
 	var coin []models.Coin
@@ -94,6 +88,6 @@ func GetCommunityPool(Config *config.Config, DB *pg.DB, RPCClient *client.HTTP, 
 		fmt.Printf("distribution/community_pool unmarshal pool error - %v\n", err)
 	}
 
-	u.Respond(w, coin)
+	utils.Respond(w, coin)
 	return nil
 }

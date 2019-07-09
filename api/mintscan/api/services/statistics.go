@@ -1,7 +1,6 @@
 package services
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -9,7 +8,7 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models/stats"
-	u "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/utils"
+	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/utils"
 
 	"github.com/go-pg/pg"
 	"github.com/tendermint/tendermint/rpc/client"
@@ -21,13 +20,13 @@ var (
 )
 
 // GetMarketInfo returns marketInfo
-func GetMarketInfo(RPCClient *client.HTTP, DB *pg.DB, Config *config.Config, w http.ResponseWriter, r *http.Request) error {
+func GetMarketInfo(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	// How many data to show in a chart
 	limit := 24
 
 	// Query all market stats
 	var marketInfo stats.CoingeckoMarketStats
-	err := DB.Model(&marketInfo).
+	err := db.Model(&marketInfo).
 		Order("id DESC").
 		Limit(1).
 		Select()
@@ -36,7 +35,6 @@ func GetMarketInfo(RPCClient *client.HTTP, DB *pg.DB, Config *config.Config, w h
 	}
 
 	// Query LCD - current price
-	resty.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
 	resp, _ := resty.R().Get(CoinGeckoAPIURL)
 
 	var coinGeckoMarketInfo models.CoinGeckoMarketInfo
@@ -47,7 +45,7 @@ func GetMarketInfo(RPCClient *client.HTTP, DB *pg.DB, Config *config.Config, w h
 
 	// Query price chart
 	var marketStats []stats.CoingeckoMarketStats
-	_ = DB.Model(&marketStats).
+	_ = db.Model(&marketStats).
 		Order("id DESC").
 		Limit(limit).
 		Select()
@@ -70,18 +68,18 @@ func GetMarketInfo(RPCClient *client.HTTP, DB *pg.DB, Config *config.Config, w h
 		PriceStats:       priceStats,
 	}
 
-	u.Respond(w, resultMarketInfo)
+	utils.Respond(w, resultMarketInfo)
 	return nil
 }
 
 // GetNetworkStats returns network stats
-func GetNetworkStats(RPCClient *client.HTTP, DB *pg.DB, Config *config.Config, w http.ResponseWriter, r *http.Request) error {
+func GetNetworkStats(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	// How many data to show in a chart
 	limit := 24
 
 	// Query bonded tokens chart
 	var networkStats []stats.NetworkStats
-	err := DB.Model(&networkStats).
+	err := db.Model(&networkStats).
 		Order("id DESC").
 		Limit(limit).
 		Select()
@@ -101,14 +99,14 @@ func GetNetworkStats(RPCClient *client.HTTP, DB *pg.DB, Config *config.Config, w
 
 	// Latest bonded tokens that is saved in DB
 	var bondedTokensLatest stats.NetworkStats
-	_ = DB.Model(&bondedTokensLatest).
+	_ = db.Model(&bondedTokensLatest).
 		Order("id DESC").
 		Limit(1).
 		Select()
 
 	// Bonded Tokens 24H before
 	var bondedTokensBefore24H stats.NetworkStats
-	_ = DB.Model(&bondedTokensBefore24H).
+	_ = db.Model(&bondedTokensBefore24H).
 		Where("id = ?", bondedTokensLatest.ID-23).
 		Order("id DESC").
 		Limit(1).
@@ -130,6 +128,6 @@ func GetNetworkStats(RPCClient *client.HTTP, DB *pg.DB, Config *config.Config, w
 		BondedTokensStats:             bondedTokensStats,
 	}
 
-	u.Respond(w, resultNetworkInfo)
+	utils.Respond(w, resultNetworkInfo)
 	return nil
 }
