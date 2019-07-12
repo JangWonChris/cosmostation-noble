@@ -14,7 +14,8 @@ import (
 )
 
 // Handling transaction data
-func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.TransactionInfo, []*dtypes.VoteInfo, []*dtypes.DepositInfo, []*dtypes.ProposalInfo, error) {
+func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.TransactionInfo, []*dtypes.VoteInfo,
+	[]*dtypes.DepositInfo, []*dtypes.ProposalInfo, []*dtypes.ValidatorSetInfo, error) {
 	transactionInfo := make([]*dtypes.TransactionInfo, 0)
 	voteInfo := make([]*dtypes.VoteInfo, 0)
 	depositInfo := make([]*dtypes.DepositInfo, 0)
@@ -22,17 +23,17 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 	validatorSetInfo := make([]*dtypes.ValidatorSetInfo, 0)
 
 	// Query the current block
-	block, err := ces.RPCClient.Block(&height)
+	block, err := ces.rpcClient.Block(&height)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 
 	for _, tx := range block.Block.Data.Txs {
 		// Use tx codec to unmarshal binary length prefix
 		var sdkTx sdk.Tx
-		err := ces.Codec.UnmarshalBinaryLengthPrefixed([]byte(tx), &sdkTx)
+		err := ces.codec.UnmarshalBinaryLengthPrefixed([]byte(tx), &sdkTx)
 		if err != nil {
-			return nil, nil, nil, nil, err
+			return nil, nil, nil, nil, nil, err
 		}
 
 		// TxHash
@@ -40,7 +41,7 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 		txHash := hex.EncodeToString(txByte)
 		txHash = strings.ToUpper(txHash)
 
-		resp, _ := resty.R().Get(ces.Config.Node.LCDURL + "/txs/" + txHash)
+		resp, _ := resty.R().Get(ces.config.Node.LCDURL + "/txs/" + txHash)
 
 		// Unmarshal general transaction format
 		var generalTx dtypes.GeneralTx
@@ -58,7 +59,7 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 					// 동일한 블록안에 create_validator 가 있을 경우 id_validator 를 체크하기가 힘들다
 					// Query the highest height of id_validator
 					var lastValidatorSetInfo dtypes.ValidatorSetInfo
-					_ = ces.DB.Model(&lastValidatorSetInfo).
+					_ = ces.db.Model(&lastValidatorSetInfo).
 						Column("id_validator").
 						Order("id_validator DESC").
 						Limit(1).
@@ -89,7 +90,7 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 
 					// Transaction Messeage
 					var tempValidatorInfo dtypes.ValidatorInfo
-					_ = ces.DB.Model(&tempValidatorInfo).
+					_ = ces.db.Model(&tempValidatorInfo).
 						Column("proposer").
 						Where("operator_address = ?", delegateTx.ValidatorAddress).
 						Limit(1).
@@ -97,7 +98,7 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 
 					// Query last id_validator
 					var lastValidatorSetInfo dtypes.ValidatorSetInfo
-					_ = ces.DB.Model(&lastValidatorSetInfo).
+					_ = ces.db.Model(&lastValidatorSetInfo).
 						Column("id_validator").
 						Where("proposer = ?", tempValidatorInfo.Proposer).
 						Order("id DESC").
@@ -111,7 +112,7 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 
 					// Current Voting Power
 					var votingPower float64
-					validators, _ := ces.RPCClient.Validators(&height)
+					validators, _ := ces.rpcClient.Validators(&height)
 					for _, validator := range validators.Validators {
 						if validator.Address.String() == tempValidatorInfo.Proposer {
 							votingPower = float64(validator.VotingPower)
@@ -139,7 +140,7 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 
 					// Transaction Messeage
 					var tempValidatorInfo dtypes.ValidatorInfo
-					_ = ces.DB.Model(&tempValidatorInfo).
+					_ = ces.db.Model(&tempValidatorInfo).
 						Column("proposer").
 						Where("operator_address = ?", undelegateTx.ValidatorAddress).
 						Limit(1).
@@ -147,7 +148,7 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 
 					// Query last id_validator
 					var lastValidatorSetInfo dtypes.ValidatorSetInfo
-					_ = ces.DB.Model(&lastValidatorSetInfo).
+					_ = ces.db.Model(&lastValidatorSetInfo).
 						Column("id_validator", "voting_power").
 						Where("proposer = ?", tempValidatorInfo.Proposer).
 						Order("id DESC").
@@ -161,7 +162,7 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 
 					// Current Voting Power
 					var votingPower float64
-					validators, _ := ces.RPCClient.Validators(&height)
+					validators, _ := ces.rpcClient.Validators(&height)
 					for _, validator := range validators.Validators {
 						if validator.Address.String() == tempValidatorInfo.Proposer {
 							votingPower = float64(validator.VotingPower)
@@ -193,7 +194,7 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 
 					// Query validator_dst_address's proposer address
 					var tempDstValidatorInfo dtypes.ValidatorInfo
-					_ = ces.DB.Model(&tempDstValidatorInfo).
+					_ = ces.db.Model(&tempDstValidatorInfo).
 						Column("proposer").
 						Where("operator_address = ?", redelegateTx.ValidatorDstAddress).
 						Limit(1).
@@ -201,7 +202,7 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 
 					// Query validator_src_address's proposer address
 					var tempSrcValidatorInfo dtypes.ValidatorInfo
-					_ = ces.DB.Model(&tempSrcValidatorInfo).
+					_ = ces.db.Model(&tempSrcValidatorInfo).
 						Column("proposer").
 						Where("operator_address = ?", redelegateTx.ValidatorSrcAddress).
 						Limit(1).
@@ -209,7 +210,7 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 
 					// Query last id_validator
 					var lastDstValidatorSetInfo dtypes.ValidatorSetInfo
-					_ = ces.DB.Model(&lastDstValidatorSetInfo).
+					_ = ces.db.Model(&lastDstValidatorSetInfo).
 						Column("id_validator", "voting_power").
 						Where("proposer = ?", tempDstValidatorInfo.Proposer).
 						Order("id DESC").
@@ -218,7 +219,7 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 
 					// Query last id_validator
 					var lastSrcValidatorSetInfo dtypes.ValidatorSetInfo
-					_ = ces.DB.Model(&lastSrcValidatorSetInfo).
+					_ = ces.db.Model(&lastSrcValidatorSetInfo).
 						Column("id_validator", "voting_power").
 						Where("proposer = ?", tempSrcValidatorInfo.Proposer).
 						Order("id DESC").
@@ -232,7 +233,7 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 
 					// Current Destination Validator's Voting Power
 					var dstValidatorVotingPower float64
-					validators, _ := ces.RPCClient.Validators(&height)
+					validators, _ := ces.rpcClient.Validators(&height)
 					for _, validator := range validators.Validators {
 						if validator.Address.String() == tempDstValidatorInfo.Proposer {
 							dstValidatorVotingPower = float64(validator.VotingPower)
@@ -255,7 +256,7 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 
 					// Current Source Validator's Voting Power
 					var srcValidatorVotingPower float64
-					validators, _ = ces.RPCClient.Validators(&height)
+					validators, _ = ces.rpcClient.Validators(&height)
 					for _, validator := range validators.Validators {
 						if validator.Address.String() == tempSrcValidatorInfo.Proposer {
 							srcValidatorVotingPower = float64(validator.VotingPower)
@@ -380,5 +381,5 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 		}
 	}
 
-	return transactionInfo, voteInfo, depositInfo, proposalInfo, nil
+	return transactionInfo, voteInfo, depositInfo, proposalInfo, validatorSetInfo, nil
 }

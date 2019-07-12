@@ -32,25 +32,25 @@ var (
 // Monitor wraps Tendermint RPC client and PostgreSQL database
 type ChainExporterService struct {
 	cmn.BaseService
-	Codec     *codec.Codec
-	Config    *config.Config
-	DB        *pg.DB
-	WsCtx     context.Context
-	WsOut     <-chan ctypes.ResultEvent
-	RPCClient *client.HTTP
+	codec     *codec.Codec
+	config    *config.Config
+	db        *pg.DB
+	wsCtx     context.Context
+	wsOut     <-chan ctypes.ResultEvent
+	rpcClient *client.HTTP
 }
 
 // Initializes all the required configs
 func NewChainExporterService(config *config.Config) *ChainExporterService {
 	ces := &ChainExporterService{
-		Codec:     gaiaApp.MakeCodec(), // Register Cosmos SDK codecs
-		Config:    config,
-		DB:        databases.ConnectDatabase(config), // Connect to PostgreSQL
-		WsCtx:     context.Background(),
-		RPCClient: client.NewHTTP(config.Node.GaiadURL, "/websocket"), // Connect to Tendermint RPC client
+		codec:     gaiaApp.MakeCodec(), // Register Cosmos SDK codecs
+		config:    config,
+		db:        databases.ConnectDatabase(config), // Connect to PostgreSQL
+		wsCtx:     context.Background(),
+		rpcClient: client.NewHTTP(config.Node.GaiadURL, "/websocket"), // Connect to Tendermint RPC client
 	}
 	// Setup database schema
-	databases.CreateSchema(ces.DB)
+	databases.CreateSchema(ces.db)
 
 	// Register a service that can be started, stopped, and reset
 	ces.BaseService = *cmn.NewBaseService(logger, "ChainExporterService", ces)
@@ -66,16 +66,16 @@ func NewChainExporterService(config *config.Config) *ChainExporterService {
 func (ces *ChainExporterService) OnStart() error {
 	// OnStart both service and rpc client
 	ces.BaseService.OnStart()
-	ces.RPCClient.OnStart()
+	ces.rpcClient.OnStart()
 
 	// Initialize private fields and start subroutines, etc.
-	// ces.WsOut, _ = ces.RPCClient.Subscribe(ces.WsCtx, "new block", "tm.event = 'NewBlock'", 1)
-	ces.WsOut, _ = ces.RPCClient.Subscribe(ces.WsCtx, "new tx", "tm.event = 'Tx'", 1)
+	// ces.wsOut, _ = ces.rpcClient.Subscribe(ces.WsCtx, "new block", "tm.event = 'NewBlock'", 1)
+	ces.wsOut, _ = ces.rpcClient.Subscribe(ces.wsCtx, "new tx", "tm.event = 'Tx'", 1)
 
 	// Store data initially
-	lcd.SaveGovernance(ces.DB, ces.Config)
-	lcd.SaveBondedValidators(ces.DB, ces.Config)
-	lcd.SaveUnbondedAndUnbodingValidators(ces.DB, ces.Config)
+	lcd.SaveGovernance(ces.db, ces.config)
+	lcd.SaveBondedValidators(ces.db, ces.config)
+	lcd.SaveUnbondedAndUnbodingValidators(ces.db, ces.config)
 
 	// Start the syncing task
 	go func() {
@@ -98,9 +98,9 @@ func (ces *ChainExporterService) OnStart() error {
 		select {
 		case <-time.Tick(10 * time.Second):
 			fmt.Println("start - sync LCD governance & validators")
-			lcd.SaveGovernance(ces.DB, ces.Config)
-			lcd.SaveBondedValidators(ces.DB, ces.Config)
-			lcd.SaveUnbondedAndUnbodingValidators(ces.DB, ces.Config)
+			lcd.SaveGovernance(ces.db, ces.config)
+			lcd.SaveBondedValidators(ces.db, ces.config)
+			lcd.SaveUnbondedAndUnbodingValidators(ces.db, ces.config)
 			fmt.Println("finish - sync LCD governance & validators")
 		case <-signalCh:
 			return nil
@@ -115,20 +115,28 @@ func (ces *ChainExporterService) OnStart() error {
 			// case <-signalCh:
 			// 	return nil
 		}
+		select {
+		case <-time.Tick(30 * time.Minute):
+			fmt.Println("start - validators' keybase urls")
+			ces.SaveValidatorKeyBase()
+			fmt.Println("finish - validators' keybase urls")
+		case <-signalCh:
+			return nil
+		}
 	}
 }
 
 // Override method for BaseService, which stops a service
 func (ces *ChainExporterService) OnStop() {
 	ces.BaseService.OnStop()
-	ces.RPCClient.OnStop()
+	ces.rpcClient.OnStop()
 }
 
 // Synchronizes the block data from connected full node
 func (ces *ChainExporterService) sync() error {
 	// Check current height in db
 	var blocks []dtypes.BlockInfo
-	err := ces.DB.Model(&blocks).
+	err := ces.db.Model(&blocks).
 		Order("height DESC").
 		Limit(1).
 		Select()
@@ -142,7 +150,7 @@ func (ces *ChainExporterService) sync() error {
 	}
 
 	// Query the node for its height
-	status, err := ces.RPCClient.Status()
+	status, err := ces.rpcClient.Status()
 	if err != nil {
 		return err
 	}
@@ -181,13 +189,13 @@ func (ces *ChainExporterService) process(height int64) error {
 		return err
 	}
 
-	transactionInfo, voteInfo, depositInfo, proposalInfo, err := ces.getTransactionInfo(height)
+	transactionInfo, voteInfo, depositInfo, proposalInfo, validatorSetInfo, err := ces.getTransactionInfo(height)
 	if err != nil {
 		return err
 	}
 
 	// Insert data in PostgreSQL database
-	err = ces.DB.RunInTransaction(func(tx *pg.Tx) error {
+	err = ces.db.RunInTransaction(func(tx *pg.Tx) error {
 		if len(blockInfo) > 0 {
 			err = tx.Insert(&blockInfo)
 			if err != nil {

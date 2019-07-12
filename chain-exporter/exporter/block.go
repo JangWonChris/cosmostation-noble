@@ -8,7 +8,7 @@ func (ces *ChainExporterService) getBlockInfo(height int64) ([]*dtypes.BlockInfo
 	blockInfo := make([]*dtypes.BlockInfo, 0)
 
 	// Query the current block
-	block, err := ces.RPCClient.Block(&height)
+	block, err := ces.rpcClient.Block(&height)
 	if err != nil {
 		return nil, err
 	}
