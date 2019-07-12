@@ -184,7 +184,7 @@ func (ces *ChainExporterService) process(height int64) error {
 		return err
 	}
 
-	validatorSetInfo, missInfo, accumMissInfo, missDetailInfo, err := ces.getValidatorSetInfo(height)
+	genesisValidatorsInfo, missInfo, accumMissInfo, missDetailInfo, err := ces.getValidatorSetInfo(height)
 	if err != nil {
 		return err
 	}
@@ -198,6 +198,13 @@ func (ces *ChainExporterService) process(height int64) error {
 	err = ces.db.RunInTransaction(func(tx *pg.Tx) error {
 		if len(blockInfo) > 0 {
 			err = tx.Insert(&blockInfo)
+			if err != nil {
+				return err
+			}
+		}
+
+		if len(genesisValidatorsInfo) > 0 {
+			err = tx.Insert(&genesisValidatorsInfo)
 			if err != nil {
 				return err
 			}
