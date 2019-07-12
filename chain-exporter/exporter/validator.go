@@ -44,7 +44,7 @@ func (ces *ChainExporterService) getValidatorSetInfo(height int64) ([]*dtypes.Va
 		return tempToken1 > tempToken2
 	})
 
-	validatorSetInfo := make([]*dtypes.ValidatorSetInfo, 0)
+	genesisValidatorsInfo := make([]*dtypes.ValidatorSetInfo, 0)
 	missInfo := make([]*dtypes.MissInfo, 0)
 	accumMissInfo := make([]*dtypes.MissInfo, 0)
 	missDetailInfo := make([]*dtypes.MissDetailInfo, 0)
@@ -62,7 +62,7 @@ func (ces *ChainExporterService) getValidatorSetInfo(height int64) ([]*dtypes.Va
 				EventType:            dtypes.EventTypeMsgCreateValidator,
 				Time:                 block.BlockMeta.Header.Time,
 			}
-			validatorSetInfo = append(validatorSetInfo, tempValidatorSetInfo)
+			genesisValidatorsInfo = append(genesisValidatorsInfo, tempValidatorSetInfo)
 		}
 
 		// Missing information
@@ -115,7 +115,7 @@ func (ces *ChainExporterService) getValidatorSetInfo(height int64) ([]*dtypes.Va
 			continue
 		}
 	}
-	return validatorSetInfo, missInfo, accumMissInfo, missDetailInfo, nil
+	return genesisValidatorsInfo, missInfo, accumMissInfo, missDetailInfo, nil
 }
 
 func (ces *ChainExporterService) getEvidenceInfo(height int64) ([]*dtypes.EvidenceInfo, error) {
