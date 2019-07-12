@@ -1,8 +1,9 @@
 package models
 
-type AccountResponse struct {
+type ResultAccountResponse struct {
 	Balance              []Balance              `json:"balance"`
 	Rewards              []Rewards              `json:"rewards"`
+	Commission           []Commission           `json:"commission"`
 	Delegations          []Delegations          `json:"delegations"`
 	UnbondingDelegations []UnbondingDelegations `json:"unbonding_delegations"`
 }
@@ -26,6 +27,11 @@ type Balance struct {
 }
 
 type Rewards struct {
+	Denom  string `json:"denom"`
+	Amount string `json:"amount"`
+}
+
+type Commission struct {
 	Denom  string `json:"denom"`
 	Amount string `json:"amount"`
 }

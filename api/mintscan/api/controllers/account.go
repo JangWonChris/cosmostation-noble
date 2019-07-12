@@ -21,6 +21,6 @@ func AccountController(codec *codec.Codec, config *config.Config, db *pg.DB, rou
 		clientIP := realip.FromRequest(r) // FromRequest return client's real public IP address from http request headers.
 		log.Println("GET /account/{address}: ", clientIP)
 
-		services.GetAccountInfo(db, config, w, r)
+		services.GetAccountInfo(codec, config, db, rpcClient, w, r)
 	}).Methods("GET")
 }

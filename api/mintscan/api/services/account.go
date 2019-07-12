@@ -5,6 +5,13 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
+
+	"github.com/cosmos/cosmos-sdk/client/context"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	distr "github.com/cosmos/cosmos-sdk/x/distribution"
+	distrTypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/errors"
@@ -12,75 +19,83 @@ import (
 	dbtypes "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models/types"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/utils"
 
+	"github.com/cosmos/cosmos-sdk/x/distribution/client/common"
+	"github.com/tendermint/tendermint/rpc/client"
+
 	"github.com/go-pg/pg"
 	"github.com/gorilla/mux"
 	resty "gopkg.in/resty.v1"
 )
 
-/*
-	Address Validation check 는 utils 로 빼거나 SDK 에 있는거 사용
-*/
-
 // Balance, Rewards, Commission, Delegations, UnbondingDelegations
-func GetAccountInfo(db *pg.DB, config *config.Config, w http.ResponseWriter, r *http.Request) error {
-	// Receive address
+func GetAccountInfo(codec *codec.Codec, config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	address := vars["address"]
 
-	if !utils.ValidateAddressFormat(address) {
+	// Check validity of address
+	if !strings.Contains(address, sdk.GetConfig().GetBech32AccountAddrPrefix()) {
 		errors.ErrNotExist(w, http.StatusNotFound)
 		return nil
 	}
 
-	// Final Account Response
-	var accountResponse models.AccountResponse
+	// ResultAccount Response
+	var resultAccountResponse models.ResultAccountResponse
 
-	// Query LCD: Bank Balance
+	// Query bank balance
+	balance := make([]models.Balance, 0)
 	balanceResp, _ := resty.R().Get(config.Node.LCDURL + "/bank/balances/" + address)
-
-	var balance []models.Balance
 	err := json.Unmarshal(balanceResp.Body(), &balance)
 	if err != nil {
-		fmt.Printf("Balance unmarshal error - %v\n", err)
+		fmt.Printf("/bank/balances/ unmarshal error - %v\n", err)
 	}
+	resultAccountResponse.Balance = balance
 
-	// Return array result when empty
-	if balance == nil {
-		accountResponse.Balance = []models.Balance{}
-	} else {
-		accountResponse.Balance = balance
-	}
-
-	// Query LCD: Rewards
+	// Query rewards
+	rewards := make([]models.Rewards, 0)
 	rewardsResp, _ := resty.R().Get(config.Node.LCDURL + "/distribution/delegators/" + address + "/rewards")
-
-	var rewards []models.Rewards
 	err = json.Unmarshal(rewardsResp.Body(), &rewards)
 	if err != nil {
-		fmt.Printf("Rewards unmarshal error - %v\n", err)
+		fmt.Printf("/distribution/delegators/rewards unmarshal error - %v\n", err)
+	}
+	resultAccountResponse.Rewards = rewards
+
+	// Query commission if an address is validator
+	var validatorInfo dbtypes.ValidatorInfo
+	err = db.Model(&validatorInfo).
+		Column("operator_address").
+		Where("cosmos_address = ?", address).
+		Select()
+
+	commission := make([]models.Commission, 0)
+	if validatorInfo.OperatorAddress != "" {
+		ctx := context.NewCLIContext().WithCodec(codec).WithClient(rpcClient)
+		valAddr, _ := sdk.ValAddressFromBech32(validatorInfo.OperatorAddress)
+		result, _ := common.QueryValidatorCommission(ctx, codec, distr.QuerierRoute, valAddr)
+
+		var valCom distrTypes.ValidatorAccumulatedCommission
+		ctx.Codec.MustUnmarshalJSON(result, &valCom)
+
+		tempCommission := &models.Commission{
+			Denom:  valCom[0].Denom,
+			Amount: valCom[0].Amount.String(),
+		}
+
+		commission = append(commission, *tempCommission)
+		resultAccountResponse.Commission = commission
 	}
 
-	// Returns empty
-	if rewards == nil {
-		accountResponse.Rewards = []models.Rewards{}
-	} else {
-		accountResponse.Rewards = rewards
-	}
-
-	// Query LCD: Delegator Rewards
+	// Query delegations and each delegator's rewards
+	delegations := make([]models.Delegations, 0)
 	delegationsResp, _ := resty.R().Get(config.Node.LCDURL + "/staking/delegators/" + address + "/delegations")
-
-	var delegations []models.Delegations
 	err = json.Unmarshal(delegationsResp.Body(), &delegations)
 	if err != nil {
 		fmt.Printf("Delegations unmarshal error - %v\n", err)
 	}
 
-	var resultDelegations []models.Delegations
+	resultDelegations := make([]models.Delegations, 0)
 	for _, delegation := range delegations {
-		delegatorRewardsResp, _ := resty.R().Get(config.Node.LCDURL + "/distribution/delegators/" + address + "/rewards/" + delegation.ValidatorAddress)
-
 		var delegatorRewards []models.Rewards
+		delegatorRewardsResp, _ := resty.R().Get(config.Node.LCDURL + "/distribution/delegators/" + address + "/rewards/" + delegation.ValidatorAddress)
 		err = json.Unmarshal(delegatorRewardsResp.Body(), &delegatorRewards)
 		if err != nil {
 			fmt.Printf("Distribution Rewards unmarshal error - %v\n", err)
@@ -103,9 +118,8 @@ func GetAccountInfo(db *pg.DB, config *config.Config, w http.ResponseWriter, r *
 		}
 
 		// Query a validator's information
-		validatorResp, _ := resty.R().Get(config.Node.LCDURL + "/staking/validators/" + delegation.ValidatorAddress)
-
 		var validator models.Validator
+		validatorResp, _ := resty.R().Get(config.Node.LCDURL + "/staking/validators/" + delegation.ValidatorAddress)
 		err = json.Unmarshal(validatorResp.Body(), &validator)
 		if err != nil {
 			fmt.Printf("staking/validators/ unmarshal error - %v\n", err)
@@ -129,23 +143,17 @@ func GetAccountInfo(db *pg.DB, config *config.Config, w http.ResponseWriter, r *
 		resultDelegations = append(resultDelegations, *tempDelegations)
 	}
 
-	// Returns empty
-	if delegations == nil {
-		accountResponse.Delegations = []models.Delegations{}
-	} else {
-		accountResponse.Delegations = resultDelegations
-	}
+	resultAccountResponse.Delegations = resultDelegations
 
-	// Query LCD: Unbonding Delegations
+	// Query unbonding delegations
+	unbondingDelegations := make([]models.UnbondingDelegations, 0)
 	unbondingDelegationsResp, _ := resty.R().Get(config.Node.LCDURL + "/staking/delegators/" + address + "/unbonding_delegations")
-
-	var unbondingDelegations []models.UnbondingDelegations
 	err = json.Unmarshal(unbondingDelegationsResp.Body(), &unbondingDelegations)
 	if err != nil {
 		fmt.Printf("UnbondingDelegations unmarshal error - %v\n", err)
 	}
 
-	var resultUnbondingDelegations []models.UnbondingDelegations
+	resultUnbondingDelegations := make([]models.UnbondingDelegations, 0)
 	for _, unbondingDelegation := range unbondingDelegations {
 		var validatorInfo dbtypes.ValidatorInfo
 		_ = db.Model(&validatorInfo).
@@ -163,13 +171,8 @@ func GetAccountInfo(db *pg.DB, config *config.Config, w http.ResponseWriter, r *
 		resultUnbondingDelegations = append(resultUnbondingDelegations, *tempUnbondingDelegations)
 	}
 
-	// Returns empty
-	if unbondingDelegations == nil {
-		accountResponse.UnbondingDelegations = []models.UnbondingDelegations{}
-	} else {
-		accountResponse.UnbondingDelegations = resultUnbondingDelegations
-	}
+	resultAccountResponse.UnbondingDelegations = resultUnbondingDelegations
 
-	utils.Respond(w, accountResponse)
+	utils.Respond(w, resultAccountResponse)
 	return nil
 }
