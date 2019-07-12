@@ -51,8 +51,8 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 					var createValidatorTx dtypes.CreateValidatorMsgValueTx
 					_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &createValidatorTx)
 
-					// [기술적 한계]
-					// 동일한 블록안에 create_validator 가 있을 경우 마지막 id_validator를 가져온 뒤 체크하기가 힘들다
+					// [기술적 한계] > 동일한 블록안에 create_validator 메시지가 2개 이상 있을 경우 마지막으로 저장된 id_validator를 가져오면 겹친다.
+
 					// Query the highest height of id_validator
 					highestIDValidatorNum, _ := utils.QueryHighestIDValidatorNum(ces.db)
 

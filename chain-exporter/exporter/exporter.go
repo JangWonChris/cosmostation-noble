@@ -116,7 +116,7 @@ func (ces *ChainExporterService) OnStart() error {
 			// 	return nil
 		}
 		select {
-		case <-time.Tick(30 * time.Minute):
+		case <-time.Tick(10 * time.Minute):
 			fmt.Println("start - validators' keybase urls")
 			ces.SaveValidatorKeyBase()
 			fmt.Println("finish - validators' keybase urls")
