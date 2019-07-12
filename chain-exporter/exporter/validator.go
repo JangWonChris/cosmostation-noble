@@ -11,9 +11,9 @@ import (
 	resty "gopkg.in/resty.v1"
 )
 
-var (
-	keybaseURL = "https://keybase.io/_/api/1.0/user/lookup.json?fields=pictures&key_suffix="
-)
+// var (
+// 	keybaseURL = "https://keybase.io/_/api/1.0/user/lookup.json?fields=pictures&key_suffix="
+// )
 
 func (ces *ChainExporterService) getValidatorSetInfo(height int64) ([]*dtypes.ValidatorSetInfo, []*dtypes.MissInfo, []*dtypes.MissInfo, []*dtypes.MissDetailInfo, error) {
 	// This is for syncing at the right height
@@ -161,7 +161,7 @@ func (ces *ChainExporterService) SaveValidatorKeyBase() error {
 
 	validatorInfoUpdate := make([]*dtypes.ValidatorInfo, 0)
 	for _, validator := range validatorInfo {
-		resp, err := resty.R().Get(keybaseURL + validator.Identity)
+		resp, err := resty.R().Get(ces.config.KeybaseURL + validator.Identity)
 		if err != nil {
 			fmt.Printf("KeyBase request error - %v\n", err)
 		}

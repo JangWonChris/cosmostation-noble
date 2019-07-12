@@ -18,6 +18,8 @@ func NewChainExporterConfig() *Config {
 	}
 
 	config := &Config{}
+	config.KeybaseURL = viper.GetString("keybase_url")
+
 	nodeConfig := &NodeConfig{}
 	dbConfig := &DBConfig{}
 
