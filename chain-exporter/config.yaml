@@ -42,3 +42,4 @@ testnet:
     address: "063286B58F0D01406B188796820C2DC895B21063"
     period: "10"
 
+keybase_url: "https://keybase.io/_/api/1.0/user/lookup.json?fields=pictures&key_suffix="

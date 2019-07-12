@@ -6,6 +6,7 @@ type Config struct {
 	DB            *DBConfig
 	ES            *ESConfig
 	Coinmarketcap *CoinmarketcapConfig
+	KeybaseURL    string
 }
 
 type (
