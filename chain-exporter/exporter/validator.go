@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 
 	dtypes "github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
@@ -36,6 +37,13 @@ func (ces *ChainExporterService) getValidatorSetInfo(height int64) ([]*dtypes.Va
 		return nil, nil, nil, nil, err
 	}
 
+	// Sort bondedValidators by highest tokens
+	sort.Slice(validators.Validators[:], func(i, j int) bool {
+		tempToken1 := validators.Validators[i].VotingPower
+		tempToken2 := validators.Validators[j].VotingPower
+		return tempToken1 > tempToken2
+	})
+
 	validatorSetInfo := make([]*dtypes.ValidatorSetInfo, 0)
 	missInfo := make([]*dtypes.MissInfo, 0)
 	accumMissInfo := make([]*dtypes.MissInfo, 0)
@@ -50,8 +58,8 @@ func (ces *ChainExporterService) getValidatorSetInfo(height int64) ([]*dtypes.Va
 				Proposer:             validator.Address.String(),
 				VotingPower:          float64(validator.VotingPower),
 				NewVotingPowerAmount: float64(validator.VotingPower),
-				NewVotingPowerDenom:  "kva",
-				EventType:            "create_validator",
+				NewVotingPowerDenom:  dtypes.Denom,
+				EventType:            dtypes.EventTypeMsgCreateValidator,
 				Time:                 block.BlockMeta.Header.Time,
 			}
 			validatorSetInfo = append(validatorSetInfo, tempValidatorSetInfo)
@@ -131,10 +139,10 @@ func (ces *ChainExporterService) getEvidenceInfo(height int64) ([]*dtypes.Eviden
 	// evidenceInfo
 	for _, evidence := range nextBlock.Block.Evidence.Evidence {
 		tempEvidenceInfo := &dtypes.EvidenceInfo{
-			Address: strings.ToUpper(string(hex.EncodeToString(evidence.Address()))),
-			Height:  evidence.Height(),
-			Hash:    strings.ToUpper(string(hex.EncodeToString(evidence.Hash()))),
-			Time:    block.BlockMeta.Header.Time,
+			Proposer: strings.ToUpper(string(hex.EncodeToString(evidence.Address()))),
+			Height:   evidence.Height(),
+			Hash:     strings.ToUpper(string(hex.EncodeToString(evidence.Hash()))),
+			Time:     block.BlockMeta.Header.Time,
 		}
 		evidenceInfo = append(evidenceInfo, tempEvidenceInfo)
 	}

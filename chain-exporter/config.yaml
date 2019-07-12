@@ -41,3 +41,4 @@ testnet:
     dsn: "https://02db34c9482641eba0f7d28c6f1c2607:26977dd6d1cb45ef95c2e2b1466f4d8a@sentry.io/1360655"
     address: "063286B58F0D01406B188796820C2DC895B21063"
     period: "10"
+

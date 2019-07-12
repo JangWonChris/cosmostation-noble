@@ -31,20 +31,16 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 	for _, tx := range block.Block.Data.Txs {
 		// Use tx codec to unmarshal binary length prefix
 		var sdkTx sdk.Tx
-		err := ces.codec.UnmarshalBinaryLengthPrefixed([]byte(tx), &sdkTx)
-		if err != nil {
-			return nil, nil, nil, nil, nil, err
-		}
+		_ = ces.codec.UnmarshalBinaryLengthPrefixed([]byte(tx), &sdkTx)
 
-		// TxHash
+		// Tx hash
 		txByte := crypto.Sha256(tx)
 		txHash := hex.EncodeToString(txByte)
 		txHash = strings.ToUpper(txHash)
 
-		resp, _ := resty.R().Get(ces.config.Node.LCDURL + "/txs/" + txHash)
-
 		// Unmarshal general transaction format
 		var generalTx dtypes.GeneralTx
+		resp, _ := resty.R().Get(ces.config.Node.LCDURL + "/txs/" + txHash)
 		_ = json.Unmarshal(resp.Body(), &generalTx)
 
 		// Check log to see if tx is success
@@ -55,15 +51,10 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 					var createValidatorTx dtypes.CreateValidatorMsgValueTx
 					_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &createValidatorTx)
 
-					// 이렇게 넣는것도 문제가 발생!
-					// 동일한 블록안에 create_validator 가 있을 경우 id_validator 를 체크하기가 힘들다
+					// [기술적 한계]
+					// 동일한 블록안에 create_validator 가 있을 경우 마지막 id_validator를 가져온 뒤 체크하기가 힘들다
 					// Query the highest height of id_validator
-					var lastValidatorSetInfo dtypes.ValidatorSetInfo
-					_ = ces.db.Model(&lastValidatorSetInfo).
-						Column("id_validator").
-						Order("id_validator DESC").
-						Limit(1).
-						Select()
+					highestIDValidatorNum, _ := utils.QueryHighestIDValidatorNum(ces.db)
 
 					// Conversion
 					height, _ := strconv.ParseInt(generalTx.Height, 10, 64)
@@ -72,13 +63,13 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 
 					// Insert data
 					tempValidatorSetInfo := &dtypes.ValidatorSetInfo{
-						IDValidator:          lastValidatorSetInfo.IDValidator + 1,
+						IDValidator:          highestIDValidatorNum + 1,
 						Height:               height,
-						Proposer:             utils.ConsensusPubkeyToProposer(createValidatorTx.Pubkey),
+						Proposer:             utils.ConsensusPubkeyToProposer(createValidatorTx.Pubkey), // New validator's proposer address needs to be converted
 						VotingPower:          newVotingPowerAmount,
 						NewVotingPowerAmount: newVotingPowerAmount,
 						NewVotingPowerDenom:  createValidatorTx.Value.Denom,
-						EventType:            "create_validator",
+						EventType:            dtypes.EventTypeMsgCreateValidator,
 						TxHash:               generalTx.TxHash,
 						Time:                 block.BlockMeta.Header.Time,
 					}
@@ -88,22 +79,11 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 					var delegateTx dtypes.DelegateMsgValueTx
 					_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &delegateTx)
 
-					// Transaction Messeage
-					var tempValidatorInfo dtypes.ValidatorInfo
-					_ = ces.db.Model(&tempValidatorInfo).
-						Column("proposer").
-						Where("operator_address = ?", delegateTx.ValidatorAddress).
-						Limit(1).
-						Select()
+					// Query validator info
+					validatorInfo, _ := utils.QueryValidatorInfo(ces.db, delegateTx.ValidatorAddress)
 
-					// Query last id_validator
-					var lastValidatorSetInfo dtypes.ValidatorSetInfo
-					_ = ces.db.Model(&lastValidatorSetInfo).
-						Column("id_validator").
-						Where("proposer = ?", tempValidatorInfo.Proposer).
-						Order("id DESC").
-						Limit(1).
-						Select()
+					// Query to get id_validator of lastly inserted data
+					idValidatorSetInfo, _ := utils.QueryIDValidatorSetInfo(ces.db, validatorInfo.Proposer)
 
 					// Conversion
 					height, _ := strconv.ParseInt(generalTx.Height, 10, 64)
@@ -114,19 +94,22 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 					var votingPower float64
 					validators, _ := ces.rpcClient.Validators(&height)
 					for _, validator := range validators.Validators {
-						if validator.Address.String() == tempValidatorInfo.Proposer {
+						if validator.Address.String() == validatorInfo.Proposer {
 							votingPower = float64(validator.VotingPower)
 						}
 					}
 
-					// 동일한 블록에서 서로 다른 주소에서 동일한 검증인에게 위임한 트랜잭션이 있을 경우 현재 VotingPower는 같다. 기술적 한계 (Certus One 17번째 블록에 두번)
+					// 기술적 한계 (Certus One 17번째 블록에 두번 - cosmoshub-1)
+					// 동일한 블록에서 서로 다른 주소에서 동일한 검증인에게 위임한 트랜잭션이 있을 경우 현재 VotingPower는 같다.
 					// Insert data
 					tempValidatorSetInfo := &dtypes.ValidatorSetInfo{
-						IDValidator:          lastValidatorSetInfo.IDValidator,
+						IDValidator:          idValidatorSetInfo.IDValidator,
 						Height:               height,
-						Proposer:             tempValidatorInfo.Proposer,
+						Moniker:              validatorInfo.Moniker,
+						OperatorAddress:      validatorInfo.OperatorAddress,
+						Proposer:             validatorInfo.Proposer,
 						VotingPower:          votingPower + newVotingPowerAmount,
-						EventType:            "delegate",
+						EventType:            dtypes.EventTypeMsgDelegate,
 						NewVotingPowerAmount: newVotingPowerAmount,
 						NewVotingPowerDenom:  delegateTx.Amount.Denom,
 						TxHash:               generalTx.TxHash,
@@ -138,22 +121,11 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 					var undelegateTx dtypes.UndelegateMsgValueTx
 					_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &undelegateTx)
 
-					// Transaction Messeage
-					var tempValidatorInfo dtypes.ValidatorInfo
-					_ = ces.db.Model(&tempValidatorInfo).
-						Column("proposer").
-						Where("operator_address = ?", undelegateTx.ValidatorAddress).
-						Limit(1).
-						Select()
+					// Query validator info
+					validatorInfo, _ := utils.QueryValidatorInfo(ces.db, undelegateTx.ValidatorAddress)
 
-					// Query last id_validator
-					var lastValidatorSetInfo dtypes.ValidatorSetInfo
-					_ = ces.db.Model(&lastValidatorSetInfo).
-						Column("id_validator", "voting_power").
-						Where("proposer = ?", tempValidatorInfo.Proposer).
-						Order("id DESC").
-						Limit(1).
-						Select()
+					// Query to get id_validator of lastly inserted data
+					idValidatorSetInfo, _ := utils.QueryIDValidatorSetInfo(ces.db, validatorInfo.Proposer)
 
 					// Conversion
 					height, _ := strconv.ParseInt(generalTx.Height, 10, 64)
@@ -164,18 +136,20 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 					var votingPower float64
 					validators, _ := ces.rpcClient.Validators(&height)
 					for _, validator := range validators.Validators {
-						if validator.Address.String() == tempValidatorInfo.Proposer {
+						if validator.Address.String() == validatorInfo.Proposer {
 							votingPower = float64(validator.VotingPower)
 						}
 					}
 
-					// Insert data
+					// Substract the undelegated amount from the validator
 					tempValidatorSetInfo := &dtypes.ValidatorSetInfo{
-						IDValidator:          lastValidatorSetInfo.IDValidator,
+						IDValidator:          idValidatorSetInfo.IDValidator,
 						Height:               height,
-						Proposer:             tempValidatorInfo.Proposer,
+						Moniker:              validatorInfo.Moniker,
+						OperatorAddress:      validatorInfo.OperatorAddress,
+						Proposer:             block.BlockMeta.Header.ProposerAddress.String(),
 						VotingPower:          votingPower + newVotingPowerAmount,
-						EventType:            "begin_unbonding",
+						EventType:            dtypes.EventTypeMsgUndelegate,
 						NewVotingPowerAmount: newVotingPowerAmount,
 						NewVotingPowerDenom:  undelegateTx.Amount.Denom,
 						TxHash:               generalTx.TxHash,
@@ -188,65 +162,49 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 					_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &redelegateTx)
 
 					/*
-						Redelegate 당한 검증인은 -
-						Redelegate 한 검증인은 +
+						Note : + for ValidatorDstAddress | - for ValidatorSrcAddress
 					*/
 
-					// Query validator_dst_address's proposer address
-					var tempDstValidatorInfo dtypes.ValidatorInfo
-					_ = ces.db.Model(&tempDstValidatorInfo).
-						Column("proposer").
-						Where("operator_address = ?", redelegateTx.ValidatorDstAddress).
-						Limit(1).
-						Select()
+					// Query validator_dst_address info
+					validatorDstInfo, _ := utils.QueryValidatorInfo(ces.db, redelegateTx.ValidatorDstAddress)
+					dstValidatorSetInfo, _ := utils.QueryIDValidatorSetInfo(ces.db, validatorDstInfo.Proposer)
 
-					// Query validator_src_address's proposer address
-					var tempSrcValidatorInfo dtypes.ValidatorInfo
-					_ = ces.db.Model(&tempSrcValidatorInfo).
-						Column("proposer").
-						Where("operator_address = ?", redelegateTx.ValidatorSrcAddress).
-						Limit(1).
-						Select()
-
-					// Query last id_validator
-					var lastDstValidatorSetInfo dtypes.ValidatorSetInfo
-					_ = ces.db.Model(&lastDstValidatorSetInfo).
-						Column("id_validator", "voting_power").
-						Where("proposer = ?", tempDstValidatorInfo.Proposer).
-						Order("id DESC").
-						Limit(1).
-						Select()
-
-					// Query last id_validator
-					var lastSrcValidatorSetInfo dtypes.ValidatorSetInfo
-					_ = ces.db.Model(&lastSrcValidatorSetInfo).
-						Column("id_validator", "voting_power").
-						Where("proposer = ?", tempSrcValidatorInfo.Proposer).
-						Order("id DESC").
-						Limit(1).
-						Select()
+					// Query validator_src_address info
+					validatorSrcInfo, _ := utils.QueryValidatorInfo(ces.db, redelegateTx.ValidatorSrcAddress)
+					srcValidatorSetInfo, _ := utils.QueryIDValidatorSetInfo(ces.db, validatorSrcInfo.Proposer)
 
 					// Conversion
 					height, _ := strconv.ParseInt(generalTx.Height, 10, 64)
 					newVotingPowerAmount, _ := strconv.ParseFloat(redelegateTx.Amount.Amount.String(), 64) // parseFloat from sdk.Dec.String()
 					newVotingPowerAmount = newVotingPowerAmount / 1000000
 
-					// Current Destination Validator's Voting Power
+					// Current destination validator's voting power
 					var dstValidatorVotingPower float64
 					validators, _ := ces.rpcClient.Validators(&height)
 					for _, validator := range validators.Validators {
-						if validator.Address.String() == tempDstValidatorInfo.Proposer {
+						if validator.Address.String() == validatorDstInfo.Proposer {
 							dstValidatorVotingPower = float64(validator.VotingPower)
 						}
 					}
 
-					// Insert ValidatorDstAddress data
+					// Current source validator's voting power
+					var srcValidatorVotingPower float64
+					validators, _ = ces.rpcClient.Validators(&height)
+					for _, validator := range validators.Validators {
+						if validator.Address.String() == validatorSrcInfo.Proposer {
+							srcValidatorVotingPower = float64(validator.VotingPower)
+						}
+					}
+
+					// Add the redelegated amount to validator_dst_address
 					tempDstValidatorSetInfo := &dtypes.ValidatorSetInfo{
-						IDValidator:          lastDstValidatorSetInfo.IDValidator,
+						IDValidator:          dstValidatorSetInfo.IDValidator,
 						Height:               height,
-						Proposer:             tempDstValidatorInfo.Proposer,
+						Moniker:              validatorDstInfo.Moniker,
+						OperatorAddress:      validatorDstInfo.OperatorAddress,
+						Proposer:             block.BlockMeta.Header.ProposerAddress.String(),
 						VotingPower:          dstValidatorVotingPower + newVotingPowerAmount,
-						EventType:            "begin_redelegate",
+						EventType:            dtypes.EventTypeMsgBeginRedelegate,
 						NewVotingPowerAmount: newVotingPowerAmount,
 						NewVotingPowerDenom:  redelegateTx.Amount.Denom,
 						TxHash:               generalTx.TxHash,
@@ -254,22 +212,15 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 					}
 					validatorSetInfo = append(validatorSetInfo, tempDstValidatorSetInfo)
 
-					// Current Source Validator's Voting Power
-					var srcValidatorVotingPower float64
-					validators, _ = ces.rpcClient.Validators(&height)
-					for _, validator := range validators.Validators {
-						if validator.Address.String() == tempSrcValidatorInfo.Proposer {
-							srcValidatorVotingPower = float64(validator.VotingPower)
-						}
-					}
-
-					// Insert ValidatorSrcAddress data
+					// Substract the redelegated amount from validator_src_address
 					tempSrcValidatorSetInfo := &dtypes.ValidatorSetInfo{
-						IDValidator:          lastSrcValidatorSetInfo.IDValidator,
+						IDValidator:          srcValidatorSetInfo.IDValidator,
 						Height:               height,
-						Proposer:             tempSrcValidatorInfo.Proposer,
+						Moniker:              validatorSrcInfo.Moniker,
+						OperatorAddress:      validatorSrcInfo.OperatorAddress,
+						Proposer:             block.BlockMeta.Header.ProposerAddress.String(),
 						VotingPower:          srcValidatorVotingPower - newVotingPowerAmount,
-						EventType:            "begin_redelegate",
+						EventType:            dtypes.EventTypeMsgBeginRedelegate,
 						NewVotingPowerAmount: -newVotingPowerAmount,
 						NewVotingPowerDenom:  redelegateTx.Amount.Denom,
 						TxHash:               generalTx.TxHash,

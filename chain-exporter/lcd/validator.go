@@ -41,7 +41,7 @@ func SaveBondedValidators(db *pg.DB, config *config.Config) {
 		tempValidatorInfo := &dtypes.ValidatorInfo{
 			Rank:                 i + 1,
 			OperatorAddress:      bondedValidators.OperatorAddress,
-			CosmosAddress:        utils.OperatorAddressToCosmosAddress(bondedValidators.OperatorAddress),
+			Address:        utils.OperatorAddressToAddress(bondedValidators.OperatorAddress),
 			ConsensusPubkey:      bondedValidators.ConsensusPubkey,
 			Proposer:             utils.ConsensusPubkeyToProposer(bondedValidators.ConsensusPubkey),
 			Jailed:               bondedValidators.Jailed,
@@ -107,7 +107,7 @@ func SaveUnbondedAndUnbodingValidators(db *pg.DB, config *config.Config) {
 	for _, unbondedValidator := range unbondedValidators {
 		tempValidatorInfo := &dtypes.ValidatorInfo{
 			OperatorAddress:      unbondedValidator.OperatorAddress,
-			CosmosAddress:        utils.OperatorAddressToCosmosAddress(unbondedValidator.OperatorAddress),
+			Address:        utils.OperatorAddressToAddress(unbondedValidator.OperatorAddress),
 			ConsensusPubkey:      unbondedValidator.ConsensusPubkey,
 			Proposer:             utils.ConsensusPubkeyToProposer(unbondedValidator.ConsensusPubkey),
 			Jailed:               unbondedValidator.Jailed,
@@ -132,7 +132,7 @@ func SaveUnbondedAndUnbodingValidators(db *pg.DB, config *config.Config) {
 	for _, unbondingValidator := range unbondingValidators {
 		tempValidatorInfo := &dtypes.ValidatorInfo{
 			OperatorAddress:      unbondingValidator.OperatorAddress,
-			CosmosAddress:        utils.OperatorAddressToCosmosAddress(unbondingValidator.OperatorAddress),
+			Address:        utils.OperatorAddressToAddress(unbondingValidator.OperatorAddress),
 			ConsensusPubkey:      unbondingValidator.ConsensusPubkey,
 			Proposer:             utils.ConsensusPubkeyToProposer(unbondingValidator.ConsensusPubkey),
 			Jailed:               unbondingValidator.Jailed,

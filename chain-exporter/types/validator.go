@@ -11,14 +11,14 @@ type ValidatorInfo struct {
 	ID                   int64     `sql:",pk"`
 	Rank                 int       `json:"rank"`
 	OperatorAddress      string    `json:"operator_address" sql:",unique"`
-	CosmosAddress        string    `json:"cosmos_address"`
+	Address              string    `json:"address"`
 	ConsensusPubkey      string    `json:"consensus_pubkey"`
 	Proposer             string    `json:"proposer"`
+	Moniker              string    `json:"moniker"`
 	Jailed               bool      `json:"jailed" sql:"default:false,notnull"`
 	Status               int       `json:"status" sql:"default:0"`
 	Tokens               string    `json:"tokens"`
 	DelegatorShares      string    `json:"delegator_shares"`
-	Moniker              string    `json:"moniker"`
 	Identity             string    `json:"identity"`
 	Website              string    `json:"website"`
 	Details              string    `json:"details"`
@@ -35,7 +35,7 @@ type ValidatorInfo struct {
 type ValidatorDelegationsInfo struct {
 	ID                  int64     `sql:",pk"`
 	OperatorAddress     string    `json:"operator_address" sql:",unique"`
-	CosmosAddress       string    `json:"cosmos_address"`
+	Address       string    `json:"cosmos_address"`
 	TotalShares         float64   `json:"total_shares"`
 	SelfDelegatedShares float64   `json:"self_delegated_shares"`
 	OthersShares        float64   `json:"others"`
@@ -48,6 +48,8 @@ type ValidatorSetInfo struct {
 	ID                   int64     `sql:",pk"`
 	IDValidator          int       `json:"id_validator" sql:"default:0"`
 	Height               int64     `json:"height"`
+	Moniker              string    `json:"moniker"`
+	OperatorAddress      string    `json:"operator_address"`
 	Proposer             string    `json:"proposer"`
 	VotingPower          float64   `json:"voting_power" sql:"default:0"`
 	EventType            string    `json:"event_type" sql:"default:null"`

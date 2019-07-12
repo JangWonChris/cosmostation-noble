@@ -37,7 +37,7 @@ func SaveValidatorDelegations(db *pg.DB, config *config.Config) {
 
 		for _, validatorDelegation := range validatorDelegations {
 			// Calculate self-delegated and others shares
-			if validatorDelegation.DelegatorAddress == validator.CosmosAddress {
+			if validatorDelegation.DelegatorAddress == validator.Address {
 				selfDelegatedShares, _ = strconv.ParseFloat(validatorDelegation.Shares.String(), 64)
 			} else {
 				tempOthersShares, _ := strconv.ParseFloat(validatorDelegation.Shares.String(), 64)
@@ -47,7 +47,7 @@ func SaveValidatorDelegations(db *pg.DB, config *config.Config) {
 
 		// Insert validator delegations data
 		tempValidatorDelegationsInfo := &dtypes.ValidatorDelegationsInfo{
-			CosmosAddress:       validator.CosmosAddress,
+			Address:       validator.Address,
 			OperatorAddress:     validator.OperatorAddress,
 			TotalShares:         selfDelegatedShares + othersShares,
 			SelfDelegatedShares: selfDelegatedShares,

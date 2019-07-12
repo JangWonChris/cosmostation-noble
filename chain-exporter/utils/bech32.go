@@ -14,8 +14,8 @@ func ConsensusPubkeyToProposer(consensusPubKey string) string {
 }
 
 // Convert operator address to cosmos address
-func OperatorAddressToCosmosAddress(operatorAddress string) string {
+func OperatorAddressToAddress(operatorAddress string) string {
 	_, decoded, _ := bech32.DecodeAndConvert(operatorAddress)
-	cosmosAddress, _ := bech32.ConvertAndEncode(sdk.Bech32PrefixAccAddr, decoded)
-	return cosmosAddress
+	Address, _ := bech32.ConvertAndEncode(sdk.Bech32PrefixAccAddr, decoded)
+	return Address
 }
