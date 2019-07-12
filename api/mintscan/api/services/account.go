@@ -81,8 +81,8 @@ func GetAccountInfo(codec *codec.Codec, config *config.Config, db *pg.DB, rpcCli
 		}
 
 		commission = append(commission, *tempCommission)
-		resultAccountResponse.Commission = commission
 	}
+	resultAccountResponse.Commission = commission
 
 	// Query delegations and each delegator's rewards
 	delegations := make([]models.Delegations, 0)
