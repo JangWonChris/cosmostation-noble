@@ -19,6 +19,8 @@ func NewConfig() *Config {
 
 	config := &Config{}
 	config.KeybaseURL = viper.GetString("keybase_url")
+	config.CoinmarketcapURL = viper.GetString("coinmarketcap_url")
+	config.CoinGeckoURL = viper.GetString("coingecko_url")
 
 	nodeConfig := &NodeConfig{}
 	dbConfig := &DBConfig{}

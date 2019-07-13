@@ -1,26 +1,23 @@
 package exporter
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
 	"time"
 
-	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/config"
 	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/types"
 
 	resty "gopkg.in/resty.v1"
 )
 
 // SaveNetworkStats
-func (ses *ChainExporterService) SaveNetworkStats() {
+func (ses *StatsExporterService) SaveNetworkStats() {
 	log.Println("Network Stats")
 
 	// Query LCD
-	resty.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
-	resp, err := resty.R().Get(config.Node.LCDUrl + "/staking/pool")
+	resp, err := resty.R().Get(ses.config.Node.LCDURL + "/staking/pool")
 	if err != nil {
 		fmt.Printf("Staking Pool LCD resty - %v\n", err)
 	}

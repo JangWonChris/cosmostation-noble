@@ -43,3 +43,5 @@ testnet:
     period: "10"
 
 keybase_url: "https://keybase.io/_/api/1.0/user/lookup.json?fields=pictures&key_suffix="
+coinmarketcap_url: "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest"
+coingecko_url: "https://api.coingecko.com/api/v3/coins/cosmos"

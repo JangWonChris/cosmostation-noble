@@ -7,15 +7,15 @@ import (
 )
 
 // Convert Cosmos Address to Opeartor Address
-func ConvertOperatorAddressToCosmosAddress(address string) string {
-	_, decoded, _ := bech32.DecodeAndConvert(address)
-	cosmosAddr, _ := bech32.ConvertAndEncode(sdk.Bech32PrefixAccAddr, decoded)
-	return cosmosAddr
+func ConvertOperatorAddressToAddress(operatorAddress string) string {
+	_, decoded, _ := bech32.DecodeAndConvert(operatorAddress)
+	address, _ := bech32.ConvertAndEncode(sdk.Bech32PrefixAccAddr, decoded)
+	return address
 }
 
 // Convert Opeartor Address to Cosmos Address
-func ConvertCosmosAddressToOperatorAddress(address string) string {
+func ConvertAddressToOperatorAddress(address string) string {
 	_, decoded, _ := bech32.DecodeAndConvert(address)
-	valiOperatorAddr, _ := bech32.ConvertAndEncode(sdk.Bech32PrefixValAddr, decoded)
-	return valiOperatorAddr
+	valiOperatorAddress, _ := bech32.ConvertAndEncode(sdk.Bech32PrefixValAddr, decoded)
+	return valiOperatorAddress
 }

@@ -8,7 +8,6 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/config"
 	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/types"
 	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/utils"
 
@@ -17,7 +16,7 @@ import (
 
 // Query the current delegation between a delegator and a validator > https://lcd.cosmostation.io/staking/delegators/cosmos1lh76pvy2ew873hxxnvl5gqpsgwzm53qpf6x78y/delegations/cosmosvaloper16m93gjfqvnjajzrfyszml8qm92a0w67nwxrca7
 // Get all delegations from a delegator > https://lcd.cosmostation.io/staking/validators/cosmosvaloper16m93gjfqvnjajzrfyszml8qm92a0w67nwxrca7/delegations
-func (ses *ChainExporterService) SaveValidatorStats() {
+func (ses *StatsExporterService) SaveValidatorStats() {
 	log.Println("Save Validator Stats")
 
 	// Query all validators order by their tokens
@@ -33,10 +32,10 @@ func (ses *ChainExporterService) SaveValidatorStats() {
 	validatorStats := make([]*types.ValidatorStats, 0)
 	for _, validator := range validatorInfo {
 		// Convert to validator's cosmos address
-		cosmosAddress := utils.ConvertOperatorAddressToCosmosAddress(validator.OperatorAddress)
+		address := utils.ConvertOperatorAddressToAddress(validator.OperatorAddress)
 
 		// Get self-bonded amount
-		selfBondedResp, err := resty.R().Get(config.Node.LCDUrl + "/staking/delegators/" + cosmosAddress + "/delegations/" + validator.OperatorAddress)
+		selfBondedResp, err := resty.R().Get(ses.config.Node.LCDURL + "/staking/delegators/" + address + "/delegations/" + validator.OperatorAddress)
 		if err != nil {
 			fmt.Printf("Staking Pool LCD resty - %v\n", err)
 		}
@@ -47,7 +46,7 @@ func (ses *ChainExporterService) SaveValidatorStats() {
 		}
 
 		// Get validator's delegation Amount
-		valiDelegationResp, err := resty.R().Get(config.Node.LCDUrl + "/staking/validators/" + validator.OperatorAddress + "/delegations")
+		valiDelegationResp, err := resty.R().Get(ses.config.Node.LCDURL + "/staking/validators/" + validator.OperatorAddress + "/delegations")
 		if err != nil {
 			fmt.Printf("Staking Pool LCD resty - %v\n", err)
 		}
@@ -71,7 +70,7 @@ func (ses *ChainExporterService) SaveValidatorStats() {
 		totalDelegations = sdk.NewDec(0)
 		if len(validatorDelegations) > 0 {
 			for _, delegation := range validatorDelegations {
-				if delegation.DelegatorAddress != cosmosAddress { // Go Decimal 관련 삽질
+				if delegation.DelegatorAddress != address { // Go Decimal 관련 삽질
 					tempDelegation := delegation.Shares
 					totalDelegations = totalDelegations.Add(tempDelegation)
 				}
@@ -84,7 +83,7 @@ func (ses *ChainExporterService) SaveValidatorStats() {
 		tempValidatorStats := &types.ValidatorStats{
 			Moniker:             validator.Moniker,
 			OperatorAddress:     validator.OperatorAddress,
-			CosmosAddress:       cosmosAddress,
+			Address:             address,
 			ProposerAddress:     validator.Proposer,
 			SelfBonded1H:        selfBondedAmount.String(),
 			DelegatorShares1H:   totalDelegations.String(),

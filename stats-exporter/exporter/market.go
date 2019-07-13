@@ -4,30 +4,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"time"
 
-	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/config"
 	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/types"
 
 	resty "gopkg.in/resty.v1"
 )
 
-var (
-	CoinMarketCap_API_URL = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest"
-	CoinGecko_API_URL     = "https://api.coingecko.com/api/v3/coins/cosmos"
-)
-
-func (ses *ChainExporterService) SaveCoinGeckoMarketStats() {
+func (ses *StatsExporterService) SaveCoinGeckoMarketStats() {
 	log.Println("CoingGecko Market Stats")
 
 	// Request CoinGecko API
 	resp, err := resty.R().
 		SetHeader("Accepts", "application/json").
-		Get(CoinGecko_API_URL)
+		Get(ses.config.CoinGeckoURL)
 	if err != nil {
 		fmt.Print("CoinGecko API Request error - ", err)
-		os.Exit(1)
 	}
 
 	// Unmarshal the response
@@ -57,19 +49,18 @@ func (ses *ChainExporterService) SaveCoinGeckoMarketStats() {
 	}
 }
 
-func (ses *ChainExporterService) SaveCoinMarketCapMarketStats() {
+func (ses *StatsExporterService) SaveCoinMarketCapMarketStats() {
 	log.Println("CoinMarketCap Market Stats")
 
 	// Request CoinMarketCap API
 	resp, err := resty.R().
-		SetQueryParam("id", config.Coinmarketcap.CoinID). // Cosmos ID
+		SetQueryParam("id", ses.config.Coinmarketcap.CoinID). // Cosmos ID
 		SetQueryParam("convert", "USD").
 		SetHeader("Accepts", "application/json").
-		SetHeader("X-CMC_PRO_API_KEY", config.Coinmarketcap.APIKey). // API KEY [회사 계정으로 만들어야 될 필요가 있다. 요청 건수 제한]
-		Get(CoinMarketCap_API_URL)
+		SetHeader("X-CMC_PRO_API_KEY", ses.config.Coinmarketcap.APIKey). // API KEY [회사 계정으로 만들어야 될 필요가 있다. 요청 건수 제한]
+		Get(ses.config.CoinmarketcapURL)
 	if err != nil {
 		fmt.Print("CoinMarketCap API Request error - ", err)
-		os.Exit(1)
 	}
 
 	// Unmarshal the response
@@ -94,7 +85,7 @@ func (ses *ChainExporterService) SaveCoinMarketCapMarketStats() {
 	marketStats = append(marketStats, tempMarketStats)
 
 	// Save
-	_, err = ces.db.Model(&marketStats).Insert()
+	_, err = ses.db.Model(&marketStats).Insert()
 	if err != nil {
 		fmt.Printf("error - save MarketStats: %v\n", err)
 	}

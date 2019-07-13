@@ -13,6 +13,28 @@ type CoingeckoMarketStats struct {
 	Time             time.Time `json:"time"`
 }
 
+type ValidatorStats struct {
+	ID                int64     `json:"id" sql:",pk"`
+	Moniker           string    `json:"moniker"`
+	OperatorAddress   string    `json:"operator_address"`
+	Address           string    `json:"address"`
+	Proposer          string    `json:"proposer"`
+	SelfBonded        string    `json:"self_bonded"`
+	DelegatorShares   string    `json:"delegator_shares"`
+	DelegatorNum      int       `json:"delegator_num"`
+	VotingPowerChange string    `json:"voting_power_change"`
+	Time              time.Time `json:"time"`
+}
+
+type NetworkStats struct {
+	ID              int64     `json:"id" sql:",pk"`
+	BlockTime       float64   `json:"block_time"`
+	BondedTokens    int64     `json:"bonded_tokens"`
+	BondedRatio     float64   `json:"bonded_ratio"`
+	NotBondedTokens int64     `json:"not_bonded_tokens"`
+	LastUpdated     time.Time `json:"last_updated"`
+}
+
 type CoinmarketcapMarketStats struct {
 	ID               int64     `json:"id" sql:",pk"`
 	Price            float64   `json:"price"`
@@ -23,26 +45,4 @@ type CoinmarketcapMarketStats struct {
 	PercentChange7D  float64   `json:"percent_change_7d"`
 	LastUpdated      string    `json:"last_updated"`
 	Time             time.Time `json:"time"`
-}
-
-type ValidatorStats struct {
-	ID                  int64     `json:"id" sql:",pk"`
-	Moniker             string    `json:"moniker"`
-	OperatorAddress     string    `json:"operator_address"`
-	CosmosAddress       string    `json:"cosmos_address"`
-	ProposerAddress     string    `json:"proposer_address"`
-	SelfBonded1H        string    `json:"self_bonded_1h"`
-	DelegatorShares1H   string    `json:"delegator_shares_1h"`
-	DelegatorNum1H      int       `json:"delegator_num_1h"`
-	VotingPowerChange1H string    `json:"voting_power_change_1h"`
-	Time                time.Time `json:"time"`
-}
-
-type NetworkStats struct {
-	ID                int64     `json:"id" sql:",pk"`
-	BlockTime1H       float64   `json:"block_time_1H"`
-	BondedTokens1H    int64     `json:"bonded_tokens_1h"`
-	BondedRatio1H     float64   `json:"bonded_ratio_1h"`
-	NotBondedTokens1H int64     `json:"not_bonded_tokens_1h"`
-	LastUpdated       time.Time `json:"last_updated"`
 }

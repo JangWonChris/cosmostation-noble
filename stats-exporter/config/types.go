@@ -1,12 +1,14 @@
 package config
 
 type Config struct {
-	Node          *NodeConfig
-	Raven         *RavenConfig
-	DB            *DBConfig
-	ES            *ESConfig
-	Coinmarketcap *CoinmarketcapConfig
-	KeybaseURL    string
+	Node             *NodeConfig
+	Raven            *RavenConfig
+	DB               *DBConfig
+	ES               *ESConfig
+	Coinmarketcap    *CoinmarketcapConfig
+	KeybaseURL       string
+	CoinmarketcapURL string
+	CoinGeckoURL     string
 }
 
 type (

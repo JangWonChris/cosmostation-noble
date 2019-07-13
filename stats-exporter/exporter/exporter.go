@@ -56,7 +56,7 @@ func NewStatsExporterService(config *config.Config) *StatsExporterService {
 }
 
 // Override method for BaseService, which starts a service
-func (ses *ChainExporterService) OnStart() error {
+func (ses *StatsExporterService) OnStart() {
 	// Cron jobs every 1 hour
 	// c := cron.New()
 	// c.AddFunc("0 */60 * * *", func() { ses.SaveValidatorStats() })
@@ -75,5 +75,5 @@ func (ses *ChainExporterService) OnStart() error {
 	ses.SaveNetworkStats()
 	ses.SaveCoinMarketCapMarketStats()
 	ses.SaveCoinGeckoMarketStats()
-	ses.SaveValidatorKeyBase()
+
 }
