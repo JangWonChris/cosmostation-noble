@@ -81,15 +81,15 @@ func (ses *StatsExporterService) SaveValidatorStats() {
 		delegatorNum := len(validatorDelegations)
 
 		tempValidatorStats := &types.ValidatorStats{
-			Moniker:             validator.Moniker,
-			OperatorAddress:     validator.OperatorAddress,
-			Address:             address,
-			ProposerAddress:     validator.Proposer,
-			SelfBonded1H:        selfBondedAmount.String(),
-			DelegatorShares1H:   totalDelegations.String(),
-			DelegatorNum1H:      delegatorNum,
-			VotingPowerChange1H: selfBondedAmount.Add(totalDelegations).String(),
-			Time:                time.Now(),
+			Moniker:           validator.Moniker,
+			OperatorAddress:   validator.OperatorAddress,
+			Address:           address,
+			Proposer:          validator.Proposer,
+			SelfBonded:        selfBondedAmount.String(),
+			DelegatorShares:   totalDelegations.String(),
+			DelegatorNum:      delegatorNum,
+			VotingPowerChange: selfBondedAmount.Add(totalDelegations).String(),
+			Time:              time.Now(),
 		}
 		validatorStats = append(validatorStats, tempValidatorStats)
 	}

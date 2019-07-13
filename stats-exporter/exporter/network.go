@@ -52,11 +52,11 @@ func (ses *StatsExporterService) SaveNetworkStats() {
 
 	// NetworkStats
 	networkStats := &types.NetworkStats{
-		BlockTime1H:       blockTime.Seconds(),
-		BondedTokens1H:    bondedTokens,
-		BondedRatio1H:     bondedRatio,
-		NotBondedTokens1H: notBondedTokens,
-		LastUpdated:       time.Now(),
+		BlockTime:       blockTime.Seconds(),
+		BondedTokens:    bondedTokens,
+		BondedRatio:     bondedRatio,
+		NotBondedTokens: notBondedTokens,
+		LastUpdated:     time.Now(),
 	}
 
 	// Save
