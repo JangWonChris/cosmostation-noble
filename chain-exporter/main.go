@@ -7,7 +7,7 @@ import (
 
 func main() {
 	// Configuration in config.yaml
-	config := config.NewChainExporterConfig()
+	config := config.NewConfig()
 
 	// Start exporting data from blockchain
 	exporter := exporter.NewChainExporterService(config)

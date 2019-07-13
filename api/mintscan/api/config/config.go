@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func NewAPIConfig() *Config {
+func NewConfig() *Config {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
@@ -55,6 +55,6 @@ func NewAPIConfig() *Config {
 	config.Node = nodeConfig
 	config.DB = dbConfig
 	config.Web = webConfig
-	
+
 	return config
 }

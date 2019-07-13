@@ -7,7 +7,7 @@ import (
 
 func main() {
 	// Configuration in config.yaml
-	config := config.NewAPIConfig()
+	config := config.NewConfig()
 
 	// API server app
 	app := &app.App{}
