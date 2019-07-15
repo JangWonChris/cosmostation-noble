@@ -7,14 +7,18 @@ import (
 	"os"
 )
 
-// 모든 앱 설정
+var configFile string
 
+// 모든 앱 설정
 var rootCmd = &cobra.Command{
-	Use:"ElasticSearch Crawler",
+	Use:"chain-exporter-es",
 	Short:"ElasticSearch Crawler Application",
-	Run: func(cmd *cobra.Command, args []string) {
-		cmd.Usage()
-	},
+	Run: rootCmtHandler,
+}
+
+func init() {
+	cobra.OnInitialize(initConfig)
+	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", "config file (default is config.yaml)")
 }
 
 func Execute()  {
@@ -22,13 +26,6 @@ func Execute()  {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-}
-
-var configFile string
-
-func init() {
-	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", "config file (default is config.yaml)")
 }
 
 func initConfig() {
@@ -46,4 +43,8 @@ func initConfig() {
 		fmt.Printf("unable to read config: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+func rootCmtHandler(cmd *cobra.Command, args []string)  {
+	cmd.Usage()
 }

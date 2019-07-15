@@ -12,6 +12,8 @@
 *.out
 
 
+.idea
+
 # chain-exporter-es
 chain-exporter-es/chain-exporter-es
 chain-exporter-es/.idea

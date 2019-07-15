@@ -75,7 +75,7 @@ type ElasticSearch struct {
 	Height int64 `json:"height"`
 }
 
-func New(config *Config) (*ElasticSearch, error) {
+func NewElastic(config *Config) (*ElasticSearch, error) {
 	signingClient := aws.NewV4SigningClient(
 		credentials.NewStaticCredentials(
 			config.AccessKey,

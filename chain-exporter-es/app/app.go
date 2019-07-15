@@ -8,6 +8,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	sdkTypes "github.com/cosmos/cosmos-sdk/types"
 	"github.com/tendermint/tendermint/crypto"
 	cmn "github.com/tendermint/tendermint/libs/common"
@@ -22,49 +24,52 @@ import (
 
 type App struct {
 	cmn.BaseService
-	IsCaughtUp bool
-	Client *client.HTTP
-	WsCtx context.Context
-	WsOut <-chan ctypes.ResultEvent
+	IsCaughtUp    bool
+	Client        *client.HTTP
+	WsCtx         context.Context
+	WsOut         <-chan ctypes.ResultEvent
 	ElasticSearch *elastic.ElasticSearch
 }
 
-func (a *App) NewContext() *Context  {
+func (a *App) NewContext() *Context {
 	return &Context{
-		Logger:log.NewTMLogger(log.NewSyncWriter(os.Stdout)),
-		ElasticSearch:a.ElasticSearch,
+		Logger:        log.NewTMLogger(log.NewSyncWriter(os.Stdout)),
+		ElasticSearch: a.ElasticSearch,
 	}
 }
 
-func New(env string) (app *App, err error)  {
+func NewApp(network string, env string) (app *App, err error) {
 	app = &App{}
 
-	elasticConfig, err := elastic.InitConfig(env)
+	elasticConfig, err := elastic.InitConfig(network, env)
 	if err != nil {
+		logrus.Error(err)
 		return nil, err
 	}
 
-	appConfig, err := InitConfig(env)
+	appConfig, err := InitConfig(network, env)
 	if err != nil {
+		logrus.Error(err)
 		return nil, err
 	}
 
 	appContext := app.NewContext()
 
-	app.ElasticSearch, err = elastic.New(elasticConfig)
+	app.ElasticSearch, err = elastic.NewElastic(elasticConfig)
 	app.Client = client.NewHTTP(appConfig.RPCEndPoint, "/websocket")
 	app.Client.SetLogger(appContext.Logger)
 	app.Client.WSEvents.SetLogger(appContext.Logger)
 	app.BaseService = *cmn.NewBaseService(appContext.Logger, "ES Crawler Server", app)
 
 	if err != nil {
+		logrus.Error(err)
 		return nil, err
 	}
 
 	return app, nil
 }
 
-func (a *App) OnStart() error  {
+func (a *App) OnStart() error {
 	err := a.BaseService.OnStart()
 	if err != nil {
 		return err
@@ -84,15 +89,16 @@ func (a *App) OnStart() error  {
 		return err
 	}
 
-	//고루틴 비동기로 실행
+	// 고루틴 실행
 	go a.routine()
 	return nil
 }
 
 // Todo : txid parsing,insert 하던 중간에 동기화 멈췄다가 다시 실행할 경우, tx_index에 해당블록높이의 txs 중 어디까지 들어갔는지 체크하는 로직이 필요하겠다.
-func (a *App) routine()  {
+func (a *App) routine() {
 	a.IsCaughtUp = false
 	height, err := a.ElasticSearch.GetCurrHeight(a.WsCtx)
+	a.Logger.Info("sync start at height : ", height)
 	if err != nil {
 		a.Logger.Error(fmt.Sprintf("Error on GetCurrHeightFromES: %s", err.Error()), "height", height)
 	}
@@ -100,20 +106,19 @@ func (a *App) routine()  {
 	a.ElasticSearch.SetCurrHeight(height)
 	for {
 		select {
-			//v, ok := <-ch
-			//ok is false if there are no more values to receive and the channel is closed.
-			case i, ok := <- a.WsOut:
-				if ok {
-					a.wsNewBlockRoutine(i)
-				}
-			default:
-				a.syncRoutine()
+		//v, ok := <-ch
+		//ok is false if there are no more values to receive and the channel is closed.
+		case i, ok := <-a.WsOut:
+			if ok {
+				a.wsNewBlockRoutine(i)
 			}
+		default:
+			a.syncRoutine()
+		}
 	}
 }
 
-
-func (a *App) syncRoutine()   {
+func (a *App) syncRoutine() {
 	if a.IsCaughtUp {
 		time.Sleep(100 * time.Microsecond)
 		return
@@ -198,7 +203,7 @@ func (a *App) syncRoutine()   {
 	a.ElasticSearch.SetCurrHeight(block.Block.Height)
 }
 
-func (a *App) wsNewBlockRoutine(i ctypes.ResultEvent)  {
+func (a *App) wsNewBlockRoutine(i ctypes.ResultEvent) {
 	resultEvent := ctypes.ResultEvent{}
 	resultEvent = i
 
@@ -296,7 +301,7 @@ func (a *App) wsNewBlockRoutine(i ctypes.ResultEvent)  {
 	a.ElasticSearch.SetCurrHeight(newBlock.Block.Height)
 }
 
-func (a *App) OnStop()   {
+func (a *App) OnStop() {
 	a.BaseService.OnStop()
 	a.Client.OnStop()
 }
