@@ -13,6 +13,7 @@
 
 
 # chain-exporter-es
-/cosmostation-cosmos/chain-exporter-es/chain-exporter-es
-/cosmostation-cosmos/chain-exporter-es/config.yaml
-/cosmostation-cosmos/chain-exporter-es/.idea
+chain-exporter-es/chain-exporter-es
+chain-exporter-es/.idea
+chain-exporter-es/config.yaml
+chain-exporter-es/go.sum

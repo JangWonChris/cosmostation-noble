@@ -84,7 +84,7 @@ func (a *App) OnStart() error  {
 		return err
 	}
 
-	//비동기로 실행
+	//고루틴 비동기로 실행
 	go a.routine()
 	return nil
 }
