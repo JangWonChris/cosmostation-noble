@@ -319,16 +319,16 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 				default:
 					continue
 				}
-
-				// PostgreSQL
-				tempTransactionInfo := &dtypes.TransactionInfo{
-					Height:  block.Block.Height,
-					TxHash:  txHash,
-					MsgType: generalTx.Tx.Value.Msg[j].Type,
-					Time:    block.BlockMeta.Header.Time,
-				}
-				transactionInfo = append(transactionInfo, tempTransactionInfo)
 			}
+
+			// PostgreSQL : save all txs whether it is success or fail
+			tempTransactionInfo := &dtypes.TransactionInfo{
+				Height:  block.Block.Height,
+				TxHash:  txHash,
+				MsgType: generalTx.Tx.Value.Msg[j].Type,
+				Time:    block.BlockMeta.Header.Time,
+			}
+			transactionInfo = append(transactionInfo, tempTransactionInfo)
 		}
 	}
 
