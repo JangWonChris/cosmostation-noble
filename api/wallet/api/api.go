@@ -14,6 +14,7 @@ import (
 	"github.com/go-pg/pg"
 	"github.com/gorilla/mux"
 	"github.com/tendermint/tendermint/rpc/client"
+	"github.com/tendermint/tendermint/libs/log"
 )
 
 // App wraps up the required variables that are needed in this app

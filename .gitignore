@@ -15,7 +15,7 @@
 .idea
 
 # chain-exporter-es
-chain-exporter-es/config.yaml
 chain-exporter-es/chain-exporter-es
 chain-exporter-es/.idea
+chain-exporter-es/config.yaml
 chain-exporter-es/go.sum
