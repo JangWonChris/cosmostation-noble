@@ -75,12 +75,13 @@ func GetAccountInfo(codec *codec.Codec, config *config.Config, db *pg.DB, rpcCli
 		var valCom distrTypes.ValidatorAccumulatedCommission
 		ctx.Codec.MustUnmarshalJSON(result, &valCom)
 
-		tempCommission := &models.Commission{
-			Denom:  valCom[0].Denom,
-			Amount: valCom[0].Amount.String(),
+		if valCom != nil { // Sikka (commission is zero)
+			tempCommission := &models.Commission{
+				Denom:  valCom[0].Denom,
+				Amount: valCom[0].Amount.String(),
+			}
+			commission = append(commission, *tempCommission)
 		}
-
-		commission = append(commission, *tempCommission)
 	}
 	resultAccountResponse.Commission = commission
 
