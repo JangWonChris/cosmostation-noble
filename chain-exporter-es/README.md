@@ -31,10 +31,9 @@
 
 <br/>
 
-### Cosmos - escralwer.service
+### Cosmos - es-crawler.service
 
-(kava와 동일하게 변경예정)
-`위치 : /lib/systemd/system/escrawler.service`
+`위치 : /etc/systemd/system/es-crawler.service`
 
 ```
 [Unit]
@@ -43,8 +42,9 @@ Requires=network-online.target
 After=network-online.target
 
 [Service]
+EnvironmentFile=/etc/es-crawler.conf
 Type=simple
-ExecStart=/home/ubuntu/elasticsearch/cosmostation-chain-exporter-es/cosmostation-chain-exporter-es
+ExecStart=/home/ubuntu/go/bin/chain-exporter-es server --env=${ENV_PROD} --network=${NETWORK_COSMOS}
 Restart=on-failure
 RestartSec=10s
 
