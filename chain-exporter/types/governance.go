@@ -45,7 +45,7 @@ type DepositInfo struct {
 	Height     int64     `json:"height"`
 	ProposalID int64     `json:"proposal_id"`
 	Depositor  string    `json:"depositor"`
-	Amount     int64     `json:"amount"`
+	Amount     string    `json:"amount"`
 	Denom      string    `json:"denom"`
 	TxHash     string    `json:"tx_hash"`
 	GasWanted  int64     `json:"gas_wanted"`

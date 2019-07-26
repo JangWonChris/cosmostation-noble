@@ -3,6 +3,7 @@ package exporter
 import (
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -241,7 +242,8 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 						}
 					}
 
-					initialDepositAmount, _ := strconv.ParseInt(submitTx.InitialDeposit[0].Amount, 10, 64)
+					initialDepositAmount, _ := strconv.ParseFloat(submitTx.InitialDeposit[0].Amount, 64)
+					depositAmount := fmt.Sprintf("%f", initialDepositAmount)
 					initialDepositDenom := submitTx.InitialDeposit[0].Denom
 
 					// Insert data
@@ -249,7 +251,7 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 						ID:                   proposalID,
 						TxHash:               generalTx.TxHash,
 						Proposer:             submitTx.Proposer,
-						InitialDepositAmount: string(initialDepositAmount),
+						InitialDepositAmount: depositAmount,
 						InitialDepositDenom:  initialDepositDenom,
 					}
 					proposalInfo = append(proposalInfo, tempProposalInfo)
@@ -264,7 +266,7 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 						Height:     height,
 						ProposalID: proposalID,
 						Depositor:  submitTx.Proposer,
-						Amount:     initialDepositAmount,
+						Amount:     depositAmount,
 						Denom:      initialDepositDenom,
 						TxHash:     generalTx.TxHash,
 						GasWanted:  gasWanted,
