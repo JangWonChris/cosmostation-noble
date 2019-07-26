@@ -310,7 +310,7 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 						Height:     height,
 						ProposalID: proposalID,
 						Depositor:  depositTx.Depositor,
-						Amount:     amount,
+						Amount:     string(amount),
 						Denom:      depositTx.Amount[j].Denom,
 						TxHash:     generalTx.TxHash,
 						GasWanted:  gasWanted,
