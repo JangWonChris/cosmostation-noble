@@ -6,7 +6,7 @@ import "time"
 type ValidatorInfo struct {
 	ID                   int64     `sql:",pk"`
 	Rank                 int       `json:"rank"`
-	CosmosAddress        string    `json:"cosmos_address"`
+	Address              string    `json:"address"`
 	OperatorAddress      string    `json:"operator_address" sql:",unique"`
 	ConsensusPubkey      string    `json:"consensus_pubkey"`
 	Proposer             string    `json:"proposer"`

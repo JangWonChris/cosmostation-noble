@@ -63,7 +63,7 @@ func GetAccountInfo(codec *codec.Codec, config *config.Config, db *pg.DB, rpcCli
 	var validatorInfo dbtypes.ValidatorInfo
 	err = db.Model(&validatorInfo).
 		Column("operator_address").
-		Where("cosmos_address = ?", address).
+		Where("address = ?", address).
 		Select()
 
 	commission := make([]models.Commission, 0)
