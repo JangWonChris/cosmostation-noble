@@ -18,12 +18,15 @@ func NewConfig() *Config {
 	}
 
 	config := &Config{}
-	config.KeybaseURL = viper.GetString("keybase_url")
-	config.CoinmarketcapURL = viper.GetString("coinmarketcap_url")
-	config.CoinGeckoURL = viper.GetString("coingecko_url")
 
 	nodeConfig := &NodeConfig{}
 	dbConfig := &DBConfig{}
+	marketConfig := &MarketConfig{}
+
+	marketConfig.CoinmarketCap.URL = viper.GetString("market.coinmarketcap.url")
+	marketConfig.CoinmarketCap.APIKey = viper.GetString("market.coinmarketcap.api_key")
+	marketConfig.CoinmarketCap.CoinID = viper.GetString("market.coinmarketcap.coin_id")
+	marketConfig.CoinGecko.URL = viper.GetString("market.coingecko.url")
 
 	// Production or Development
 	switch viper.GetString("active") {

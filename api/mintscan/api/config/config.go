@@ -18,9 +18,11 @@ func NewConfig() *Config {
 	}
 
 	config := &Config{}
+
 	nodeConfig := &NodeConfig{}
 	dbConfig := &DBConfig{}
 	webConfig := &WebConfig{}
+	marketConfig := &MarketConfig{}
 
 	// Production or Development
 	switch viper.GetString("active") {
@@ -52,9 +54,15 @@ func NewConfig() *Config {
 		fmt.Println("Define active params in config.yaml")
 	}
 
+	// common
+	marketConfig.CoinmarketCap.URL = viper.GetString("market.coinmarketcap.url")
+	marketConfig.CoinmarketCap.APIKey = viper.GetString("market.coinmarketcap.api_key")
+	marketConfig.CoinmarketCap.CoinID = viper.GetString("market.coinmarketcap.coin_id")
+	marketConfig.CoinGecko.URL = viper.GetString("market.coingecko.url")
+
 	config.Node = nodeConfig
 	config.DB = dbConfig
 	config.Web = webConfig
-
+	config.Market = marketConfig
 	return config
 }

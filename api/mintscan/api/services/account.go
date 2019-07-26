@@ -33,7 +33,7 @@ func GetAccountInfo(codec *codec.Codec, config *config.Config, db *pg.DB, rpcCli
 	address := vars["address"]
 
 	// Check validity of address
-	if !strings.Contains(address, sdk.GetConfig().GetBech32AccountAddrPrefix()) {
+	if !strings.Contains(address, sdk.GetConfig().GetBech32AccountAddrPrefix()) || len(address) != 45 {
 		errors.ErrNotExist(w, http.StatusNotFound)
 		return nil
 	}

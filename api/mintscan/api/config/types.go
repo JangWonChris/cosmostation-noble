@@ -1,9 +1,10 @@
 package config
 
 type Config struct {
-	Node *NodeConfig
-	DB   *DBConfig
-	Web  *WebConfig
+	Node   *NodeConfig
+	DB     *DBConfig
+	Web    *WebConfig
+	Market *MarketConfig
 }
 
 type NodeConfig struct {
@@ -22,3 +23,13 @@ type WebConfig struct {
 	Port string
 }
 
+type MarketConfig struct {
+	CoinmarketCap struct {
+		URL    string
+		CoinID string
+		APIKey string
+	}
+	CoinGecko struct {
+		URL string
+	}
+}

@@ -42,6 +42,11 @@ testnet:
     address: "063286B58F0D01406B188796820C2DC895B21063"
     period: "10"
 
-keybase_url: "https://keybase.io/_/api/1.0/user/lookup.json?fields=pictures&key_suffix="
-coinmarketcap_url: "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest"
-coingecko_url: "https://api.coingecko.com/api/v3/coins/cosmos"
+market:
+  coinmarketcap: 
+    url: "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest"
+    coin_id: "3794",
+    api_key: "1a9784e7-e592-449c-a123-744583ec25e8",
+  coingecko:
+    url: "https://api.coingecko.com/api/v3/coins/cosmos"
+    

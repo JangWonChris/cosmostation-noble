@@ -33,3 +33,11 @@ testnet:
     table: "dev-test"
   port: 5000
   
+market:
+  coinmarketcap: 
+    url: "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest"
+    coin_id: "3794"
+    api_key: "1a9784e7-e592-449c-a123-744583ec25e8"
+  coingecko:
+    url: "https://api.coingecko.com/api/v3/coins/cosmos"
+    

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	gaiaApp "github.com/cosmos/cosmos-sdk/cmd/gaia/app"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/config"
@@ -45,6 +46,8 @@ func (a *App) NewApp(config *config.Config) {
 	// Register routers
 	a.setRouters()
 
+	// SetTimeout method sets timeout for request.
+	resty.SetTimeout(5 * time.Second)
 	resty.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true}) // Local 환경에서 테스트를 위해
 }
 
@@ -52,7 +55,6 @@ func (a *App) NewApp(config *config.Config) {
 func (a *App) setRouters() {
 	a.router = mux.NewRouter()
 	a.router = a.router.PathPrefix("/v1").Subrouter()
-
 	controllers.AccountController(a.codec, a.config, a.db, a.router, a.rpcClient)
 	controllers.BlockController(a.codec, a.config, a.db, a.router, a.rpcClient)
 	controllers.DistributionController(a.codec, a.config, a.db, a.router, a.rpcClient)
