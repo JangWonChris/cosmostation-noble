@@ -3,7 +3,6 @@ package exporter
 import (
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -64,15 +63,6 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 			}
 			transactionInfo = append(transactionInfo, tempTransactionInfo)
 		}
-
-		// PostgreSQL : save all txs whether it is success or fail
-		tempTransactionInfo := &dtypes.TransactionInfo{
-			Height:  block.Block.Height,
-			TxHash:  txHash,
-			MsgType: generalTx.Tx.Value.Msg[j].Type,
-			Time:    block.BlockMeta.Header.Time,
-		}
-		transactionInfo = append(transactionInfo, tempTransactionInfo)
 
 		// Check log to see if tx is success
 		for j, log := range generalTx.Logs {
@@ -261,11 +251,11 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 					validatorSetInfo = append(validatorSetInfo, tempSrcValidatorSetInfo)
 
 				case "cosmos-sdk/MsgSubmitProposal":
-					var submitTx dtypes.SubmitProposalMsgValueTx
-					_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &submitTx)
+					var msgSubmitProposal dtypes.MsgSubmitProposal
+					_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &msgSubmitProposal)
 
-					// 멀티메시지 일 경우 Tags 번호가 달라져서 아래와 같이 key 값을 찾고 value를 넣어줘야 된다
-					// 141050 블록높이: 7de25c478cf26eb6843c6a1b7a1cb550c8ab77ba9563a252677c059572bea6c3
+					// in case msgSubmitProposal is in multi-msg
+					// never define directly as generalTx.Tags[0]
 					var proposalID int64
 					for _, tag := range generalTx.Tags {
 						if tag.Key == "proposal-id" {
@@ -273,16 +263,19 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 						}
 					}
 
-					initialDepositAmount, _ := strconv.ParseFloat(submitTx.InitialDeposit[0].Amount, 64)
-					depositAmount := fmt.Sprintf("%f", initialDepositAmount)
-					initialDepositDenom := submitTx.InitialDeposit[0].Denom
+					var initialDepositAmount string
+					var initialDepositDenom string
+					if len(msgSubmitProposal.InitialDeposit) > 0 {
+						initialDepositAmount = msgSubmitProposal.InitialDeposit[0].Amount
+						initialDepositDenom = msgSubmitProposal.InitialDeposit[0].Denom
+					}
 
-					// Insert data
+					// Insert data into proposal_infos table
 					tempProposalInfo := &dtypes.ProposalInfo{
 						ID:                   proposalID,
 						TxHash:               generalTx.TxHash,
-						Proposer:             submitTx.Proposer,
-						InitialDepositAmount: depositAmount,
+						Proposer:             msgSubmitProposal.Proposer,
+						InitialDepositAmount: initialDepositAmount,
 						InitialDepositDenom:  initialDepositDenom,
 					}
 					proposalInfo = append(proposalInfo, tempProposalInfo)
@@ -292,12 +285,12 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 					gasWanted, _ := strconv.ParseInt(generalTx.GasWanted, 10, 64)
 					gasUsed, _ := strconv.ParseInt(generalTx.GasUsed, 10, 64)
 
-					// Insert data
+					// Insert data into deposit_infos table
 					tempDepositInfo := &dtypes.DepositInfo{
 						Height:     height,
 						ProposalID: proposalID,
-						Depositor:  submitTx.Proposer,
-						Amount:     depositAmount,
+						Depositor:  msgSubmitProposal.Proposer,
+						Amount:     initialDepositAmount,
 						Denom:      initialDepositDenom,
 						TxHash:     generalTx.TxHash,
 						GasWanted:  gasWanted,
@@ -307,19 +300,19 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 					depositInfo = append(depositInfo, tempDepositInfo)
 
 				case "cosmos-sdk/MsgVote":
-					var voteTx dtypes.VoteMsgValueTx
-					_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &voteTx)
+					var msgVote dtypes.MsgVote
+					_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &msgVote)
 
 					// Transaction Messeage
 					height, _ := strconv.ParseInt(generalTx.Height, 10, 64)
-					proposalID, _ := strconv.ParseInt(voteTx.ProposalID, 10, 64)
+					proposalID, _ := strconv.ParseInt(msgVote.ProposalID, 10, 64)
 					gasWanted, _ := strconv.ParseInt(generalTx.GasWanted, 10, 64)
 					gasUsed, _ := strconv.ParseInt(generalTx.GasUsed, 10, 64)
 					tempVoteInfo := &dtypes.VoteInfo{
 						Height:     height,
 						ProposalID: proposalID,
-						Voter:      voteTx.Voter,
-						Option:     voteTx.Option,
+						Voter:      msgVote.Voter,
+						Option:     msgVote.Option,
 						TxHash:     generalTx.TxHash,
 						GasWanted:  gasWanted,
 						GasUsed:    gasUsed,
@@ -328,21 +321,21 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 					voteInfo = append(voteInfo, tempVoteInfo)
 
 				case "cosmos-sdk/MsgDeposit":
-					var depositTx dtypes.DepositMsgValueTx
-					_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &depositTx)
+					var msgDeposit dtypes.MsgDeposit
+					_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &msgDeposit)
 
 					// Transaction Messeage
 					height, _ := strconv.ParseInt(generalTx.Height, 10, 64)
-					proposalID, _ := strconv.ParseInt(depositTx.ProposalID, 10, 64)
-					amount := depositTx.Amount[0].Amount
+					proposalID, _ := strconv.ParseInt(msgDeposit.ProposalID, 10, 64)
+					amount := msgDeposit.Amount[0].Amount
 					gasWanted, _ := strconv.ParseInt(generalTx.GasWanted, 10, 64)
 					gasUsed, _ := strconv.ParseInt(generalTx.GasUsed, 10, 64)
 					tempDepositInfo := &dtypes.DepositInfo{
 						Height:     height,
 						ProposalID: proposalID,
-						Depositor:  depositTx.Depositor,
+						Depositor:  msgDeposit.Depositor,
 						Amount:     amount,
-						Denom:      depositTx.Amount[j].Denom,
+						Denom:      msgDeposit.Amount[j].Denom,
 						TxHash:     generalTx.TxHash,
 						GasWanted:  gasWanted,
 						GasUsed:    gasUsed,

@@ -108,33 +108,34 @@ type MsgBeginRedelegate struct {
 	} `json:"amount"`
 }
 
-type (
-	// https://lcd.cosmostation.io/txs/A126E48228271FBAEDF49028E4CB724049E09C831769AE402BBB80CCA197C62D
-	SubmitProposalMsgValueTx struct {
-		Title          string `json:"title"`
-		Description    string `json:"description"`
-		ProposalType   string `json:"proposal_type"`
-		Proposer       string `json:"proposer"`
-		InitialDeposit []struct {
-			Denom  string `json:"denom"`
-			Amount string `json:"amount"`
-		} `json:"initial_deposit"`
-	}
+// cosmoshub-1 https://lcd.cosmostation.io/txs/A126E48228271FBAEDF49028E4CB724049E09C831769AE402BBB80CCA197C62D
+// cosmoshub-2 https://lcd.cosmostation.io/txs/183CD449019835854C7C48712D275E05FEDA56ACCCE0E2C740C511F183B0729E
+type MsgSubmitProposal struct {
+	Title          string `json:"title"`
+	Description    string `json:"description"`
+	ProposalType   string `json:"proposal_type"`
+	Proposer       string `json:"proposer"`
+	InitialDeposit []struct {
+		Denom  string `json:"denom"`
+		Amount string `json:"amount"`
+	} `json:"initial_deposit"`
+}
 
-	// https://lcd.cosmostation.io/txs/8D17DC38DE754B544F1183AC96FD91D7E9559893A12FCD013E1A87A619856C61
-	VoteMsgValueTx struct {
-		ProposalID string `json:"proposal_id"`
-		Voter      string `json:"voter"`
-		Option     string `json:"option"`
-	}
+// cosmoshub-1 https://lcd.cosmostation.io/txs/8D17DC38DE754B544F1183AC96FD91D7E9559893A12FCD013E1A87A619856C61
+// cosmoshub-2 https://lcd.cosmostation.io/txs/
+type MsgVote struct {
+	ProposalID string `json:"proposal_id"`
+	Voter      string `json:"voter"`
+	Option     string `json:"option"`
+}
 
-	// https://lcd.cosmostation.io/txs/5EED165DE065D07B6772DD0994F8CD23177C5FDE76235012865C5110E52FAF31
-	DepositMsgValueTx struct {
-		ProposalID string `json:"proposal_id"`
-		Depositor  string `json:"depositor"`
-		Amount     []struct {
-			Denom  string `json:"denom"`
-			Amount string `json:"amount"`
-		} `json:"amount"`
-	}
-)
+// cosmoshub-2 https://lcd.cosmostation.io/txs/5EED165DE065D07B6772DD0994F8CD23177C5FDE76235012865C5110E52FAF31
+// cosmoshub-2 https://lcd.cosmostation.io/txs/B2EDFC1539FD0E58FFE5367BB297C904D4DDACD41F62414503735865C2BA57D7
+type MsgDeposit struct {
+	ProposalID string `json:"proposal_id"`
+	Depositor  string `json:"depositor"`
+	Amount     []struct {
+		Denom  string `json:"denom"`
+		Amount string `json:"amount"`
+	} `json:"amount"`
+}
