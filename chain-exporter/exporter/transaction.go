@@ -49,8 +49,8 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 			if log.Success {
 				switch generalTx.Tx.Value.Msg[j].Type {
 				case "cosmos-sdk/MsgCreateValidator":
-					var createValidatorTx dtypes.CreateValidatorMsgValueTx
-					_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &createValidatorTx)
+					var msgCreateValidator dtypes.MsgCreateValidator
+					_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &msgCreateValidator)
 
 					// [기술적 한계] > 동일한 블록안에 create_validator 메시지가 2개 이상 있을 경우 마지막으로 저장된 id_validator를 가져오면 겹친다.
 
@@ -59,17 +59,17 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 
 					// Conversion
 					height, _ := strconv.ParseInt(generalTx.Height, 10, 64)
-					newVotingPowerAmount, _ := strconv.ParseFloat(createValidatorTx.Value.Amount.String(), 64) // parseFloat from sdk.Dec.String()
+					newVotingPowerAmount, _ := strconv.ParseFloat(msgCreateValidator.Value.Amount.String(), 64) // parseFloat from sdk.Dec.String()
 					newVotingPowerAmount = float64(newVotingPowerAmount) / 1000000
 
 					// Insert data
 					tempValidatorSetInfo := &dtypes.ValidatorSetInfo{
 						IDValidator:          highestIDValidatorNum + 1,
 						Height:               height,
-						Proposer:             utils.ConsensusPubkeyToProposer(createValidatorTx.Pubkey), // New validator's proposer address needs to be converted
+						Proposer:             utils.ConsensusPubkeyToProposer(msgCreateValidator.Pubkey), // New validator's proposer address needs to be converted
 						VotingPower:          newVotingPowerAmount,
 						NewVotingPowerAmount: newVotingPowerAmount,
-						NewVotingPowerDenom:  createValidatorTx.Value.Denom,
+						NewVotingPowerDenom:  msgCreateValidator.Value.Denom,
 						EventType:            dtypes.EventTypeMsgCreateValidator,
 						TxHash:               generalTx.TxHash,
 						Time:                 block.BlockMeta.Header.Time,
@@ -77,18 +77,18 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 					validatorSetInfo = append(validatorSetInfo, tempValidatorSetInfo)
 
 				case "cosmos-sdk/MsgDelegate":
-					var delegateTx dtypes.DelegateMsgValueTx
-					_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &delegateTx)
+					var msgDelegate dtypes.MsgDelegate
+					_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &msgDelegate)
 
-					// Query validator info
-					validatorInfo, _ := utils.QueryValidatorInfo(ces.db, delegateTx.ValidatorAddress)
+					// Query validator information fro validator_infos table
+					validatorInfo, _ := utils.QueryValidatorInfo(ces.db, msgDelegate.ValidatorAddress)
 
 					// Query to get id_validator of lastly inserted data
 					idValidatorSetInfo, _ := utils.QueryIDValidatorSetInfo(ces.db, validatorInfo.Proposer)
 
 					// Conversion
 					height, _ := strconv.ParseInt(generalTx.Height, 10, 64)
-					newVotingPowerAmount, _ := strconv.ParseFloat(delegateTx.Amount.Amount.String(), 64) // parseFloat from sdk.Dec.String()
+					newVotingPowerAmount, _ := strconv.ParseFloat(msgDelegate.Amount.Amount.String(), 64) // parseFloat from sdk.Dec.String()
 					newVotingPowerAmount = newVotingPowerAmount / 1000000
 
 					// Current Voting Power
@@ -112,25 +112,29 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 						VotingPower:          votingPower + newVotingPowerAmount,
 						EventType:            dtypes.EventTypeMsgDelegate,
 						NewVotingPowerAmount: newVotingPowerAmount,
-						NewVotingPowerDenom:  delegateTx.Amount.Denom,
+						NewVotingPowerDenom:  msgDelegate.Amount.Denom,
 						TxHash:               generalTx.TxHash,
 						Time:                 block.BlockMeta.Header.Time,
 					}
 					validatorSetInfo = append(validatorSetInfo, tempValidatorSetInfo)
 
 				case "cosmos-sdk/MsgUndelegate":
-					var undelegateTx dtypes.UndelegateMsgValueTx
-					_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &undelegateTx)
+					var msgUndelegate dtypes.MsgUndelegate
+					_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &msgUndelegate)
 
 					// Query validator info
-					validatorInfo, _ := utils.QueryValidatorInfo(ces.db, undelegateTx.ValidatorAddress)
+					validatorInfo, _ := utils.QueryValidatorInfo(ces.db, msgUndelegate.ValidatorAddress)
+
+					fmt.Println("msgUndelegate.ValidatorAddress: ", msgUndelegate.ValidatorAddress)
+					fmt.Println("validatorInfo: ", validatorInfo.Proposer)
+					fmt.Println("Moniker: ", validatorInfo.Moniker)
 
 					// Query to get id_validator of lastly inserted data
 					idValidatorSetInfo, _ := utils.QueryIDValidatorSetInfo(ces.db, validatorInfo.Proposer)
 
 					// Conversion
 					height, _ := strconv.ParseInt(generalTx.Height, 10, 64)
-					newVotingPowerAmount, _ := strconv.ParseFloat(undelegateTx.Amount.Amount.String(), 64) // parseFloat from sdk.Dec.String()
+					newVotingPowerAmount, _ := strconv.ParseFloat(msgUndelegate.Amount.Amount.String(), 64) // parseFloat from sdk.Dec.String()
 					newVotingPowerAmount = -newVotingPowerAmount / 1000000
 
 					// Current Voting Power
@@ -148,35 +152,36 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 						Height:               height,
 						Moniker:              validatorInfo.Moniker,
 						OperatorAddress:      validatorInfo.OperatorAddress,
-						Proposer:             block.BlockMeta.Header.ProposerAddress.String(),
+						Proposer:             validatorInfo.Proposer,
 						VotingPower:          votingPower + newVotingPowerAmount,
 						EventType:            dtypes.EventTypeMsgUndelegate,
 						NewVotingPowerAmount: newVotingPowerAmount,
-						NewVotingPowerDenom:  undelegateTx.Amount.Denom,
+						NewVotingPowerDenom:  msgUndelegate.Amount.Denom,
 						TxHash:               generalTx.TxHash,
 						Time:                 block.BlockMeta.Header.Time,
 					}
 					validatorSetInfo = append(validatorSetInfo, tempValidatorSetInfo)
 
 				case "cosmos-sdk/MsgBeginRedelegate":
-					var redelegateTx dtypes.RedelegateMsgValueTx
-					_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &redelegateTx)
-
 					/*
-						Note : + for ValidatorDstAddress | - for ValidatorSrcAddress
+						Note
+							+ for ValidatorDstAddress
+							- for ValidatorSrcAddress
 					*/
+					var msgBeginRedelegate dtypes.MsgBeginRedelegate
+					_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &msgBeginRedelegate)
 
 					// Query validator_dst_address info
-					validatorDstInfo, _ := utils.QueryValidatorInfo(ces.db, redelegateTx.ValidatorDstAddress)
+					validatorDstInfo, _ := utils.QueryValidatorInfo(ces.db, msgBeginRedelegate.ValidatorDstAddress)
 					dstValidatorSetInfo, _ := utils.QueryIDValidatorSetInfo(ces.db, validatorDstInfo.Proposer)
 
 					// Query validator_src_address info
-					validatorSrcInfo, _ := utils.QueryValidatorInfo(ces.db, redelegateTx.ValidatorSrcAddress)
+					validatorSrcInfo, _ := utils.QueryValidatorInfo(ces.db, msgBeginRedelegate.ValidatorSrcAddress)
 					srcValidatorSetInfo, _ := utils.QueryIDValidatorSetInfo(ces.db, validatorSrcInfo.Proposer)
 
 					// Conversion
 					height, _ := strconv.ParseInt(generalTx.Height, 10, 64)
-					newVotingPowerAmount, _ := strconv.ParseFloat(redelegateTx.Amount.Amount.String(), 64) // parseFloat from sdk.Dec.String()
+					newVotingPowerAmount, _ := strconv.ParseFloat(msgBeginRedelegate.Amount.Amount.String(), 64)
 					newVotingPowerAmount = newVotingPowerAmount / 1000000
 
 					// Current destination validator's voting power
@@ -207,7 +212,7 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 						VotingPower:          dstValidatorVotingPower + newVotingPowerAmount,
 						EventType:            dtypes.EventTypeMsgBeginRedelegate,
 						NewVotingPowerAmount: newVotingPowerAmount,
-						NewVotingPowerDenom:  redelegateTx.Amount.Denom,
+						NewVotingPowerDenom:  msgBeginRedelegate.Amount.Denom,
 						TxHash:               generalTx.TxHash,
 						Time:                 block.BlockMeta.Header.Time,
 					}
@@ -223,7 +228,7 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 						VotingPower:          srcValidatorVotingPower - newVotingPowerAmount,
 						EventType:            dtypes.EventTypeMsgBeginRedelegate,
 						NewVotingPowerAmount: -newVotingPowerAmount,
-						NewVotingPowerDenom:  redelegateTx.Amount.Denom,
+						NewVotingPowerDenom:  msgBeginRedelegate.Amount.Denom,
 						TxHash:               generalTx.TxHash,
 						Time:                 block.BlockMeta.Header.Time,
 					}
@@ -303,14 +308,14 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 					// Transaction Messeage
 					height, _ := strconv.ParseInt(generalTx.Height, 10, 64)
 					proposalID, _ := strconv.ParseInt(depositTx.ProposalID, 10, 64)
-					amount, _ := strconv.ParseInt(depositTx.Amount[0].Amount, 10, 64)
+					amount := depositTx.Amount[0].Amount
 					gasWanted, _ := strconv.ParseInt(generalTx.GasWanted, 10, 64)
 					gasUsed, _ := strconv.ParseInt(generalTx.GasUsed, 10, 64)
 					tempDepositInfo := &dtypes.DepositInfo{
 						Height:     height,
 						ProposalID: proposalID,
 						Depositor:  depositTx.Depositor,
-						Amount:     string(amount),
+						Amount:     amount,
 						Denom:      depositTx.Amount[j].Denom,
 						TxHash:     generalTx.TxHash,
 						GasWanted:  gasWanted,

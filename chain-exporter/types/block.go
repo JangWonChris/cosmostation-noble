@@ -45,7 +45,7 @@ type MissDetailInfo struct {
 type TransactionInfo struct {
 	ID      int64     `json:"id" sql:",pk"`
 	Height  int64     `json:"height"`
-	TxHash  string    `json:"tx_hash"`
 	MsgType string    `json:"msg_type"`
+	TxHash  string    `json:"tx_hash"`
 	Time    time.Time `json:"time"`
 }

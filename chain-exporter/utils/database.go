@@ -9,16 +9,10 @@ import (
 	"github.com/go-pg/pg"
 )
 
-// var (
-// 	Bech32AccountAddrColumnName               = "address"          // cosmos
-// 	Bech32ValidatorAddrColumnName             = "operator_address" // cosmosvaloper
-// 	Bech32Bech32ConsensusPubColumnName        = "consensus_pubkey" // cosmosvalconspub
-// 	Bech32Bech32ConsensusPubHexAddrColumnName = "proposer"         // cosmosvalconspub's hex addr format
-// )
-
 func QueryValidatorInfo(db *pg.DB, address string) (dtypes.ValidatorInfo, error) {
-	var validatorInfo dtypes.ValidatorInfo
 	var err error
+
+	var validatorInfo dtypes.ValidatorInfo
 	switch {
 	case strings.HasPrefix(address, sdk.GetConfig().GetBech32ConsensusPubPrefix()):
 		err = db.Model(&validatorInfo).

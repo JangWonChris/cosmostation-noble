@@ -10,11 +10,11 @@ import (
 type ValidatorInfo struct {
 	ID                   int64     `sql:",pk"`
 	Rank                 int       `json:"rank"`
-	OperatorAddress      string    `json:"operator_address" sql:",unique"`
+	Moniker              string    `json:"moniker"`
 	Address              string    `json:"address"`
+	OperatorAddress      string    `json:"operator_address" sql:",unique"`
 	ConsensusPubkey      string    `json:"consensus_pubkey"`
 	Proposer             string    `json:"proposer"`
-	Moniker              string    `json:"moniker"`
 	Jailed               bool      `json:"jailed" sql:"default:false,notnull"`
 	Status               int       `json:"status" sql:"default:0"`
 	Tokens               string    `json:"tokens"`
@@ -32,17 +32,6 @@ type ValidatorInfo struct {
 	KeybaseURL           string    `json:"keybase_url"`
 }
 
-type ValidatorDelegationsInfo struct {
-	ID                  int64     `sql:",pk"`
-	OperatorAddress     string    `json:"operator_address" sql:",unique"`
-	Address       string    `json:"cosmos_address"`
-	TotalShares         float64   `json:"total_shares"`
-	SelfDelegatedShares float64   `json:"self_delegated_shares"`
-	OthersShares        float64   `json:"others"`
-	DelegatorNum        int       `json:"delegator_num"`
-	Time                time.Time `json:"time" sql:"default:null"`
-}
-
 // Database struct
 type ValidatorSetInfo struct {
 	ID                   int64     `sql:",pk"`
@@ -57,6 +46,17 @@ type ValidatorSetInfo struct {
 	NewVotingPowerDenom  string    `json:"new_voting_power_denom" sql:"new_voting_power_denom"`
 	TxHash               string    `json:"tx_hash" sql:"default:null"`
 	Time                 time.Time `json:"time" sql:"default:null"`
+}
+
+type ValidatorDelegationsInfo struct {
+	ID                  int64     `sql:",pk"`
+	OperatorAddress     string    `json:"operator_address" sql:",unique"`
+	Address             string    `json:"cosmos_address"`
+	TotalShares         float64   `json:"total_shares"`
+	SelfDelegatedShares float64   `json:"self_delegated_shares"`
+	OthersShares        float64   `json:"others"`
+	DelegatorNum        int       `json:"delegator_num"`
+	Time                time.Time `json:"time" sql:"default:null"`
 }
 
 // LCD struct
