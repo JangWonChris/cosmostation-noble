@@ -27,7 +27,7 @@ func (ces *ChainExporterService) getValidatorSetInfo(height int64) ([]*dtypes.Va
 		return nil, nil, nil, nil, err
 	}
 
-	// Get validator set for the block
+	// Query validator set for the block height
 	validators, err := ces.rpcClient.Validators(&height)
 	if err != nil {
 		return nil, nil, nil, nil, err
@@ -68,14 +68,19 @@ func (ces *ChainExporterService) getValidatorSetInfo(height int64) ([]*dtypes.Va
 			genesisValidatorsInfo = append(genesisValidatorsInfo, tempValidatorSetInfo)
 		}
 
+		// [TEST] - 테스트 케이스를 한번 만들어봐라
+		for _, precommit := range nextBlock.Block.LastCommit.Precommits {
+			if validator.Address.String() != precommit.ValidatorAddress.String() {
+				fmt.Println(precommit.ValidatorAddress.String())
+			} else {
+				fmt.Println("Exist")
+			}
+		}
+
 		// MissDetailInfo saves every missing information of validators
 		// MissInfo saves ranges of missing information of validators
 		// Check if a validator misses previous block
 		if nextBlock.Block.LastCommit.Precommits[i] == nil {
-			fmt.Println("height: ", block.Block.Height)
-			fmt.Println("vote: ", nextBlock.Block.LastCommit.Precommits[i])
-			fmt.Println("validator address: ", validator.Address.String())
-
 			tempMissDetailInfo := &dtypes.MissDetailInfo{
 				Height:   block.BlockMeta.Header.Height,
 				Address:  validator.Address.String(),
