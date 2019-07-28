@@ -7,41 +7,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-// Transaction struct
-type (
-	Transaction struct {
-		Hash   string             `json:"hash"`
-		Height int64              `json:"height"`
-		Time   time.Time          `json:"time"`
-		Tx     sdk.Tx             `json:"tx"`
-		Result *TransactionResult `json:"result"`
-	}
-
-	TransactionResult struct {
-		GasWanted int64           `json:"gas_wanted"`
-		GasUsed   int64           `json:"gas_used"`
-		Log       json.RawMessage `json:"log"`
-	}
-)
-
-// Elasticsearch struct
-type (
-	TempEsTxResult struct {
-		Hash   string          `json:"hash"`
-		Height string          `json:"height"`
-		Time   string          `json:"time"`
-		Tx     json.RawMessage `json:"tx"`
-		Result json.RawMessage `json:"result"`
-	}
-	TempEsTxResult2 struct {
-		Hash   string          `json:"hash"`
-		Height int64           `json:"height"`
-		Time   string          `json:"time"`
-		Tx     json.RawMessage `json:"tx"`
-		Result json.RawMessage `json:"result"`
-	}
-)
-
 /*
 	LCD - Transaction for Power Event - Delegate, Redelegate, Unbonding, Create Validator
 */
