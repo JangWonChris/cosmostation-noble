@@ -125,10 +125,6 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 					// Query validator info
 					validatorInfo, _ := utils.QueryValidatorInfo(ces.db, msgUndelegate.ValidatorAddress)
 
-					fmt.Println("msgUndelegate.ValidatorAddress: ", msgUndelegate.ValidatorAddress)
-					fmt.Println("validatorInfo: ", validatorInfo.Proposer)
-					fmt.Println("Moniker: ", validatorInfo.Moniker)
-
 					// Query to get id_validator of lastly inserted data
 					idValidatorSetInfo, _ := utils.QueryIDValidatorSetInfo(ces.db, validatorInfo.Proposer)
 
