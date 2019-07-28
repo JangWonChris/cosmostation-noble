@@ -45,6 +45,13 @@ func (ces *ChainExporterService) getValidatorSetInfo(height int64) ([]*dtypes.Va
 	accumMissInfo := make([]*dtypes.MissInfo, 0)
 	missDetailInfo := make([]*dtypes.MissDetailInfo, 0)
 
+	// for _, precommit := range nextBlock.Block.LastCommit.Precommits {
+	// 	fmt.Println("")
+	// 	fmt.Println(precommit.Height)
+	// 	precommit.
+	// 	fmt.Println(precommit.ValidatorAddress.String())
+	// }
+
 	for i, validator := range validators.Validators {
 		// Insert genesis validators as an event_type of create_validator at height 1
 		if validators.BlockHeight == 1 {
@@ -61,9 +68,14 @@ func (ces *ChainExporterService) getValidatorSetInfo(height int64) ([]*dtypes.Va
 			genesisValidatorsInfo = append(genesisValidatorsInfo, tempValidatorSetInfo)
 		}
 
-		// Missing information
+		// MissDetailInfo saves every missing information of validators
+		// MissInfo saves ranges of missing information of validators
+		// Check if a validator misses previous block
 		if nextBlock.Block.LastCommit.Precommits[i] == nil {
-			// Missing Detail information (save every single height)
+			fmt.Println("height: ", block.Block.Height)
+			fmt.Println("vote: ", nextBlock.Block.LastCommit.Precommits[i])
+			fmt.Println("validator address: ", validator.Address.String())
+
 			tempMissDetailInfo := &dtypes.MissDetailInfo{
 				Height:   block.BlockMeta.Header.Height,
 				Address:  validator.Address.String(),
