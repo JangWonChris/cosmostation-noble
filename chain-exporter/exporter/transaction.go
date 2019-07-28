@@ -44,6 +44,36 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 		resp, _ := resty.R().Get(ces.config.Node.LCDURL + "/txs/" + txHash)
 		_ = json.Unmarshal(resp.Body(), &generalTx)
 
+		// PostgreSQL: save all txs if it is success or fail
+		if len(generalTx.Tx.Value.Msg) == 1 {
+			tempTransactionInfo := &dtypes.TransactionInfo{
+				Height:  block.Block.Height,
+				TxHash:  txHash,
+				MsgType: generalTx.Tx.Value.Msg[0].Type,
+				Memo:    generalTx.Tx.Value.Memo,
+				Time:    block.BlockMeta.Header.Time,
+			}
+			transactionInfo = append(transactionInfo, tempTransactionInfo)
+		} else {
+			tempTransactionInfo := &dtypes.TransactionInfo{
+				Height:  block.Block.Height,
+				TxHash:  txHash,
+				MsgType: dtypes.MultiMsg,
+				Memo:    generalTx.Tx.Value.Memo,
+				Time:    block.BlockMeta.Header.Time,
+			}
+			transactionInfo = append(transactionInfo, tempTransactionInfo)
+		}
+
+		// PostgreSQL : save all txs whether it is success or fail
+		tempTransactionInfo := &dtypes.TransactionInfo{
+			Height:  block.Block.Height,
+			TxHash:  txHash,
+			MsgType: generalTx.Tx.Value.Msg[j].Type,
+			Time:    block.BlockMeta.Header.Time,
+		}
+		transactionInfo = append(transactionInfo, tempTransactionInfo)
+
 		// Check log to see if tx is success
 		for j, log := range generalTx.Logs {
 			if log.Success {
@@ -323,15 +353,6 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 					continue
 				}
 			}
-
-			// PostgreSQL : save all txs whether it is success or fail
-			tempTransactionInfo := &dtypes.TransactionInfo{
-				Height:  block.Block.Height,
-				TxHash:  txHash,
-				MsgType: generalTx.Tx.Value.Msg[j].Type,
-				Time:    block.BlockMeta.Header.Time,
-			}
-			transactionInfo = append(transactionInfo, tempTransactionInfo)
 		}
 	}
 

@@ -47,5 +47,6 @@ type TransactionInfo struct {
 	Height  int64     `json:"height"`
 	MsgType string    `json:"msg_type"`
 	TxHash  string    `json:"tx_hash"`
+	Memo    string    `json:"memo"`
 	Time    time.Time `json:"time"`
 }

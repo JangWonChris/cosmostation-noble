@@ -11,6 +11,10 @@ import (
 	LCD - Transaction for Power Event - Delegate, Redelegate, Unbonding, Create Validator
 */
 
+const (
+	MultiMsg = "multi_msg"
+)
+
 // GeneralTx is general tx struct that is unmarshallable for any tx_msg type
 type GeneralTx struct {
 	Height string `json:"height"`
