@@ -35,6 +35,7 @@ type (
 		Password string
 		Table    string
 	}
+
 	CoinmarketcapConfig struct {
 		CoinID string
 		APIKey string

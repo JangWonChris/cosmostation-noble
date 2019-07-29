@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"sort"
 	"strings"
 
 	dtypes "github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
@@ -33,24 +32,20 @@ func (ces *ChainExporterService) getValidatorSetInfo(height int64) ([]*dtypes.Va
 		return nil, nil, nil, nil, err
 	}
 
+	/*
+		DO NOT SORT validator set. This causes miss_infos incorrect data
+	*/
 	// Sort bondedValidators by highest tokens
-	sort.Slice(validators.Validators[:], func(i, j int) bool {
-		tempToken1 := validators.Validators[i].VotingPower
-		tempToken2 := validators.Validators[j].VotingPower
-		return tempToken1 > tempToken2
-	})
+	// sort.Slice(validators.Validators[:], func(i, j int) bool {
+	// 	tempToken1 := validators.Validators[i].VotingPower
+	// 	tempToken2 := validators.Validators[j].VotingPower
+	// 	return tempToken1 > tempToken2
+	// })
 
 	genesisValidatorsInfo := make([]*dtypes.ValidatorSetInfo, 0)
 	missInfo := make([]*dtypes.MissInfo, 0)
 	accumMissInfo := make([]*dtypes.MissInfo, 0)
 	missDetailInfo := make([]*dtypes.MissDetailInfo, 0)
-
-	// for _, precommit := range nextBlock.Block.LastCommit.Precommits {
-	// 	fmt.Println("")
-	// 	fmt.Println(precommit.Height)
-	// 	precommit.
-	// 	fmt.Println(precommit.ValidatorAddress.String())
-	// }
 
 	for i, validator := range validators.Validators {
 		// Insert genesis validators as an event_type of create_validator at height 1
@@ -66,15 +61,6 @@ func (ces *ChainExporterService) getValidatorSetInfo(height int64) ([]*dtypes.Va
 				Time:                 block.BlockMeta.Header.Time,
 			}
 			genesisValidatorsInfo = append(genesisValidatorsInfo, tempValidatorSetInfo)
-		}
-
-		// [TEST] - 테스트 케이스를 한번 만들어봐라
-		for _, precommit := range nextBlock.Block.LastCommit.Precommits {
-			if validator.Address.String() != precommit.ValidatorAddress.String() {
-				fmt.Println(precommit.ValidatorAddress.String())
-			} else {
-				fmt.Println("Exist")
-			}
 		}
 
 		// MissDetailInfo saves every missing information of validators
