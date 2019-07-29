@@ -70,12 +70,12 @@ func (ces *ChainExporterService) OnStart() error {
 
 	// Initialize private fields and start subroutines, etc.
 	// ces.wsOut, _ = ces.rpcClient.Subscribe(ces.WsCtx, "new block", "tm.event = 'NewBlock'", 1)
-	ces.wsOut, _ = ces.rpcClient.Subscribe(ces.wsCtx, "new tx", "tm.event = 'Tx'", 1)
+	// ces.wsOut, _ = ces.rpcClient.Subscribe(ces.wsCtx, "new tx", "tm.event = 'Tx'", 1)
 
 	// Store data initially
-	lcd.SaveGovernance(ces.db, ces.config)
 	lcd.SaveBondedValidators(ces.db, ces.config)
 	lcd.SaveUnbondedAndUnbodingValidators(ces.db, ces.config)
+	lcd.SaveGovernance(ces.db, ces.config)
 
 	// Start the syncing task
 	go func() {
@@ -96,11 +96,11 @@ func (ces *ChainExporterService) OnStart() error {
 
 	for {
 		select {
-		case <-time.Tick(10 * time.Second):
+		case <-time.Tick(7 * time.Second):
 			fmt.Println("start - sync LCD governance & validators")
-			lcd.SaveGovernance(ces.db, ces.config)
 			lcd.SaveBondedValidators(ces.db, ces.config)
 			lcd.SaveUnbondedAndUnbodingValidators(ces.db, ces.config)
+			lcd.SaveGovernance(ces.db, ces.config)
 			fmt.Println("finish - sync LCD governance & validators")
 		case <-signalCh:
 			return nil

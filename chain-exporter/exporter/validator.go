@@ -47,6 +47,7 @@ func (ces *ChainExporterService) getValidatorSetInfo(height int64) ([]*dtypes.Va
 	accumMissInfo := make([]*dtypes.MissInfo, 0)
 	missDetailInfo := make([]*dtypes.MissDetailInfo, 0)
 
+	// Validator set for the height
 	for i, validator := range validators.Validators {
 		// Insert genesis validators as an event_type of create_validator at height 1
 		if validators.BlockHeight == 1 {
@@ -136,6 +137,7 @@ func (ces *ChainExporterService) getEvidenceInfo(height int64) ([]*dtypes.Eviden
 	evidenceInfo := make([]*dtypes.EvidenceInfo, 0)
 
 	// evidenceInfo
+	// 848187 = 1C4DB67E79B5BB30663B04245E064E6180EC6EA304EE83A7A879B04544A2EAD0
 	for _, evidence := range nextBlock.Block.Evidence.Evidence {
 		tempEvidenceInfo := &dtypes.EvidenceInfo{
 			Proposer: strings.ToUpper(string(hex.EncodeToString(evidence.Address()))),
