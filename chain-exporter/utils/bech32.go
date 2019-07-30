@@ -9,13 +9,13 @@ import (
 // Convert validator consensus public key to proposer address format
 func ConsensusPubkeyToProposer(consensusPubKey string) string {
 	pk, _ := sdk.GetConsPubKeyBech32(consensusPubKey)
-	proposerAddress := pk.Address().String()
-	return proposerAddress
+	hexAddress := pk.Address().String()
+	return hexAddress
 }
 
 // Convert operator address to cosmos address
 func OperatorAddressToAddress(operatorAddress string) string {
 	_, decoded, _ := bech32.DecodeAndConvert(operatorAddress)
-	Address, _ := bech32.ConvertAndEncode(sdk.Bech32PrefixAccAddr, decoded)
-	return Address
+	address, _ := bech32.ConvertAndEncode(sdk.Bech32PrefixAccAddr, decoded)
+	return address
 }
