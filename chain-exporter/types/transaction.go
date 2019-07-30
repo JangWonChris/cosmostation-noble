@@ -7,10 +7,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-/*
-	LCD - Transaction for Power Event - Delegate, Redelegate, Unbonding, Create Validator
-*/
-
 const (
 	MultiMsg = "multi_msg"
 )
