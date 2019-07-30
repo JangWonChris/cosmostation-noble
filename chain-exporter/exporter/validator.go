@@ -134,18 +134,20 @@ func (ces *ChainExporterService) getEvidenceInfo(height int64) ([]*dtypes.Eviden
 		return nil, err
 	}
 
-	evidenceInfo := make([]*dtypes.EvidenceInfo, 0)
-
-	// evidenceInfo
+	// cosmoshub-2
 	// 848187 = 1C4DB67E79B5BB30663B04245E064E6180EC6EA304EE83A7A879B04544A2EAD0
-	for _, evidence := range nextBlock.Block.Evidence.Evidence {
-		tempEvidenceInfo := &dtypes.EvidenceInfo{
-			Proposer: strings.ToUpper(string(hex.EncodeToString(evidence.Address()))),
-			Height:   evidence.Height(),
-			Hash:     strings.ToUpper(string(hex.EncodeToString(evidence.Hash()))),
-			Time:     block.BlockMeta.Header.Time,
+	// in evidence, there is only DuplicateVoteEvidence. There is no downtime evidence.
+	evidenceInfo := make([]*dtypes.EvidenceInfo, 0)
+	if nextBlock.Block.Evidence.Evidence != nil {
+		for _, evidence := range nextBlock.Block.Evidence.Evidence {
+			tempEvidenceInfo := &dtypes.EvidenceInfo{
+				Proposer: strings.ToUpper(string(hex.EncodeToString(evidence.Address()))),
+				Height:   evidence.Height(),
+				Hash:     nextBlock.BlockMeta.Header.EvidenceHash.String(),
+				Time:     block.BlockMeta.Header.Time,
+			}
+			evidenceInfo = append(evidenceInfo, tempEvidenceInfo)
 		}
-		evidenceInfo = append(evidenceInfo, tempEvidenceInfo)
 	}
 
 	return evidenceInfo, nil
