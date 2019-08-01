@@ -13,6 +13,9 @@ import (
 	resty "gopkg.in/resty.v1"
 )
 
+/*
+	CURRENTLY THIS METHOD IS NOT USED
+*/
 // SaveValidatorDelegations queries each validator's delegations and save them in the database
 func SaveValidatorDelegations(db *pg.DB, config *config.Config) {
 	// Query all validators' operating addresses
@@ -47,7 +50,7 @@ func SaveValidatorDelegations(db *pg.DB, config *config.Config) {
 
 		// Insert validator delegations data
 		tempValidatorDelegationsInfo := &dtypes.ValidatorDelegationsInfo{
-			Address:       validator.Address,
+			Address:             validator.Address,
 			OperatorAddress:     validator.OperatorAddress,
 			TotalShares:         selfDelegatedShares + othersShares,
 			SelfDelegatedShares: selfDelegatedShares,

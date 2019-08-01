@@ -12,8 +12,8 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/databases"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/lcd"
 	dtypes "github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/utils"
 
-	gaiaApp "github.com/cosmos/cosmos-sdk/cmd/gaia/app"
 	"github.com/cosmos/cosmos-sdk/codec"
 
 	"github.com/go-pg/pg"
@@ -43,7 +43,7 @@ type ChainExporterService struct {
 // Initializes all the required configs
 func NewChainExporterService(config *config.Config) *ChainExporterService {
 	ces := &ChainExporterService{
-		codec:     gaiaApp.MakeCodec(), // Register Cosmos SDK codecs
+		codec:     utils.MakeCodec(), // Register Cosmos SDK codecs
 		config:    config,
 		db:        databases.ConnectDatabase(config), // Connect to PostgreSQL
 		wsCtx:     context.Background(),
