@@ -75,28 +75,6 @@ func SaveGovernance(db *pg.DB, config *config.Config) {
 		proposalInfo = append(proposalInfo, tempProposalInfo)
 	}
 
-	// Save and update proposalInfo
-	// _, err = db.Model(&proposalInfo).
-	// 	OnConflict("(id) DO UPDATE").
-	// 	Set("title = EXCLUDED.title").
-	// 	Set("description = EXCLUDED.description").
-	// 	Set("proposal_type = EXCLUDED.proposal_type").
-	// 	Set("proposal_status = EXCLUDED.proposal_status").
-	// 	Set("yes = EXCLUDED.yes").
-	// 	Set("abstain = EXCLUDED.abstain").
-	// 	Set("no = EXCLUDED.no").
-	// 	Set("no_with_veto = EXCLUDED.no_with_veto").
-	// 	Set("submit_time = EXCLUDED.submit_time").
-	// 	Set("deposit_end_time = EXCLUDED.deposit_end_time").
-	// 	Set("total_deposit_amount = EXCLUDED.total_deposit_amount").
-	// 	Set("total_deposit_denom = EXCLUDED.total_deposit_denom").
-	// 	Set("voting_start_time = EXCLUDED.voting_start_time").
-	// 	Set("voting_end_time = EXCLUDED.voting_end_time").
-	// 	Insert()
-	// if err != nil {
-	// 	fmt.Printf("error - sync governance proposals: %v\n", err)
-	// }
-
 	// Exist and update proposerInfo
 	if len(proposalInfo) > 0 {
 		var tempProposalInfo dtypes.ProposalInfo

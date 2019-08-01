@@ -64,28 +64,30 @@ func SaveBondedValidators(db *pg.DB, config *config.Config) {
 	}
 
 	// Save & Update validatorInfo
-	_, err = db.Model(&validatorInfo).
-		OnConflict("(operator_address) DO UPDATE").
-		Set("rank = EXCLUDED.rank").
-		Set("consensus_pubkey = EXCLUDED.consensus_pubkey").
-		Set("proposer = EXCLUDED.proposer").
-		Set("jailed = EXCLUDED.jailed").
-		Set("status = EXCLUDED.status").
-		Set("tokens = EXCLUDED.tokens").
-		Set("delegator_shares = EXCLUDED.delegator_shares").
-		Set("moniker = EXCLUDED.moniker").
-		Set("identity = EXCLUDED.identity").
-		Set("website = EXCLUDED.website").
-		Set("details = EXCLUDED.details").
-		Set("unbonding_height = EXCLUDED.unbonding_height").
-		Set("unbonding_time = EXCLUDED.unbonding_time").
-		Set("commission_rate = EXCLUDED.commission_rate").
-		Set("commission_max_rate = EXCLUDED.commission_max_rate").
-		Set("update_time = EXCLUDED.update_time").
-		Set("min_self_delegation = EXCLUDED.min_self_delegation").
-		Insert()
-	if err != nil {
-		fmt.Printf("error - sync validators: %v\n", err)
+	if len(validatorInfo) > 0 {
+		_, err = db.Model(&validatorInfo).
+			OnConflict("(operator_address) DO UPDATE").
+			Set("rank = EXCLUDED.rank").
+			Set("consensus_pubkey = EXCLUDED.consensus_pubkey").
+			Set("proposer = EXCLUDED.proposer").
+			Set("jailed = EXCLUDED.jailed").
+			Set("status = EXCLUDED.status").
+			Set("tokens = EXCLUDED.tokens").
+			Set("delegator_shares = EXCLUDED.delegator_shares").
+			Set("moniker = EXCLUDED.moniker").
+			Set("identity = EXCLUDED.identity").
+			Set("website = EXCLUDED.website").
+			Set("details = EXCLUDED.details").
+			Set("unbonding_height = EXCLUDED.unbonding_height").
+			Set("unbonding_time = EXCLUDED.unbonding_time").
+			Set("commission_rate = EXCLUDED.commission_rate").
+			Set("commission_max_rate = EXCLUDED.commission_max_rate").
+			Set("update_time = EXCLUDED.update_time").
+			Set("min_self_delegation = EXCLUDED.min_self_delegation").
+			Insert()
+		if err != nil {
+			fmt.Printf("error - sync validators: %v\n", err)
+		}
 	}
 }
 
@@ -166,27 +168,29 @@ func SaveUnbondedAndUnbodingValidators(db *pg.DB, config *config.Config) {
 	}
 
 	// Save & Update validatorInfo
-	_, err := db.Model(&validatorInfo).
-		OnConflict("(operator_address) DO UPDATE").
-		Set("rank = EXCLUDED.rank").
-		Set("consensus_pubkey = EXCLUDED.consensus_pubkey").
-		Set("proposer = EXCLUDED.proposer").
-		Set("jailed = EXCLUDED.jailed").
-		Set("status = EXCLUDED.status").
-		Set("tokens = EXCLUDED.tokens").
-		Set("delegator_shares = EXCLUDED.delegator_shares").
-		Set("moniker = EXCLUDED.moniker").
-		Set("identity = EXCLUDED.identity").
-		Set("website = EXCLUDED.website").
-		Set("details = EXCLUDED.details").
-		Set("unbonding_height = EXCLUDED.unbonding_height").
-		Set("unbonding_time = EXCLUDED.unbonding_time").
-		Set("commission_rate = EXCLUDED.commission_rate").
-		Set("commission_max_rate = EXCLUDED.commission_max_rate").
-		Set("update_time = EXCLUDED.update_time").
-		Set("min_self_delegation = EXCLUDED.min_self_delegation").
-		Insert()
-	if err != nil {
-		fmt.Printf("error - save and update validatorinfo: %v\n", err)
+	if len(validatorInfo) > 0 {
+		_, err := db.Model(&validatorInfo).
+			OnConflict("(operator_address) DO UPDATE").
+			Set("rank = EXCLUDED.rank").
+			Set("consensus_pubkey = EXCLUDED.consensus_pubkey").
+			Set("proposer = EXCLUDED.proposer").
+			Set("jailed = EXCLUDED.jailed").
+			Set("status = EXCLUDED.status").
+			Set("tokens = EXCLUDED.tokens").
+			Set("delegator_shares = EXCLUDED.delegator_shares").
+			Set("moniker = EXCLUDED.moniker").
+			Set("identity = EXCLUDED.identity").
+			Set("website = EXCLUDED.website").
+			Set("details = EXCLUDED.details").
+			Set("unbonding_height = EXCLUDED.unbonding_height").
+			Set("unbonding_time = EXCLUDED.unbonding_time").
+			Set("commission_rate = EXCLUDED.commission_rate").
+			Set("commission_max_rate = EXCLUDED.commission_max_rate").
+			Set("update_time = EXCLUDED.update_time").
+			Set("min_self_delegation = EXCLUDED.min_self_delegation").
+			Insert()
+		if err != nil {
+			fmt.Printf("error - save and update validatorinfo: %v\n", err)
+		}
 	}
 }
