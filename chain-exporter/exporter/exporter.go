@@ -156,6 +156,8 @@ func (ces *ChainExporterService) sync() error {
 	}
 	maxHeight := status.SyncInfo.LatestBlockHeight
 
+	fmt.Println(maxHeight)
+
 	if currentHeight == 1 {
 		currentHeight = 0
 	}
