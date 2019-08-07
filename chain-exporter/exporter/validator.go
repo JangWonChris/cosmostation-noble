@@ -165,30 +165,32 @@ func (ces *ChainExporterService) SaveValidatorKeyBase() error {
 
 	validatorInfoUpdate := make([]*dtypes.ValidatorInfo, 0)
 	for _, validator := range validatorInfo {
-		resp, err := resty.R().Get(ces.config.KeybaseURL + validator.Identity)
-		if err != nil {
-			fmt.Printf("KeyBase request error - %v\n", err)
-		}
-
-		var keyBases dtypes.KeyBase
-		err = json.Unmarshal(resp.Body(), &keyBases)
-		if err != nil {
-			fmt.Printf("KeyBase unmarshal error - %v\n", err)
-		}
-
-		// Get Keybase URL
-		var keybaseURL string
-		if len(keyBases.Them) > 0 {
-			for _, keybase := range keyBases.Them {
-				keybaseURL = keybase.Pictures.Primary.URL
+		if validator.Identity != "" {
+			resp, err := resty.R().Get(ces.config.KeybaseURL + validator.Identity)
+			if err != nil {
+				fmt.Printf("KeyBase request error - %v\n", err)
 			}
-		}
 
-		tempValidatorInfo := &dtypes.ValidatorInfo{
-			ID:         validator.ID,
-			KeybaseURL: keybaseURL,
+			var keyBases dtypes.KeyBase
+			err = json.Unmarshal(resp.Body(), &keyBases)
+			if err != nil {
+				fmt.Printf("KeyBase unmarshal error - %v\n", err)
+			}
+
+			// Get Keybase URL
+			var keybaseURL string
+			if len(keyBases.Them) > 0 {
+				for _, keybase := range keyBases.Them {
+					keybaseURL = keybase.Pictures.Primary.URL
+				}
+			}
+
+			tempValidatorInfo := &dtypes.ValidatorInfo{
+				ID:         validator.ID,
+				KeybaseURL: keybaseURL,
+			}
+			validatorInfoUpdate = append(validatorInfoUpdate, tempValidatorInfo)
 		}
-		validatorInfoUpdate = append(validatorInfoUpdate, tempValidatorInfo)
 	}
 
 	// Update validatorInfoUpdate
