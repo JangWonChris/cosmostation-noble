@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"os"
-	"os/signal"
 	"time"
 
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
@@ -53,7 +52,7 @@ func NewChainExporterService(config *config.Config) *ChainExporterService {
 	databases.CreateSchema(ces.db)
 
 	// Register a service that can be started, stopped, and reset
-	ces.BaseService = *cmn.NewBaseService(logger, "ChainExporterService", ces)
+	// ces.BaseService = *cmn.NewBaseService(logger, "ChainExporterService", ces)
 
 	// SetTimeout method sets timeout for request.
 	resty.SetTimeout(5 * time.Second)
@@ -65,7 +64,7 @@ func NewChainExporterService(config *config.Config) *ChainExporterService {
 // Override method for BaseService, which starts a service
 func (ces *ChainExporterService) OnStart() error {
 	// OnStart both service and rpc client
-	ces.BaseService.OnStart()
+	// ces.BaseService.OnStart()
 	ces.rpcClient.OnStart()
 
 	// Initialize private fields and start subroutines, etc.
@@ -77,7 +76,9 @@ func (ces *ChainExporterService) OnStart() error {
 	lcd.SaveUnbondedAndUnbodingValidators(ces.db, ces.config)
 	lcd.SaveGovernance(ces.db, ces.config)
 
-	// Start the syncing task
+	c1 := make(chan string)
+	c2 := make(chan string)
+
 	go func() {
 		for {
 			fmt.Println("start - sync blockchain")
@@ -89,46 +90,49 @@ func (ces *ChainExporterService) OnStart() error {
 			time.Sleep(time.Second)
 		}
 	}()
-
-	// Allow graceful closing of the governance loop
-	signalCh := make(chan os.Signal, 1)
-	signal.Notify(signalCh, os.Interrupt)
+	go func() {
+		for {
+			time.Sleep(7 * time.Second)
+			c1 <- "sync governance and validators via LCD"
+		}
+	}()
+	go func() {
+		for {
+			time.Sleep(20 * time.Minute)
+			c2 <- "parsing from keybase server using keybase identity"
+		}
+	}()
 
 	for {
 		select {
-		case <-time.Tick(7 * time.Second):
-			fmt.Println("start - sync LCD governance & validators")
+		case msg2 := <-c1:
+			fmt.Println("start - ", msg2)
+			lcd.SaveGovernance(ces.db, ces.config)
 			lcd.SaveBondedValidators(ces.db, ces.config)
 			lcd.SaveUnbondedAndUnbodingValidators(ces.db, ces.config)
-			lcd.SaveGovernance(ces.db, ces.config)
-			fmt.Println("finish - sync LCD governance & validators")
-		case <-signalCh:
-			return nil
-			// Push Notification 을 위함
-			// case eventData, ok := <-ces.WsOut:
-			// 	fmt.Println("start new tx subscription from full node")
-			// 	if ok {
-			// 		fmt.Println("===Event===================================================")
-			// 		fmt.Println(eventData)
-			// 	}
-			// 	fmt.Println("finish tx subscription from full node")
-			// case <-signalCh:
-			// 	return nil
-		}
-		select {
-		case <-time.Tick(30 * time.Minute):
-			fmt.Println("start - validators' keybase urls")
+			fmt.Println("finish - ", msg2)
+		case msg3 := <-c2:
+			fmt.Println("start - ", msg3)
 			ces.SaveValidatorKeyBase()
-			fmt.Println("finish - validators' keybase urls")
-		case <-signalCh:
-			return nil
+			fmt.Println("finish - ", msg3)
 		}
 	}
+
+	/*
+		// case eventData, ok := <-ces.WsOut:
+		// 	fmt.Println("start - subscribe tx from full node")
+		// 	if ok {
+		// 		ces.handleNewTransactions(eventData) // returns Data, Query, Tags
+		// 	}
+		// 	fmt.Println("finish - subscribe tx from full node")
+		// case <-signalCh:
+		// 	return nil
+	*/
 }
 
 // Override method for BaseService, which stops a service
 func (ces *ChainExporterService) OnStop() {
-	ces.BaseService.OnStop()
+	// ces.BaseService.OnStop()
 	ces.rpcClient.OnStop()
 }
 
