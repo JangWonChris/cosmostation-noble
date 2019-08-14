@@ -18,24 +18,23 @@ import (
 func SaveBondedValidators(db *pg.DB, config *config.Config) {
 	bondedResp, err := resty.R().Get(config.Node.LCDURL + "/staking/validators?status=bonded")
 	if err != nil {
-		fmt.Printf("LCD resty - %v\n", err)
+		fmt.Printf("Query /staking/validators?status=bonded error - %v\n", err)
 	}
 
-	// Parse Validator struct
 	var bondedValidators []*dtypes.Validator
 	err = json.Unmarshal(bondedResp.Body(), &bondedValidators)
 	if err != nil {
-		fmt.Printf("Unmarshal - %v\n", err)
+		fmt.Printf("Unmarshal bondedValidators error - %v\n", err)
 	}
 
-	// Sort bondedValidators by highest tokens
+	// sort out bondedValidators by highest tokens
 	sort.Slice(bondedValidators[:], func(i, j int) bool {
 		tempToken1, _ := strconv.Atoi(bondedValidators[i].Tokens)
 		tempToken2, _ := strconv.Atoi(bondedValidators[j].Tokens)
 		return tempToken1 > tempToken2
 	})
 
-	// BondedValidator information
+	// bondedValidator information for our database table
 	validatorInfo := make([]*dtypes.ValidatorInfo, 0)
 	for i, bondedValidators := range bondedValidators {
 		tempValidatorInfo := &dtypes.ValidatorInfo{
@@ -63,7 +62,7 @@ func SaveBondedValidators(db *pg.DB, config *config.Config) {
 		validatorInfo = append(validatorInfo, tempValidatorInfo)
 	}
 
-	// Save & Update validatorInfo
+	// save and update validatorInfo
 	if len(validatorInfo) > 0 {
 		_, err = db.Model(&validatorInfo).
 			OnConflict("(operator_address) DO UPDATE").
@@ -93,70 +92,85 @@ func SaveBondedValidators(db *pg.DB, config *config.Config) {
 
 // SaveUnbondedAndUnbodingValidators queries the validators information from LCD and stores them in the database
 func SaveUnbondedAndUnbodingValidators(db *pg.DB, config *config.Config) {
-	unbondedResp, _ := resty.R().Get(config.Node.LCDURL + "/staking/validators?status=unbonded")
-	unbondingResp, _ := resty.R().Get(config.Node.LCDURL + "/staking/validators?status=unbonding")
+	unbondedResp, err := resty.R().Get(config.Node.LCDURL + "/staking/validators?status=unbonded")
+	if err != nil {
+		fmt.Printf("Query /staking/validators?status=unbonded error - %v\n", err)
+	}
 
-	// Parse Unbonded Validator struct
 	var unbondedValidators []*dtypes.Validator
-	_ = json.Unmarshal(unbondedResp.Body(), &unbondedValidators)
+	err = json.Unmarshal(unbondedResp.Body(), &unbondedValidators)
+	if err != nil {
+		fmt.Printf("Unmarshal unbondedValidators error - %v\n", err)
+	}
 
-	// Parse Unbonding Validator struct
+	unbondingResp, err := resty.R().Get(config.Node.LCDURL + "/staking/validators?status=unbonding")
+	if err != nil {
+		fmt.Printf("Query /staking/validators?status=unbonding error - %v\n", err)
+	}
+
 	var unbondingValidators []*dtypes.Validator
-	_ = json.Unmarshal(unbondingResp.Body(), &unbondingValidators)
+	err = json.Unmarshal(unbondingResp.Body(), &unbondingValidators)
+	if err != nil {
+		fmt.Printf("Unmarshal unbondingValidators error - %v\n", err)
+	}
 
-	// Validators information
+	// validators information for our database table
 	validatorInfo := make([]*dtypes.ValidatorInfo, 0)
-	for _, unbondedValidator := range unbondedValidators {
-		tempValidatorInfo := &dtypes.ValidatorInfo{
-			OperatorAddress:      unbondedValidator.OperatorAddress,
-			Address:              utils.OperatorAddressToAddress(unbondedValidator.OperatorAddress),
-			ConsensusPubkey:      unbondedValidator.ConsensusPubkey,
-			Proposer:             utils.ConsensusPubkeyToProposer(unbondedValidator.ConsensusPubkey),
-			Jailed:               unbondedValidator.Jailed,
-			Status:               unbondedValidator.Status,
-			Tokens:               unbondedValidator.Tokens,
-			DelegatorShares:      unbondedValidator.DelegatorShares,
-			Moniker:              unbondedValidator.Description.Moniker,
-			Identity:             unbondedValidator.Description.Identity,
-			Website:              unbondedValidator.Description.Website,
-			Details:              unbondedValidator.Description.Details,
-			UnbondingHeight:      unbondedValidator.UnbondingHeight,
-			UnbondingTime:        unbondedValidator.UnbondingTime,
-			CommissionRate:       unbondedValidator.Commission.Rate,
-			CommissionMaxRate:    unbondedValidator.Commission.MaxRate,
-			CommissionChangeRate: unbondedValidator.Commission.MaxChangeRate,
-			MinSelfDelegation:    unbondedValidator.MinSelfDelegation,
-			UpdateTime:           unbondedValidator.Commission.UpdateTime,
+	if len(unbondedValidators) > 0 {
+		for _, unbondedValidator := range unbondedValidators {
+			tempValidatorInfo := &dtypes.ValidatorInfo{
+				OperatorAddress:      unbondedValidator.OperatorAddress,
+				Address:              utils.OperatorAddressToAddress(unbondedValidator.OperatorAddress),
+				ConsensusPubkey:      unbondedValidator.ConsensusPubkey,
+				Proposer:             utils.ConsensusPubkeyToProposer(unbondedValidator.ConsensusPubkey),
+				Jailed:               unbondedValidator.Jailed,
+				Status:               unbondedValidator.Status,
+				Tokens:               unbondedValidator.Tokens,
+				DelegatorShares:      unbondedValidator.DelegatorShares,
+				Moniker:              unbondedValidator.Description.Moniker,
+				Identity:             unbondedValidator.Description.Identity,
+				Website:              unbondedValidator.Description.Website,
+				Details:              unbondedValidator.Description.Details,
+				UnbondingHeight:      unbondedValidator.UnbondingHeight,
+				UnbondingTime:        unbondedValidator.UnbondingTime,
+				CommissionRate:       unbondedValidator.Commission.Rate,
+				CommissionMaxRate:    unbondedValidator.Commission.MaxRate,
+				CommissionChangeRate: unbondedValidator.Commission.MaxChangeRate,
+				MinSelfDelegation:    unbondedValidator.MinSelfDelegation,
+				UpdateTime:           unbondedValidator.Commission.UpdateTime,
+			}
+			validatorInfo = append(validatorInfo, tempValidatorInfo)
 		}
-		validatorInfo = append(validatorInfo, tempValidatorInfo)
 	}
 
-	for _, unbondingValidator := range unbondingValidators {
-		tempValidatorInfo := &dtypes.ValidatorInfo{
-			OperatorAddress:      unbondingValidator.OperatorAddress,
-			Address:              utils.OperatorAddressToAddress(unbondingValidator.OperatorAddress),
-			ConsensusPubkey:      unbondingValidator.ConsensusPubkey,
-			Proposer:             utils.ConsensusPubkeyToProposer(unbondingValidator.ConsensusPubkey),
-			Jailed:               unbondingValidator.Jailed,
-			Status:               unbondingValidator.Status,
-			Tokens:               unbondingValidator.Tokens,
-			DelegatorShares:      unbondingValidator.DelegatorShares,
-			Moniker:              unbondingValidator.Description.Moniker,
-			Identity:             unbondingValidator.Description.Identity,
-			Website:              unbondingValidator.Description.Website,
-			Details:              unbondingValidator.Description.Details,
-			UnbondingHeight:      unbondingValidator.UnbondingHeight,
-			UnbondingTime:        unbondingValidator.UnbondingTime,
-			CommissionRate:       unbondingValidator.Commission.Rate,
-			CommissionMaxRate:    unbondingValidator.Commission.MaxRate,
-			CommissionChangeRate: unbondingValidator.Commission.MaxChangeRate,
-			MinSelfDelegation:    unbondingValidator.MinSelfDelegation,
-			UpdateTime:           unbondingValidator.Commission.UpdateTime,
+	if len(unbondingValidators) > 0 {
+		for _, unbondingValidator := range unbondingValidators {
+			tempValidatorInfo := &dtypes.ValidatorInfo{
+				OperatorAddress:      unbondingValidator.OperatorAddress,
+				Address:              utils.OperatorAddressToAddress(unbondingValidator.OperatorAddress),
+				ConsensusPubkey:      unbondingValidator.ConsensusPubkey,
+				Proposer:             utils.ConsensusPubkeyToProposer(unbondingValidator.ConsensusPubkey),
+				Jailed:               unbondingValidator.Jailed,
+				Status:               unbondingValidator.Status,
+				Tokens:               unbondingValidator.Tokens,
+				DelegatorShares:      unbondingValidator.DelegatorShares,
+				Moniker:              unbondingValidator.Description.Moniker,
+				Identity:             unbondingValidator.Description.Identity,
+				Website:              unbondingValidator.Description.Website,
+				Details:              unbondingValidator.Description.Details,
+				UnbondingHeight:      unbondingValidator.UnbondingHeight,
+				UnbondingTime:        unbondingValidator.UnbondingTime,
+				CommissionRate:       unbondingValidator.Commission.Rate,
+				CommissionMaxRate:    unbondingValidator.Commission.MaxRate,
+				CommissionChangeRate: unbondingValidator.Commission.MaxChangeRate,
+				MinSelfDelegation:    unbondingValidator.MinSelfDelegation,
+				UpdateTime:           unbondingValidator.Commission.UpdateTime,
+			}
+			validatorInfo = append(validatorInfo, tempValidatorInfo)
 		}
-		validatorInfo = append(validatorInfo, tempValidatorInfo)
 	}
 
-	// Sort bondedValidators by highest tokens
+	// sort out bondedValidators by highest tokens
 	sort.Slice(validatorInfo[:], func(i, j int) bool {
 		tempToken1, _ := strconv.Atoi(validatorInfo[i].Tokens)
 		tempToken2, _ := strconv.Atoi(validatorInfo[j].Tokens)
@@ -167,7 +181,7 @@ func SaveUnbondedAndUnbodingValidators(db *pg.DB, config *config.Config) {
 		validatorInfo.Rank = (101 + i)
 	}
 
-	// Save & Update validatorInfo
+	// save and update validatorInfo
 	if len(validatorInfo) > 0 {
 		_, err := db.Model(&validatorInfo).
 			OnConflict("(operator_address) DO UPDATE").

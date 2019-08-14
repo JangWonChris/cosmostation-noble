@@ -51,9 +51,6 @@ func NewChainExporterService(config *config.Config) *ChainExporterService {
 	// Setup database schema
 	databases.CreateSchema(ces.db)
 
-	// Register a service that can be started, stopped, and reset
-	// ces.BaseService = *cmn.NewBaseService(logger, "ChainExporterService", ces)
-
 	// SetTimeout method sets timeout for request.
 	resty.SetTimeout(5 * time.Second)
 	resty.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true}) // Test locally
@@ -74,7 +71,7 @@ func (ces *ChainExporterService) OnStart() error {
 	// Store data initially
 	lcd.SaveBondedValidators(ces.db, ces.config)
 	lcd.SaveUnbondedAndUnbodingValidators(ces.db, ces.config)
-	lcd.SaveGovernance(ces.db, ces.config)
+	lcd.SaveProposals(ces.db, ces.config)
 
 	c1 := make(chan string)
 	c2 := make(chan string)
@@ -107,9 +104,9 @@ func (ces *ChainExporterService) OnStart() error {
 		select {
 		case msg2 := <-c1:
 			fmt.Println("start - ", msg2)
-			lcd.SaveGovernance(ces.db, ces.config)
 			lcd.SaveBondedValidators(ces.db, ces.config)
 			lcd.SaveUnbondedAndUnbodingValidators(ces.db, ces.config)
+			lcd.SaveProposals(ces.db, ces.config)
 			fmt.Println("finish - ", msg2)
 		case msg3 := <-c2:
 			fmt.Println("start - ", msg3)
