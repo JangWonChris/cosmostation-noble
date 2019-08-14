@@ -8,8 +8,8 @@ import (
 
 	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/config"
 	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/databases"
+	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/utils"
 
-	gaiaApp "github.com/cosmos/cosmos-sdk/cmd/gaia/app"
 	"github.com/cosmos/cosmos-sdk/codec"
 
 	"github.com/go-pg/pg"
@@ -39,7 +39,7 @@ type StatsExporterService struct {
 // Initializes all the required configs
 func NewStatsExporterService(config *config.Config) *StatsExporterService {
 	ses := &StatsExporterService{
-		codec:     gaiaApp.MakeCodec(), // Register Cosmos SDK codecs
+		codec:     utils.MakeCodec(), // Register Cosmos SDK codecs
 		config:    config,
 		db:        databases.ConnectDatabase(config), // Connect to PostgreSQL
 		wsCtx:     context.Background(),
@@ -57,13 +57,23 @@ func NewStatsExporterService(config *config.Config) *StatsExporterService {
 
 // Override method for BaseService, which starts a service
 func (ses *StatsExporterService) OnStart() {
-	// Cron jobs every 1 hour
+	// Cron jobs
 	// c := cron.New()
-	// c.AddFunc("0 */60 * * *", func() { ses.SaveValidatorStats() })
-	// c.AddFunc("0 */60 * * *", func() { ses.SaveNetworkStats() })
-	// c.AddFunc("0 */60 * * *", func() { ses.SaveCoinMarketCapMarketStats() })
-	// c.AddFunc("0 */60 * * *", func() { ses.SaveCoinGeckoMarketStats() })
-	// c.AddFunc("0 */15 * * *", func() { ses.SaveValidatorKeyBase() })
+
+	// Every hour
+	// 0 * * * * = every minute
+	// 0 */60 * * * = every hour
+	// 0 0 * * * * = every hour
+	// c.AddFunc("0 0 * * * *", func() { ses.SaveValidatorsStats1H() })
+	// c.AddFunc("0 0 * * * *", func() { ses.SaveNetworkStats1H() })
+	// c.AddFunc("0 0 * * * *", func() { ses.SaveCoinGeckoMarketStats1H() })
+	// c.AddFunc("0 0 * * * *", func() { ses.SaveCoinMarketCapMarketStats1H() })
+
+	// // Every day at 2:00 AM (UTC zone) which equals 11:00 AM in Seoul
+	// c.AddFunc("0 0 2 * * *", func() { ses.SaveValidatorsStats24H() })
+	// c.AddFunc("0 0 2 * * *", func() { ses.SaveNetworkStats24H() })
+	// c.AddFunc("0 0 2 * * *", func() { ses.SaveCoinGeckoMarketStats24H() })
+	// c.AddFunc("0 0 2 * * *", func() { ses.SaveCoinMarketCapMarketStats24H() })
 	// go c.Start()
 
 	// // Allow graceful closing of the governance loop
@@ -71,9 +81,16 @@ func (ses *StatsExporterService) OnStart() {
 	// signal.Notify(signalCh, os.Interrupt)
 	// <-signalCh
 
-	ses.SaveValidatorStats()
-	ses.SaveNetworkStats()
-	ses.SaveCoinMarketCapMarketStats()
-	ses.SaveCoinGeckoMarketStats()
+	ses.SaveValidatorsStats1H()
+	ses.SaveValidatorsStats24H()
+
+	ses.SaveNetworkStats1H()
+	ses.SaveNetworkStats24H()
+
+	ses.SaveCoinGeckoMarketStats1H()
+	ses.SaveCoinGeckoMarketStats24H()
+
+	ses.SaveCoinMarketCapMarketStats1H()
+	ses.SaveCoinMarketCapMarketStats24H()
 
 }
