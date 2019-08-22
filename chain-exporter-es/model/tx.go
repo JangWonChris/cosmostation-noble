@@ -6,21 +6,24 @@ import (
 )
 
 type ElasticsearchTxInfo struct {
-	Hash   string          `json:"hash"`
 	Height int64           `json:"height"`
-	Time   time.Time       `json:"time"`
-	Tx     json.RawMessage `json:"tx"`
-	Result *TxResultInfo   `json:"result"`
-}
-
-type TxResultInfo struct {
+	Hash   string          `json:"hash"`
+	RawLog string `json:"raw_log"`
+	Logs      json.RawMessage `json:"logs"`
 	GasWanted int64           `json:"gas_wanted"`
 	GasUsed   int64           `json:"gas_used"`
-	Log       json.RawMessage `json:"log"`
-	Tags      json.RawMessage `json:"tags"`
+	Events json.RawMessage `json:"events"`
+	Tx     json.RawMessage `json:"tx"`
+	Timestamp   time.Time       `json:"timestamp"`
 }
 
-type Tag struct {
+
+type Event struct {
+	Type string `json:"type"`
+	Attributes []Attribute `json:"attributes"`
+}
+
+type Attribute struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`
 }
