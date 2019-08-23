@@ -78,7 +78,7 @@ func GetValidators(db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *
 		} else {
 			var missDetailInfo []dbtypes.MissDetailInfo
 			missBlockCount, _ = db.Model(&missDetailInfo).
-				Where("address = ? AND height BETWEEN ? AND ?", validator.Proposer, blockInfo[1].Height-int64(100), blockInfo[1].Height).
+				Where("address = ? AND height BETWEEN ? AND ?", validator.Proposer, blockInfo[1].Height-int64(99), blockInfo[1].Height).
 				Count()
 		}
 
@@ -149,7 +149,7 @@ func GetValidator(db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *h
 	} else {
 		var missDetailInfo []dbtypes.MissDetailInfo
 		missBlockCount, _ = db.Model(&missDetailInfo).
-			Where("address = ? AND height BETWEEN ? AND ?", validatorInfo.Proposer, blockInfo[1].Height-int64(100), blockInfo[1].Height).
+			Where("address = ? AND height BETWEEN ? AND ?", validatorInfo.Proposer, blockInfo[1].Height-int64(99), blockInfo[1].Height).
 			Count()
 	}
 
