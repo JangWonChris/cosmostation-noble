@@ -270,14 +270,14 @@ func GetValidatorBlockMissesDetail(db *pg.DB, rpcClient *client.HTTP, w http.Res
 	_ = db.Model(&blockInfo).
 		Column("height").
 		Order("id DESC").
-		Limit(2).
+		Limit(1).
 		Select()
 
 	// query a validator's missing blocks
 	var missDetailInfos []dbtypes.MissDetailInfo
 	_ = db.Model(&missDetailInfos).
-		Where("address = ? AND height BETWEEN ? AND ?", validatorInfo[0].Proposer, blockInfo[1].Height-int64(100), blockInfo[1].Height).
-		Limit(100).
+		Where("address = ? AND height BETWEEN ? AND ?", validatorInfo[0].Proposer, blockInfo[0].Height-int64(104), blockInfo[0].Height).
+		Limit(104).
 		Order("height DESC").
 		Select()
 
