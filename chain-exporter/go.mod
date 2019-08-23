@@ -3,7 +3,7 @@ module github.com/cosmostation/cosmostation-cosmos/chain-exporter
 go 1.12
 
 require (
-	github.com/cosmos/cosmos-sdk v0.36.0
+	github.com/cosmos/cosmos-sdk v0.37.0
 	github.com/go-pg/pg v8.0.4+incompatible
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/spf13/viper v1.4.0
