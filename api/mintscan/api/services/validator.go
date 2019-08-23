@@ -53,9 +53,13 @@ func GetValidators(db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *
 		return nil
 	}
 
-	// Query status for the current height
-	status, _ := rpcClient.Status()
-	currentHeight := status.SyncInfo.LatestBlockHeight
+	// query the latest block height saved in database - currently use second highest block height in database to easing client's handling
+	var blockInfo []dbtypes.BlockInfo
+	_ = db.Model(&blockInfo).
+		Column("height").
+		Order("id DESC").
+		Limit(2).
+		Select()
 
 	// Sort validatorInfo by highest tokens
 	sort.Slice(validatorInfo[:], func(i, j int) bool {
@@ -74,7 +78,7 @@ func GetValidators(db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *
 		} else {
 			var missDetailInfo []dbtypes.MissDetailInfo
 			missBlockCount, _ = db.Model(&missDetailInfo).
-				Where("address = ? AND height BETWEEN ? AND ?", validator.Proposer, currentHeight-100, currentHeight).
+				Where("address = ? AND height BETWEEN ? AND ?", validator.Proposer, blockInfo[1].Height-int64(100), blockInfo[1].Height).
 				Count()
 		}
 
@@ -129,9 +133,13 @@ func GetValidator(db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *h
 		return nil
 	}
 
-	// query status for the current height
-	status, _ := rpcClient.Status()
-	currentHeight := status.SyncInfo.LatestBlockHeight
+	// query the latest block height saved in database - currently use second highest block height in database to easing client's handling
+	var blockInfo []dbtypes.BlockInfo
+	_ = db.Model(&blockInfo).
+		Column("height").
+		Order("id DESC").
+		Limit(2).
+		Select()
 
 	var missBlockCount int
 
@@ -141,7 +149,7 @@ func GetValidator(db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *h
 	} else {
 		var missDetailInfo []dbtypes.MissDetailInfo
 		missBlockCount, _ = db.Model(&missDetailInfo).
-			Where("address = ? AND height BETWEEN ? AND ?", validatorInfo.Proposer, currentHeight-100, currentHeight).
+			Where("address = ? AND height BETWEEN ? AND ?", validatorInfo.Proposer, blockInfo[1].Height-int64(100), blockInfo[1].Height).
 			Count()
 	}
 
@@ -257,10 +265,7 @@ func GetValidatorBlockMissesDetail(db *pg.DB, rpcClient *client.HTTP, w http.Res
 		return nil
 	}
 
-	// validator's proposer address
-	address = validatorInfo[0].Proposer
-
-	// query the latest block height saved in database
+	// query the latest block height saved in database - currently use second highest block height in database to easing client's handling
 	var blockInfo []dbtypes.BlockInfo
 	_ = db.Model(&blockInfo).
 		Column("height").
@@ -269,10 +274,9 @@ func GetValidatorBlockMissesDetail(db *pg.DB, rpcClient *client.HTTP, w http.Res
 		Select()
 
 	// query a validator's missing blocks
-	// currently use second highest block height in database to easing client's handling
 	var missDetailInfos []dbtypes.MissDetailInfo
 	_ = db.Model(&missDetailInfos).
-		Where("address = ? AND height BETWEEN ? AND ?", address, blockInfo[1].Height-int64(100), blockInfo[1].Height).
+		Where("address = ? AND height BETWEEN ? AND ?", validatorInfo[0].Proposer, blockInfo[1].Height-int64(100), blockInfo[1].Height).
 		Limit(100).
 		Order("height DESC").
 		Select()
