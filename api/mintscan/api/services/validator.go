@@ -66,23 +66,20 @@ func GetValidators(db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *
 
 	resultValidator := make([]*models.ResultValidator, 0)
 	for _, validator := range validatorInfo {
-		// Convert to proposer address
-		proposerAddress := utils.ConsensusPubkeyToProposer(validator.ConsensusPubkey)
+		var missBlockCount int
 
-		// Query how many missed blocks each validator has for the last 100 blocks
-		var missDetailInfo []dbtypes.MissDetailInfo
-		missBlockCount, _ := db.Model(&missDetailInfo).
-			Where("address = ? AND height BETWEEN ? AND ?", proposerAddress, currentHeight-100, currentHeight).
-			Count()
-
-		// If a validator is jailed, missing block is 100
+		// if a validator is jailed, missing block is 100
 		if validator.Jailed {
 			missBlockCount = 100
+		} else {
+			var missDetailInfo []dbtypes.MissDetailInfo
+			missBlockCount, _ = db.Model(&missDetailInfo).
+				Where("address = ? AND height BETWEEN ? AND ?", validator.Proposer, currentHeight-100, currentHeight).
+				Count()
 		}
 
-		// Insert uptime data
 		tempUptime := &models.Uptime{
-			Address:      proposerAddress,
+			Address:      validator.Proposer,
 			MissedBlocks: int64(missBlockCount),
 			OverBlocks:   100,
 		}
@@ -132,27 +129,24 @@ func GetValidator(db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *h
 		return nil
 	}
 
-	// Proposer Address
-	address = validatorInfo.Proposer
-
-	// Query status for the current height
+	// query status for the current height
 	status, _ := rpcClient.Status()
 	currentHeight := status.SyncInfo.LatestBlockHeight
 
-	// Query how many missed blocks each validator has for the last 100 blocks
-	proposerAddress := utils.ConsensusPubkeyToProposer(validatorInfo.ConsensusPubkey)
-	var missDetailInfo []dbtypes.MissDetailInfo
-	missBlockCount, _ := db.Model(&missDetailInfo).
-		Where("address = ? AND height BETWEEN ? AND ?", proposerAddress, currentHeight-100, currentHeight).
-		Count()
+	var missBlockCount int
 
-	// If a validator is jailed, missing block is 100
+	// if a validator is jailed, missing block is 100
 	if validatorInfo.Jailed {
 		missBlockCount = 100
+	} else {
+		var missDetailInfo []dbtypes.MissDetailInfo
+		missBlockCount, _ = db.Model(&missDetailInfo).
+			Where("address = ? AND height BETWEEN ? AND ?", validatorInfo.Proposer, currentHeight-100, currentHeight).
+			Count()
 	}
 
 	tempUptime := &models.Uptime{
-		Address:      proposerAddress,
+		Address:      validatorInfo.Proposer,
 		MissedBlocks: int64(missBlockCount),
 		OverBlocks:   100,
 	}
@@ -160,7 +154,7 @@ func GetValidator(db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *h
 	// Validator's bonded height and its timestamp
 	var validatorSetInfo dbtypes.ValidatorSetInfo
 	_ = db.Model(&validatorSetInfo).
-		Where("proposer = ? AND event_type = ?", proposerAddress, "create_validator").
+		Where("proposer = ? AND event_type = ?", validatorInfo.Proposer, "create_validator").
 		Select()
 
 	resultValidatorDetail := &models.ResultValidatorDetail{

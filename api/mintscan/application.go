@@ -6,10 +6,10 @@ import (
 )
 
 func main() {
-	// Configuration in config.yaml
+	// configuration for this app in config.yaml
 	config := config.NewConfig()
 
-	// API server app
+	// starting the server
 	app := &app.App{}
 	app.NewApp(config)
 	app.Run(":" + config.Web.Port)
