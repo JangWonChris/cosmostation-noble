@@ -16,13 +16,19 @@ import (
 func SaveProposals(db *pg.DB, config *config.Config) {
 	resp, err := resty.R().Get(config.Node.LCDURL + "/gov/proposals")
 	if err != nil {
-		fmt.Printf("Query /gov/proposals error - %v\n", err)
+		fmt.Printf("query /gov/proposals error - %v\n", err)
+	}
+
+	var responseWithHeight dtypes.ResponseWithHeight
+	err = json.Unmarshal(resp.Body(), &responseWithHeight)
+	if err != nil {
+		fmt.Printf("unmarshal proposals error - %v\n", err)
 	}
 
 	proposals := make([]*dtypes.Proposal, 0)
-	err = json.Unmarshal(resp.Body(), &proposals)
+	err = json.Unmarshal(responseWithHeight.Result, &proposals)
 	if err != nil {
-		fmt.Printf("Unmarshal proposals error - %v\n", err)
+		fmt.Printf("unmarshal proposals error - %v\n", err)
 	}
 
 	// proposal information for our database table
@@ -33,7 +39,7 @@ func SaveProposals(db *pg.DB, config *config.Config) {
 			tallyResp, _ := resty.R().Get(config.Node.LCDURL + "/gov/proposals/" + proposal.ProposalID + "/tally")
 			err = json.Unmarshal(tallyResp.Body(), &tallyInfo)
 			if err != nil {
-				fmt.Printf("Unmarshal tallyInfo error - %v\n", err)
+				fmt.Printf("unmarshal tallyInfo error - %v\n", err)
 			}
 
 			proposalID, _ := strconv.ParseInt(proposal.ProposalID, 10, 64)
@@ -67,40 +73,39 @@ func SaveProposals(db *pg.DB, config *config.Config) {
 		}
 	}
 
-	// exist and update proposerInfo
-	if len(proposalInfo) > 0 {
-		var tempProposalInfo dtypes.ProposalInfo
-		for i := 0; i < len(proposalInfo); i++ {
-			// check if a validator already voted
-			count, _ := db.Model(&tempProposalInfo).
-				Where("id = ?", proposalInfo[i].ID).
-				Count()
-			if count > 0 {
-				// save and update proposalInfo
-				_, _ = db.Model(&tempProposalInfo).
-					Set("title = ?", proposalInfo[i].Title).
-					Set("description = ?", proposalInfo[i].Description).
-					Set("proposal_type = ?", proposalInfo[i].ProposalType).
-					Set("proposal_status = ?", proposalInfo[i].ProposalStatus).
-					Set("yes = ?", proposalInfo[i].Yes).
-					Set("abstain = ?", proposalInfo[i].Abstain).
-					Set("no = ?", proposalInfo[i].No).
-					Set("no_with_veto = ?", proposalInfo[i].NoWithVeto).
-					Set("submit_time = ?", proposalInfo[i].SubmitTime).
-					Set("deposit_end_time = ?", proposalInfo[i].DepositEndtime).
-					Set("total_deposit_amount = ?", proposalInfo[i].TotalDepositAmount).
-					Set("total_deposit_denom = ?", proposalInfo[i].TotalDepositDenom).
-					Set("voting_start_time = ?", proposalInfo[i].VotingStartTime).
-					Set("voting_end_time = ?", proposalInfo[i].VotingEndTime).
-					Where("id = ?", proposalInfo[i].ID).
-					Update()
-			} else {
-				err := db.Insert(&proposalInfo)
-				if err != nil {
-					fmt.Printf("error - save and update proposalInfo: %v\n", err)
-				}
-			}
-		}
-	}
-
+	// // exist and update proposerInfo
+	// if len(proposalInfo) > 0 {
+	// 	var tempProposalInfo dtypes.ProposalInfo
+	// 	for i := 0; i < len(proposalInfo); i++ {
+	// 		// check if a validator already voted
+	// 		count, _ := db.Model(&tempProposalInfo).
+	// 			Where("id = ?", proposalInfo[i].ID).
+	// 			Count()
+	// 		if count > 0 {
+	// 			// save and update proposalInfo
+	// 			_, _ = db.Model(&tempProposalInfo).
+	// 				Set("title = ?", proposalInfo[i].Title).
+	// 				Set("description = ?", proposalInfo[i].Description).
+	// 				Set("proposal_type = ?", proposalInfo[i].ProposalType).
+	// 				Set("proposal_status = ?", proposalInfo[i].ProposalStatus).
+	// 				Set("yes = ?", proposalInfo[i].Yes).
+	// 				Set("abstain = ?", proposalInfo[i].Abstain).
+	// 				Set("no = ?", proposalInfo[i].No).
+	// 				Set("no_with_veto = ?", proposalInfo[i].NoWithVeto).
+	// 				Set("submit_time = ?", proposalInfo[i].SubmitTime).
+	// 				Set("deposit_end_time = ?", proposalInfo[i].DepositEndtime).
+	// 				Set("total_deposit_amount = ?", proposalInfo[i].TotalDepositAmount).
+	// 				Set("total_deposit_denom = ?", proposalInfo[i].TotalDepositDenom).
+	// 				Set("voting_start_time = ?", proposalInfo[i].VotingStartTime).
+	// 				Set("voting_end_time = ?", proposalInfo[i].VotingEndTime).
+	// 				Where("id = ?", proposalInfo[i].ID).
+	// 				Update()
+	// 		} else {
+	// 			err := db.Insert(&proposalInfo)
+	// 			if err != nil {
+	// 				fmt.Printf("error - save and update proposalInfo: %v\n", err)
+	// 			}
+	// 		}
+	// 	}
+	// }
 }

@@ -28,7 +28,7 @@ var (
 	logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout))
 )
 
-// Monitor wraps Tendermint RPC client and PostgreSQL database
+// ChainExporterService wraps below params
 type ChainExporterService struct {
 	cmn.BaseService
 	codec     *codec.Codec
@@ -39,26 +39,26 @@ type ChainExporterService struct {
 	rpcClient *client.HTTP
 }
 
-// Initializes all the required configs
+// NewChainExporterService initializes the required config
 func NewChainExporterService(config *config.Config) *ChainExporterService {
 	ces := &ChainExporterService{
-		codec:     utils.MakeCodec(), // Register Cosmos SDK codecs
+		codec:     utils.MakeCodec(), // register Cosmos SDK codecs
 		config:    config,
-		db:        databases.ConnectDatabase(config), // Connect to PostgreSQL
+		db:        databases.ConnectDatabase(config), // connect to PostgreSQL
 		wsCtx:     context.Background(),
-		rpcClient: client.NewHTTP(config.Node.GaiadURL, "/websocket"), // Connect to Tendermint RPC client
+		rpcClient: client.NewHTTP(config.Node.GaiadURL, "/websocket"), // connect to Tendermint RPC client
 	}
 	// Setup database schema
 	databases.CreateSchema(ces.db)
 
 	// SetTimeout method sets timeout for request.
 	resty.SetTimeout(5 * time.Second)
-	resty.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true}) // Test locally
+	resty.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true}) // test locally
 
 	return ces
 }
 
-// Override method for BaseService, which starts a service
+// OnStart is an override method for BaseService, which starts a service
 func (ces *ChainExporterService) OnStart() error {
 	// OnStart both service and rpc client
 	// ces.BaseService.OnStart()
@@ -69,51 +69,51 @@ func (ces *ChainExporterService) OnStart() error {
 	// ces.wsOut, _ = ces.rpcClient.Subscribe(ces.wsCtx, "new tx", "tm.event = 'Tx'", 1)
 
 	// Store data initially
-	lcd.SaveBondedValidators(ces.db, ces.config)
-	lcd.SaveUnbondedAndUnbodingValidators(ces.db, ces.config)
+	// lcd.SaveBondedValidators(ces.db, ces.config)
+	// lcd.SaveUnbondedAndUnbodingValidators(ces.db, ces.config)
 	lcd.SaveProposals(ces.db, ces.config)
 
-	c1 := make(chan string)
-	c2 := make(chan string)
+	// c1 := make(chan string)
+	// c2 := make(chan string)
 
-	go func() {
-		for {
-			fmt.Println("start - sync blockchain")
-			err := ces.sync()
-			if err != nil {
-				fmt.Printf("error - sync blockchain: %v\n", err)
-			}
-			fmt.Println("finish - sync blockchain")
-			time.Sleep(time.Second)
-		}
-	}()
-	go func() {
-		for {
-			time.Sleep(7 * time.Second)
-			c1 <- "sync governance and validators via LCD"
-		}
-	}()
-	go func() {
-		for {
-			time.Sleep(20 * time.Minute)
-			c2 <- "parsing from keybase server using keybase identity"
-		}
-	}()
+	// go func() {
+	// 	for {
+	// 		fmt.Println("start - sync blockchain")
+	// 		err := ces.sync()
+	// 		if err != nil {
+	// 			fmt.Printf("error - sync blockchain: %v\n", err)
+	// 		}
+	// 		fmt.Println("finish - sync blockchain")
+	// 		time.Sleep(time.Second)
+	// 	}
+	// }()
+	// go func() {
+	// 	for {
+	// 		time.Sleep(7 * time.Second)
+	// 		c1 <- "sync governance and validators via LCD"
+	// 	}
+	// }()
+	// go func() {
+	// 	for {
+	// 		time.Sleep(20 * time.Minute)
+	// 		c2 <- "parsing from keybase server using keybase identity"
+	// 	}
+	// }()
 
-	for {
-		select {
-		case msg2 := <-c1:
-			fmt.Println("start - ", msg2)
-			lcd.SaveBondedValidators(ces.db, ces.config)
-			lcd.SaveUnbondedAndUnbodingValidators(ces.db, ces.config)
-			lcd.SaveProposals(ces.db, ces.config)
-			fmt.Println("finish - ", msg2)
-		case msg3 := <-c2:
-			fmt.Println("start - ", msg3)
-			ces.SaveValidatorKeyBase()
-			fmt.Println("finish - ", msg3)
-		}
-	}
+	// for {
+	// 	select {
+	// 	case msg2 := <-c1:
+	// 		fmt.Println("start - ", msg2)
+	// 		lcd.SaveBondedValidators(ces.db, ces.config)
+	// 		lcd.SaveUnbondedAndUnbodingValidators(ces.db, ces.config)
+	// 		lcd.SaveProposals(ces.db, ces.config)
+	// 		fmt.Println("finish - ", msg2)
+	// 	case msg3 := <-c2:
+	// 		fmt.Println("start - ", msg3)
+	// 		ces.SaveValidatorKeyBase()
+	// 		fmt.Println("finish - ", msg3)
+	// 	}
+	// }
 
 	/*
 		// case eventData, ok := <-ces.WsOut:
@@ -127,13 +127,13 @@ func (ces *ChainExporterService) OnStart() error {
 	*/
 }
 
-// Override method for BaseService, which stops a service
+// OnStop is an override method for BaseService, which stops a service
 func (ces *ChainExporterService) OnStop() {
 	// ces.BaseService.OnStop()
 	ces.rpcClient.OnStop()
 }
 
-// Synchronizes the block data from connected full node
+// sync synchronizes the block data from connected full node
 func (ces *ChainExporterService) sync() error {
 	// Check current height in db
 	var blocks []dtypes.BlockInfo

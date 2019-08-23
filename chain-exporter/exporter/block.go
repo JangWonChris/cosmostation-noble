@@ -4,6 +4,7 @@ import (
 	dtypes "github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 )
 
+// getBlockInfo provides block information
 func (ces *ChainExporterService) getBlockInfo(height int64) ([]*dtypes.BlockInfo, error) {
 	blockInfo := make([]*dtypes.BlockInfo, 0)
 

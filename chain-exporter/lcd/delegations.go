@@ -16,6 +16,7 @@ import (
 /*
 	CURRENTLY THIS METHOD IS NOT USED
 */
+
 // SaveValidatorDelegations queries each validator's delegations and save them in the database
 func SaveValidatorDelegations(db *pg.DB, config *config.Config) {
 	// Query all validators' operating addresses
