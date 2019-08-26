@@ -14,7 +14,7 @@ import (
 	resty "gopkg.in/resty.v1"
 )
 
-// SaveBondedValidators saves bonded validators in database
+// SaveBondedValidators saves bonded validators information in database
 func SaveBondedValidators(db *pg.DB, config *config.Config) {
 	bondedResp, err := resty.R().Get(config.Node.LCDURL + "/staking/validators?status=bonded")
 	if err != nil {
