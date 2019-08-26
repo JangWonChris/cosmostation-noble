@@ -142,14 +142,3 @@ type DepositInfo struct {
 	GasUsed    int64     `json:"gas_used"`
 	Time       time.Time `json:"time"`
 }
-
-type ValidatorDelegationsInfo struct {
-	ID                  int64     `sql:",pk"`
-	OperatorAddress     string    `json:"operator_address" sql:",unique"`
-	Address             string    `json:"cosmos_address"`
-	TotalShares         float64   `json:"total_shares"`
-	SelfDelegatedShares float64   `json:"self_delegated_shares"`
-	OthersShares        float64   `json:"others"`
-	DelegatorNum        int       `json:"delegator_num"`
-	Time                time.Time `json:"time" sql:"default:null"`
-}
