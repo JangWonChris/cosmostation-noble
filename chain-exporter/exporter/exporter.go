@@ -48,10 +48,11 @@ func NewChainExporterService(config *config.Config) *ChainExporterService {
 		wsCtx:     context.Background(),
 		rpcClient: client.NewHTTP(config.Node.GaiadURL, "/websocket"), // connect to Tendermint RPC client
 	}
-	// Setup database schema
+
+	// setup database schema
 	databases.CreateSchema(ces.db)
 
-	// SetTimeout method sets timeout for request.
+	// sets timeout for request.
 	resty.SetTimeout(5 * time.Second)
 	resty.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true}) // test locally
 
@@ -69,9 +70,10 @@ func (ces *ChainExporterService) OnStart() error {
 	// ces.wsOut, _ = ces.rpcClient.Subscribe(ces.wsCtx, "new tx", "tm.event = 'Tx'", 1)
 
 	// Store data initially
-	// lcd.SaveBondedValidators(ces.db, ces.config)
-	// lcd.SaveUnbondedAndUnbodingValidators(ces.db, ces.config)
-	lcd.SaveProposals(ces.db, ces.config)
+	lcd.SaveBondedValidators(ces.db, ces.config)
+	lcd.SaveUnbondingValidators(ces.db, ces.config)
+	lcd.SaveUnbondedValidators(ces.db, ces.config)
+	// lcd.SaveProposals(ces.db, ces.config)
 
 	// c1 := make(chan string)
 	// c2 := make(chan string)
@@ -105,7 +107,8 @@ func (ces *ChainExporterService) OnStart() error {
 	// 	case msg2 := <-c1:
 	// 		fmt.Println("start - ", msg2)
 	// 		lcd.SaveBondedValidators(ces.db, ces.config)
-	// 		lcd.SaveUnbondedAndUnbodingValidators(ces.db, ces.config)
+	// 		lcd.SaveUnbondingValidators(ces.db, ces.config)
+	// 		lcd.SaveUnbondedValidators(ces.db, ces.config)
 	// 		lcd.SaveProposals(ces.db, ces.config)
 	// 		fmt.Println("finish - ", msg2)
 	// 	case msg3 := <-c2:
@@ -125,6 +128,8 @@ func (ces *ChainExporterService) OnStart() error {
 		// case <-signalCh:
 		// 	return nil
 	*/
+
+	return nil
 }
 
 // OnStop is an override method for BaseService, which stops a service

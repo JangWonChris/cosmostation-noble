@@ -3,6 +3,6 @@ package types
 import "encoding/json"
 
 type ResponseWithHeight struct {
-	Height int64           `json:"height"`
+	Height string          `json:"height"`
 	Result json.RawMessage `json:"result"`
 }
