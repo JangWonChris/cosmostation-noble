@@ -73,50 +73,50 @@ func (ces *ChainExporterService) OnStart() error {
 	lcd.SaveBondedValidators(ces.db, ces.config)
 	lcd.SaveUnbondingValidators(ces.db, ces.config)
 	lcd.SaveUnbondedValidators(ces.db, ces.config)
-	// lcd.SaveProposals(ces.db, ces.config)
+	lcd.SaveProposals(ces.db, ces.config)
 
-	// c1 := make(chan string)
-	// c2 := make(chan string)
+	c1 := make(chan string)
+	c2 := make(chan string)
 
-	// go func() {
-	// 	for {
-	// 		fmt.Println("start - sync blockchain")
-	// 		err := ces.sync()
-	// 		if err != nil {
-	// 			fmt.Printf("error - sync blockchain: %v\n", err)
-	// 		}
-	// 		fmt.Println("finish - sync blockchain")
-	// 		time.Sleep(time.Second)
-	// 	}
-	// }()
-	// go func() {
-	// 	for {
-	// 		time.Sleep(7 * time.Second)
-	// 		c1 <- "sync governance and validators via LCD"
-	// 	}
-	// }()
-	// go func() {
-	// 	for {
-	// 		time.Sleep(20 * time.Minute)
-	// 		c2 <- "parsing from keybase server using keybase identity"
-	// 	}
-	// }()
+	go func() {
+		for {
+			fmt.Println("start - sync blockchain")
+			err := ces.sync()
+			if err != nil {
+				fmt.Printf("error - sync blockchain: %v\n", err)
+			}
+			fmt.Println("finish - sync blockchain")
+			time.Sleep(time.Second)
+		}
+	}()
+	go func() {
+		for {
+			time.Sleep(7 * time.Second)
+			c1 <- "sync governance and validators via LCD"
+		}
+	}()
+	go func() {
+		for {
+			time.Sleep(20 * time.Minute)
+			c2 <- "parsing from keybase server using keybase identity"
+		}
+	}()
 
-	// for {
-	// 	select {
-	// 	case msg2 := <-c1:
-	// 		fmt.Println("start - ", msg2)
-	// 		lcd.SaveBondedValidators(ces.db, ces.config)
-	// 		lcd.SaveUnbondingValidators(ces.db, ces.config)
-	// 		lcd.SaveUnbondedValidators(ces.db, ces.config)
-	// 		lcd.SaveProposals(ces.db, ces.config)
-	// 		fmt.Println("finish - ", msg2)
-	// 	case msg3 := <-c2:
-	// 		fmt.Println("start - ", msg3)
-	// 		ces.SaveValidatorKeyBase()
-	// 		fmt.Println("finish - ", msg3)
-	// 	}
-	// }
+	for {
+		select {
+		case msg2 := <-c1:
+			fmt.Println("start - ", msg2)
+			lcd.SaveBondedValidators(ces.db, ces.config)
+			lcd.SaveUnbondingValidators(ces.db, ces.config)
+			lcd.SaveUnbondedValidators(ces.db, ces.config)
+			lcd.SaveProposals(ces.db, ces.config)
+			fmt.Println("finish - ", msg2)
+		case msg3 := <-c2:
+			fmt.Println("start - ", msg3)
+			ces.SaveValidatorKeyBase()
+			fmt.Println("finish - ", msg3)
+		}
+	}
 
 	/*
 		// case eventData, ok := <-ces.WsOut:
@@ -128,8 +128,6 @@ func (ces *ChainExporterService) OnStart() error {
 		// case <-signalCh:
 		// 	return nil
 	*/
-
-	return nil
 }
 
 // OnStop is an override method for BaseService, which stops a service
