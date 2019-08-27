@@ -12,7 +12,7 @@ import (
 	resty "gopkg.in/resty.v1"
 )
 
-// SaveProposals queries the governance proposals from REST server and store them in our database
+// SaveProposals saves governance proposals in database
 func SaveProposals(db *pg.DB, config *config.Config) {
 	resp, err := resty.R().Get(config.Node.LCDURL + "/gov/proposals")
 	if err != nil {
@@ -76,7 +76,7 @@ func SaveProposals(db *pg.DB, config *config.Config) {
 		}
 	}
 
-	// exist and update proposerInfo
+	// update proposerInfo
 	if len(proposalInfo) > 0 {
 		var tempProposalInfo dtypes.ProposalInfo
 		for i := 0; i < len(proposalInfo); i++ {

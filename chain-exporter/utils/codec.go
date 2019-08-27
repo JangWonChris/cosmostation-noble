@@ -20,11 +20,12 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/supply"
 )
 
+// ModuleBasics manages simple versions of full app modules. It's used for things such as codec registration and genesis file verification.
 var (
-	// ModuleBasics manages simple versions of full app modules. It's used for things such as codec registration and genesis file verification.
 	ModuleBasics module.BasicManager
 )
 
+// MakeCodec registers all codecs
 func MakeCodec() *codec.Codec {
 	ModuleBasics = module.NewBasicManager(
 		genaccounts.AppModuleBasic{},

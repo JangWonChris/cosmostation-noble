@@ -24,7 +24,7 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 	proposalInfo := make([]*dtypes.ProposalInfo, 0)
 	validatorSetInfo := make([]*dtypes.ValidatorSetInfo, 0)
 
-	// query the current block
+	// query current block
 	block, err := ces.rpcClient.Block(&height)
 	if err != nil {
 		return nil, nil, nil, nil, nil, err
@@ -92,7 +92,7 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 						tempValidatorSetInfo := &dtypes.ValidatorSetInfo{
 							IDValidator:          highestIDValidatorNum + 1,
 							Height:               height,
-							Proposer:             utils.ConsensusPubkeyToProposer(msgCreateValidator.Pubkey), // new validator's proposer address needs to be converted
+							Proposer:             utils.ConsAddrFromConsPubkey(msgCreateValidator.Pubkey), // new validator's proposer address needs to be converted
 							VotingPower:          newVotingPowerAmount,
 							NewVotingPowerAmount: newVotingPowerAmount,
 							NewVotingPowerDenom:  msgCreateValidator.Value.Denom,

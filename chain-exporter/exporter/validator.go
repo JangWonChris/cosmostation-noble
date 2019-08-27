@@ -14,13 +14,13 @@ import (
 func (ces *ChainExporterService) getValidatorSetInfo(height int64) ([]*dtypes.ValidatorSetInfo, []*dtypes.MissInfo, []*dtypes.MissInfo, []*dtypes.MissDetailInfo, error) {
 	nextHeight := height + 1
 
-	// query the current block
+	// query current block
 	block, err := ces.rpcClient.Block(&height)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
 
-	// query the next block to access the commits
+	// query the next block to access precommits
 	nextBlock, err := ces.rpcClient.Block(&nextHeight)
 	if err != nil {
 		return nil, nil, nil, nil, err
@@ -123,13 +123,13 @@ func (ces *ChainExporterService) getValidatorSetInfo(height int64) ([]*dtypes.Va
 func (ces *ChainExporterService) getEvidenceInfo(height int64) ([]*dtypes.EvidenceInfo, error) {
 	nextHeight := height + 1
 
-	// query the current block
+	// query current block
 	block, err := ces.rpcClient.Block(&height)
 	if err != nil {
 		return nil, err
 	}
 
-	// query the next block to access the commits
+	// query the next block to access precommits
 	nextBlock, err := ces.rpcClient.Block(&nextHeight)
 	if err != nil {
 		return nil, err
@@ -178,7 +178,7 @@ func (ces *ChainExporterService) SaveValidatorKeyBase() error {
 				fmt.Printf("KeyBase unmarshal error - %v\n", err)
 			}
 
-			// get Keybase URL
+			// get keybase urls
 			var keybaseURL string
 			if len(keyBases.Them) > 0 {
 				for _, keybase := range keyBases.Them {

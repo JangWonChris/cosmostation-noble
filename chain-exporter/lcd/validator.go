@@ -43,9 +43,9 @@ func SaveBondedValidators(db *pg.DB, config *config.Config) {
 		tempValidatorInfo := &dtypes.ValidatorInfo{
 			Rank:                 i + 1,
 			OperatorAddress:      bondedValidators.OperatorAddress,
-			Address:              utils.OperatorAddressToAddress(bondedValidators.OperatorAddress),
+			Address:              utils.AccAddressFromOperatorAddress(bondedValidators.OperatorAddress),
 			ConsensusPubkey:      bondedValidators.ConsensusPubkey,
-			Proposer:             utils.ConsensusPubkeyToProposer(bondedValidators.ConsensusPubkey),
+			Proposer:             utils.ConsAddrFromConsPubkey(bondedValidators.ConsensusPubkey),
 			Jailed:               bondedValidators.Jailed,
 			Status:               bondedValidators.Status,
 			Tokens:               bondedValidators.Tokens,
@@ -122,9 +122,9 @@ func SaveUnbondingValidators(db *pg.DB, config *config.Config) {
 		for _, unbondingValidator := range unbondingValidators {
 			tempValidatorInfo := &dtypes.ValidatorInfo{
 				OperatorAddress:      unbondingValidator.OperatorAddress,
-				Address:              utils.OperatorAddressToAddress(unbondingValidator.OperatorAddress),
+				Address:              utils.AccAddressFromOperatorAddress(unbondingValidator.OperatorAddress),
 				ConsensusPubkey:      unbondingValidator.ConsensusPubkey,
-				Proposer:             utils.ConsensusPubkeyToProposer(unbondingValidator.ConsensusPubkey),
+				Proposer:             utils.ConsAddrFromConsPubkey(unbondingValidator.ConsensusPubkey),
 				Jailed:               unbondingValidator.Jailed,
 				Status:               unbondingValidator.Status,
 				Tokens:               unbondingValidator.Tokens,
@@ -213,9 +213,9 @@ func SaveUnbondedValidators(db *pg.DB, config *config.Config) {
 		for _, unbondedValidator := range unbondedValidators {
 			tempValidatorInfo := &dtypes.ValidatorInfo{
 				OperatorAddress:      unbondedValidator.OperatorAddress,
-				Address:              utils.OperatorAddressToAddress(unbondedValidator.OperatorAddress),
+				Address:              utils.AccAddressFromOperatorAddress(unbondedValidator.OperatorAddress),
 				ConsensusPubkey:      unbondedValidator.ConsensusPubkey,
-				Proposer:             utils.ConsensusPubkeyToProposer(unbondedValidator.ConsensusPubkey),
+				Proposer:             utils.ConsAddrFromConsPubkey(unbondedValidator.ConsensusPubkey),
 				Jailed:               unbondedValidator.Jailed,
 				Status:               unbondedValidator.Status,
 				Tokens:               unbondedValidator.Tokens,

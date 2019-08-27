@@ -2,7 +2,10 @@ package types
 
 import "time"
 
-// REST API struct
+/*
+	These structs are REST API structs
+*/
+
 type Proposal struct {
 	Content struct {
 		Type  string `json:"type"`
@@ -29,7 +32,6 @@ type Proposal struct {
 	VotingEndTime   time.Time `json:"voting_end_time"`
 }
 
-// REST API struct
 type TallyInfo struct {
 	Yes        string `json:"yes"`
 	Abstain    string `json:"abstain"`
