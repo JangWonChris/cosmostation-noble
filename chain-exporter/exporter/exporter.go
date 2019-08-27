@@ -16,7 +16,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 
 	"github.com/go-pg/pg"
-	cmn "github.com/tendermint/tendermint/libs/common"
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/rpc/client"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
@@ -30,7 +29,6 @@ var (
 
 // ChainExporterService wraps below params
 type ChainExporterService struct {
-	cmn.BaseService
 	codec     *codec.Codec
 	config    *config.Config
 	db        *pg.DB
@@ -61,13 +59,8 @@ func NewChainExporterService(config *config.Config) *ChainExporterService {
 
 // OnStart is an override method for BaseService, which starts a service
 func (ces *ChainExporterService) OnStart() error {
-	// OnStart both service and rpc client
-	// ces.BaseService.OnStart()
+	// OnStart rpc client
 	ces.rpcClient.OnStart()
-
-	// Initialize private fields and start subroutines, etc.
-	// ces.wsOut, _ = ces.rpcClient.Subscribe(ces.WsCtx, "new block", "tm.event = 'NewBlock'", 1)
-	// ces.wsOut, _ = ces.rpcClient.Subscribe(ces.wsCtx, "new tx", "tm.event = 'Tx'", 1)
 
 	// Store data initially
 	lcd.SaveBondedValidators(ces.db, ces.config)
@@ -117,22 +110,10 @@ func (ces *ChainExporterService) OnStart() error {
 			fmt.Println("finish - ", msg3)
 		}
 	}
-
-	/*
-		// case eventData, ok := <-ces.WsOut:
-		// 	fmt.Println("start - subscribe tx from full node")
-		// 	if ok {
-		// 		ces.handleNewTransactions(eventData) // returns Data, Query, Tags
-		// 	}
-		// 	fmt.Println("finish - subscribe tx from full node")
-		// case <-signalCh:
-		// 	return nil
-	*/
 }
 
 // OnStop is an override method for BaseService, which stops a service
 func (ces *ChainExporterService) OnStop() {
-	// ces.BaseService.OnStop()
 	ces.rpcClient.OnStop()
 }
 
