@@ -49,8 +49,7 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 				fmt.Printf("unmarshal generalTx error - %v\n", err)
 			}
 
-			// save all txs in PostgreSQL - success and fail
-			// single or multiple messages in transaction
+			// save all txs in PostgreSQL if it is success or fail
 			if len(generalTx.Tx.Value.Msg) == 1 {
 				tempTransactionInfo := &dtypes.TransactionInfo{
 					Height:  block.Block.Height,
@@ -261,23 +260,24 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 						var msgSubmitProposal dtypes.MsgSubmitProposal
 						_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &msgSubmitProposal)
 
-						// in case msgSubmitProposal is in multi-msg
-						// never define directly as generalTx.Tags[0]
+						// take care of multi-msg
 						var proposalID int64
-						for _, tag := range generalTx.Tags {
-							if tag.Key == "proposal-id" {
-								proposalID, _ = strconv.ParseInt(tag.Value, 10, 64)
+						for _, event := range generalTx.Events {
+							for _, attribute := range event.Attributes {
+								if attribute.Key == "proposal_id" {
+									proposalID, _ = strconv.ParseInt(attribute.Value, 10, 64)
+								}
 							}
 						}
 
 						var initialDepositAmount string
 						var initialDepositDenom string
+
 						if len(msgSubmitProposal.InitialDeposit) > 0 {
 							initialDepositAmount = msgSubmitProposal.InitialDeposit[0].Amount
 							initialDepositDenom = msgSubmitProposal.InitialDeposit[0].Denom
 						}
 
-						// insert data into proposal_infos table
 						tempProposalInfo := &dtypes.ProposalInfo{
 							ID:                   proposalID,
 							TxHash:               generalTx.TxHash,
@@ -312,6 +312,7 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 						proposalID, _ := strconv.ParseInt(msgVote.ProposalID, 10, 64)
 						gasWanted, _ := strconv.ParseInt(generalTx.GasWanted, 10, 64)
 						gasUsed, _ := strconv.ParseInt(generalTx.GasUsed, 10, 64)
+
 						tempVoteInfo := &dtypes.VoteInfo{
 							Height:     height,
 							ProposalID: proposalID,
@@ -333,6 +334,7 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 						amount := msgDeposit.Amount[0].Amount
 						gasWanted, _ := strconv.ParseInt(generalTx.GasWanted, 10, 64)
 						gasUsed, _ := strconv.ParseInt(generalTx.GasUsed, 10, 64)
+
 						tempDepositInfo := &dtypes.DepositInfo{
 							Height:     height,
 							ProposalID: proposalID,
@@ -345,6 +347,7 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*dtypes.Tra
 							Time:       block.BlockMeta.Header.Time,
 						}
 						depositInfo = append(depositInfo, tempDepositInfo)
+
 					default:
 						continue
 					}

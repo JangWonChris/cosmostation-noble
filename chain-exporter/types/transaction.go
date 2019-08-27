@@ -15,19 +15,21 @@ const (
 type GeneralTx struct {
 	Height string `json:"height"`
 	TxHash string `json:"txhash"`
-	Data   string `json:"data"`
 	RawLog string `json:"raw_log"`
 	Logs   []struct {
-		MsgIndex string `json:"msg_index"`
+		MsgIndex uint8  `json:"msg_index"`
 		Success  bool   `json:"success"`
 		Log      string `json:"log"`
 	} `json:"logs"`
 	GasWanted string `json:"gas_wanted"`
 	GasUsed   string `json:"gas_used"`
-	Tags      []struct {
-		Key   string `json:"key"`
-		Value string `json:"value"`
-	} `json:"tags"`
+	Events    []struct {
+		Type       string `json:"type"`
+		Attributes []struct {
+			Key   string `json:"key"`
+			Value string `json:"value"`
+		}
+	} `json:"events"`
 	Tx struct {
 		Type  string `json:"type"`
 		Value struct {
@@ -36,8 +38,11 @@ type GeneralTx struct {
 				Value json.RawMessage `json:"value"`
 			} `json:"msg"`
 			Fee struct {
-				Amount string `json:"amount"`
-				Gas    string `json:"gas"`
+				Amount []struct {
+					Denom  string `json:"denom"`
+					Amount string `json:"amount"`
+				} `json:"amount"`
+				Gas string `json:"gas"`
 			} `json:"fee"`
 			Signatures json.RawMessage `json:"signatures"`
 			Memo       string          `json:"memo"`
