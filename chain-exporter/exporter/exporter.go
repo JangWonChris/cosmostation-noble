@@ -5,19 +5,17 @@ import (
 	"crypto/tls"
 	"fmt"
 	"os"
-	"os/signal"
 	"time"
 
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/databases"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/lcd"
 	dtypes "github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/utils"
 
-	gaiaApp "github.com/cosmos/cosmos-sdk/cmd/gaia/app"
 	"github.com/cosmos/cosmos-sdk/codec"
 
 	"github.com/go-pg/pg"
-	cmn "github.com/tendermint/tendermint/libs/common"
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/rpc/client"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
@@ -29,9 +27,8 @@ var (
 	logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout))
 )
 
-// Monitor wraps Tendermint RPC client and PostgreSQL database
+// ChainExporterService wraps below params
 type ChainExporterService struct {
-	cmn.BaseService
 	codec     *codec.Codec
 	config    *config.Config
 	db        *pg.DB
@@ -40,44 +37,40 @@ type ChainExporterService struct {
 	rpcClient *client.HTTP
 }
 
-// Initializes all the required configs
+// NewChainExporterService initializes the required config
 func NewChainExporterService(config *config.Config) *ChainExporterService {
 	ces := &ChainExporterService{
-		codec:     gaiaApp.MakeCodec(), // Register Cosmos SDK codecs
+		codec:     utils.MakeCodec(), // register Cosmos SDK codecs
 		config:    config,
-		db:        databases.ConnectDatabase(config), // Connect to PostgreSQL
+		db:        databases.ConnectDatabase(config), // connect to PostgreSQL
 		wsCtx:     context.Background(),
-		rpcClient: client.NewHTTP(config.Node.GaiadURL, "/websocket"), // Connect to Tendermint RPC client
+		rpcClient: client.NewHTTP(config.Node.GaiadURL, "/websocket"), // connect to Tendermint RPC client
 	}
-	// Setup database schema
+
+	// setup database schema
 	databases.CreateSchema(ces.db)
 
-	// Register a service that can be started, stopped, and reset
-	ces.BaseService = *cmn.NewBaseService(logger, "ChainExporterService", ces)
-
-	// SetTimeout method sets timeout for request.
+	// sets timeout for request.
 	resty.SetTimeout(5 * time.Second)
-	resty.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true}) // Test locally
+	resty.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true}) // test locally
 
 	return ces
 }
 
-// Override method for BaseService, which starts a service
+// OnStart is an override method for BaseService, which starts a service
 func (ces *ChainExporterService) OnStart() error {
-	// OnStart both service and rpc client
-	ces.BaseService.OnStart()
+	// OnStart rpc client
 	ces.rpcClient.OnStart()
-
-	// Initialize private fields and start subroutines, etc.
-	// ces.wsOut, _ = ces.rpcClient.Subscribe(ces.WsCtx, "new block", "tm.event = 'NewBlock'", 1)
-	// ces.wsOut, _ = ces.rpcClient.Subscribe(ces.wsCtx, "new tx", "tm.event = 'Tx'", 1)
 
 	// Store data initially
 	lcd.SaveBondedValidators(ces.db, ces.config)
-	lcd.SaveUnbondedAndUnbodingValidators(ces.db, ces.config)
-	lcd.SaveGovernance(ces.db, ces.config)
+	lcd.SaveUnbondingValidators(ces.db, ces.config)
+	lcd.SaveUnbondedValidators(ces.db, ces.config)
+	lcd.SaveProposals(ces.db, ces.config)
 
-	// Start the syncing task
+	c1 := make(chan string)
+	c2 := make(chan string)
+
 	go func() {
 		for {
 			fmt.Println("start - sync blockchain")
@@ -89,50 +82,42 @@ func (ces *ChainExporterService) OnStart() error {
 			time.Sleep(time.Second)
 		}
 	}()
-
-	// Allow graceful closing of the governance loop
-	signalCh := make(chan os.Signal, 1)
-	signal.Notify(signalCh, os.Interrupt)
+	go func() {
+		for {
+			time.Sleep(7 * time.Second)
+			c1 <- "sync governance and validators via LCD"
+		}
+	}()
+	go func() {
+		for {
+			time.Sleep(20 * time.Minute)
+			c2 <- "parsing from keybase server using keybase identity"
+		}
+	}()
 
 	for {
 		select {
-		case <-time.Tick(7 * time.Second):
-			fmt.Println("start - sync LCD governance & validators")
+		case msg2 := <-c1:
+			fmt.Println("start - ", msg2)
 			lcd.SaveBondedValidators(ces.db, ces.config)
-			lcd.SaveUnbondedAndUnbodingValidators(ces.db, ces.config)
-			lcd.SaveGovernance(ces.db, ces.config)
-			fmt.Println("finish - sync LCD governance & validators")
-		case <-signalCh:
-			return nil
-			// Push Notification 을 위함
-			// case eventData, ok := <-ces.WsOut:
-			// 	fmt.Println("start new tx subscription from full node")
-			// 	if ok {
-			// 		fmt.Println("===Event===================================================")
-			// 		fmt.Println(eventData)
-			// 	}
-			// 	fmt.Println("finish tx subscription from full node")
-			// case <-signalCh:
-			// 	return nil
-		}
-		select {
-		case <-time.Tick(30 * time.Minute):
-			fmt.Println("start - validators' keybase urls")
+			lcd.SaveUnbondingValidators(ces.db, ces.config)
+			lcd.SaveUnbondedValidators(ces.db, ces.config)
+			lcd.SaveProposals(ces.db, ces.config)
+			fmt.Println("finish - ", msg2)
+		case msg3 := <-c2:
+			fmt.Println("start - ", msg3)
 			ces.SaveValidatorKeyBase()
-			fmt.Println("finish - validators' keybase urls")
-		case <-signalCh:
-			return nil
+			fmt.Println("finish - ", msg3)
 		}
 	}
 }
 
-// Override method for BaseService, which stops a service
+// OnStop is an override method for BaseService, which stops a service
 func (ces *ChainExporterService) OnStop() {
-	ces.BaseService.OnStop()
 	ces.rpcClient.OnStop()
 }
 
-// Synchronizes the block data from connected full node
+// sync synchronizes the block data from connected full node
 func (ces *ChainExporterService) sync() error {
 	// Check current height in db
 	var blocks []dtypes.BlockInfo

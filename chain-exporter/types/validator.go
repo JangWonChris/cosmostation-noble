@@ -31,17 +31,6 @@ type Validator struct {
 	MinSelfDelegation string `json:"min_self_delegation"`
 }
 
-type ValidatorDelegationsInfo struct {
-	ID                  int64     `sql:",pk"`
-	OperatorAddress     string    `json:"operator_address" sql:",unique"`
-	Address             string    `json:"cosmos_address"`
-	TotalShares         float64   `json:"total_shares"`
-	SelfDelegatedShares float64   `json:"self_delegated_shares"`
-	OthersShares        float64   `json:"others"`
-	DelegatorNum        int       `json:"delegator_num"`
-	Time                time.Time `json:"time" sql:"default:null"`
-}
-
 type ValidatorDelegations struct {
 	DelegatorAddress string  `json:"delegator_address"`
 	ValidatorAddress string  `json:"validator_address"`

@@ -34,7 +34,6 @@ func ValidatorController(codec *codec.Codec, config *config.Config, db *pg.DB, r
 	router.HandleFunc("/staking/redelegations", func(w http.ResponseWriter, r *http.Request) {
 		services.GetRedelegations(config, db, w, r)
 	})
-	// Currently not used due to Full Node requests performance issue
 	router.HandleFunc("/staking/validator/delegations/{address}", func(w http.ResponseWriter, r *http.Request) {
 		services.GetValidatorDelegations(codec, config, db, rpcClient, w, r)
 	})

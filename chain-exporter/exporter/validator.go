@@ -10,23 +10,23 @@ import (
 	resty "gopkg.in/resty.v1"
 )
 
+// getValidatorSetInfo provides validator set information in every block
 func (ces *ChainExporterService) getValidatorSetInfo(height int64) ([]*dtypes.ValidatorSetInfo, []*dtypes.MissInfo, []*dtypes.MissInfo, []*dtypes.MissDetailInfo, error) {
-	// This is for syncing at the right height
 	nextHeight := height + 1
 
-	// Query the current block
+	// query the current block
 	block, err := ces.rpcClient.Block(&height)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
 
-	// Query the next block to access the commits
+	// query the next block to access the commits
 	nextBlock, err := ces.rpcClient.Block(&nextHeight)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
 
-	// Query validator set for the block height
+	// query validator set for the block height
 	validators, err := ces.rpcClient.Validators(&height)
 	if err != nil {
 		return nil, nil, nil, nil, err
@@ -35,6 +35,7 @@ func (ces *ChainExporterService) getValidatorSetInfo(height int64) ([]*dtypes.Va
 	/*
 		DO NOT SORT validator set. This causes miss_infos incorrect data
 	*/
+
 	// Sort bondedValidators by highest tokens
 	// sort.Slice(validators.Validators[:], func(i, j int) bool {
 	// 	tempToken1 := validators.Validators[i].VotingPower
@@ -47,9 +48,9 @@ func (ces *ChainExporterService) getValidatorSetInfo(height int64) ([]*dtypes.Va
 	accumMissInfo := make([]*dtypes.MissInfo, 0)
 	missDetailInfo := make([]*dtypes.MissDetailInfo, 0)
 
-	// Validator set for the height
+	// validator set for the height
 	for i, validator := range validators.Validators {
-		// Insert genesis validators as an event_type of create_validator at height 1
+		// insert genesis validators as an event_type of create_validator at height 1
 		if validators.BlockHeight == 1 {
 			tempValidatorSetInfo := &dtypes.ValidatorSetInfo{
 				IDValidator:          i + 1,
@@ -66,7 +67,7 @@ func (ces *ChainExporterService) getValidatorSetInfo(height int64) ([]*dtypes.Va
 
 		// MissDetailInfo saves every missing information of validators
 		// MissInfo saves ranges of missing information of validators
-		// Check if a validator misses previous block
+		// check if a validator misses previous block
 		if nextBlock.Block.LastCommit.Precommits[i] == nil {
 			tempMissDetailInfo := &dtypes.MissDetailInfo{
 				Height:   block.BlockMeta.Header.Height,
@@ -77,12 +78,12 @@ func (ces *ChainExporterService) getValidatorSetInfo(height int64) ([]*dtypes.Va
 			}
 			missDetailInfo = append(missDetailInfo, tempMissDetailInfo)
 
-			// Initial variables
+			// initial variables
 			startHeight := block.BlockMeta.Header.Height
 			endHeight := block.BlockMeta.Header.Height
 			missingCount := int64(1)
 
-			// Query to check if a validator missed previous block
+			// query to check if a validator missed previous block
 			var prevMissInfo dtypes.MissInfo
 			_ = ces.db.Model(&prevMissInfo).
 				Where("end_height = ? AND address = ?", endHeight-int64(1), validator.Address.String()).
@@ -118,17 +119,17 @@ func (ces *ChainExporterService) getValidatorSetInfo(height int64) ([]*dtypes.Va
 	return genesisValidatorsInfo, missInfo, accumMissInfo, missDetailInfo, nil
 }
 
+// getEvidenceInfo provides evidence (slashing) information
 func (ces *ChainExporterService) getEvidenceInfo(height int64) ([]*dtypes.EvidenceInfo, error) {
-	// This is for syncing at the right height
 	nextHeight := height + 1
 
-	// Query the current block
+	// query the current block
 	block, err := ces.rpcClient.Block(&height)
 	if err != nil {
 		return nil, err
 	}
 
-	// Query the next block to access the commits
+	// query the next block to access the commits
 	nextBlock, err := ces.rpcClient.Block(&nextHeight)
 	if err != nil {
 		return nil, err
@@ -153,7 +154,7 @@ func (ces *ChainExporterService) getEvidenceInfo(height int64) ([]*dtypes.Eviden
 	return evidenceInfo, nil
 }
 
-// SaveValidatorKeyBase saves keybase url for validators
+// SaveValidatorKeyBase saves keybase urls for every validator
 func (ces *ChainExporterService) SaveValidatorKeyBase() error {
 	var validatorInfo []dtypes.ValidatorInfo
 	err := ces.db.Model(&validatorInfo).
@@ -165,33 +166,34 @@ func (ces *ChainExporterService) SaveValidatorKeyBase() error {
 
 	validatorInfoUpdate := make([]*dtypes.ValidatorInfo, 0)
 	for _, validator := range validatorInfo {
-		resp, err := resty.R().Get(ces.config.KeybaseURL + validator.Identity)
-		if err != nil {
-			fmt.Printf("KeyBase request error - %v\n", err)
-		}
-
-		var keyBases dtypes.KeyBase
-		err = json.Unmarshal(resp.Body(), &keyBases)
-		if err != nil {
-			fmt.Printf("KeyBase unmarshal error - %v\n", err)
-		}
-
-		// Get Keybase URL
-		var keybaseURL string
-		if len(keyBases.Them) > 0 {
-			for _, keybase := range keyBases.Them {
-				keybaseURL = keybase.Pictures.Primary.URL
+		if validator.Identity != "" {
+			resp, err := resty.R().Get(ces.config.KeybaseURL + validator.Identity)
+			if err != nil {
+				fmt.Printf("KeyBase request error - %v\n", err)
 			}
-		}
 
-		tempValidatorInfo := &dtypes.ValidatorInfo{
-			ID:         validator.ID,
-			KeybaseURL: keybaseURL,
+			var keyBases dtypes.KeyBase
+			err = json.Unmarshal(resp.Body(), &keyBases)
+			if err != nil {
+				fmt.Printf("KeyBase unmarshal error - %v\n", err)
+			}
+
+			// get Keybase URL
+			var keybaseURL string
+			if len(keyBases.Them) > 0 {
+				for _, keybase := range keyBases.Them {
+					keybaseURL = keybase.Pictures.Primary.URL
+				}
+			}
+
+			tempValidatorInfo := &dtypes.ValidatorInfo{
+				ID:         validator.ID,
+				KeybaseURL: keybaseURL,
+			}
+			validatorInfoUpdate = append(validatorInfoUpdate, tempValidatorInfo)
 		}
-		validatorInfoUpdate = append(validatorInfoUpdate, tempValidatorInfo)
 	}
 
-	// Update validatorInfoUpdate
 	if len(validatorInfoUpdate) > 0 {
 		var tempValidatorInfo dtypes.ValidatorInfo
 		for i := 0; i < len(validatorInfoUpdate); i++ {
