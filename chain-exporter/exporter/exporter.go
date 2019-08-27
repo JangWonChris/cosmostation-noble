@@ -119,7 +119,6 @@ func (ces *ChainExporterService) OnStop() {
 
 // sync synchronizes the block data from connected full node
 func (ces *ChainExporterService) sync() error {
-	// Check current height in db
 	var blocks []dtypes.BlockInfo
 	err := ces.db.Model(&blocks).
 		Order("height DESC").
@@ -134,7 +133,7 @@ func (ces *ChainExporterService) sync() error {
 		currentHeight = blocks[0].Height
 	}
 
-	// Query the node for its height
+	// query the node for its height
 	status, err := ces.rpcClient.Status()
 	if err != nil {
 		return err
@@ -147,7 +146,7 @@ func (ces *ChainExporterService) sync() error {
 		currentHeight = 0
 	}
 
-	// Ingest all blocks up to the best height
+	// ingest all blocks up to the best height
 	for i := currentHeight + 1; i <= maxHeight; i++ {
 		err = ces.process(i)
 		if err != nil {
@@ -181,7 +180,7 @@ func (ces *ChainExporterService) process(height int64) error {
 		return err
 	}
 
-	// Insert data in PostgreSQL database
+	// insert data in PostgreSQL database
 	err = ces.db.RunInTransaction(func(tx *pg.Tx) error {
 		if len(blockInfo) > 0 {
 			err = tx.Insert(&blockInfo)
@@ -239,7 +238,7 @@ func (ces *ChainExporterService) process(height int64) error {
 			}
 		}
 
-		// Update accumulative missing block info
+		// update accumulative missing block info
 		var tempMissInfo dtypes.MissInfo
 		if len(accumMissInfo) > 0 {
 			for i := 0; i < len(accumMissInfo); i++ {
@@ -258,7 +257,7 @@ func (ces *ChainExporterService) process(height int64) error {
 			}
 		}
 
-		// Insert vote tx info
+		// insert vote tx info
 		if len(voteInfo) > 0 {
 			var tempVoteInfo dtypes.VoteInfo
 			for i := 0; i < len(voteInfo); i++ {
@@ -288,17 +287,17 @@ func (ces *ChainExporterService) process(height int64) error {
 			}
 		}
 
-		// Exist and update proposerInfo
+		// update proposerInfo
 		if len(proposalInfo) > 0 {
 			var tempProposalInfo dtypes.ProposalInfo
 			for i := 0; i < len(proposalInfo); i++ {
-				// Check if a validator already voted
+				// check if a validator already voted
 				count, _ := tx.Model(&tempProposalInfo).
 					Where("id = ?", proposalInfo[i].ID).
 					Count()
 
 				if count > 0 {
-					// Save and update proposalInfo
+					// save and update proposalInfo
 					_, err = tx.Model(&tempProposalInfo).
 						Set("tx_hash = ?", proposalInfo[i].TxHash).
 						Set("proposer = ?", proposalInfo[i].Proposer).
@@ -321,7 +320,7 @@ func (ces *ChainExporterService) process(height int64) error {
 		return nil
 	})
 
-	// Roll back
+	// roll back
 	if err != nil {
 		return err
 	}
