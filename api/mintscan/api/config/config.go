@@ -6,25 +6,58 @@ import (
 	"github.com/spf13/viper"
 )
 
+type Config struct {
+	Node   *NodeConfig
+	DB     *DBConfig
+	Web    *WebConfig
+	Market *MarketConfig
+}
+
+type NodeConfig struct {
+	GaiadURL string
+	LCDURL   string
+}
+
+type DBConfig struct {
+	Host     string
+	User     string
+	Password string
+	Table    string
+}
+
+type WebConfig struct {
+	Port string
+}
+
+type MarketConfig struct {
+	CoinmarketCap struct {
+		URL    string
+		CoinID string
+		APIKey string
+	}
+	CoinGecko struct {
+		URL string
+	}
+}
+
+// NewConfig configures configuration
 func NewConfig() *Config {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
-	viper.AddConfigPath("../")
 	viper.AddConfigPath("/home/ubuntu/cosmostation-cosmos/api/mintscan") // call multiple times to add many search paths
 
 	if err := viper.ReadInConfig(); err != nil {
-		panic(fmt.Errorf("Fatal error config file: %s \n", err))
+		panic(fmt.Errorf("Fatal error config file: %s ", err))
 	}
 
 	config := &Config{}
-
 	nodeConfig := &NodeConfig{}
 	dbConfig := &DBConfig{}
 	webConfig := &WebConfig{}
 	marketConfig := &MarketConfig{}
 
-	// Production or Development
+	// configuration for prod, dev, testnet
 	switch viper.GetString("active") {
 	case "prod":
 		nodeConfig.GaiadURL = viper.GetString("prod.node.gaiad_url")
@@ -54,7 +87,6 @@ func NewConfig() *Config {
 		fmt.Println("Define active params in config.yaml")
 	}
 
-	// common
 	marketConfig.CoinmarketCap.URL = viper.GetString("market.coinmarketcap.url")
 	marketConfig.CoinmarketCap.APIKey = viper.GetString("market.coinmarketcap.api_key")
 	marketConfig.CoinmarketCap.CoinID = viper.GetString("market.coinmarketcap.coin_id")
@@ -64,5 +96,6 @@ func NewConfig() *Config {
 	config.DB = dbConfig
 	config.Web = webConfig
 	config.Market = marketConfig
+
 	return config
 }
