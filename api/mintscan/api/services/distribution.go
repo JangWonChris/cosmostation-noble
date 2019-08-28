@@ -21,27 +21,31 @@ import (
 
 // GetDelegatorWithdrawAddress returns delegator's reward withdraw address
 func GetDelegatorWithdrawAddress(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
-	// Receive address
 	vars := mux.Vars(r)
 	delegatorAddr := vars["delegatorAddr"]
 
-	// Check the validity of cosmos address
+	// check the validity of account
 	if !strings.Contains(delegatorAddr, sdk.Bech32PrefixAccAddr) || len(delegatorAddr) != 45 {
 		errors.ErrNotExist(w, http.StatusNotFound)
 		return nil
 	}
 
-	// Query LCD - delegator's withdraw_address
+	// delegator's withdraw_address
 	resp, _ := resty.R().Get(config.Node.LCDURL + "/distribution/delegators/" + delegatorAddr + "/withdraw_address")
+
+	var responseWithHeight models.ResponseWithHeight
+	err := json.Unmarshal(resp.Body(), &responseWithHeight)
+	if err != nil {
+		fmt.Printf("unmarshal responseWithHeight error - %v\n", err)
+	}
 
 	// Unmarshal struct
 	var address string
-	err := json.Unmarshal(resp.Body(), &address)
+	err = json.Unmarshal(responseWithHeight.Result, &address)
 	if err != nil {
-		fmt.Printf("distribution/delegators/{delegatorAddr}/withdraw_address unmarshal pool error - %v\n", err)
+		fmt.Printf("unmarshal distribution/delegators/{delegatorAddr}/withdraw_address pool error - %v\n", err)
 	}
 
-	// Result
 	result := make(map[string]string)
 	result["withdraw_address"] = address
 
@@ -51,25 +55,30 @@ func GetDelegatorWithdrawAddress(config *config.Config, db *pg.DB, rpcClient *cl
 
 // GetDelegatorRewards returns a withdrawn delegation rewards
 func GetDelegatorRewards(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
-	// Receive address
 	vars := mux.Vars(r)
 	delegatorAddr := vars["delegatorAddr"]
 	validatorAddr := vars["validatorAddr"]
 
-	// Check the validity of cosmos address & validator address
+	// check the validity of account & validator address
 	if !strings.Contains(delegatorAddr, sdk.Bech32PrefixAccAddr) || !strings.Contains(validatorAddr, sdk.Bech32PrefixValAddr) {
 		errors.ErrNotExist(w, http.StatusNotFound)
 		return nil
 	}
 
-	// Query LCD - Query a delegation reward
+	// query a delegation reward
 	resp, _ := resty.R().Get(config.Node.LCDURL + "/distribution/delegators/" + delegatorAddr + "/rewards/" + validatorAddr)
+
+	var responseWithHeight models.ResponseWithHeight
+	err := json.Unmarshal(resp.Body(), &responseWithHeight)
+	if err != nil {
+		fmt.Printf("unmarshal responseWithHeight error - %v\n", err)
+	}
 
 	// Unmarshal struct
 	var coin []models.Coin
-	err := json.Unmarshal(resp.Body(), &coin)
+	err = json.Unmarshal(responseWithHeight.Result, &coin)
 	if err != nil {
-		fmt.Printf("distribution/community_pool unmarshal pool error - %v\n", err)
+		fmt.Printf("unmarshal distribution/community_pool pool error - %v\n", err)
 	}
 
 	utils.Respond(w, coin)
@@ -78,14 +87,19 @@ func GetDelegatorRewards(config *config.Config, db *pg.DB, rpcClient *client.HTT
 
 // GetCommunityPool returns current community pool
 func GetCommunityPool(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
-	// Query LCD - stake pool to get bonded and unbonded tokens
+	// query stake pool - bonded and not bonded tokens
 	resp, _ := resty.R().Get(config.Node.LCDURL + "/distribution/community_pool")
 
-	// Unmarshal struct
-	var coin []models.Coin
-	err := json.Unmarshal(resp.Body(), &coin)
+	var responseWithHeight models.ResponseWithHeight
+	err := json.Unmarshal(resp.Body(), &responseWithHeight)
 	if err != nil {
-		fmt.Printf("distribution/community_pool unmarshal pool error - %v\n", err)
+		fmt.Printf("unmarshal responseWithHeight error - %v\n", err)
+	}
+
+	var coin []models.Coin
+	err = json.Unmarshal(responseWithHeight.Result, &coin)
+	if err != nil {
+		fmt.Printf("unmarshal distribution/community_pool pool error - %v\n", err)
 	}
 
 	utils.Respond(w, coin)

@@ -35,33 +35,37 @@ import (
 
 // GetStatus returns ResultStatus, which includes current network status
 func GetStatus(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
-	// Query LCD - stake pool to get bonded and unbonded tokens
+	// staking pool - bonded and not bonded tokens
 	resp, _ := resty.R().Get(config.Node.LCDURL + "/staking/pool")
 
-	// Unmarshal Pool struct
-	var pool *models.Pool
-	err := json.Unmarshal(resp.Body(), &pool)
+	var responseWithHeight models.ResponseWithHeight
+	err := json.Unmarshal(resp.Body(), &responseWithHeight)
+	if err != nil {
+		fmt.Printf("unmarshal responseWithHeight error - %v\n", err)
+	}
+
+	var pool models.Pool
+	err = json.Unmarshal(responseWithHeight.Result, &pool)
 	if err != nil {
 		fmt.Printf("staking/pool unmarshal pool error - %v\n", err)
 	}
 
-	// Convert tokens from string to float64 type
 	notBondedTokens, err := strconv.ParseFloat(pool.NotBondedTokens, 64)
 	bondedTokens, err := strconv.ParseFloat(pool.BondedTokens, 64)
 
-	// Get a number of unjailed validators
+	// a number of unjailed validators
 	var unjailedValidators dbtypes.ValidatorInfo
 	unJailedNum, _ := db.Model(&unjailedValidators).
 		Where("jailed = ?", false).
 		Count()
 
-	// Get a number of jailed validators
+	// a number of jailed validators
 	var jailedValidators dbtypes.ValidatorInfo
 	jailedNum, _ := db.Model(&jailedValidators).
 		Where("jailed = ?", true).
 		Count()
 
-	// Total Txs Num
+	// total txs num
 	var blockInfo dbtypes.BlockInfo
 	_ = db.Model(&blockInfo).
 		Column("total_txs").
@@ -69,10 +73,10 @@ func GetStatus(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.
 		Limit(1).
 		Select()
 
-	// Query status
+	// query status
 	status, _ := rpcClient.Status()
 
-	// Query the lastly saved block time
+	// query the lastly saved block time
 	var lastBlockTime []dbtypes.BlockInfo
 	_ = db.Model(&lastBlockTime).
 		Column("time").
@@ -80,7 +84,7 @@ func GetStatus(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.
 		Limit(2).
 		Select()
 
-	// Latest block time and its previous block time
+	// latest block time and its previous block time
 	lastBlocktime := lastBlockTime[0].Time.UTC()
 	secondLastBlocktime := lastBlockTime[1].Time.UTC()
 
@@ -89,7 +93,6 @@ func GetStatus(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.
 	diff := lastBlocktime.Sub(secondLastBlocktime)
 
 	totalSupplyTokens := bondedTokens + notBondedTokens
-	// totalCirculatingTokens := 2
 
 	resultStatus := &models.ResultStatus{
 		ChainID:                status.NodeInfo.Network,

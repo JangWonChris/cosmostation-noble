@@ -15,16 +15,12 @@ import (
 	resty "gopkg.in/resty.v1"
 )
 
-var (
-	CoinGeckoAPIURL = "https://api.coingecko.com/api/v3/coins/cosmos"
-)
-
 // GetMarketInfo returns marketInfo
 func GetMarketInfo(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	// How many data to show in a chart
 	limit := 24
 
-	// Query all market stats
+	// query all market stats
 	var marketInfo stats.CoingeckoMarketStats
 	err := db.Model(&marketInfo).
 		Order("id DESC").
@@ -34,8 +30,8 @@ func GetMarketInfo(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w h
 		return json.NewEncoder(w).Encode(&models.MarketInfo{})
 	}
 
-	// Query LCD - current price
-	resp, _ := resty.R().Get(CoinGeckoAPIURL)
+	// query current price
+	resp, _ := resty.R().Get(config.Market.CoinGecko.URL)
 
 	var coinGeckoMarketInfo models.CoinGeckoMarketInfo
 	err = json.Unmarshal(resp.Body(), &coinGeckoMarketInfo)
