@@ -188,15 +188,17 @@ func GetProposalVotes(db *pg.DB, config *config.Config, w http.ResponseWriter, r
 		votes = append(votes, tempVoteInfo)
 	}
 
-	// Query LCD
+	// query tally information
 	resp, err := resty.R().Get(config.Node.LCDURL + "/gov/proposals/" + proposalID + "/tally")
+
+	var responseWithHeight models.ResponseWithHeight
+	err = json.Unmarshal(resp.Body(), &responseWithHeight)
 	if err != nil {
-		fmt.Printf("Proposal LCD resty - %v\n", err)
+		fmt.Printf("unmarshal responseWithHeight error - %v\n", err)
 	}
 
-	// Parse Tally struct
 	var tallyInfo models.TallyInfo
-	err = json.Unmarshal(resp.Body(), &tallyInfo)
+	err = json.Unmarshal(responseWithHeight.Result, &tallyInfo)
 	if err != nil {
 		fmt.Printf("Proposal unmarshal error - %v\n", err)
 	}
