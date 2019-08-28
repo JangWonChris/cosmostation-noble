@@ -10,13 +10,13 @@ type CoinmarketcapQuotes struct {
 		CreditCount  int64  `json:"credit_count"`
 	} `json:"status"`
 	Data struct {
-		Num3794 struct {
+		Num struct {
 			ID                int64    `json:"id"`
 			Name              string   `json:"name"`
 			Symbol            string   `json:"symbol"`
 			Slug              string   `json:"slug"`
-			CirculatingSupply int64    `json:"circulating_supply"`
-			TotalSupply       int64    `json:"total_supply"`
+			CirculatingSupply float64  `json:"circulating_supply"`
+			TotalSupply       float64  `json:"total_supply"`
 			MaxSupply         int64    `json:"max_supply"`
 			DateAdded         string   `json:"date_added"`
 			NumMarketPairs    int64    `json:"num_market_pairs"`
@@ -31,10 +31,10 @@ type CoinmarketcapQuotes struct {
 					PercentChange1H  float64 `json:"percent_change_1h"`
 					PercentChange24H float64 `json:"percent_change_24h"`
 					PercentChange7D  float64 `json:"percent_change_7d"`
-					MarketCap        int64   `json:"market_cap"`
+					MarketCap        float64 `json:"market_cap"`
 					LastUpdated      string  `json:"last_updated"`
 				} `json:"USD"`
 			} `json:"quote"`
-		} `json:"3794"`
+		} `json:"3874"`
 	} `json:"data"`
 }

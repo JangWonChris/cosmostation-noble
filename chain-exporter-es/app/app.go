@@ -166,35 +166,41 @@ func (a *App) syncRoutine() {
 			return
 		}
 
-		var tags []model.Tag
-		for _, tag := range txResult.TxResult.Tags {
-			tagBytes, err := json.Marshal(tag)
-			if err != nil {
-				time.Sleep(1 * time.Second)
-				return
-			}
-			var tagObj sdkTypes.KVPair
-			err = json.Unmarshal(tagBytes, &tagObj)
+		var events []model.Event
+		for _, event := range txResult.TxResult.Events {
 
-			tags = append(tags, model.Tag{string(tagObj.Key), string(tagObj.Value)})
+			var eventObj model.Event
+			eventObj.Type = event.Type
+			// 그대로 넣으면 안되고 풀어서
+			var attrs []model.Attribute
+			//logrus.Info("Type : ", string(event.Type), " attributes length : ", len(event.Attributes) )
+			for _, attr := range event.Attributes {
+				attrBytes, err := json.Marshal(attr)
+				if err != nil {
+					time.Sleep(1 * time.Second)
+					return
+				}
+				var attrObj sdkTypes.KVPair
+				err = json.Unmarshal(attrBytes, &attrObj)
+
+				attrs = append(attrs, model.Attribute{string(attrObj.Key), string(attrObj.Value)})
+			}
+			eventObj.Attributes = attrs
+			events = append(events, eventObj)
 		}
-		tagsBytes, err := json.Marshal(tags)
-		if err != nil {
-			time.Sleep(1 * time.Second)
-			return
-		}
+
+		eventsBytes, err := json.Marshal(events)
 
 		elasticTx := &model.ElasticsearchTxInfo{
-			Hash:   txHash,
-			Height: block.Block.Height,
-			Time:   block.Block.Time,
-			Tx:     txJson,
-			Result: &model.TxResultInfo{
-				GasWanted: txResult.TxResult.GasWanted,
-				GasUsed:   txResult.TxResult.GasUsed,
-				Log:       json.RawMessage(txResult.TxResult.Log),
-				Tags:      json.RawMessage(tagsBytes),
-			},
+			Hash:txHash,
+			Height:block.Block.Height,
+			Timestamp:block.Block.Time,
+			Tx:txJson,
+			GasUsed:txResult.TxResult.GasUsed,
+			GasWanted:txResult.TxResult.GasWanted,
+			RawLog:txResult.TxResult.Log,
+			Logs:json.RawMessage(txResult.TxResult.Log),
+			Events: json.RawMessage(eventsBytes),
 		}
 		//logrus.Info(elasticTx)
 		a.ElasticSearch.InsertTx(a.WsCtx, elasticTx)
@@ -263,36 +269,39 @@ func (a *App) wsNewBlockRoutine(i ctypes.ResultEvent) {
 			return
 		}
 
-		var tags []model.Tag
-		for _, tag := range txResult.TxResult.Tags {
-			tagBytes, err := json.Marshal(tag)
-			if err != nil {
-				time.Sleep(1 * time.Second)
-				return
+		var events []model.Event
+		for _, event := range txResult.TxResult.Events {
+
+			var eventObj model.Event
+			eventObj.Type = event.Type
+			// 그대로 넣으면 안되고 풀어서
+			var attrs []model.Attribute
+			for _, attr := range event.Attributes {
+				attrBytes, err := json.Marshal(attr)
+				if err != nil {
+					time.Sleep(1 * time.Second)
+					return
+				}
+				var attrObj sdkTypes.KVPair
+				err = json.Unmarshal(attrBytes, &attrObj)
+
+				attrs = append(attrs, model.Attribute{string(attrObj.Key), string(attrObj.Value)})
 			}
-			var tagObj sdkTypes.KVPair
-			err = json.Unmarshal(tagBytes, &tagObj)
-
-			tags = append(tags, model.Tag{string(tagObj.Key), string(tagObj.Value)})
+			eventObj.Attributes = attrs
+			events = append(events, eventObj)
 		}
-
-		tagsBytes, err := json.Marshal(tags)
-		if err != nil {
-			time.Sleep(1 * time.Second)
-			return
-		}
+		eventsBytes, err := json.Marshal(events)
 
 		elasticTx := &model.ElasticsearchTxInfo{
-			Hash:   txHash,
-			Height: newBlock.Block.Height,
-			Time:   newBlock.Block.Time,
-			Tx:     txJson,
-			Result: &model.TxResultInfo{
-				GasWanted: txResult.TxResult.GasWanted,
-				GasUsed:   txResult.TxResult.GasUsed,
-				Log:       json.RawMessage(txResult.TxResult.Log),
-				Tags:      json.RawMessage(tagsBytes),
-			},
+			Hash:txHash,
+			Height:newBlock.Block.Height,
+			Timestamp:newBlock.Block.Time,
+			Tx:txJson,
+			GasUsed:txResult.TxResult.GasUsed,
+			GasWanted:txResult.TxResult.GasWanted,
+			RawLog:txResult.TxResult.Log,
+			Logs:json.RawMessage(txResult.TxResult.Log),
+			Events: json.RawMessage(eventsBytes),
 		}
 
 		a.ElasticSearch.InsertTx(a.WsCtx, elasticTx)

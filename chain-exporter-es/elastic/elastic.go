@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/simapp"
 	"github.com/cosmostation-cosmos/chain-exporter-es/model"
 	"gopkg.in/olivere/elastic.v5"
 
@@ -11,17 +12,9 @@ import (
 	aws "github.com/olivere/elastic/aws/v4"
 	"github.com/pkg/errors"
 
-	"github.com/tendermint/go-amino"
-	ctypes "github.com/tendermint/tendermint/rpc/core/types"
-
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/bank"
-	"github.com/cosmos/cosmos-sdk/x/distribution"
-	"github.com/cosmos/cosmos-sdk/x/gov"
-	"github.com/cosmos/cosmos-sdk/x/slashing"
-	"github.com/cosmos/cosmos-sdk/x/staking"
 )
 
 const (
@@ -94,16 +87,20 @@ func NewElastic(config *Config) (*ElasticSearch, error) {
 		return nil, errors.Wrap(err, "unable to connect to elasticsearch")
 	}
 
-	var cdc = amino.NewCodec()
 
-	ctypes.RegisterAmino(cdc)
-	sdk.RegisterCodec(cdc)
-	auth.RegisterCodec(cdc)
-	bank.RegisterCodec(cdc)
-	distribution.RegisterCodec(cdc)
-	gov.RegisterCodec(cdc)
-	slashing.RegisterCodec(cdc)
-	staking.RegisterCodec(cdc)
+	// 한꺼번에
+	var cdc = simapp.MakeCodec()
+
+	//var cdc = amino.NewCodec()
+	//
+	//ctypes.RegisterAmino(cdc)
+	//sdk.RegisterCodec(cdc)
+	//auth.RegisterCodec(cdc)
+	//bank.RegisterCodec(cdc)
+	//distribution.RegisterCodec(cdc)
+	//gov.RegisterCodec(cdc)
+	//slashing.RegisterCodec(cdc)
+	//staking.RegisterCodec(cdc)
 
 
 	es := &ElasticSearch{

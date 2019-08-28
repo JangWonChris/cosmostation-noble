@@ -8,7 +8,7 @@
 2. 프로젝트 빌드를 위해서는 config.yaml 파일이 필요. <br/>
    프로젝트 루트위치에서 아래 명령어를 통해 config.yaml을 다운로드한다. <br/>
    ```
-   curl https://gist.githubusercontent.com/wannabit-mina/761efa3482cb820ca9bfcb001bd480bb/raw/ac0ec1e59ca9d6e3389bfacad67682c5e14cdd9c/config.yaml > config.yaml
+   curl https://gist.githubusercontent.com/wannabit-mina/761efa3482cb820ca9bfcb001bd480bb/raw/c33cd1dc557272bf0e3a1fb6209492e4aa9380e9/config.yaml > config.yaml
    ```
 
 ## 2.로컬에서 빌드 방법
