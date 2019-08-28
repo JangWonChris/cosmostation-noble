@@ -2,7 +2,6 @@ package config
 
 type Config struct {
 	Node   *NodeConfig
-	Raven  *RavenConfig
 	DB     *DBConfig
 	ES     *ESConfig
 	Market *MarketConfig
@@ -12,12 +11,6 @@ type (
 	NodeConfig struct {
 		GaiadURL string
 		LCDURL   string
-	}
-
-	RavenConfig struct {
-		RavenDSN string
-		Address  string
-		Period   string
 	}
 
 	ESConfig struct {

@@ -12,29 +12,37 @@ import (
 	resty "gopkg.in/resty.v1"
 )
 
-// SaveNetworkStats
-func (ses *StatsExporterService) SaveNetworkStats() {
-	log.Println("Network Stats")
+// SaveNetworkStats1H
+func (ses *StatsExporterService) SaveNetworkStats1H() {
+	log.Println("Network Stats 1H")
 
-	// Query LCD
+	// query pool
+	var pool types.Pool
 	resp, err := resty.R().Get(ses.config.Node.LCDURL + "/staking/pool")
 	if err != nil {
-		fmt.Printf("Staking Pool LCD resty - %v\n", err)
+		fmt.Printf("Query /staking/pool error - %v\n ", err)
 	}
 
-	// Parse Proposal struct
-	var pool types.Pool
 	err = json.Unmarshal(resp.Body(), &pool)
 	if err != nil {
-		fmt.Printf("Proposal unmarshal error - %v\n", err)
+		fmt.Printf("Unmarshal pool error - %v\n ", err)
 	}
 
-	bondedTokens, _ := strconv.ParseInt(pool.BondedTokens, 10, 64)
-	notBondedTokens, _ := strconv.ParseInt(pool.NotBondedTokens, 10, 64)
-	totalBondedTokens := bondedTokens + notBondedTokens
-	bondedRatio := (float64(bondedTokens) / float64(totalBondedTokens)) * 100
+	// query inflation rate
+	var inflation types.Inflation
+	inflationResp, _ := resty.R().Get(ses.config.Node.LCDURL + "/minting/inflation")
+	err = json.Unmarshal(inflationResp.Body(), &inflation)
+	if err != nil {
+		fmt.Printf("Unmarshal inflation error - %v\n ", err)
+	}
 
-	// Block Time
+	bondedTokens, _ := strconv.ParseFloat(pool.BondedTokens, 64)
+	notBondedTokens, _ := strconv.ParseFloat(pool.NotBondedTokens, 64)
+	totalBondedTokens := bondedTokens + notBondedTokens
+	bondedRatio := bondedTokens / totalBondedTokens * 100
+	inflationRatio, _ := strconv.ParseFloat(inflation.Result, 64)
+
+	// get block time - (last block time - second last block time)
 	var blockInfo []types.BlockInfo
 	err = ses.db.Model(&blockInfo).
 		Column("time").
@@ -42,26 +50,98 @@ func (ses *StatsExporterService) SaveNetworkStats() {
 		Limit(2).
 		Select()
 	if err != nil {
-		fmt.Printf("BlockInfo DB error - %v\n", err)
+		fmt.Printf("blockInfo database error - %v\n ", err)
 	}
 
-	// Latest block time and its previous block time
+	// txs num
+	status, _ := ses.rpcClient.Status()
+	block, _ := ses.rpcClient.Block(&status.SyncInfo.LatestBlockHeight)
+
 	lastBlocktime := blockInfo[0].Time.UTC()
 	secondLastBlocktime := blockInfo[1].Time.UTC()
 	blockTime := lastBlocktime.Sub(secondLastBlocktime)
 
-	// NetworkStats
-	networkStats := &types.NetworkStats{
+	networkStats := &types.StatsNetwork1H{
 		BlockTime:       blockTime.Seconds(),
+		TotalSupply:     totalBondedTokens,
 		BondedTokens:    bondedTokens,
-		BondedRatio:     bondedRatio,
 		NotBondedTokens: notBondedTokens,
-		LastUpdated:     time.Now(),
+		BondedRatio:     bondedRatio,
+		InflationRatio:  inflationRatio,
+		TotalTxsNum:     block.Block.TotalTxs,
+		Time:            time.Now(),
 	}
 
 	// Save
 	_, err = ses.db.Model(networkStats).Insert()
 	if err != nil {
-		fmt.Printf("Save NetworkStats error - %v\n", err)
+		fmt.Printf("save networkStats error - %v\n ", err)
+	}
+}
+
+// SaveNetworkStats24H
+func (ses *StatsExporterService) SaveNetworkStats24H() {
+	log.Println("Network Stats 1H")
+
+	// query pool
+	var pool types.Pool
+	resp, err := resty.R().Get(ses.config.Node.LCDURL + "/staking/pool")
+	if err != nil {
+		fmt.Printf("Query /staking/pool error - %v\n ", err)
+	}
+
+	err = json.Unmarshal(resp.Body(), &pool)
+	if err != nil {
+		fmt.Printf("Unmarshal pool error - %v\n ", err)
+	}
+
+	// query inflation rate
+	var inflation string
+	inflationResp, _ := resty.R().Get(ses.config.Node.LCDURL + "/minting/inflation")
+	err = json.Unmarshal(inflationResp.Body(), &inflation)
+	if err != nil {
+		fmt.Printf("Unmarshal inflation error - %v\n ", err)
+	}
+
+	bondedTokens, _ := strconv.ParseFloat(pool.BondedTokens, 64)
+	notBondedTokens, _ := strconv.ParseFloat(pool.NotBondedTokens, 64)
+	totalBondedTokens := bondedTokens + notBondedTokens
+	bondedRatio := bondedTokens / totalBondedTokens * 100
+	inflationRatio, _ := strconv.ParseFloat(inflation, 64)
+
+	// get block time - (last block time - second last block time)
+	var blockInfo []types.BlockInfo
+	err = ses.db.Model(&blockInfo).
+		Column("time").
+		Order("height DESC").
+		Limit(2).
+		Select()
+	if err != nil {
+		fmt.Printf("blockInfo database error - %v\n ", err)
+	}
+
+	// txs num
+	status, _ := ses.rpcClient.Status()
+	block, _ := ses.rpcClient.Block(&status.SyncInfo.LatestBlockHeight)
+
+	lastBlocktime := blockInfo[0].Time.UTC()
+	secondLastBlocktime := blockInfo[1].Time.UTC()
+	blockTime := lastBlocktime.Sub(secondLastBlocktime)
+
+	networkStats := &types.StatsNetwork1H{
+		BlockTime:       blockTime.Seconds(),
+		TotalSupply:     totalBondedTokens,
+		BondedTokens:    bondedTokens,
+		NotBondedTokens: notBondedTokens,
+		BondedRatio:     bondedRatio,
+		InflationRatio:  inflationRatio,
+		TotalTxsNum:     block.Block.TotalTxs,
+		Time:            time.Now(),
+	}
+
+	// Save
+	_, err = ses.db.Model(networkStats).Insert()
+	if err != nil {
+		fmt.Printf("save networkStats error - %v\n ", err)
 	}
 }

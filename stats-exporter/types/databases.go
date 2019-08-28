@@ -2,9 +2,18 @@ package types
 
 import (
 	"time"
-
-	sdk "github.com/cosmos/cosmos-sdk/types"
 )
+
+// Database struct
+type BlockInfo struct {
+	ID        int64     `json:"id" sql:",pk"`
+	BlockHash string    `json:"block_hash"`
+	Height    int64     `json:"height"`
+	Proposer  string    `json:"proposer"`
+	TotalTxs  int64     `json:"total_txs" sql:"default:0"`
+	NumTxs    int64     `json:"num_txs" sql:"default:0"`
+	Time      time.Time `json:"time"`
+}
 
 // Database struct
 type ValidatorInfo struct {
@@ -32,24 +41,8 @@ type ValidatorInfo struct {
 	KeybaseURL           string    `json:"keybase_url"`
 }
 
-type DelegatorsDelegation struct {
-	DelegatorAddress string  `json:"delegator_address"`
-	ValidatorAddress string  `json:"validator_address"`
-	Shares           sdk.Dec `json:"shares"`
-}
-
-type KeyBase struct {
-	Status struct {
-		Code int64  `json:"code"`
-		Name string `json:"name"`
-	} `json:"status"`
-	Them []struct {
-		ID       string `json:"id"`
-		Pictures struct {
-			Primary struct {
-				URL    string `json:"url"`
-				Source string `json:"source"`
-			} `json:"primary"`
-		} `json:"pictures"`
-	} `json:"them"`
+type DelegatorDelegation struct {
+	DelegatorAddress string `json:"delegator_address"`
+	ValidatorAddress string `json:"validator_address"`
+	Shares           string `json:"shares"`
 }
