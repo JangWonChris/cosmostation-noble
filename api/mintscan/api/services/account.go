@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -348,16 +349,38 @@ func GetDelegations(codec *codec.Codec, config *config.Config, db *pg.DB, rpcCli
 
 // GetCommission returns commission information for validator's address
 func GetCommission(codec *codec.Codec, config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
-	// vars := mux.Vars(r)
-	// address := vars["address"]
+	vars := mux.Vars(r)
+	address := vars["address"]
 
-	// // check validity of address
-	// if !strings.Contains(address, sdk.GetConfig().GetBech32AccountAddrPrefix()) || len(address) != 45 {
-	// 	errors.ErrNotExist(w, http.StatusNotFound)
-	// 	return nil
-	// }
+	// check validity of address
+	if !strings.Contains(address, sdk.GetConfig().GetBech32AccountAddrPrefix()) || len(address) != 45 {
+		errors.ErrNotExist(w, http.StatusNotFound)
+		return nil
+	}
 
-	// result := make([]models.Coin, 0)
+	// B-Harvest
+	// cosmos19rqw9y966m2t0nfdpy9x4cjm7xawxh8t0fm4h5
+	// cosmosvaloper19rqw9y966m2t0nfdpy9x4cjm7xawxh8t2a0qm8
+
+	fmt.Println("utils.ValAddressFromAccAddress(address): ", utils.ValAddressFromAccAddress(address))
+
+	commission := make([]models.Commission, 0)
+	if validatorInfo.OperatorAddress != "" {
+		ctx := context.NewCLIContext().WithCodec(codec).WithClient(rpcClient)
+		valAddr, _ := sdk.ValAddressFromBech32(utils.ValAddressFromAccAddress(address))
+		result, _ := common.QueryValidatorCommission(ctx, codec, distr.QuerierRoute, valAddr)
+
+		var valCom distrTypes.ValidatorAccumulatedCommission
+		ctx.Codec.MustUnmarshalJSON(result, &valCom)
+
+		if valCom != nil { // Sikka (commission is zero)
+			tempCommission := &models.Commission{
+				Denom:  valCom[0].Denom,
+				Amount: valCom[0].Amount.String(),
+			}
+			commission = append(commission, *tempCommission)
+		}
+	}
 
 	return nil
 }
