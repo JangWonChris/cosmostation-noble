@@ -39,18 +39,18 @@ type StatsExporterService struct {
 // Initializes all the required configs
 func NewStatsExporterService(config *config.Config) *StatsExporterService {
 	ses := &StatsExporterService{
-		codec:     utils.MakeCodec(), // Register Cosmos SDK codecs
+		codec:     utils.MakeCodec(), // register Cosmos SDK codecs
 		config:    config,
-		db:        databases.ConnectDatabase(config), // Connect to PostgreSQL
+		db:        databases.ConnectDatabase(config), // connect to PostgreSQL
 		wsCtx:     context.Background(),
-		rpcClient: client.NewHTTP(config.Node.GaiadURL, "/websocket"), // Connect to Tendermint RPC client
+		rpcClient: client.NewHTTP(config.Node.GaiadURL, "/websocket"), // connect to Tendermint RPC client
 	}
-	// Setup database schema
+	// create database schema
 	databases.CreateSchema(ses.db)
 
 	// SetTimeout method sets timeout for request.
 	resty.SetTimeout(5 * time.Second)
-	resty.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true}) // Test locally
+	resty.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true}) // for local test
 
 	return ses
 }

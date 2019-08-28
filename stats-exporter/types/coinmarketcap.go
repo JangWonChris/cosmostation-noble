@@ -35,6 +35,6 @@ type CoinmarketcapQuotes struct {
 					LastUpdated      string  `json:"last_updated"`
 				} `json:"USD"`
 			} `json:"quote"`
-		} `json:"3874"`
+		} `json:"3794"`
 	} `json:"data"`
 }

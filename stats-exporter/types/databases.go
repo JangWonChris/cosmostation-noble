@@ -40,9 +40,3 @@ type ValidatorInfo struct {
 	MinSelfDelegation    string    `json:"min_self_delegation"`
 	KeybaseURL           string    `json:"keybase_url"`
 }
-
-type DelegatorDelegation struct {
-	DelegatorAddress string `json:"delegator_address"`
-	ValidatorAddress string `json:"validator_address"`
-	Shares           string `json:"shares"`
-}
