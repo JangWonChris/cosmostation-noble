@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"os"
+	"os/signal"
 	"time"
 
 	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/config"
@@ -61,9 +62,9 @@ func (ses *StatsExporterService) OnStart() {
 	c := cron.New()
 
 	// Every hour
-	0 * * * * = every minute
-	0 */60 * * * = every hour
-	0 0 * * * * = every hour
+	// 0 * * * * = every minute
+	// 0 */60 * * * = every hour
+	// 0 0 * * * * = every hour
 	c.AddFunc("0 0 * * * *", func() { ses.SaveValidatorsStats1H() })
 	c.AddFunc("0 0 * * * *", func() { ses.SaveNetworkStats1H() })
 	c.AddFunc("0 0 * * * *", func() { ses.SaveCoinGeckoMarketStats1H() })
