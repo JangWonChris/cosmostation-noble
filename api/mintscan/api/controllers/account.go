@@ -14,13 +14,6 @@ import (
 
 // Passes requests to its respective service
 func AccountController(codec *codec.Codec, config *config.Config, db *pg.DB, router *mux.Router, rpcClient *client.HTTP) {
-	// router.HandleFunc("/account/{address}", func(w http.ResponseWriter, r *http.Request) {
-	// 	// TEST
-	// 	clientIP := realip.FromRequest(r) // FromRequest return client's real public IP address from http request headers.
-	// 	log.Println("GET /account/{address}: ", clientIP)
-
-	// 	services.GetAccountInfo(codec, config, db, rpcClient, w, r)
-	// }).Methods("GET")
 	router.HandleFunc("/account/balance/{accAddress}", func(w http.ResponseWriter, r *http.Request) {
 		services.GetBalance(codec, config, db, rpcClient, w, r)
 	}).Methods("GET")
