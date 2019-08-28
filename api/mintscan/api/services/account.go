@@ -93,7 +93,34 @@ func GetDelegationsRewards(codec *codec.Codec, config *config.Config, db *pg.DB,
 		fmt.Printf("unmarshal /distribution/delegators/{address}/rewards error - %v\n", err)
 	}
 
-	utils.Respond(w, resultRewards.Rewards)
+	resultDelegatorRewards := make([]models.Rewards, 0)
+	for _, reward := range resultRewards.Rewards {
+		coins := make([]models.Coin, 0)
+		if len(reward.Reward) > 0 {
+			for _, reward := range reward.Reward {
+				tempCoin := &models.Coin{
+					Denom:  reward.Denom,
+					Amount: reward.Amount,
+				}
+				coins = append(coins, *tempCoin)
+			}
+		} else {
+			tempCoin := &models.Coin{
+				Denom:  config.Denom,
+				Amount: "0",
+			}
+			coins = append(coins, *tempCoin)
+		}
+
+		tempReward := &models.Rewards{
+			ValidatorAddress: reward.ValidatorAddress,
+			Reward:           coins,
+		}
+
+		resultDelegatorRewards = append(resultDelegatorRewards, *tempReward)
+	}
+
+	utils.Respond(w, resultDelegatorRewards)
 	return nil
 }
 
@@ -158,7 +185,7 @@ func GetDelegations(codec *codec.Codec, config *config.Config, db *pg.DB, rpcCli
 				}
 			} else {
 				tempReward := &models.Coin{
-					Denom:  "",
+					Denom:  config.Denom,
 					Amount: "0",
 				}
 				resultRewards = append(resultRewards, *tempReward)
