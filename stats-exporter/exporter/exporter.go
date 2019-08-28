@@ -17,7 +17,7 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/rpc/client"
 
-	// "github.com/robfig/cron"
+	"github.com/robfig/cron"
 
 	resty "gopkg.in/resty.v1"
 )
@@ -58,39 +58,39 @@ func NewStatsExporterService(config *config.Config) *StatsExporterService {
 // Override method for BaseService, which starts a service
 func (ses *StatsExporterService) OnStart() {
 	// Cron jobs
-	// c := cron.New()
+	c := cron.New()
 
 	// Every hour
-	// 0 * * * * = every minute
-	// 0 */60 * * * = every hour
-	// 0 0 * * * * = every hour
-	// c.AddFunc("0 0 * * * *", func() { ses.SaveValidatorsStats1H() })
-	// c.AddFunc("0 0 * * * *", func() { ses.SaveNetworkStats1H() })
-	// c.AddFunc("0 0 * * * *", func() { ses.SaveCoinGeckoMarketStats1H() })
-	// c.AddFunc("0 0 * * * *", func() { ses.SaveCoinMarketCapMarketStats1H() })
+	0 * * * * = every minute
+	0 */60 * * * = every hour
+	0 0 * * * * = every hour
+	c.AddFunc("0 0 * * * *", func() { ses.SaveValidatorsStats1H() })
+	c.AddFunc("0 0 * * * *", func() { ses.SaveNetworkStats1H() })
+	c.AddFunc("0 0 * * * *", func() { ses.SaveCoinGeckoMarketStats1H() })
+	c.AddFunc("0 0 * * * *", func() { ses.SaveCoinMarketCapMarketStats1H() })
 
-	// // Every day at 2:00 AM (UTC zone) which equals 11:00 AM in Seoul
-	// c.AddFunc("0 0 2 * * *", func() { ses.SaveValidatorsStats24H() })
-	// c.AddFunc("0 0 2 * * *", func() { ses.SaveNetworkStats24H() })
-	// c.AddFunc("0 0 2 * * *", func() { ses.SaveCoinGeckoMarketStats24H() })
-	// c.AddFunc("0 0 2 * * *", func() { ses.SaveCoinMarketCapMarketStats24H() })
-	// go c.Start()
+	// Every day at 2:00 AM (UTC zone) which equals 11:00 AM in Seoul
+	c.AddFunc("0 0 2 * * *", func() { ses.SaveValidatorsStats24H() })
+	c.AddFunc("0 0 2 * * *", func() { ses.SaveNetworkStats24H() })
+	c.AddFunc("0 0 2 * * *", func() { ses.SaveCoinGeckoMarketStats24H() })
+	c.AddFunc("0 0 2 * * *", func() { ses.SaveCoinMarketCapMarketStats24H() })
+	go c.Start()
 
-	// // Allow graceful closing of the governance loop
-	// signalCh := make(chan os.Signal, 1)
-	// signal.Notify(signalCh, os.Interrupt)
-	// <-signalCh
+	// Allow graceful closing of the governance loop
+	signalCh := make(chan os.Signal, 1)
+	signal.Notify(signalCh, os.Interrupt)
+	<-signalCh
 
-	ses.SaveValidatorsStats1H()
-	ses.SaveValidatorsStats24H()
+	// ses.SaveValidatorsStats1H()
+	// ses.SaveValidatorsStats24H()
 
-	ses.SaveNetworkStats1H()
-	ses.SaveNetworkStats24H()
+	// ses.SaveNetworkStats1H()
+	// ses.SaveNetworkStats24H()
 
-	ses.SaveCoinGeckoMarketStats1H()
-	ses.SaveCoinGeckoMarketStats24H()
+	// ses.SaveCoinGeckoMarketStats1H()
+	// ses.SaveCoinGeckoMarketStats24H()
 
-	ses.SaveCoinMarketCapMarketStats1H()
-	ses.SaveCoinMarketCapMarketStats24H()
+	// ses.SaveCoinMarketCapMarketStats1H()
+	// ses.SaveCoinMarketCapMarketStats24H()
 
 }
