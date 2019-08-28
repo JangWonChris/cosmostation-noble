@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
@@ -16,15 +15,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 
 	"github.com/go-pg/pg"
-	"github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/rpc/client"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	resty "gopkg.in/resty.v1"
-)
-
-var (
-	logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout))
 )
 
 // ChainExporterService wraps below params
@@ -133,7 +127,7 @@ func (ces *ChainExporterService) sync() error {
 		currentHeight = blocks[0].Height
 	}
 
-	// query the node for its height
+	// query current height
 	status, err := ces.rpcClient.Status()
 	if err != nil {
 		return err

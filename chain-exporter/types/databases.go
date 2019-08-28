@@ -5,7 +5,7 @@ import (
 )
 
 /*
-	These structs are tables in PostgreSQL database
+	These structs are database tables in PostgreSQL
 */
 
 type BlockInfo struct {

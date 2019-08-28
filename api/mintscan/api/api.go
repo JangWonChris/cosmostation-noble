@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"time"
 
-	gaiaApp "github.com/cosmos/cosmos-sdk/cmd/gaia/app"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/controllers"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/databases"
+	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/utils"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/go-pg/pg"
@@ -41,14 +41,14 @@ func (a *App) NewApp(config *config.Config) {
 	a.db = databases.ConnectDatabase(config)
 
 	// Register Cosmos SDK codecs
-	a.codec = gaiaApp.MakeCodec()
+	a.codec = utils.MakeCodec()
 
 	// Register routers
 	a.setRouters()
 
 	// SetTimeout method sets timeout for request.
 	resty.SetTimeout(5 * time.Second)
-	resty.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true}) // Local 환경에서 테스트를 위해
+	resty.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true}) // local test
 }
 
 // Sets the all required routers

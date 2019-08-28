@@ -6,7 +6,10 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-// REST API struct
+/*
+	Threse structs are for REST API structs
+*/
+
 type Validator struct {
 	OperatorAddress string `json:"operator_address"`
 	ConsensusPubkey string `json:"consensus_pubkey"`
@@ -23,10 +26,12 @@ type Validator struct {
 	UnbondingHeight string    `json:"unbonding_height"`
 	UnbondingTime   time.Time `json:"unbonding_time"`
 	Commission      struct {
-		Rate          string    `json:"rate"`
-		MaxRate       string    `json:"max_rate"`
-		MaxChangeRate string    `json:"max_change_rate"`
-		UpdateTime    time.Time `json:"update_time"`
+		CommissionRates struct {
+			Rate          string `json:"rate"`
+			MaxRate       string `json:"max_rate"`
+			MaxChangeRate string `json:"max_change_rate"`
+		}
+		UpdateTime time.Time `json:"update_time"`
 	} `json:"commission"`
 	MinSelfDelegation string `json:"min_self_delegation"`
 }
@@ -37,7 +42,6 @@ type ValidatorDelegations struct {
 	Shares           sdk.Dec `json:"shares"`
 }
 
-// KeyBase struct
 type KeyBase struct {
 	Status struct {
 		Code int64  `json:"code"`

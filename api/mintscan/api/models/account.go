@@ -1,48 +1,43 @@
 package models
 
-type ResultAccountResponse struct {
-	Balance              []Balance              `json:"balance"`
-	Rewards              []Rewards              `json:"rewards"`
-	Commission           []Commission           `json:"commission"`
-	Delegations          []Delegations          `json:"delegations"`
-	UnbondingDelegations []UnbondingDelegations `json:"unbonding_delegations"`
-}
-
-type ResultDelegations struct {
-	DelegatorAddress string  `json:"delegator_address"`
-	ValidatorAddress string  `json:"validator_address"`
-	Moniker          string  `json:"moniker"`
-	Shares           string  `json:"shares"`
-	Amount           string  `json:"amount"`
-	Rewards          Rewards `json:"delegator_rewards"`
-}
+// API 나눈 뒤 지워도 되는 부분
+// type ResultAccountResponse struct {
+// 	Balance              []Coin                 `json:"balance"`
+// 	Rewards              []Coin                 `json:"rewards"`
+// 	Commission           []Coin                 `json:"commission"`
+// 	Delegations          []Delegations          `json:"delegations"`
+// 	UnbondingDelegations []UnbondingDelegations `json:"unbonding_delegations"`
+// }
 
 /*
 	LCD
 */
 
-type Balance struct {
-	Denom  string `json:"denom"`
-	Amount string `json:"amount"`
+type Delegations struct {
+	DelegatorAddress string `json:"delegator_address"`
+	ValidatorAddress string `json:"validator_address"`
+	Shares           string `json:"shares"`
+	Balance          string `json:"balance"`
+}
+
+type ResultRewards struct {
+	Rewards []Rewards `json:"rewards"`
+	Total   []Coin    `json:"total"`
 }
 
 type Rewards struct {
-	Denom  string `json:"denom"`
-	Amount string `json:"amount"`
+	ValidatorAddress string `json:"validator_address"`
+	Reward           []Coin `json:"reward"`
 }
 
-type Commission struct {
-	Denom  string `json:"denom"`
-	Amount string `json:"amount"`
-}
-
-type Delegations struct {
-	DelegatorAddress string  `json:"delegator_address"`
-	ValidatorAddress string  `json:"validator_address"`
-	Moniker          string  `json:"moniker"`
-	Shares           string  `json:"shares"`
-	Amount           string  `json:"amount"`
-	Rewards          Rewards `json:"delegator_rewards"`
+type ResultDelegations struct {
+	DelegatorAddress string `json:"delegator_address"`
+	ValidatorAddress string `json:"validator_address"`
+	Moniker          string `json:"moniker"`
+	Shares           string `json:"shares"`
+	Balance          string `json:"balance"`
+	Amount           string `json:"amount"`
+	Rewards          []Coin `json:"delegator_rewards"`
 }
 
 type UnbondingDelegations struct {

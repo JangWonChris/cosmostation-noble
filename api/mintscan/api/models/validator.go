@@ -88,12 +88,12 @@ type ResultValidatorDelegations struct {
 }
 
 type Validator struct {
-	OperatorAddress string  `json:"operator_address"`
-	ConsensusPubkey string  `json:"consensus_pubkey"`
-	Jailed          bool    `json:"jailed"`
-	Status          int     `json:"status"`
-	Tokens          sdk.Dec `json:"tokens"`
-	DelegatorShares sdk.Dec `json:"delegator_shares"`
+	OperatorAddress string `json:"operator_address"`
+	ConsensusPubkey string `json:"consensus_pubkey"`
+	Jailed          bool   `json:"jailed"`
+	Status          int    `json:"status"`
+	Tokens          string `json:"tokens"`
+	DelegatorShares string `json:"delegator_shares"`
 	Description     struct {
 		Moniker  string `json:"moniker"`
 		Identity string `json:"identity"`
@@ -103,10 +103,12 @@ type Validator struct {
 	UnbondingHeight string    `json:"unbonding_height"`
 	UnbondingTime   time.Time `json:"unbonding_time"`
 	Commission      struct {
-		Rate          sdk.Dec   `json:"rate"`
-		MaxRate       sdk.Dec   `json:"max_rate"`
-		MaxChangeRate sdk.Dec   `json:"max_change_rate"`
-		UpdateTime    time.Time `json:"update_time"`
+		CommissionRates struct {
+			Rate          string `json:"rate"`
+			MaxRate       string `json:"max_rate"`
+			MaxChangeRate string `json:"max_change_rate"`
+		}
+		UpdateTime time.Time `json:"update_time"`
 	} `json:"commission"`
 	MinSelfDelegation string `json:"min_self_delegation"`
 }
