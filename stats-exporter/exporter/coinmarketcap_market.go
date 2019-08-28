@@ -13,9 +13,9 @@ import (
 
 /*
 	https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest
-
 */
 
+// SaveCoinMarketCapMarketStats1H saves coinmarketcap statistics every hour
 func (ses *StatsExporterService) SaveCoinMarketCapMarketStats1H() {
 	log.Println("CoinMarketCap Market Stats 1H")
 
@@ -53,6 +53,7 @@ func (ses *StatsExporterService) SaveCoinMarketCapMarketStats1H() {
 	}
 }
 
+// SaveCoinMarketCapMarketStats24H saves coinmarketcap statistics 24 hours
 func (ses *StatsExporterService) SaveCoinMarketCapMarketStats24H() {
 	log.Println("CoinMarketCap Market Stats 24H")
 

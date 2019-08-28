@@ -11,6 +11,7 @@ import (
 	resty "gopkg.in/resty.v1"
 )
 
+// SaveCoinGeckoMarketStats1H saves coingecko market statistics every hour
 func (ses *StatsExporterService) SaveCoinGeckoMarketStats1H() {
 	log.Println("CoingGecko Market Stats 1H")
 
@@ -42,6 +43,7 @@ func (ses *StatsExporterService) SaveCoinGeckoMarketStats1H() {
 	}
 }
 
+// SaveCoinGeckoMarketStats24H saves coingecko market statistics 24 hours
 func (ses *StatsExporterService) SaveCoinGeckoMarketStats24H() {
 	log.Println("CoingGecko Market Stats 24H")
 
