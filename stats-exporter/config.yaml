@@ -22,7 +22,7 @@ dev:
 
 testnet:
   node: 
-    gaiad_url: "https://rpc-cosmos-testnet.cosmostation.io"
+    gaiad_url: "http://54.180.171.141:26657"
     lcd_url: "https://lcd-cosmos-testnet.cosmostation.io"
   database:
     host: "cosmostation-dev.ci6bhjszmrb3.ap-northeast-2.rds.amazonaws.com:5432"
