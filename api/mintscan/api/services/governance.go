@@ -130,11 +130,10 @@ func GetProposal(db *pg.DB, config *config.Config, w http.ResponseWriter, r *htt
 
 // GetProposalVotes receives proposal id and returns voting information
 func GetProposalVotes(db *pg.DB, config *config.Config, w http.ResponseWriter, r *http.Request) error {
-	// Receive proposal id
 	vars := mux.Vars(r)
 	proposalID := vars["proposalId"]
 
-	// Check if proposal id exists
+	// check if proposal id exists
 	var proposalInfo dbtypes.ProposalInfo
 	err := db.Model(&proposalInfo).
 		Where("id = ?", proposalID).
@@ -144,14 +143,14 @@ func GetProposalVotes(db *pg.DB, config *config.Config, w http.ResponseWriter, r
 		return nil
 	}
 
-	// Query all votes
+	// query all votes
 	voteInfo := make([]*dbtypes.VoteInfo, 0)
 	_ = db.Model(&voteInfo).
 		Where("proposal_id = ?", proposalID).
 		Order("id DESC").
 		Select()
 
-	// Check if votes exists
+	// check if votes exists
 	if len(voteInfo) <= 0 {
 		return json.NewEncoder(w).Encode(&models.ResultVoteInfo{
 			Tally: &models.Tally{},
@@ -159,7 +158,7 @@ func GetProposalVotes(db *pg.DB, config *config.Config, w http.ResponseWriter, r
 		})
 	}
 
-	// Query count for respective votes
+	// query count for respective votes
 	yesCnt, _ := db.Model(&voteInfo).
 		Where("proposal_id = ? AND option = ?", proposalID, "Yes").
 		Count()
@@ -173,7 +172,7 @@ func GetProposalVotes(db *pg.DB, config *config.Config, w http.ResponseWriter, r
 		Where("proposal_id = ? AND option = ?", proposalID, "NoWithVeto").
 		Count()
 
-	// Votes
+	// votes
 	votes := make([]*models.Votes, 0)
 	for _, vote := range voteInfo {
 		moniker, _ := utils.ConvertCosmosAddressToMoniker(vote.Voter, db)
@@ -203,7 +202,6 @@ func GetProposalVotes(db *pg.DB, config *config.Config, w http.ResponseWriter, r
 		fmt.Printf("Proposal unmarshal error - %v\n", err)
 	}
 
-	// Tally
 	tempTally := &models.Tally{
 		YesAmount:        tallyInfo.Yes,
 		NoAmount:         tallyInfo.No,
@@ -226,11 +224,10 @@ func GetProposalVotes(db *pg.DB, config *config.Config, w http.ResponseWriter, r
 
 // GetProposalDeposits receives proposal id and returns deposit information
 func GetProposalDeposits(db *pg.DB, w http.ResponseWriter, r *http.Request) error {
-	// Receive proposal id
 	vars := mux.Vars(r)
 	proposalID := vars["proposalId"]
 
-	// Check if proposal id exists
+	// check if proposal id exists
 	var proposalInfo dbtypes.ProposalInfo
 	err := db.Model(&proposalInfo).
 		Where("id = ?", proposalID).
@@ -240,26 +237,24 @@ func GetProposalDeposits(db *pg.DB, w http.ResponseWriter, r *http.Request) erro
 		return nil
 	}
 
-	// Result Response
 	resultDepositInfo := make([]*models.DepositInfo, 0)
 
-	// Query all deposit info
+	// query all deposit info
 	depositInfo := make([]*dbtypes.DepositInfo, 0)
 	_ = db.Model(&depositInfo).
 		Where("proposal_id = ?", proposalID).
 		Order("id DESC").
 		Select()
 
-	// Check if the deposit exists
+	// check if the deposit exists
 	if len(depositInfo) <= 0 {
 		return json.NewEncoder(w).Encode(resultDepositInfo)
 	}
 
+	// deposits
 	for _, deposit := range depositInfo {
-		// Convert Cosmos Address to Opeartor Address
 		moniker, _ := utils.ConvertCosmosAddressToMoniker(deposit.Depositor, db)
 
-		// Insert deposits
 		tempDepositInfo := &models.DepositInfo{
 			Depositor:     deposit.Depositor,
 			Moniker:       moniker,
