@@ -21,19 +21,19 @@ func AccountController(codec *codec.Codec, config *config.Config, db *pg.DB, rou
 
 	// 	services.GetAccountInfo(codec, config, db, rpcClient, w, r)
 	// }).Methods("GET")
-	router.HandleFunc("/account/balance/{address}", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/account/balance/{accAddress}", func(w http.ResponseWriter, r *http.Request) {
 		services.GetBalance(codec, config, db, rpcClient, w, r)
 	}).Methods("GET")
-	router.HandleFunc("/account/delegations/rewards/{address}", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/account/delegations/rewards/{accAddress}", func(w http.ResponseWriter, r *http.Request) {
 		services.GetDelegationsRewards(codec, config, db, rpcClient, w, r)
 	}).Methods("GET")
-	router.HandleFunc("/account/delegations/{address}", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/account/delegations/{accAddress}", func(w http.ResponseWriter, r *http.Request) {
 		services.GetDelegations(codec, config, db, rpcClient, w, r)
 	}).Methods("GET")
-	router.HandleFunc("/account/commission/{address}", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/account/commission/{accAddress}", func(w http.ResponseWriter, r *http.Request) {
 		services.GetCommission(codec, config, db, rpcClient, w, r)
 	}).Methods("GET")
-	router.HandleFunc("/account/unbonding-delegations/{address}", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/account/unbonding-delegations/{accAddress}", func(w http.ResponseWriter, r *http.Request) {
 		services.GetUnbondingDelegations(codec, config, db, rpcClient, w, r)
 	}).Methods("GET")
 }

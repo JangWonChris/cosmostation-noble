@@ -10,6 +10,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	distr "github.com/cosmos/cosmos-sdk/x/distribution"
+	"github.com/cosmos/cosmos-sdk/x/distribution/client/common"
+	distrTypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/errors"
@@ -173,16 +176,15 @@ func GetAccountInfo(codec *codec.Codec, config *config.Config, db *pg.DB, rpcCli
 
 	// utils.Respond(w, resultAccountResponse)
 	return nil
-
 }
 
 // GetBalance returns balance of an anddress
 func GetBalance(codec *codec.Codec, config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
-	address := vars["address"]
+	accAddress := vars["accAddress"]
 
-	// check validity of address
-	if !strings.Contains(address, sdk.GetConfig().GetBech32AccountAddrPrefix()) || len(address) != 45 {
+	// check validity of accAddress
+	if !strings.Contains(accAddress, sdk.GetConfig().GetBech32AccountAddrPrefix()) || len(accAddress) != 45 {
 		errors.ErrNotExist(w, http.StatusNotFound)
 		return nil
 	}
@@ -190,7 +192,7 @@ func GetBalance(codec *codec.Codec, config *config.Config, db *pg.DB, rpcClient 
 	result := make([]models.Coin, 0)
 
 	// query bank balance
-	balanceResp, _ := resty.R().Get(config.Node.LCDURL + "/bank/balances/" + address)
+	balanceResp, _ := resty.R().Get(config.Node.LCDURL + "/bank/balances/" + accAddress)
 
 	var responseWithHeight models.ResponseWithHeight
 	err := json.Unmarshal(balanceResp.Body(), &responseWithHeight)
@@ -219,16 +221,16 @@ func GetBalance(codec *codec.Codec, config *config.Config, db *pg.DB, rpcClient 
 // GetDelegationsRewards returns total amount of rewards
 func GetDelegationsRewards(codec *codec.Codec, config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
-	address := vars["address"]
+	accAddress := vars["accAddress"]
 
-	// check validity of address
-	if !strings.Contains(address, sdk.GetConfig().GetBech32AccountAddrPrefix()) || len(address) != 45 {
+	// check validity of accAddress
+	if !strings.Contains(accAddress, sdk.GetConfig().GetBech32AccountAddrPrefix()) || len(accAddress) != 45 {
 		errors.ErrNotExist(w, http.StatusNotFound)
 		return nil
 	}
 
 	// query rewards
-	rewardsResp, _ := resty.R().Get(config.Node.LCDURL + "/distribution/delegators/" + address + "/rewards")
+	rewardsResp, _ := resty.R().Get(config.Node.LCDURL + "/distribution/delegators/" + accAddress + "/rewards")
 
 	var responseWithHeight models.ResponseWithHeight
 	err := json.Unmarshal(rewardsResp.Body(), &responseWithHeight)
@@ -249,16 +251,16 @@ func GetDelegationsRewards(codec *codec.Codec, config *config.Config, db *pg.DB,
 // GetDelegations returns all delegations from an address
 func GetDelegations(codec *codec.Codec, config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
-	address := vars["address"]
+	accAddress := vars["accAddress"]
 
-	// check validity of address
-	if !strings.Contains(address, sdk.GetConfig().GetBech32AccountAddrPrefix()) || len(address) != 45 {
+	// check validity of accAddress
+	if !strings.Contains(accAddress, sdk.GetConfig().GetBech32AccountAddrPrefix()) || len(accAddress) != 45 {
 		errors.ErrNotExist(w, http.StatusNotFound)
 		return nil
 	}
 
 	// query delegations and each delegator's rewards
-	delegationsResp, _ := resty.R().Get(config.Node.LCDURL + "/staking/delegators/" + address + "/delegations")
+	delegationsResp, _ := resty.R().Get(config.Node.LCDURL + "/staking/delegators/" + accAddress + "/delegations")
 
 	var responseWithHeight models.ResponseWithHeight
 	err := json.Unmarshal(delegationsResp.Body(), &responseWithHeight)
@@ -284,7 +286,7 @@ func GetDelegations(codec *codec.Codec, config *config.Config, db *pg.DB, rpcCli
 				Select()
 
 			// query rewards
-			rewardsResp, _ := resty.R().Get(config.Node.LCDURL + "/distribution/delegators/" + address + "/rewards/" + delegation.ValidatorAddress)
+			rewardsResp, _ := resty.R().Get(config.Node.LCDURL + "/distribution/delegators/" + accAddress + "/rewards/" + delegation.ValidatorAddress)
 
 			var responseWithHeight models.ResponseWithHeight
 			_ = json.Unmarshal(rewardsResp.Body(), &responseWithHeight)
@@ -350,42 +352,88 @@ func GetDelegations(codec *codec.Codec, config *config.Config, db *pg.DB, rpcCli
 // GetCommission returns commission information for validator's address
 func GetCommission(codec *codec.Codec, config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
-	address := vars["address"]
+	accAddress := vars["accAddress"]
 
-	// check validity of address
-	if !strings.Contains(address, sdk.GetConfig().GetBech32AccountAddrPrefix()) || len(address) != 45 {
+	// check validity of accAddress
+	if !strings.Contains(accAddress, sdk.GetConfig().GetBech32AccountAddrPrefix()) || len(accAddress) != 45 {
 		errors.ErrNotExist(w, http.StatusNotFound)
 		return nil
 	}
 
-	// B-Harvest
-	// cosmos19rqw9y966m2t0nfdpy9x4cjm7xawxh8t0fm4h5
-	// cosmosvaloper19rqw9y966m2t0nfdpy9x4cjm7xawxh8t2a0qm8
+	valAddress := utils.ValAddressFromAccAddress(accAddress)
 
-	fmt.Println("utils.ValAddressFromAccAddress(address): ", utils.ValAddressFromAccAddress(address))
-
-	commission := make([]models.Commission, 0)
-	if validatorInfo.OperatorAddress != "" {
+	commission := make([]models.Coin, 0)
+	if valAddress != "" {
 		ctx := context.NewCLIContext().WithCodec(codec).WithClient(rpcClient)
-		valAddr, _ := sdk.ValAddressFromBech32(utils.ValAddressFromAccAddress(address))
-		result, _ := common.QueryValidatorCommission(ctx, codec, distr.QuerierRoute, valAddr)
+		valAddr, _ := sdk.ValAddressFromBech32(valAddress)
+		result, _ := common.QueryValidatorCommission(ctx, distr.QuerierRoute, valAddr)
 
 		var valCom distrTypes.ValidatorAccumulatedCommission
 		ctx.Codec.MustUnmarshalJSON(result, &valCom)
 
-		if valCom != nil { // Sikka (commission is zero)
-			tempCommission := &models.Commission{
+		if valCom != nil {
+			tempCommission := &models.Coin{
 				Denom:  valCom[0].Denom,
 				Amount: valCom[0].Amount.String(),
+			}
+			commission = append(commission, *tempCommission)
+		} else { // commission is zero
+			tempCommission := &models.Coin{
+				Denom:  config.Denom,
+				Amount: "0",
 			}
 			commission = append(commission, *tempCommission)
 		}
 	}
 
+	utils.Respond(w, commission)
 	return nil
 }
 
 // GetUnbondingDelegations returns unbonding delegations from an address
 func GetUnbondingDelegations(codec *codec.Codec, config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
+	vars := mux.Vars(r)
+	accAddress := vars["accAddress"]
+
+	// check validity of accAddress
+	if !strings.Contains(accAddress, sdk.GetConfig().GetBech32AccountAddrPrefix()) || len(accAddress) != 45 {
+		errors.ErrNotExist(w, http.StatusNotFound)
+		return nil
+	}
+
+	// query unbonding delegations
+	unbondingDelegationsResp, _ := resty.R().Get(config.Node.LCDURL + "/staking/delegators/" + accAddress + "/unbonding_delegations")
+
+	var responseWithHeight models.ResponseWithHeight
+	err := json.Unmarshal(unbondingDelegationsResp.Body(), &responseWithHeight)
+	if err != nil {
+		fmt.Printf("unmarshal responseWithHeight error - %v\n", err)
+	}
+
+	unbondingDelegations := make([]models.UnbondingDelegations, 0)
+	err = json.Unmarshal(responseWithHeight.Result, &unbondingDelegations)
+	if err != nil {
+		fmt.Printf("UnbondingDelegations unmarshal error - %v\n", err)
+	}
+
+	resultUnbondingDelegations := make([]models.UnbondingDelegations, 0)
+	for _, unbondingDelegation := range unbondingDelegations {
+		var validatorInfo dbtypes.ValidatorInfo
+		_ = db.Model(&validatorInfo).
+			Column("moniker").
+			Where("operator_address = ?", unbondingDelegation.ValidatorAddress).
+			Limit(1).
+			Select()
+
+		tempUnbondingDelegations := &models.UnbondingDelegations{
+			DelegatorAddress: unbondingDelegation.DelegatorAddress,
+			ValidatorAddress: unbondingDelegation.ValidatorAddress,
+			Moniker:          validatorInfo.Moniker,
+			Entries:          unbondingDelegation.Entries,
+		}
+		resultUnbondingDelegations = append(resultUnbondingDelegations, *tempUnbondingDelegations)
+	}
+
+	utils.Respond(w, resultUnbondingDelegations)
 	return nil
 }

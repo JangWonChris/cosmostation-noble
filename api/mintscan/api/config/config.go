@@ -11,6 +11,7 @@ type Config struct {
 	DB     *DBConfig
 	Web    *WebConfig
 	Market *MarketConfig
+	Denom  string
 }
 
 type NodeConfig struct {
@@ -67,6 +68,7 @@ func NewConfig() *Config {
 		dbConfig.Password = viper.GetString("prod.database.password")
 		dbConfig.Table = viper.GetString("prod.database.table")
 		webConfig.Port = viper.GetString("prod.port")
+		config.Denom = "uatom"
 	case "dev":
 		nodeConfig.GaiadURL = viper.GetString("dev.node.gaiad_url")
 		nodeConfig.LCDURL = viper.GetString("dev.node.lcd_url")
@@ -75,6 +77,7 @@ func NewConfig() *Config {
 		dbConfig.Password = viper.GetString("dev.database.password")
 		dbConfig.Table = viper.GetString("dev.database.table")
 		webConfig.Port = viper.GetString("dev.port")
+		config.Denom = "uatom"
 	case "testnet":
 		nodeConfig.GaiadURL = viper.GetString("testnet.node.gaiad_url")
 		nodeConfig.LCDURL = viper.GetString("testnet.node.lcd_url")
@@ -83,6 +86,7 @@ func NewConfig() *Config {
 		dbConfig.Password = viper.GetString("testnet.database.password")
 		dbConfig.Table = viper.GetString("testnet.database.table")
 		webConfig.Port = viper.GetString("testnet.port")
+		config.Denom = "muon"
 	default:
 		fmt.Println("Define active params in config.yaml")
 	}
