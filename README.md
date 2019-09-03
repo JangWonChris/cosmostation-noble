@@ -34,7 +34,7 @@ Cosmos Hub 관련 프로젝트를 다루는 Repository 입니다.
 cosmos1x5wgh6vwye60wv3dtshs9dmqggwfx2ldnqvev0
 
 [Mnemonic phrases]
-
+dirt room total defense clarify dress tuition code decrease horror another benefit tongue stick industry ship enact swim ketchup double pigeon infant wish odor
 ```
 
 # 브랜치 / 배포 / 태그
