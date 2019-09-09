@@ -11,8 +11,8 @@ import (
 )
 
 // AlarmController passes requests to its respective service
-func AlarmController(r *mux.Router, c *client.HTTP, DB *pg.DB) {
+func AlarmController(r *mux.Router, c *client.HTTP, db *pg.DB) {
 	r.HandleFunc("/account/alarm/update", func(w http.ResponseWriter, r *http.Request) {
-		services.UpdateAlarmStatus(DB, w, r)
+		services.UpdateAlarmStatus(db, w, r)
 	}).Methods("POST")
 }

@@ -12,8 +12,8 @@ import (
 )
 
 // AccountController passes requests to its respective service
-func AccountController(r *mux.Router, c *client.HTTP, DB *pg.DB) {
+func AccountController(r *mux.Router, c *client.HTTP, db *pg.DB) {
 	r.HandleFunc("/account/register", func(w http.ResponseWriter, r *http.Request) {
-		services.Register(DB, w, r)
+		services.Register(db, w, r)
 	}).Methods("POST")
 }
