@@ -15,17 +15,23 @@ import (
 	tmtypes "github.com/tendermint/tendermint/types"
 )
 
+// startSubscription starts subscribing new transaction
 func (ces *ChainExporterService) startSubscription() {
+	// Initialize private fields and start subroutines, etc.
+	// https://godoc.org/github.com/tendermint/tendermint/types#pkg-constants
+	// ces.wsOut, _ = ces.rpcClient.Subscribe(ces.wsCtx, "new block", "tm.event = 'NewBlock'", 1)
+	ces.wsOut, _ = ces.rpcClient.Subscribe(ces.wsCtx, "new tx", "tm.event = 'Tx'", 1)
+	// ces.wsOut, _ = ces.rpcClient.Subscribe(ces.wsCtx, "new tx", "tm.event = 'ValidatorSetUpdates'", 1) // Works
+
 	for {
-		fmt.Println("start - subscribe tx from full node")
 		select {
 		case eventData, ok := <-ces.wsOut:
+			logger.Info("start subscribing new txs")
 			if ok {
 				ces.handleNewEventData(eventData) // returns Data, Query, Tags
 			}
+			logger.Info("finish subscribing new txs \n")
 		}
-		fmt.Println("finish - subscribe tx from full node")
-		fmt.Println("")
 	}
 }
 
@@ -92,7 +98,7 @@ func (ces *ChainExporterService) handleNewEventData(eventData ctypes.ResultEvent
 					fmt.Println("=======================================")
 
 				default:
-					fmt.Println("")
+					// fmt.Println("")
 				}
 			}
 

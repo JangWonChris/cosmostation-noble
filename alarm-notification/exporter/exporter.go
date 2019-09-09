@@ -65,14 +65,7 @@ func (ces *ChainExporterService) OnStart() error {
 	ces.BaseService.OnStart()
 	ces.rpcClient.OnStart()
 
-	// Initialize private fields and start subroutines, etc.
-	// https://godoc.org/github.com/tendermint/tendermint/types#pkg-constants
-	// ces.wsOut, _ = ces.rpcClient.Subscribe(ces.wsCtx, "new block", "tm.event = 'NewBlock'", 1)
-	ces.wsOut, _ = ces.rpcClient.Subscribe(ces.wsCtx, "new tx", "tm.event = 'Tx'", 1)
-	// ces.wsOut, _ = ces.rpcClient.Subscribe(ces.wsCtx, "new tx", "tm.event = 'ValidatorSetUpdates'", 1) // Works
-
 	ces.startSubscription()
-
 	return nil
 }
 
