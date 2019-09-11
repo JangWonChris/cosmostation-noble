@@ -39,28 +39,28 @@ func SaveBondedValidators(db *pg.DB, config *config.Config) {
 
 	// bondedValidator information for our database table
 	validatorInfo := make([]*dtypes.ValidatorInfo, 0)
-	for i, bondedValidators := range bondedValidators {
+	for i, bondedValidator := range bondedValidators {
 		tempValidatorInfo := &dtypes.ValidatorInfo{
 			Rank:                 i + 1,
-			OperatorAddress:      bondedValidators.OperatorAddress,
-			Address:              utils.AccAddressFromOperatorAddress(bondedValidators.OperatorAddress),
-			ConsensusPubkey:      bondedValidators.ConsensusPubkey,
-			Proposer:             utils.ConsAddrFromConsPubkey(bondedValidators.ConsensusPubkey),
-			Jailed:               bondedValidators.Jailed,
-			Status:               bondedValidators.Status,
-			Tokens:               bondedValidators.Tokens,
-			DelegatorShares:      bondedValidators.DelegatorShares,
-			Moniker:              bondedValidators.Description.Moniker,
-			Identity:             bondedValidators.Description.Identity,
-			Website:              bondedValidators.Description.Website,
-			Details:              bondedValidators.Description.Details,
-			UnbondingHeight:      bondedValidators.UnbondingHeight,
-			UnbondingTime:        bondedValidators.UnbondingTime,
-			CommissionRate:       bondedValidators.Commission.CommissionRates.Rate,
-			CommissionMaxRate:    bondedValidators.Commission.CommissionRates.MaxRate,
-			CommissionChangeRate: bondedValidators.Commission.CommissionRates.MaxChangeRate,
-			MinSelfDelegation:    bondedValidators.MinSelfDelegation,
-			UpdateTime:           bondedValidators.Commission.UpdateTime,
+			OperatorAddress:      bondedValidator.OperatorAddress,
+			Address:              utils.AccAddressFromOperatorAddress(bondedValidator.OperatorAddress),
+			ConsensusPubkey:      bondedValidator.ConsensusPubkey,
+			Proposer:             utils.ConsAddrFromConsPubkey(bondedValidator.ConsensusPubkey),
+			Jailed:               bondedValidator.Jailed,
+			Status:               bondedValidator.Status,
+			Tokens:               bondedValidator.Tokens,
+			DelegatorShares:      bondedValidator.DelegatorShares,
+			Moniker:              bondedValidator.Description.Moniker,
+			Identity:             bondedValidator.Description.Identity,
+			Website:              bondedValidator.Description.Website,
+			Details:              bondedValidator.Description.Details,
+			UnbondingHeight:      bondedValidator.UnbondingHeight,
+			UnbondingTime:        bondedValidator.UnbondingTime,
+			CommissionRate:       bondedValidator.Commission.CommissionRates.Rate,
+			CommissionMaxRate:    bondedValidator.Commission.CommissionRates.MaxRate,
+			CommissionChangeRate: bondedValidator.Commission.CommissionRates.MaxChangeRate,
+			MinSelfDelegation:    bondedValidator.MinSelfDelegation,
+			UpdateTime:           bondedValidator.Commission.UpdateTime,
 		}
 		validatorInfo = append(validatorInfo, tempValidatorInfo)
 	}
@@ -84,6 +84,7 @@ func SaveBondedValidators(db *pg.DB, config *config.Config) {
 			Set("unbonding_time = EXCLUDED.unbonding_time").
 			Set("commission_rate = EXCLUDED.commission_rate").
 			Set("commission_max_rate = EXCLUDED.commission_max_rate").
+			Set("commission_change_rate = EXCLUDED.commission_change_rate").
 			Set("update_time = EXCLUDED.update_time").
 			Set("min_self_delegation = EXCLUDED.min_self_delegation").
 			Insert()
@@ -175,6 +176,7 @@ func SaveUnbondingValidators(db *pg.DB, config *config.Config) {
 			Set("unbonding_time = EXCLUDED.unbonding_time").
 			Set("commission_rate = EXCLUDED.commission_rate").
 			Set("commission_max_rate = EXCLUDED.commission_max_rate").
+			Set("commission_change_rate = EXCLUDED.commission_change_rate").
 			Set("update_time = EXCLUDED.update_time").
 			Set("min_self_delegation = EXCLUDED.min_self_delegation").
 			Insert()
@@ -266,6 +268,7 @@ func SaveUnbondedValidators(db *pg.DB, config *config.Config) {
 			Set("unbonding_time = EXCLUDED.unbonding_time").
 			Set("commission_rate = EXCLUDED.commission_rate").
 			Set("commission_max_rate = EXCLUDED.commission_max_rate").
+			Set("commission_change_rate = EXCLUDED.commission_change_rate").
 			Set("update_time = EXCLUDED.update_time").
 			Set("min_self_delegation = EXCLUDED.min_self_delegation").
 			Insert()
