@@ -132,7 +132,6 @@ func (ces *ChainExporterService) getEvidenceInfo(height int64) ([]*dtypes.Eviden
 	// query the next block to access precommits
 	nextBlock, err := ces.rpcClient.Block(&nextHeight)
 	if err != nil {
-		fmt.Println("여기냐????.......")
 		return nil, err
 	}
 
