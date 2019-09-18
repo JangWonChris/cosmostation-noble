@@ -25,6 +25,8 @@ var (
 	ModuleBasics module.BasicManager
 )
 
+// 현재는 쓰지 않는 코드
+// gaiaApp 으로 대체
 // MakeCodec registers all codecs
 func MakeCodec() *codec.Codec {
 	ModuleBasics = module.NewBasicManager(

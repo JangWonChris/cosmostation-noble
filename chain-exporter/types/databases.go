@@ -96,8 +96,8 @@ type ValidatorSetInfo struct {
 }
 
 type ProposalInfo struct {
-	ID                   int64     `json:"proposal_id" sql:",pk"`
-	TxHash               string    `json:"tx_hash"`
+	ID                   int64     `json:"id" sql:",pk"`
+	TxHash               string    `json:"tx_hash" sql:"default:null"`
 	Proposer             string    `json:"proposer" sql:"default:null"`
 	Title                string    `json:"title"`
 	Description          string    `json:"description"`
