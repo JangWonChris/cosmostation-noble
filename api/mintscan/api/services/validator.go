@@ -10,7 +10,7 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/errors"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models"
-	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models/stats"
+	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models/types"
 	dbtypes "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models/types"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/utils"
 	resty "gopkg.in/resty.v1"
@@ -425,9 +425,16 @@ func GetValidatorDelegations(codec *codec.Codec, config *config.Config, db *pg.D
 	}
 
 	// query all delegations of the validator
-	var delegations []*models.ValidatorDelegations
 	resp, _ := resty.R().Get(config.Node.LCDURL + "/staking/validators/" + validatorInfo.OperatorAddress + "/delegations")
-	err := json.Unmarshal(resp.Body(), &delegations)
+
+	var responseWithHeight models.ResponseWithHeight
+	err := json.Unmarshal(resp.Body(), &responseWithHeight)
+	if err != nil {
+		fmt.Printf("unmarshal responseWithHeight error - %v\n", err)
+	}
+
+	var delegations []*models.ValidatorDelegations
+	err = json.Unmarshal(responseWithHeight.Result, &delegations)
 	if err != nil {
 		fmt.Printf("staking/validators/{address}/delegations unmarshal error - %v\n", err)
 	}
@@ -452,23 +459,22 @@ func GetValidatorDelegations(codec *codec.Codec, config *config.Config, db *pg.D
 	}
 
 	// query delegation change rate in 24 hours by 24 rows order by descending id
-	latestDelegatorNum := make([]*stats.ValidatorStats, 0)
+	latestDelegatorNum := make([]*types.StatsValidators24H, 0)
 	_ = db.Model(&latestDelegatorNum).
-		Where("proposer_address = ?", validatorInfo.Proposer).
+		Where("proposer = ?", validatorInfo.Proposer).
 		Order("id DESC").
 		Limit(24).
 		Select()
 
 	// initial variables and current delegator numbers
 	delegatorNumChange24H := int(0)
-	currentDelegatorNum := latestDelegatorNum[0].DelegatorNum1H
+	currentDelegatorNum := latestDelegatorNum[0].DelegatorNum
 
-	// Get change delegator num in 24 hours
+	// get change delegator num in 24 hours
 	if len(latestDelegatorNum) > 0 {
-		delegatorNumChange24H = currentDelegatorNum - latestDelegatorNum[23].DelegatorNum1H
+		delegatorNumChange24H = currentDelegatorNum - latestDelegatorNum[23].DelegatorNum
 	}
 
-	// Result response
 	resultValidatorDelegations := &models.ResultValidatorDelegations{
 		TotalDelegatorNum:     currentDelegatorNum,
 		DelegatorNumChange24H: delegatorNumChange24H,
