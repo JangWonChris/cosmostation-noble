@@ -94,8 +94,8 @@ func SaveBondedValidators(db *pg.DB, config *config.Config) {
 	}
 }
 
-// SaveUnbondingValidators saves unbonding validators information in database
-func SaveUnbondingValidators(db *pg.DB, config *config.Config) {
+// SaveUnbondingAndUnBondedValidators saves unbonding and unbonded validators information in database
+func SaveUnbondingAndUnBondedValidators(db *pg.DB, config *config.Config) {
 	unbondingResp, err := resty.R().Get(config.Node.LCDURL + "/staking/validators?status=unbonding")
 	if err != nil {
 		fmt.Printf("Query /staking/validators?status=unbonding error - %v\n", err)
@@ -149,6 +149,7 @@ func SaveUnbondingValidators(db *pg.DB, config *config.Config) {
 	// ranking
 	var rankInfo dtypes.ValidatorInfo
 	_ = db.Model(&rankInfo).
+		Where("status = ?", 2).
 		Order("rank DESC").
 		Limit(1).
 		Select()
@@ -180,14 +181,18 @@ func SaveUnbondingValidators(db *pg.DB, config *config.Config) {
 			Set("update_time = EXCLUDED.update_time").
 			Set("min_self_delegation = EXCLUDED.min_self_delegation").
 			Insert()
+
+		// save unbonded validators after succesfully saved unbonding validators
+		saveUnbondedValidators(db, config)
+
 		if err != nil {
 			fmt.Printf("error - save and update validatorinfo: %v\n", err)
 		}
 	}
 }
 
-// SaveUnbondedValidators saves unbonded validators information in database
-func SaveUnbondedValidators(db *pg.DB, config *config.Config) {
+// saveUnbondedValidators saves unbonded validators information in database
+func saveUnbondedValidators(db *pg.DB, config *config.Config) {
 	unbondedResp, err := resty.R().Get(config.Node.LCDURL + "/staking/validators?status=unbonded")
 	if err != nil {
 		fmt.Printf("Query /staking/validators?status=unbonded error - %v\n", err)
@@ -241,6 +246,7 @@ func SaveUnbondedValidators(db *pg.DB, config *config.Config) {
 	// ranking
 	var rankInfo dtypes.ValidatorInfo
 	_ = db.Model(&rankInfo).
+		Where("status = ?", 1).
 		Order("rank DESC").
 		Limit(1).
 		Select()
