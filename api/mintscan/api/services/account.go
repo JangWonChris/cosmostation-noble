@@ -253,12 +253,6 @@ func GetCommission(codec *codec.Codec, config *config.Config, db *pg.DB, rpcClie
 				Amount: valCom[0].Amount.String(),
 			}
 			commission = append(commission, *tempCommission)
-		} else { // commission is zero
-			tempCommission := &models.Coin{
-				Denom:  config.Denom,
-				Amount: "0",
-			}
-			commission = append(commission, *tempCommission)
 		}
 	}
 
