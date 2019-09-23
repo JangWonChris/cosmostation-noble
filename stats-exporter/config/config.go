@@ -51,7 +51,6 @@ func NewConfig() *Config {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
-	viper.AddConfigPath("../")
 	viper.AddConfigPath("/home/ubuntu/cosmostation-cosmos/stats-exporter") // call multiple times to add many search paths
 
 	if err := viper.ReadInConfig(); err != nil {
@@ -63,7 +62,6 @@ func NewConfig() *Config {
 	dbConfig := &DBConfig{}
 	marketConfig := &MarketConfig{}
 
-	// configuration for prod, dev, testnet
 	switch viper.GetString("active") {
 	case "prod":
 		nodeConfig.GaiadURL = viper.GetString("prod.node.gaiad_url")
