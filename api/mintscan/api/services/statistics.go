@@ -37,7 +37,7 @@ func GetMarketInfo(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w h
 	var coinGeckoMarket types.CoinGeckoMarket
 	err = json.Unmarshal(resp.Body(), &coinGeckoMarket)
 	if err != nil {
-		fmt.Printf("MarketInfo unmarshal error - %v\n", err)
+		fmt.Printf("unmarshal CoinGeckoMarket error - %v\n", err)
 	}
 
 	// Query price chart

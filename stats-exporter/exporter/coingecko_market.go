@@ -30,9 +30,17 @@ func (ses *StatsExporterService) SaveCoinGeckoMarketStats1H() {
 	// insert into marketStats slice
 	statsCoingeckoMarket := make([]*types.StatsCoingeckoMarket1H, 0)
 	tempStatsCoingeckoMarket := &types.StatsCoingeckoMarket1H{
-		Price:    coinGeckoMarket.MarketData.CurrentPrice.Usd,
-		Currency: types.Currency,
-		Time:     time.Now(),
+		Price:             coinGeckoMarket.MarketData.CurrentPrice.Usd,
+		Currency:          types.Currency,
+		MarketCapRank:     coinGeckoMarket.MarketCapRank,
+		PercentChange1H:   coinGeckoMarket.MarketData.PriceChangePercentage1HInCurrency.Usd,
+		PercentChange24H:  coinGeckoMarket.MarketData.PriceChangePercentage24HInCurrency.Usd,
+		PercentChange7D:   coinGeckoMarket.MarketData.PriceChangePercentage7DInCurrency.Usd,
+		PercentChange30D:  coinGeckoMarket.MarketData.PriceChangePercentage30DInCurrency.Usd,
+		TotalVolume:       coinGeckoMarket.MarketData.TotalVolume.Usd,
+		CirculatingSupply: coinGeckoMarket.MarketData.CirculatingSupply,
+		LastUpdated:       coinGeckoMarket.LastUpdated,
+		Time:              time.Now(),
 	}
 	statsCoingeckoMarket = append(statsCoingeckoMarket, tempStatsCoingeckoMarket)
 
@@ -61,9 +69,17 @@ func (ses *StatsExporterService) SaveCoinGeckoMarketStats24H() {
 	// insert into marketStats slice
 	statsCoingeckoMarket := make([]*types.StatsCoingeckoMarket24H, 0)
 	tempStatsCoingeckoMarket := &types.StatsCoingeckoMarket24H{
-		Price:    coinGeckoMarket.MarketData.CurrentPrice.Usd,
-		Currency: types.Currency,
-		Time:     time.Now(),
+		Price:             coinGeckoMarket.MarketData.CurrentPrice.Usd,
+		Currency:          types.Currency,
+		MarketCapRank:     coinGeckoMarket.MarketCapRank,
+		PercentChange1H:   coinGeckoMarket.MarketData.PriceChangePercentage1HInCurrency.Usd,
+		PercentChange24H:  coinGeckoMarket.MarketData.PriceChangePercentage24HInCurrency.Usd,
+		PercentChange7D:   coinGeckoMarket.MarketData.PriceChangePercentage7DInCurrency.Usd,
+		PercentChange30D:  coinGeckoMarket.MarketData.PriceChangePercentage30DInCurrency.Usd,
+		TotalVolume:       coinGeckoMarket.MarketData.TotalVolume.Usd,
+		CirculatingSupply: coinGeckoMarket.MarketData.CirculatingSupply,
+		LastUpdated:       coinGeckoMarket.LastUpdated,
+		Time:              time.Now(),
 	}
 	statsCoingeckoMarket = append(statsCoingeckoMarket, tempStatsCoingeckoMarket)
 

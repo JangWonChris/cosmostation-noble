@@ -12,10 +12,18 @@ const (
 
 // StatsCoingeckoMarket1H is a struct for market statistics from Coingecko
 type StatsCoingeckoMarket1H struct {
-	ID       int64     `json:"id" sql:",pk"`
-	Price    float64   `json:"price"`
-	Currency string    `json:"currency"`
-	Time     time.Time `json:"time"`
+	ID                int64     `json:"id" sql:",pk"`
+	Price             float64   `json:"price"`
+	Currency          string    `json:"currency"`
+	MarketCapRank     uint8     `json:"market_cap_rank"`
+	PercentChange1H   float64   `json:"percent_change_1h"`
+	PercentChange24H  float64   `json:"percent_change_24h"`
+	PercentChange7D   float64   `json:"percent_change_7d"`
+	PercentChange30D  float64   `json:"percent_change_30d"`
+	TotalVolume       uint64    `json:"total_volume"`
+	CirculatingSupply float64   `json:"circulating_supply"`
+	LastUpdated       time.Time `json:"last_updated"`
+	Time              time.Time `json:"time"`
 }
 
 // StatsCoinmarketcapMarket1H is a struct for market statistics from CMK
@@ -61,10 +69,18 @@ type StatsNetwork1H struct {
 
 // StatsCoingeckoMarket24H is a struct for market statistics from Coingecko
 type StatsCoingeckoMarket24H struct {
-	ID       int64     `json:"id" sql:",pk"`
-	Price    float64   `json:"price"`
-	Currency string    `json:"currency"`
-	Time     time.Time `json:"time"`
+	ID                int64     `json:"id" sql:",pk"`
+	Price             float64   `json:"price"`
+	Currency          string    `json:"currency"`
+	MarketCapRank     uint8     `json:"market_cap_rank"`
+	PercentChange1H   float64   `json:"percent_change_1h"`
+	PercentChange24H  float64   `json:"percent_change_24h"`
+	PercentChange7D   float64   `json:"percent_change_7d"`
+	PercentChange30D  float64   `json:"percent_change_30d"`
+	TotalVolume       uint64    `json:"total_volume"`
+	CirculatingSupply float64   `json:"circulating_supply"`
+	LastUpdated       time.Time `json:"last_updated"`
+	Time              time.Time `json:"time"`
 }
 
 // StatsCoinmarketcapMarket24H is a struct for market statistics from CMK
