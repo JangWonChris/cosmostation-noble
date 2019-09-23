@@ -5,6 +5,7 @@ import "time"
 /*
 	Legacy Code - it can be removed once upgraded to cosmoshub-3
 */
+
 type CoingeckoMarketStats struct {
 	ID               int64     `json:"id" sql:",pk"`
 	Price            float64   `json:"price"`
