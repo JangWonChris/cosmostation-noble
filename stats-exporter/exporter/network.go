@@ -129,7 +129,7 @@ func (ses *StatsExporterService) SaveNetworkStats24H() {
 	secondLastBlocktime := blockInfo[1].Time.UTC()
 	blockTime := lastBlocktime.Sub(secondLastBlocktime)
 
-	networkStats := &types.StatsNetwork1H{
+	networkStats := &types.StatsNetwork24H{
 		BlockTime:       blockTime.Seconds(),
 		TotalSupply:     totalBondedTokens,
 		BondedTokens:    bondedTokens,
