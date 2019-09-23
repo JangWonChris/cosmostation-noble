@@ -73,10 +73,9 @@ func (ses *StatsExporterService) SaveNetworkStats1H() {
 		Time:            time.Now(),
 	}
 
-	// Save
 	_, err = ses.db.Model(networkStats).Insert()
 	if err != nil {
-		fmt.Printf("save networkStats error - %v\n ", err)
+		fmt.Printf("save networkStats1H error - %v\n ", err)
 	}
 }
 
@@ -141,9 +140,8 @@ func (ses *StatsExporterService) SaveNetworkStats24H() {
 		Time:            time.Now(),
 	}
 
-	// Save
 	_, err = ses.db.Model(networkStats).Insert()
 	if err != nil {
-		fmt.Printf("save networkStats error - %v\n ", err)
+		fmt.Printf("save networkStats24H error - %v\n ", err)
 	}
 }

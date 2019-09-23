@@ -16,7 +16,7 @@ import (
 func (ses *StatsExporterService) SaveValidatorsStats1H() {
 	log.Println("Save Validator Stats 1H")
 
-	// Query all validators order by their tokens
+	// query all validators order by their tokens
 	var validators []types.ValidatorInfo
 	err := ses.db.Model(&validators).
 		Order("rank ASC").
@@ -36,7 +36,7 @@ func (ses *StatsExporterService) SaveValidatorsStats1H() {
 		var delegatorDelegation types.DelegatorDelegation
 		err := json.Unmarshal(responseWithHeight.Result, &delegatorDelegation)
 		if err != nil { // "error": "{"codespace":"staking","code":102,"message":"no delegation for this (address, validator) pair"}"
-			fmt.Printf("unmarshal delegatorDelegation error - %v\n", err)
+			fmt.Printf("unmarshal delegatorDelegation error - %v, validator address - %v, operator address - %v\n", err, validator.Address, validator.OperatorAddress)
 		}
 
 		// get all validator's delegations
@@ -48,9 +48,10 @@ func (ses *StatsExporterService) SaveValidatorsStats1H() {
 		var validatorDelegations []types.ValidatorDelegation
 		err = json.Unmarshal(responseWithHeight2.Result, &validatorDelegations)
 		if err != nil {
-			fmt.Printf("Unmarshal validatorDelegations error - %v\n", err)
+			fmt.Printf("unmarshal validatorDelegations error - %v\n", err)
 		}
 
+		// initialize variables, otherwise throws an error if there is no delegations
 		var selfBondedAmount float64
 		var othersAmount float64
 		var totalDelegationAmount float64
@@ -91,10 +92,9 @@ func (ses *StatsExporterService) SaveValidatorsStats1H() {
 		validatorStats = append(validatorStats, tempValidatorStats)
 	}
 
-	// Save
 	_, err = ses.db.Model(&validatorStats).Insert()
 	if err != nil {
-		fmt.Printf("save ValidatorStats error - %v\n", err)
+		fmt.Printf("save ValidatorStats1H error - %v\n", err)
 	}
 }
 
@@ -102,7 +102,7 @@ func (ses *StatsExporterService) SaveValidatorsStats1H() {
 func (ses *StatsExporterService) SaveValidatorsStats24H() {
 	log.Println("Save Validator Stats 24H")
 
-	// Query all validators order by their tokens
+	// query all validators order by their tokens
 	var validators []types.ValidatorInfo
 	err := ses.db.Model(&validators).
 		Order("rank ASC").
@@ -122,7 +122,7 @@ func (ses *StatsExporterService) SaveValidatorsStats24H() {
 		var delegatorDelegation types.DelegatorDelegation
 		err := json.Unmarshal(responseWithHeight.Result, &delegatorDelegation)
 		if err != nil {
-			fmt.Printf("unmarshal delegatorDelegation error - %v\n", err)
+			fmt.Printf("unmarshal delegatorDelegation error - %v, validator address - %v, operator address - %v\n", err, validator.Address, validator.OperatorAddress)
 		}
 
 		// get all validator's delegations
@@ -134,10 +134,10 @@ func (ses *StatsExporterService) SaveValidatorsStats24H() {
 		var validatorDelegations []types.ValidatorDelegation
 		err = json.Unmarshal(responseWithHeight2.Result, &validatorDelegations)
 		if err != nil {
-			fmt.Printf("Unmarshal validatorDelegations error - %v\n", err)
+			fmt.Printf("unmarshal validatorDelegations error - %v\n", err)
 		}
 
-		// Initialize variables, otherwise throws an error if there is no delegations
+		// initialize variables, otherwise throws an error if there is no delegations
 		var selfBondedAmount float64
 		var othersAmount float64
 		var totalDelegationAmount float64
@@ -178,9 +178,8 @@ func (ses *StatsExporterService) SaveValidatorsStats24H() {
 		validatorStats = append(validatorStats, tempValidatorStats)
 	}
 
-	// Save
 	_, err = ses.db.Model(&validatorStats).Insert()
 	if err != nil {
-		fmt.Printf("save ValidatorStats error - %v\n", err)
+		fmt.Printf("save ValidatorStats24H error - %v\n", err)
 	}
 }

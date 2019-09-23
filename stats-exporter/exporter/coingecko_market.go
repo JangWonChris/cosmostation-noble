@@ -15,19 +15,19 @@ import (
 func (ses *StatsExporterService) SaveCoinGeckoMarketStats1H() {
 	log.Println("CoingGecko Market Stats 1H")
 
-	// Request CoinGecko API
+	// request CoinGecko API
 	var coinGeckoMarketInfo types.CoinGeckoMarketInfo
 	resp, err := resty.R().SetHeader("Accepts", "application/json").Get(ses.config.Market.CoinGecko.URL)
 	if err != nil {
-		fmt.Print("Query CoinGecko API Request error - ", err)
+		fmt.Print("query CoinGecko API request error - ", err)
 	}
 
 	err = json.Unmarshal(resp.Body(), &coinGeckoMarketInfo)
 	if err != nil {
-		fmt.Printf("CoinGeckoMarketInfo unmarshal error - %v\n", err)
+		fmt.Printf("unmarshal CoinGeckoMarketInfo error - %v\n", err)
 	}
 
-	// Insert into marketStats slice
+	// insert into marketStats slice
 	statsCoingeckoMarket := make([]*types.StatsCoingeckoMarket1H, 0)
 	tempStatsCoingeckoMarket := &types.StatsCoingeckoMarket1H{
 		Price:    coinGeckoMarketInfo.MarketData.CurrentPrice.Usd,
@@ -36,10 +36,9 @@ func (ses *StatsExporterService) SaveCoinGeckoMarketStats1H() {
 	}
 	statsCoingeckoMarket = append(statsCoingeckoMarket, tempStatsCoingeckoMarket)
 
-	// Save
 	_, err = ses.db.Model(&statsCoingeckoMarket).Insert()
 	if err != nil {
-		fmt.Printf("error - save MarketStats: %v\n", err)
+		fmt.Printf("error - save MarketStats1H: %v\n", err)
 	}
 }
 
@@ -47,19 +46,19 @@ func (ses *StatsExporterService) SaveCoinGeckoMarketStats1H() {
 func (ses *StatsExporterService) SaveCoinGeckoMarketStats24H() {
 	log.Println("CoingGecko Market Stats 24H")
 
-	// Request CoinGecko API
+	// request CoinGecko API
 	var coinGeckoMarketInfo types.CoinGeckoMarketInfo
 	resp, err := resty.R().SetHeader("Accepts", "application/json").Get(ses.config.Market.CoinGecko.URL)
 	if err != nil {
-		fmt.Print("Query CoinGecko API Request error - ", err)
+		fmt.Print("query CoinGecko API request error - ", err)
 	}
 
 	err = json.Unmarshal(resp.Body(), &coinGeckoMarketInfo)
 	if err != nil {
-		fmt.Printf("CoinGeckoMarketInfo unmarshal error - %v\n", err)
+		fmt.Printf("unmarshal CoinGeckoMarketInfo error - %v\n", err)
 	}
 
-	// Insert into marketStats slice
+	// insert into marketStats slice
 	statsCoingeckoMarket := make([]*types.StatsCoingeckoMarket24H, 0)
 	tempStatsCoingeckoMarket := &types.StatsCoingeckoMarket24H{
 		Price:    coinGeckoMarketInfo.MarketData.CurrentPrice.Usd,
@@ -68,9 +67,8 @@ func (ses *StatsExporterService) SaveCoinGeckoMarketStats24H() {
 	}
 	statsCoingeckoMarket = append(statsCoingeckoMarket, tempStatsCoingeckoMarket)
 
-	// Save
 	_, err = ses.db.Model(&statsCoingeckoMarket).Insert()
 	if err != nil {
-		fmt.Printf("error - save MarketStats: %v\n", err)
+		fmt.Printf("error - save MarketStats24H: %v\n", err)
 	}
 }
