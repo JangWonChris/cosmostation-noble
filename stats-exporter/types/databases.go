@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// Database struct
+// BlockInfo is a struct for database struct
 type BlockInfo struct {
 	ID        int64     `json:"id" sql:",pk"`
 	BlockHash string    `json:"block_hash"`
@@ -15,7 +15,7 @@ type BlockInfo struct {
 	Time      time.Time `json:"time"`
 }
 
-// Database struct
+// ValidatorInfo is a struct for database struct
 type ValidatorInfo struct {
 	ID                   int64     `sql:",pk"`
 	Rank                 int64     `json:"rank"`

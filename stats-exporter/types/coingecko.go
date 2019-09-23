@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// CoinGecko API
+// CoinGeckoMarketInfo is a struct for CoinGecko API
 type CoinGeckoMarketInfo struct {
 	ID                  string          `json:"id"`
 	Symbol              string          `json:"symbol"`

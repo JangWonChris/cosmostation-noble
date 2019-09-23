@@ -9,6 +9,7 @@ const (
 /*
 	Every 1 hour
 */
+
 type StatsCoingeckoMarket1H struct {
 	ID       int64     `json:"id" sql:",pk"`
 	Price    float64   `json:"price"`
@@ -53,6 +54,7 @@ type StatsNetwork1H struct {
 /*
 	Every 24 hours
 */
+
 type StatsCoingeckoMarket24H struct {
 	ID       int64     `json:"id" sql:",pk"`
 	Price    float64   `json:"price"`

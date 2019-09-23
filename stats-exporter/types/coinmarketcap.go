@@ -1,6 +1,6 @@
 package types
 
-// Coinmarketcap API
+// CoinmarketcapQuotes is a struct for Coinmarketcap API
 type CoinmarketcapQuotes struct {
 	Status struct {
 		Timestamp    string `json:"timestamp"`
