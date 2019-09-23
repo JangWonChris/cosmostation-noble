@@ -10,6 +10,7 @@ const (
 	Every 1 hour
 */
 
+// StatsCoingeckoMarket1H is a struct for market statistics from Coingecko
 type StatsCoingeckoMarket1H struct {
 	ID       int64     `json:"id" sql:",pk"`
 	Price    float64   `json:"price"`
@@ -17,6 +18,7 @@ type StatsCoingeckoMarket1H struct {
 	Time     time.Time `json:"time"`
 }
 
+// StatsCoinmarketcapMarket1H is a struct for market statistics from CMK
 type StatsCoinmarketcapMarket1H struct {
 	ID        int64     `json:"id" sql:",pk"`
 	Price     float64   `json:"price"`
@@ -25,6 +27,7 @@ type StatsCoinmarketcapMarket1H struct {
 	Time      time.Time `json:"time"`
 }
 
+// StatsValidators1H is a struct for validators statistics
 type StatsValidators1H struct {
 	ID               int64     `json:"id" sql:",pk"`
 	Moniker          string    `json:"moniker"`
@@ -39,6 +42,7 @@ type StatsValidators1H struct {
 	Time             time.Time `json:"time"`
 }
 
+// StatsNetwork1H is a struct for network statistics
 type StatsNetwork1H struct {
 	ID              int64     `json:"id" sql:",pk"`
 	BlockTime       float64   `json:"block_time"`
@@ -55,6 +59,7 @@ type StatsNetwork1H struct {
 	Every 24 hours
 */
 
+// StatsCoingeckoMarket24H is a struct for market statistics from Coingecko
 type StatsCoingeckoMarket24H struct {
 	ID       int64     `json:"id" sql:",pk"`
 	Price    float64   `json:"price"`
@@ -62,6 +67,7 @@ type StatsCoingeckoMarket24H struct {
 	Time     time.Time `json:"time"`
 }
 
+// StatsCoinmarketcapMarket24H is a struct for market statistics from CMK
 type StatsCoinmarketcapMarket24H struct {
 	ID        int64     `json:"id" sql:",pk"`
 	Price     float64   `json:"price"`
@@ -70,6 +76,7 @@ type StatsCoinmarketcapMarket24H struct {
 	Time      time.Time `json:"time"`
 }
 
+// StatsValidators24H is a struct for validators statistics
 type StatsValidators24H struct {
 	ID               int64     `json:"id" sql:",pk"`
 	Moniker          string    `json:"moniker"`
@@ -84,6 +91,7 @@ type StatsValidators24H struct {
 	Time             time.Time `json:"time"`
 }
 
+// StatsNetwork24H is a struct for network statistics
 type StatsNetwork24H struct {
 	ID              int64     `json:"id" sql:",pk"`
 	BlockTime       float64   `json:"block_time"`
