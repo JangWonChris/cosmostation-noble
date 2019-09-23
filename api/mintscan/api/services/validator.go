@@ -458,24 +458,26 @@ func GetValidatorDelegations(codec *codec.Codec, config *config.Config, db *pg.D
 	}
 
 	// query delegation change rate in 24 hours by 24 rows order by descending id
-	latestDelegatorNum := make([]*types.StatsValidators24H, 0)
-	_ = db.Model(&latestDelegatorNum).
+	statsValidators24H := make([]*types.StatsValidators24H, 0)
+	_ = db.Model(&statsValidators24H).
 		Where("proposer = ?", validatorInfo.Proposer).
 		Order("id DESC").
-		Limit(24).
+		Limit(2).
 		Select()
 
 	// initial variables and current delegator numbers
 	delegatorNumChange24H := int(0)
-	currentDelegatorNum := latestDelegatorNum[0].DelegatorNum
+	latestDelegatorNum := int(0)
 
 	// get change delegator num in 24 hours
-	if len(latestDelegatorNum) > 0 {
-		delegatorNumChange24H = currentDelegatorNum - latestDelegatorNum[23].DelegatorNum
+	if len(statsValidators24H) > 0 {
+		latestDelegatorNum = statsValidators24H[0].DelegatorNum
+		before24DelegatorNum := statsValidators24H[1].DelegatorNum
+		delegatorNumChange24H = latestDelegatorNum - before24DelegatorNum
 	}
 
 	resultValidatorDelegations := &models.ResultValidatorDelegations{
-		TotalDelegatorNum:     currentDelegatorNum,
+		TotalDelegatorNum:     len(delegations),
 		DelegatorNumChange24H: delegatorNumChange24H,
 		ValidatorDelegations:  validatorDelegations,
 	}
