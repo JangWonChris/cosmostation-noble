@@ -13,6 +13,7 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/errors"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models"
+	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models/types"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/utils"
 
 	"github.com/tendermint/tendermint/rpc/client"
@@ -33,7 +34,7 @@ func GetDelegatorWithdrawAddress(config *config.Config, db *pg.DB, rpcClient *cl
 	// delegator's withdraw_address
 	resp, _ := resty.R().Get(config.Node.LCDURL + "/distribution/delegators/" + delegatorAddr + "/withdraw_address")
 
-	var responseWithHeight models.ResponseWithHeight
+	var responseWithHeight types.ResponseWithHeight
 	err := json.Unmarshal(resp.Body(), &responseWithHeight)
 	if err != nil {
 		fmt.Printf("unmarshal responseWithHeight error - %v\n", err)
@@ -68,7 +69,7 @@ func GetDelegatorRewards(config *config.Config, db *pg.DB, rpcClient *client.HTT
 	// query a delegation reward
 	resp, _ := resty.R().Get(config.Node.LCDURL + "/distribution/delegators/" + delegatorAddr + "/rewards/" + validatorAddr)
 
-	var responseWithHeight models.ResponseWithHeight
+	var responseWithHeight types.ResponseWithHeight
 	err := json.Unmarshal(resp.Body(), &responseWithHeight)
 	if err != nil {
 		fmt.Printf("unmarshal responseWithHeight error - %v\n", err)
@@ -90,7 +91,7 @@ func GetCommunityPool(config *config.Config, db *pg.DB, rpcClient *client.HTTP, 
 	// query stake pool - bonded and not bonded tokens
 	resp, _ := resty.R().Get(config.Node.LCDURL + "/distribution/community_pool")
 
-	var responseWithHeight models.ResponseWithHeight
+	var responseWithHeight types.ResponseWithHeight
 	err := json.Unmarshal(resp.Body(), &responseWithHeight)
 	if err != nil {
 		fmt.Printf("unmarshal responseWithHeight error - %v\n", err)

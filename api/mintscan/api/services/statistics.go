@@ -8,6 +8,7 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models/stats"
+	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models/types"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/utils"
 
 	"github.com/go-pg/pg"
@@ -33,8 +34,8 @@ func GetMarketInfo(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w h
 	// query current price
 	resp, _ := resty.R().Get(config.Market.CoinGecko.URL)
 
-	var coinGeckoMarketInfo models.CoinGeckoMarketInfo
-	err = json.Unmarshal(resp.Body(), &coinGeckoMarketInfo)
+	var coinGeckoMarket types.CoinGeckoMarket
+	err = json.Unmarshal(resp.Body(), &coinGeckoMarket)
 	if err != nil {
 		fmt.Printf("MarketInfo unmarshal error - %v\n", err)
 	}
@@ -56,7 +57,7 @@ func GetMarketInfo(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w h
 	}
 
 	resultMarketInfo := &models.MarketInfo{
-		Price:            coinGeckoMarketInfo.MarketData.CurrentPrice.Usd,
+		Price:            coinGeckoMarket.MarketData.CurrentPrice.Usd,
 		Currency:         marketInfo.Currency,
 		PercentChange1H:  marketInfo.PercentChange1H,
 		PercentChange24H: marketInfo.PercentChange24H,
