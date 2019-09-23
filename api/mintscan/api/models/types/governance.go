@@ -29,8 +29,8 @@ type Proposal struct {
 	VotingEndTime   time.Time `json:"voting_end_time"`
 }
 
-// TallyInfo is a struct for REST API
-type TallyInfo struct {
+// Tally is a struct for REST API
+type Tally struct {
 	Yes        string `json:"yes"`
 	Abstain    string `json:"abstain"`
 	No         string `json:"no"`

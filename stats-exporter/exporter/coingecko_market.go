@@ -16,21 +16,21 @@ func (ses *StatsExporterService) SaveCoinGeckoMarketStats1H() {
 	log.Println("CoingGecko Market Stats 1H")
 
 	// request CoinGecko API
-	var coinGeckoMarketInfo types.CoinGeckoMarketInfo
+	var coinGeckoMarket types.CoinGeckoMarket
 	resp, err := resty.R().SetHeader("Accepts", "application/json").Get(ses.config.Market.CoinGecko.URL)
 	if err != nil {
 		fmt.Print("query CoinGecko API request error - ", err)
 	}
 
-	err = json.Unmarshal(resp.Body(), &coinGeckoMarketInfo)
+	err = json.Unmarshal(resp.Body(), &coinGeckoMarket)
 	if err != nil {
-		fmt.Printf("unmarshal CoinGeckoMarketInfo error - %v\n", err)
+		fmt.Printf("unmarshal coinGeckoMarket error - %v\n", err)
 	}
 
 	// insert into marketStats slice
 	statsCoingeckoMarket := make([]*types.StatsCoingeckoMarket1H, 0)
 	tempStatsCoingeckoMarket := &types.StatsCoingeckoMarket1H{
-		Price:    coinGeckoMarketInfo.MarketData.CurrentPrice.Usd,
+		Price:    coinGeckoMarket.MarketData.CurrentPrice.Usd,
 		Currency: types.Currency,
 		Time:     time.Now(),
 	}
@@ -47,21 +47,21 @@ func (ses *StatsExporterService) SaveCoinGeckoMarketStats24H() {
 	log.Println("CoingGecko Market Stats 24H")
 
 	// request CoinGecko API
-	var coinGeckoMarketInfo types.CoinGeckoMarketInfo
+	var coinGeckoMarket types.CoinGeckoMarket
 	resp, err := resty.R().SetHeader("Accepts", "application/json").Get(ses.config.Market.CoinGecko.URL)
 	if err != nil {
 		fmt.Print("query CoinGecko API request error - ", err)
 	}
 
-	err = json.Unmarshal(resp.Body(), &coinGeckoMarketInfo)
+	err = json.Unmarshal(resp.Body(), &coinGeckoMarket)
 	if err != nil {
-		fmt.Printf("unmarshal CoinGeckoMarketInfo error - %v\n", err)
+		fmt.Printf("unmarshal coinGeckoMarket error - %v\n", err)
 	}
 
 	// insert into marketStats slice
 	statsCoingeckoMarket := make([]*types.StatsCoingeckoMarket24H, 0)
 	tempStatsCoingeckoMarket := &types.StatsCoingeckoMarket24H{
-		Price:    coinGeckoMarketInfo.MarketData.CurrentPrice.Usd,
+		Price:    coinGeckoMarket.MarketData.CurrentPrice.Usd,
 		Currency: types.Currency,
 		Time:     time.Now(),
 	}

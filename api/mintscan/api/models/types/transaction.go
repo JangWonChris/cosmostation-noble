@@ -7,6 +7,19 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+// type GeneralTx struct {
+// 	Height    json.RawMessage `json:"height"`
+// 	TxHash    json.RawMessage `json:"txhash"`
+//  Data   	  json.RawMessage `json:"data"`
+// 	RawLog    json.RawMessage `json:"raw_log"`
+// 	Logs      json.RawMessage `json:"logs"`
+// 	GasWanted json.RawMessage `json:"gas_wanted"`
+// 	GasUsed   json.RawMessage `json:"gas_used"`
+// 	Tags      json.RawMessage `json:"tags"`
+// 	Tx        json.RawMessage `json:"tx"`
+// 	Timestamp json.RawMessage `json:"timestamp"`
+// }
+
 // GeneralTx is a struct for general tx
 type GeneralTx struct {
 	Height string `json:"height"`
@@ -113,7 +126,7 @@ type SubmitProposalMsgValueTx struct {
 	} `json:"initial_deposit"`
 }
 
-// https://lcd.cosmostation.io/txs/8D17DC38DE754B544F1183AC96FD91D7E9559893A12FCD013E1A87A619856C61
+// cosmoshub-1 https://lcd.cosmostation.io/txs/8D17DC38DE754B544F1183AC96FD91D7E9559893A12FCD013E1A87A619856C61
 // VoteMsgValueTx is a struct for vote msg in tx
 type VoteMsgValueTx struct {
 	ProposalID string `json:"proposal_id"`
@@ -121,7 +134,7 @@ type VoteMsgValueTx struct {
 	Option     string `json:"option"`
 }
 
-// https://lcd.cosmostation.io/txs/5EED165DE065D07B6772DD0994F8CD23177C5FDE76235012865C5110E52FAF31
+// cosmoshub-1 https://lcd.cosmostation.io/txs/5EED165DE065D07B6772DD0994F8CD23177C5FDE76235012865C5110E52FAF31
 // DepositMsgValueTx is a struct for deposit msg in tx
 type DepositMsgValueTx struct {
 	ProposalID string `json:"proposal_id"`

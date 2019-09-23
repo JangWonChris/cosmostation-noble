@@ -1,6 +1,10 @@
 package types
 
-import "time"
+import (
+	"time"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+)
 
 // Validator is a struct for REST API
 type Validator struct {
@@ -19,10 +23,33 @@ type Validator struct {
 	UnbondingHeight string    `json:"unbonding_height"`
 	UnbondingTime   time.Time `json:"unbonding_time"`
 	Commission      struct {
-		Rate          string    `json:"rate"`
-		MaxRate       string    `json:"max_rate"`
-		MaxChangeRate string    `json:"max_change_rate"`
-		UpdateTime    time.Time `json:"update_time"`
+		CommissionRates struct {
+			Rate          string `json:"rate"`
+			MaxRate       string `json:"max_rate"`
+			MaxChangeRate string `json:"max_change_rate"`
+		}
+		UpdateTime time.Time `json:"update_time"`
 	} `json:"commission"`
 	MinSelfDelegation string `json:"min_self_delegation"`
+}
+
+// ValidatorDelegations is a struct for REST API
+type ValidatorDelegations struct {
+	DelegatorAddress string  `json:"delegator_address"`
+	ValidatorAddress string  `json:"validator_address"`
+	Shares           sdk.Dec `json:"shares"`
+	Amount           string  `json:"amount"`
+}
+
+// Redelegations is a struct for REST API
+type Redelegations struct {
+	DelegatorAddress    string `json:"delegator_address"`
+	ValidatorSrcAddress string `json:"validator_src_address"`
+	ValidatorDstAddress string `json:"validator_dst_address"`
+	Entries             []struct {
+		CreationHeight string    `json:"creation_height"`
+		CompletionTime time.Time `json:"completion_time"`
+		InitialBalance string    `json:"initial_balance"`
+		SharesDst      string    `json:"shares_dst"`
+	} `json:"entries"`
 }

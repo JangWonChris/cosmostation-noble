@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// Info를 붙여야할까? 이름 다시 생각해보기
 // CoinGeckoMarket is a struct for CoinGecko API
 type CoinGeckoMarket struct {
 	ID                  string          `json:"id"`
