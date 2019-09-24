@@ -4,14 +4,14 @@ import "time"
 
 // Proposal is a struct for REST API
 type Proposal struct {
-	ProposalContent struct {
+	Content struct {
 		Type  string `json:"type"`
 		Value struct {
 			Title       string `json:"title"`
 			Description string `json:"description"`
 		} `json:"value"`
-	} `json:"proposal_content"`
-	ProposalID       string `json:"proposal_id"`
+	} `json:"content"`
+	ID               string `json:"id"`
 	ProposalStatus   string `json:"proposal_status"`
 	FinalTallyResult struct {
 		Yes        string `json:"yes"`
