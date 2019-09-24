@@ -14,16 +14,14 @@ func NewConfig() *Config {
 	viper.AddConfigPath("/home/ubuntu/cosmostation-cosmos/stats-exporter") // call multiple times to add many search paths
 
 	if err := viper.ReadInConfig(); err != nil {
-		panic(fmt.Errorf("Fatal error config file: %s \n", err))
+		panic(fmt.Errorf("fatal error config file: %s", err))
 	}
 
 	config := &Config{}
-	config.KeybaseURL = viper.GetString("keybase_url")
-	config.CoinmarketcapURL = viper.GetString("coinmarketcap_url")
-	config.CoinGeckoURL = viper.GetString("coingecko_url")
 
 	nodeConfig := &NodeConfig{}
 	dbConfig := &DBConfig{}
+	marketConfig := &MarketConfig{}
 
 	// Production or Development
 	switch viper.GetString("active") {
@@ -55,8 +53,15 @@ func NewConfig() *Config {
 		fmt.Println("Define active params in config.yaml")
 	}
 
+	// market config
+	marketConfig.CoinmarketCap.URL = viper.GetString("market.coinmarketcap.url")
+	marketConfig.CoinmarketCap.APIKey = viper.GetString("market.coinmarketcap.api_key")
+	marketConfig.CoinmarketCap.CoinID = viper.GetString("market.coinmarketcap.coin_id")
+	marketConfig.CoinGecko.URL = viper.GetString("market.coingecko.url")
+
 	config.Node = nodeConfig
 	config.DB = dbConfig
+	config.Market = marketConfig
 
 	return config
 }

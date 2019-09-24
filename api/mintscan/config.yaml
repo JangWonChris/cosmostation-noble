@@ -1,4 +1,4 @@
-active: "dev"
+active: "testnet"
 
 prod:
   node: 
@@ -24,12 +24,20 @@ dev:
 
 testnet:
   node: 
-    gaiad_url: "http://52.78.163.36:26657"
-    lcd_url: "https://lcd-testnet-dev.cosmostation.io"
+    gaiad_url: "http://54.180.171.141:26657"
+    lcd_url: "https://lcd-cosmos-testnet.cosmostation.io"
   database:
     host: "cosmostation-dev.ci6bhjszmrb3.ap-northeast-2.rds.amazonaws.com:5432"
     user: "root"
     password: "dnpfqldwhr00!!"
-    table: "dev-test"
+    table: "cosmos-testnet"
   port: 5000
   
+market:
+  coinmarketcap: 
+    url: "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest"
+    coin_id: "3794"
+    api_key: "1a9784e7-e592-449c-a123-744583ec25e8"
+  coingecko:
+    url: "https://api.coingecko.com/api/v3/coins/cosmos"
+    

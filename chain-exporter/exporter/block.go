@@ -4,16 +4,16 @@ import (
 	dtypes "github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 )
 
+// getBlockInfo provides block information
 func (ces *ChainExporterService) getBlockInfo(height int64) ([]*dtypes.BlockInfo, error) {
 	blockInfo := make([]*dtypes.BlockInfo, 0)
 
-	// Query the current block
+	// query current block
 	block, err := ces.rpcClient.Block(&height)
 	if err != nil {
 		return nil, err
 	}
 
-	// Parse blockinfo & height needs to be previous height for the first block
 	tempBlockInfo := &dtypes.BlockInfo{
 		BlockHash: block.BlockMeta.BlockID.Hash.String(),
 		Proposer:  block.Block.ProposerAddress.String(),

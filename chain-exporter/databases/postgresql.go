@@ -8,7 +8,7 @@ import (
 	"github.com/go-pg/pg/orm"
 )
 
-// Connect to PostgreSQL
+// ConnectDatabase connects to PostgreSQL
 func ConnectDatabase(Config *config.Config) *pg.DB {
 	database := pg.Connect(&pg.Options{
 		Addr:     Config.DB.Host,
@@ -19,11 +19,11 @@ func ConnectDatabase(Config *config.Config) *pg.DB {
 	return database
 }
 
-// CreateSchema sets up the database using the ORM
+// CreateSchema creates database tables using ORM
 func CreateSchema(db *pg.DB) error {
 	for _, model := range []interface{}{(*dtypes.BlockInfo)(nil), (*dtypes.EvidenceInfo)(nil), (*dtypes.MissInfo)(nil),
 		(*dtypes.MissDetailInfo)(nil), (*dtypes.ProposalInfo)(nil), (*dtypes.ValidatorSetInfo)(nil), (*dtypes.ValidatorInfo)(nil),
-		(*dtypes.ValidatorDelegationsInfo)(nil), (*dtypes.TransactionInfo)(nil), (*dtypes.VoteInfo)(nil), (*dtypes.DepositInfo)(nil)} {
+		(*dtypes.TransactionInfo)(nil), (*dtypes.VoteInfo)(nil), (*dtypes.DepositInfo)(nil)} {
 		err := db.CreateTable(model, &orm.CreateTableOptions{IfNotExists: true})
 		if err != nil {
 			return err

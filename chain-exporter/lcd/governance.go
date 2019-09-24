@@ -12,101 +12,80 @@ import (
 	resty "gopkg.in/resty.v1"
 )
 
-// SaveGovernance queries the governance proposals from LCD and stores them in the database
-func SaveGovernance(db *pg.DB, config *config.Config) {
-	// Query LCD
+// SaveProposals saves governance proposals in database
+func SaveProposals(db *pg.DB, config *config.Config) {
 	resp, err := resty.R().Get(config.Node.LCDURL + "/gov/proposals")
 	if err != nil {
-		fmt.Printf("Proposal LCD resty - %v\n", err)
+		fmt.Printf("query /gov/proposals error - %v\n", err)
 	}
 
-	// Parse Proposal struct
-	// var proposals []*dtypes.Proposal
-	proposals := make([]*dtypes.Proposal, 0)
-	err = json.Unmarshal(resp.Body(), &proposals)
+	var responseWithHeight dtypes.ResponseWithHeight
+	err = json.Unmarshal(resp.Body(), &responseWithHeight)
 	if err != nil {
-		fmt.Printf("Proposal unmarshal error - %v\n", err)
+		fmt.Printf("unmarshal proposals error - %v\n", err)
 	}
 
-	// Proposal information
+	proposals := make([]*dtypes.Proposal, 0)
+	err = json.Unmarshal(responseWithHeight.Result, &proposals)
+	if err != nil {
+		fmt.Printf("unmarshal proposals error - %v\n", err)
+	}
+
+	// proposal information for our database table
 	proposalInfo := make([]*dtypes.ProposalInfo, 0)
-	for _, proposal := range proposals {
+	if len(proposals) > 0 {
+		for _, proposal := range proposals {
+			proposalID, _ := strconv.ParseInt(proposal.ID, 10, 64)
 
-		// Query LCD (tally in progress)
-		tallyResp, err := resty.R().Get(config.Node.LCDURL + "/gov/proposals/" + proposal.ProposalID + "/tally")
-		if err != nil {
-			fmt.Printf("Proposal LCD resty - %v\n", err)
+			var totalDepositAmount string
+			var totalDepositDenom string
+			if proposal.TotalDeposit != nil {
+				totalDepositAmount = proposal.TotalDeposit[0].Amount
+				totalDepositDenom = proposal.TotalDeposit[0].Denom
+			}
+
+			tallyResp, _ := resty.R().Get(config.Node.LCDURL + "/gov/proposals/" + proposal.ID + "/tally")
+			var responseWithHeight dtypes.ResponseWithHeight
+			_ = json.Unmarshal(tallyResp.Body(), &responseWithHeight)
+
+			var tallyInfo dtypes.TallyInfo
+			err = json.Unmarshal(responseWithHeight.Result, &tallyInfo)
+			if err != nil {
+				fmt.Printf("unmarshal tallyInfo error - %v\n", err)
+			}
+
+			tempProposalInfo := &dtypes.ProposalInfo{
+				ID:                 proposalID,
+				Title:              proposal.Content.Value.Title,
+				Description:        proposal.Content.Value.Description,
+				ProposalType:       proposal.Content.Type,
+				ProposalStatus:     proposal.ProposalStatus,
+				Yes:                tallyInfo.Yes,
+				Abstain:            tallyInfo.Abstain,
+				No:                 tallyInfo.No,
+				NoWithVeto:         tallyInfo.NoWithVeto,
+				SubmitTime:         proposal.SubmitTime,
+				DepositEndtime:     proposal.DepositEndTime,
+				TotalDepositAmount: totalDepositAmount,
+				TotalDepositDenom:  totalDepositDenom,
+				VotingStartTime:    proposal.VotingStartTime,
+				VotingEndTime:      proposal.VotingEndTime,
+				Alerted:            false,
+			}
+			proposalInfo = append(proposalInfo, tempProposalInfo)
 		}
-
-		// Parse Tally struct
-		var tallyInfo dtypes.TallyInfo
-		err = json.Unmarshal(tallyResp.Body(), &tallyInfo)
-		if err != nil {
-			fmt.Printf("Proposal unmarshal error - %v\n", err)
-		}
-
-		proposalID, _ := strconv.ParseInt(proposal.ProposalID, 10, 64)
-
-		var totalDepositAmount string
-		var totalDepositDenom string
-		if proposal.TotalDeposit != nil {
-			totalDepositAmount = proposal.TotalDeposit[0].Amount
-			totalDepositDenom = proposal.TotalDeposit[0].Denom
-		}
-
-		tempProposalInfo := &dtypes.ProposalInfo{
-			ID:                 proposalID,
-			Title:              proposal.ProposalContent.Value.Title,
-			Description:        proposal.ProposalContent.Value.Description,
-			ProposalType:       proposal.ProposalContent.Type,
-			ProposalStatus:     proposal.ProposalStatus,
-			Yes:                tallyInfo.Yes,
-			Abstain:            tallyInfo.Abstain,
-			No:                 tallyInfo.No,
-			NoWithVeto:         tallyInfo.NoWithVeto,
-			SubmitTime:         proposal.SubmitTime,
-			DepositEndtime:     proposal.DepositEndTime,
-			TotalDepositAmount: totalDepositAmount,
-			TotalDepositDenom:  totalDepositDenom,
-			VotingStartTime:    proposal.VotingStartTime,
-			VotingEndTime:      proposal.VotingEndTime,
-			Alerted:            false,
-		}
-		proposalInfo = append(proposalInfo, tempProposalInfo)
 	}
 
-	// Save and update proposalInfo
-	// _, err = db.Model(&proposalInfo).
-	// 	OnConflict("(id) DO UPDATE").
-	// 	Set("title = EXCLUDED.title").
-	// 	Set("description = EXCLUDED.description").
-	// 	Set("proposal_type = EXCLUDED.proposal_type").
-	// 	Set("proposal_status = EXCLUDED.proposal_status").
-	// 	Set("yes = EXCLUDED.yes").
-	// 	Set("abstain = EXCLUDED.abstain").
-	// 	Set("no = EXCLUDED.no").
-	// 	Set("no_with_veto = EXCLUDED.no_with_veto").
-	// 	Set("submit_time = EXCLUDED.submit_time").
-	// 	Set("deposit_end_time = EXCLUDED.deposit_end_time").
-	// 	Set("total_deposit_amount = EXCLUDED.total_deposit_amount").
-	// 	Set("total_deposit_denom = EXCLUDED.total_deposit_denom").
-	// 	Set("voting_start_time = EXCLUDED.voting_start_time").
-	// 	Set("voting_end_time = EXCLUDED.voting_end_time").
-	// 	Insert()
-	// if err != nil {
-	// 	fmt.Printf("error - sync governance proposals: %v\n", err)
-	// }
-
-	// Exist and update proposerInfo
+	// update proposerInfo
 	if len(proposalInfo) > 0 {
 		var tempProposalInfo dtypes.ProposalInfo
 		for i := 0; i < len(proposalInfo); i++ {
-			// Check if a validator already voted
+			// check if a validator already voted
 			count, _ := db.Model(&tempProposalInfo).
 				Where("id = ?", proposalInfo[i].ID).
 				Count()
 			if count > 0 {
-				// Save and update proposalInfo
+				// save and update proposalInfo
 				_, _ = db.Model(&tempProposalInfo).
 					Set("title = ?", proposalInfo[i].Title).
 					Set("description = ?", proposalInfo[i].Description).
@@ -125,9 +104,11 @@ func SaveGovernance(db *pg.DB, config *config.Config) {
 					Where("id = ?", proposalInfo[i].ID).
 					Update()
 			} else {
-				_ = db.Insert(&proposalInfo)
+				err := db.Insert(&proposalInfo)
+				if err != nil {
+					fmt.Printf("error - save and update proposalInfo: %v\n", err)
+				}
 			}
 		}
 	}
-
 }

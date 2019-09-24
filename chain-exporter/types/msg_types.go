@@ -1,6 +1,6 @@
 package types
 
-// validator_set_infos table
+// parameters for validator_set_infos table
 const (
 	EventTypeMsgCreateValidator = "create_validator"
 	EventTypeMsgEditValidator   = "edit_validator"

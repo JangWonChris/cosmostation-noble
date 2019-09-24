@@ -1,26 +1,16 @@
 package config
 
 type Config struct {
-	Node             *NodeConfig
-	Raven            *RavenConfig
-	DB               *DBConfig
-	ES               *ESConfig
-	Coinmarketcap    *CoinmarketcapConfig
-	KeybaseURL       string
-	CoinmarketcapURL string
-	CoinGeckoURL     string
+	Node   *NodeConfig
+	DB     *DBConfig
+	ES     *ESConfig
+	Market *MarketConfig
 }
 
 type (
 	NodeConfig struct {
 		GaiadURL string
 		LCDURL   string
-	}
-
-	RavenConfig struct {
-		RavenDSN string
-		Address  string
-		Period   string
 	}
 
 	ESConfig struct {
@@ -37,8 +27,15 @@ type (
 		Password string
 		Table    string
 	}
-	CoinmarketcapConfig struct {
-		CoinID string
-		APIKey string
+
+	MarketConfig struct {
+		CoinmarketCap struct {
+			URL    string
+			CoinID string
+			APIKey string
+		}
+		CoinGecko struct {
+			URL string
+		}
 	}
 )
