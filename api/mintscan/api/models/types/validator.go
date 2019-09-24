@@ -47,9 +47,10 @@ type Redelegations struct {
 	ValidatorSrcAddress string `json:"validator_src_address"`
 	ValidatorDstAddress string `json:"validator_dst_address"`
 	Entries             []struct {
-		CreationHeight string    `json:"creation_height"`
+		CreationHeight int       `json:"creation_height"`
 		CompletionTime time.Time `json:"completion_time"`
 		InitialBalance string    `json:"initial_balance"`
 		SharesDst      string    `json:"shares_dst"`
+		Balance        string    `json:"balance"`
 	} `json:"entries"`
 }

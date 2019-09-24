@@ -396,13 +396,18 @@ func GetRedelegations(config *config.Config, db *pg.DB, w http.ResponseWriter, r
 		endpoint += fmt.Sprintf("validator_to=%s&", r.URL.Query()["validator_to"][0])
 	}
 
-	// Query LCD
 	resp, _ := resty.R().Get(config.Node.LCDURL + endpoint)
 
-	var redelegations []types.Redelegations
-	err := json.Unmarshal(resp.Body(), &redelegations)
+	var responseWithHeight types.ResponseWithHeight
+	err := json.Unmarshal(resp.Body(), &responseWithHeight)
 	if err != nil {
-		fmt.Printf("staking/redelegations? unmarshal error - %v\n", err)
+		fmt.Printf("unmarshal responseWithHeight error - %v\n", err)
+	}
+
+	var redelegations []types.Redelegations
+	err = json.Unmarshal(responseWithHeight.Result, &redelegations)
+	if err != nil {
+		fmt.Printf("staking/redelegations? unmarshal error - %v, endpoint - %v\n", err, endpoint)
 	}
 
 	utils.Respond(w, redelegations)
