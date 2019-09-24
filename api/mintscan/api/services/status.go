@@ -56,13 +56,13 @@ func GetStatus(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.
 	// a number of unjailed validators
 	var unjailedValidators types.ValidatorInfo
 	unJailedNum, _ := db.Model(&unjailedValidators).
-		Where("jailed = ?", false).
+		Where("status = ?", 2).
 		Count()
 
 	// a number of jailed validators
 	var jailedValidators types.ValidatorInfo
 	jailedNum, _ := db.Model(&jailedValidators).
-		Where("jailed = ?", true).
+		Where("status = ? OR status = ?", 0, 1).
 		Count()
 
 	// total txs num
