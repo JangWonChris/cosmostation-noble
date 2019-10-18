@@ -11,7 +11,7 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/errors"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models"
-	dbtypes "github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models/types"
+	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/models/types"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/utils"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -46,7 +46,7 @@ func GetTxs(codec *codec.Codec, db *pg.DB, rpcClient *client.HTTP, w http.Respon
 		from, _ = strconv.Atoi(r.URL.Query()["from"][0])
 	} else {
 		// Check current height in db
-		var blocks []dbtypes.BlockInfo
+		var blocks []types.BlockInfo
 		_ = db.Model(&blocks).
 			Order("height DESC").
 			Limit(1).
@@ -57,7 +57,7 @@ func GetTxs(codec *codec.Codec, db *pg.DB, rpcClient *client.HTTP, w http.Respon
 	}
 
 	// Query a number of txs
-	transactionInfos := make([]*dbtypes.TransactionInfo, 0)
+	transactionInfos := make([]*types.TransactionInfo, 0)
 	_ = db.Model(&transactionInfos).
 		Where("height <= ?", from).
 		Limit(limit).
@@ -103,7 +103,7 @@ func GetTx(codec *codec.Codec, config *config.Config, db *pg.DB, rpcClient *clie
 	resp, _ := resty.R().Get(config.Node.LCDURL + "/txs/" + txHexStr)
 
 	// Parse struct
-	var generalTx models.GeneralTx
+	var generalTx types.GeneralTx
 	err := json.Unmarshal(resp.Body(), &generalTx)
 	if err != nil {
 		fmt.Printf("GeneralTx unmarshal error - %v\n", err)

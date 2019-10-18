@@ -166,7 +166,7 @@ func GetProposedBlocks(db *pg.DB, w http.ResponseWriter, r *http.Request) error 
 		Where("proposer = ?", address).
 		Count()
 
-	resultBlocksByOperatorAddr := make([]*models.ResultBlocksByOperatorAddr, 0)
+	resultBlocksByOperatorAddress := make([]*models.ResultBlocksByOperatorAddress, 0)
 	for _, blockInfo := range blockInfos {
 		// Query validator information
 		var validatorInfo dbtypes.ValidatorInfo
@@ -187,7 +187,7 @@ func GetProposedBlocks(db *pg.DB, w http.ResponseWriter, r *http.Request) error 
 			txData.Txs = append(txData.Txs, transactionInfo.TxHash)
 		}
 
-		tempResultBlocksByOperatorAddr := &models.ResultBlocksByOperatorAddr{
+		tempResultBlocksByOperatorAddress := &models.ResultBlocksByOperatorAddress{
 			Height:                 blockInfo.Height,
 			Proposer:               blockInfo.Proposer,
 			OperatorAddress:        validatorInfo.OperatorAddress,
@@ -199,9 +199,9 @@ func GetProposedBlocks(db *pg.DB, w http.ResponseWriter, r *http.Request) error 
 			TxData:                 txData,
 			Time:                   blockInfo.Time,
 		}
-		resultBlocksByOperatorAddr = append(resultBlocksByOperatorAddr, tempResultBlocksByOperatorAddr)
+		resultBlocksByOperatorAddress = append(resultBlocksByOperatorAddress, tempResultBlocksByOperatorAddress)
 	}
 
-	utils.Respond(w, resultBlocksByOperatorAddr)
+	utils.Respond(w, resultBlocksByOperatorAddress)
 	return nil
 }

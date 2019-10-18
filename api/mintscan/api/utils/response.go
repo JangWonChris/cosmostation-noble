@@ -5,16 +5,13 @@ import (
 	"net/http"
 )
 
-/*
-	어떠한 타입의 struct가 와도 json 포맷으로 리턴할 수 있게끔 구현
-*/
-
+// Respond responds json format with any data type
 func Respond(w http.ResponseWriter, data interface{}) {
 	w.Header().Add("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(data)
 }
 
-// 현재 사용 안하는 함수
+// RespondSuccessMessage is NOT USED at this time
 func RespondSuccessMessage(message string) map[string]interface{} {
 	return map[string]interface{}{
 		"code":   101,

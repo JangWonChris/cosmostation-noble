@@ -6,16 +6,16 @@ import (
 	"github.com/tendermint/tendermint/libs/bech32"
 )
 
-// Convert Cosmos Address to Opeartor Address
-func ConvertOperatorAddressToAddress(operatorAddress string) string {
+// ConsAddrFromConsPubkey converts validator consensus public key to proposer address format
+func ConsAddrFromConsPubkey(consensusPubKey string) string {
+	pk, _ := sdk.GetConsPubKeyBech32(consensusPubKey)
+	proposerAddress := pk.Address().String()
+	return proposerAddress
+}
+
+// AccAddressFromOperatorAddress converts operator address to cosmos address
+func AccAddressFromOperatorAddress(operatorAddress string) string {
 	_, decoded, _ := bech32.DecodeAndConvert(operatorAddress)
 	address, _ := bech32.ConvertAndEncode(sdk.Bech32PrefixAccAddr, decoded)
 	return address
-}
-
-// Convert Opeartor Address to Cosmos Address
-func ConvertAddressToOperatorAddress(address string) string {
-	_, decoded, _ := bech32.DecodeAndConvert(address)
-	valiOperatorAddress, _ := bech32.ConvertAndEncode(sdk.Bech32PrefixValAddr, decoded)
-	return valiOperatorAddress
 }

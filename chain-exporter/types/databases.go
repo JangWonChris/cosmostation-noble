@@ -4,10 +4,7 @@ import (
 	"time"
 )
 
-/*
-	These structs are database tables in PostgreSQL
-*/
-
+// BlockInfo is a struct for database table
 type BlockInfo struct {
 	ID        int64     `json:"id" sql:",pk"`
 	BlockHash string    `json:"block_hash"`
@@ -18,14 +15,7 @@ type BlockInfo struct {
 	Time      time.Time `json:"time"`
 }
 
-type EvidenceInfo struct {
-	ID       int64     `json:"id" sql:",pk"`
-	Proposer string    `json:"proposer"`
-	Height   int64     `json:"height"`
-	Hash     string    `json:"hash"`
-	Time     time.Time `json:"time"`
-}
-
+// MissInfo is a struct for database table
 type MissInfo struct {
 	ID           int64     `json:"id" sql:",pk"`
 	Address      string    `json:"address"`
@@ -37,6 +27,7 @@ type MissInfo struct {
 	Alerted      bool      `json:"alerted" sql:",default:false,notnull"`
 }
 
+// MissDetailInfo is a struct for database table
 type MissDetailInfo struct {
 	ID       int64     `json:"id" sql:",pk"`
 	Address  string    `json:"address"`
@@ -46,55 +37,26 @@ type MissDetailInfo struct {
 	Alerted  bool      `json:"alerted" sql:",default:false,notnull"`
 }
 
+// EvidenceInfo is a struct for database table
+type EvidenceInfo struct {
+	ID       int64     `json:"id" sql:",pk"`
+	Proposer string    `json:"proposer"`
+	Height   int64     `json:"height"`
+	Hash     string    `json:"hash"`
+	Time     time.Time `json:"time"`
+}
+
+// TransactionInfo is a struct for database table
 type TransactionInfo struct {
 	ID      int64     `json:"id" sql:",pk"`
 	Height  int64     `json:"height"`
-	MsgType string    `json:"msg_type"`
 	TxHash  string    `json:"tx_hash"`
+	MsgType string    `json:"msg_type"`
 	Memo    string    `json:"memo"`
 	Time    time.Time `json:"time"`
 }
 
-type ValidatorInfo struct {
-	ID                   int64     `sql:",pk"`
-	Rank                 int       `json:"rank"`
-	Moniker              string    `json:"moniker"`
-	Address              string    `json:"address"`
-	OperatorAddress      string    `json:"operator_address" sql:",unique"`
-	ConsensusPubkey      string    `json:"consensus_pubkey"`
-	Proposer             string    `json:"proposer"`
-	Jailed               bool      `json:"jailed" sql:"default:false,notnull"`
-	Status               int       `json:"status" sql:"default:0"`
-	Tokens               string    `json:"tokens"`
-	DelegatorShares      string    `json:"delegator_shares"`
-	Identity             string    `json:"identity"`
-	Website              string    `json:"website"`
-	Details              string    `json:"details"`
-	UnbondingHeight      string    `json:"unbonding_height"`
-	UnbondingTime        time.Time `json:"unbonding_time" sql:"default:null"`
-	CommissionRate       string    `json:"rate"`
-	CommissionMaxRate    string    `json:"max_rate"`
-	CommissionChangeRate string    `json:"max_change_rate"`
-	UpdateTime           time.Time `json:"update_time" sql:"default:null"`
-	MinSelfDelegation    string    `json:"min_self_delegation"`
-	KeybaseURL           string    `json:"keybase_url"`
-}
-
-type ValidatorSetInfo struct {
-	ID                   int64     `sql:",pk"`
-	IDValidator          int       `json:"id_validator" sql:"default:0"`
-	Height               int64     `json:"height"`
-	Moniker              string    `json:"moniker"`
-	OperatorAddress      string    `json:"operator_address"`
-	Proposer             string    `json:"proposer"`
-	VotingPower          float64   `json:"voting_power" sql:"default:0"`
-	EventType            string    `json:"event_type" sql:"default:null"`
-	NewVotingPowerAmount float64   `json:"new_voting_power_amount" sql:"new_voting_power_amount"`
-	NewVotingPowerDenom  string    `json:"new_voting_power_denom" sql:"new_voting_power_denom"`
-	TxHash               string    `json:"tx_hash" sql:"default:null"`
-	Time                 time.Time `json:"time" sql:"default:null"`
-}
-
+// ProposalInfo is a struct for database table
 type ProposalInfo struct {
 	ID                   int64     `json:"proposal_id" sql:",pk"`
 	TxHash               string    `json:"tx_hash"`
@@ -118,6 +80,7 @@ type ProposalInfo struct {
 	Alerted              bool      `sql:"default:false,notnull" json:"alerted"`
 }
 
+// VoteInfo is a struct for database table
 type VoteInfo struct {
 	ID         int64     `json:"id" sql:",pk"`
 	Height     int64     `json:"height"`
@@ -130,6 +93,7 @@ type VoteInfo struct {
 	Time       time.Time `json:"time"`
 }
 
+// DepositInfo is a struct for database table
 type DepositInfo struct {
 	ID         int64     `json:"id" sql:",pk"`
 	Height     int64     `json:"height"`
@@ -141,4 +105,46 @@ type DepositInfo struct {
 	GasWanted  int64     `json:"gas_wanted"`
 	GasUsed    int64     `json:"gas_used"`
 	Time       time.Time `json:"time"`
+}
+
+// ValidatorInfo is a struct for database table
+type ValidatorInfo struct {
+	ID                   int64     `sql:",pk"`
+	Rank                 int       `json:"rank"`
+	Address              string    `json:"address"`
+	OperatorAddress      string    `json:"operator_address" sql:",unique"`
+	ConsensusPubkey      string    `json:"consensus_pubkey"`
+	Proposer             string    `json:"proposer"`
+	Jailed               bool      `json:"jailed" sql:"default:false,notnull"`
+	Status               int       `json:"status" sql:"default:0"`
+	Tokens               string    `json:"tokens"`
+	DelegatorShares      string    `json:"delegator_shares"`
+	Moniker              string    `json:"moniker"`
+	Identity             string    `json:"identity"`
+	Website              string    `json:"website"`
+	Details              string    `json:"details"`
+	UnbondingHeight      string    `json:"unbonding_height"`
+	UnbondingTime        time.Time `json:"unbonding_time" sql:"default:null"`
+	CommissionRate       string    `json:"rate"`
+	CommissionMaxRate    string    `json:"max_rate"`
+	CommissionChangeRate string    `json:"max_change_rate"`
+	UpdateTime           time.Time `json:"update_time" sql:"default:null"`
+	MinSelfDelegation    string    `json:"min_self_delegation"`
+	KeybaseURL           string    `json:"keybase_url"`
+}
+
+// ValidatorSetInfo is a struct for database table
+type ValidatorSetInfo struct {
+	ID                   int64     `sql:",pk"`
+	IDValidator          int       `json:"id_validator" sql:"default:0"`
+	Height               int64     `json:"height"`
+	Moniker              string    `json:"moniker"`
+	OperatorAddress      string    `json:"operator_address"`
+	Proposer             string    `json:"proposer"`
+	VotingPower          float64   `json:"voting_power" sql:"default:0"`
+	EventType            string    `json:"event_type" sql:"default:null"`
+	NewVotingPowerAmount float64   `json:"new_voting_power_amount" sql:"new_voting_power_amount"`
+	NewVotingPowerDenom  string    `json:"new_voting_power_denom" sql:"new_voting_power_denom"`
+	TxHash               string    `json:"tx_hash" sql:"default:null"`
+	Time                 time.Time `json:"time" sql:"default:null"`
 }

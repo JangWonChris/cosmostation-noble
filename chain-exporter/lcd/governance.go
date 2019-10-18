@@ -84,6 +84,7 @@ func SaveProposals(db *pg.DB, config *config.Config) {
 			count, _ := db.Model(&tempProposalInfo).
 				Where("id = ?", proposalInfo[i].ID).
 				Count()
+
 			if count > 0 {
 				// save and update proposalInfo
 				_, _ = db.Model(&tempProposalInfo).
@@ -95,10 +96,10 @@ func SaveProposals(db *pg.DB, config *config.Config) {
 					Set("abstain = ?", proposalInfo[i].Abstain).
 					Set("no = ?", proposalInfo[i].No).
 					Set("no_with_veto = ?", proposalInfo[i].NoWithVeto).
-					Set("submit_time = ?", proposalInfo[i].SubmitTime).
 					Set("deposit_end_time = ?", proposalInfo[i].DepositEndtime).
 					Set("total_deposit_amount = ?", proposalInfo[i].TotalDepositAmount).
 					Set("total_deposit_denom = ?", proposalInfo[i].TotalDepositDenom).
+					Set("submit_time = ?", proposalInfo[i].SubmitTime).
 					Set("voting_start_time = ?", proposalInfo[i].VotingStartTime).
 					Set("voting_end_time = ?", proposalInfo[i].VotingEndTime).
 					Where("id = ?", proposalInfo[i].ID).

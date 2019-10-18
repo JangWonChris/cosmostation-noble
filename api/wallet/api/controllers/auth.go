@@ -12,8 +12,8 @@ import (
 )
 
 // AuthController passes requests to its respective service
-func AuthController(r *mux.Router, c *client.HTTP, DB *pg.DB) {
+func AuthController(r *mux.Router, c *client.HTTP, db *pg.DB) {
 	r.HandleFunc("/auth/account/test", func(w http.ResponseWriter, r *http.Request) {
-		services.Test(DB, w, r)
+		services.Test(db, w, r)
 	}).Methods("POST")
 }

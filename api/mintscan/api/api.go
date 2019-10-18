@@ -10,9 +10,9 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/controllers"
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/databases"
-	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/utils"
 
 	"github.com/cosmos/cosmos-sdk/codec"
+	gaiaApp "github.com/cosmos/gaia/app"
 	"github.com/go-pg/pg"
 	"github.com/gorilla/mux"
 	"github.com/tendermint/tendermint/rpc/client"
@@ -41,7 +41,7 @@ func (a *App) NewApp(config *config.Config) {
 	a.db = databases.ConnectDatabase(config)
 
 	// Register Cosmos SDK codecs
-	a.codec = utils.MakeCodec()
+	a.codec = gaiaApp.MakeCodec()
 
 	// Register routers
 	a.setRouters()

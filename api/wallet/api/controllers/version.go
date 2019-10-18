@@ -12,8 +12,8 @@ import (
 )
 
 // VersionController passes requests to its respective service
-func VersionController(r *mux.Router, c *client.HTTP, DB *pg.DB) {
+func VersionController(r *mux.Router, c *client.HTTP, db *pg.DB) {
 	r.HandleFunc("/app/version/{deviceType}", func(w http.ResponseWriter, r *http.Request) {
-		services.GetVersion(DB, w, r)
+		services.GetVersion(db, w, r)
 	}).Methods("GET")
 }
