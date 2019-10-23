@@ -26,6 +26,7 @@ func CreateSchema(db *pg.DB) error {
 		(*dtypes.TransactionInfo)(nil), (*dtypes.VoteInfo)(nil), (*dtypes.DepositInfo)(nil)} {
 		err := db.CreateTable(model, &orm.CreateTableOptions{
 			IfNotExists: true,
+			Varchar:     100, // replaces PostgreSQL data type `text` to `varchar(n)`
 		})
 		if err != nil {
 			return err
