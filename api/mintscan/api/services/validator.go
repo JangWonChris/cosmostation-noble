@@ -250,6 +250,7 @@ func GetValidatorBlockMisses(db *pg.DB, rpcClient *client.HTTP, w http.ResponseW
 		미싱 블록 100개
 		진작에 죽었을 경우엔 precommit률이 없다. 예외처리 해줘야 하나? 0%로 (unbonded, unbonding)
 */
+
 // GetValidatorBlockMissesDetail receives validator address and returns the validator's block misses (uptime)
 func GetValidatorBlockMissesDetail(db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)

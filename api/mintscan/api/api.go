@@ -31,22 +31,22 @@ type App struct {
 
 // NewApp initializes the app with predefined configuration
 func (a *App) NewApp(config *config.Config) {
-	// Configuration
+	// configuration
 	a.config = config
 
-	// Connect to Tendermint RPC client through websocket
+	// connect to Tendermint RPC client through websocket
 	a.rpcClient = client.NewHTTP(a.config.Node.GaiadURL, "/websocket")
 
-	// Connect to PostgreSQL
+	// connect to PostgreSQL
 	a.db = databases.ConnectDatabase(config)
 
-	// Register Cosmos SDK codecs
+	// register Cosmos SDK codecs
 	a.codec = gaiaApp.MakeCodec()
 
-	// Register routers
+	// register routers
 	a.setRouters()
 
-	// SetTimeout method sets timeout for request.
+	// sets timeout for request.
 	resty.SetTimeout(5 * time.Second)
 	resty.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true}) // local test
 }
@@ -55,6 +55,7 @@ func (a *App) NewApp(config *config.Config) {
 func (a *App) setRouters() {
 	a.router = mux.NewRouter()
 	a.router = a.router.PathPrefix("/v1").Subrouter()
+
 	controllers.AccountController(a.codec, a.config, a.db, a.router, a.rpcClient)
 	controllers.BlockController(a.codec, a.config, a.db, a.router, a.rpcClient)
 	controllers.DistributionController(a.codec, a.config, a.db, a.router, a.rpcClient)
