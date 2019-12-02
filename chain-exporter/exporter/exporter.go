@@ -133,6 +133,13 @@ func (ces *ChainExporterService) sync() error {
 	}
 	maxHeight := status.SyncInfo.LatestBlockHeight
 
+	// if currentHeight == 1 {
+	// 	currentHeight = 0
+	// }
+
+	fmt.Println("CurrentHeight: ", currentHeight)
+	fmt.Println("MaxHeight: ", maxHeight)
+
 	// ingest all blocks up to the best height
 	for i := currentHeight + 1; i <= maxHeight; i++ {
 		err = ces.process(i)

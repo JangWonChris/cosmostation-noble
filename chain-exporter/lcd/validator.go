@@ -7,27 +7,22 @@ import (
 	"strconv"
 
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
-	dtypes "github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/utils"
 
 	"github.com/go-pg/pg"
+	"github.com/rs/zerolog/log"
 	resty "gopkg.in/resty.v1"
 )
 
 // SaveBondedValidators saves bonded validators information in database
 func SaveBondedValidators(db *pg.DB, config *config.Config) {
-	bondedResp, err := resty.R().Get(config.Node.LCDURL + "/staking/validators?status=bonded")
-	if err != nil {
-		fmt.Printf("query /staking/validators?status=bonded error - %v\n", err)
-	}
+	resp, _ := resty.R().Get(config.Node.LCDURL + "/staking/validators?status=bonded")
 
-	var responseWithHeight dtypes.ResponseWithHeight
-	_ = json.Unmarshal(bondedResp.Body(), &responseWithHeight)
-
-	var bondedValidators []*dtypes.Validator
-	err = json.Unmarshal(responseWithHeight.Result, &bondedValidators)
+	var bondedValidators []*types.Validator
+	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &bondedValidators)
 	if err != nil {
-		fmt.Printf("unmarshal bondedValidators error - %v\n", err)
+		log.Info().Str(types.Service, types.LogValidator).Str(types.Method, "SaveBondedValidators").Err(err).Msg("unmarshal bondedValidators error")
 	}
 
 	// sort out bondedValidators by highest tokens
@@ -38,9 +33,9 @@ func SaveBondedValidators(db *pg.DB, config *config.Config) {
 	})
 
 	// bondedValidator information for our database table
-	validatorInfo := make([]*dtypes.ValidatorInfo, 0)
+	validatorInfo := make([]*types.ValidatorInfo, 0)
 	for i, bondedValidator := range bondedValidators {
-		tempValidatorInfo := &dtypes.ValidatorInfo{
+		tempValidatorInfo := &types.ValidatorInfo{
 			Rank:                 i + 1,
 			OperatorAddress:      bondedValidator.OperatorAddress,
 			Address:              utils.AccAddressFromOperatorAddress(bondedValidator.OperatorAddress),
@@ -96,18 +91,12 @@ func SaveBondedValidators(db *pg.DB, config *config.Config) {
 
 // SaveUnbondingAndUnBondedValidators saves unbonding and unbonded validators information in database
 func SaveUnbondingAndUnBondedValidators(db *pg.DB, config *config.Config) {
-	unbondingResp, err := resty.R().Get(config.Node.LCDURL + "/staking/validators?status=unbonding")
-	if err != nil {
-		fmt.Printf("Query /staking/validators?status=unbonding error - %v\n", err)
-	}
+	resp, _ := resty.R().Get(config.Node.LCDURL + "/staking/validators?status=unbonding")
 
-	var responseWithHeight dtypes.ResponseWithHeight
-	_ = json.Unmarshal(unbondingResp.Body(), &responseWithHeight)
-
-	var unbondingValidators []*dtypes.Validator
-	err = json.Unmarshal(responseWithHeight.Result, &unbondingValidators)
+	var unbondingValidators []*types.Validator
+	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &unbondingValidators)
 	if err != nil {
-		fmt.Printf("unmarshal unbondingValidators error - %v\n", err)
+		log.Info().Str(types.Service, types.LogValidator).Str(types.Method, "SaveUnbondingAndUnBondedValidators").Err(err).Msg("unmarshal unbondingValidators error")
 	}
 
 	// sort out bondedValidators by highest tokens
@@ -118,10 +107,10 @@ func SaveUnbondingAndUnBondedValidators(db *pg.DB, config *config.Config) {
 	})
 
 	// validators information for our database table
-	validatorInfo := make([]*dtypes.ValidatorInfo, 0)
+	validatorInfo := make([]*types.ValidatorInfo, 0)
 	if len(unbondingValidators) > 0 {
 		for _, unbondingValidator := range unbondingValidators {
-			tempValidatorInfo := &dtypes.ValidatorInfo{
+			tempValidatorInfo := &types.ValidatorInfo{
 				OperatorAddress:      unbondingValidator.OperatorAddress,
 				Address:              utils.AccAddressFromOperatorAddress(unbondingValidator.OperatorAddress),
 				ConsensusPubkey:      unbondingValidator.ConsensusPubkey,
@@ -147,7 +136,7 @@ func SaveUnbondingAndUnBondedValidators(db *pg.DB, config *config.Config) {
 	}
 
 	// ranking
-	var rankInfo dtypes.ValidatorInfo
+	var rankInfo types.ValidatorInfo
 	_ = db.Model(&rankInfo).
 		Where("status = ?", 2).
 		Order("rank DESC").
@@ -193,18 +182,12 @@ func SaveUnbondingAndUnBondedValidators(db *pg.DB, config *config.Config) {
 
 // saveUnbondedValidators saves unbonded validators information in database
 func saveUnbondedValidators(db *pg.DB, config *config.Config) {
-	unbondedResp, err := resty.R().Get(config.Node.LCDURL + "/staking/validators?status=unbonded")
-	if err != nil {
-		fmt.Printf("Query /staking/validators?status=unbonded error - %v\n", err)
-	}
+	resp, _ := resty.R().Get(config.Node.LCDURL + "/staking/validators?status=unbonded")
 
-	var responseWithHeightUnbonded dtypes.ResponseWithHeight
-	_ = json.Unmarshal(unbondedResp.Body(), &responseWithHeightUnbonded)
-
-	var unbondedValidators []*dtypes.Validator
-	err = json.Unmarshal(responseWithHeightUnbonded.Result, &unbondedValidators)
+	var unbondedValidators []*types.Validator
+	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &unbondedValidators)
 	if err != nil {
-		fmt.Printf("unmarshal unbondedValidators error - %v\n", err)
+		log.Info().Str(types.Service, types.LogValidator).Str(types.Method, "saveUnbondedValidators").Err(err).Msg("unmarshal unbondedValidators error")
 	}
 
 	// sort out bondedValidators by highest tokens
@@ -215,10 +198,10 @@ func saveUnbondedValidators(db *pg.DB, config *config.Config) {
 	})
 
 	// validators information for our database table
-	validatorInfo := make([]*dtypes.ValidatorInfo, 0)
+	validatorInfo := make([]*types.ValidatorInfo, 0)
 	if len(unbondedValidators) > 0 {
 		for _, unbondedValidator := range unbondedValidators {
-			tempValidatorInfo := &dtypes.ValidatorInfo{
+			tempValidatorInfo := &types.ValidatorInfo{
 				OperatorAddress:      unbondedValidator.OperatorAddress,
 				Address:              utils.AccAddressFromOperatorAddress(unbondedValidator.OperatorAddress),
 				ConsensusPubkey:      unbondedValidator.ConsensusPubkey,
@@ -244,7 +227,7 @@ func saveUnbondedValidators(db *pg.DB, config *config.Config) {
 	}
 
 	// ranking
-	var rankInfo dtypes.ValidatorInfo
+	var rankInfo types.ValidatorInfo
 	_ = db.Model(&rankInfo).
 		Where("status = ?", 1).
 		Order("rank DESC").
