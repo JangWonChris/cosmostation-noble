@@ -6,9 +6,10 @@ import (
 	"strconv"
 
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
-	dtypes "github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 
 	"github.com/go-pg/pg"
+	"github.com/rs/zerolog/log"
 	resty "gopkg.in/resty.v1"
 )
 
@@ -19,20 +20,14 @@ func SaveProposals(db *pg.DB, config *config.Config) {
 		fmt.Printf("query /gov/proposals error - %v\n", err)
 	}
 
-	var responseWithHeight dtypes.ResponseWithHeight
-	err = json.Unmarshal(resp.Body(), &responseWithHeight)
+	proposals := make([]*types.Proposal, 0)
+	err = json.Unmarshal(types.ReadRespWithHeight(resp).Result, &proposals)
 	if err != nil {
-		fmt.Printf("unmarshal proposals error - %v\n", err)
-	}
-
-	proposals := make([]*dtypes.Proposal, 0)
-	err = json.Unmarshal(responseWithHeight.Result, &proposals)
-	if err != nil {
-		fmt.Printf("unmarshal proposals error - %v\n", err)
+		log.Info().Str(types.Service, types.LogGovernance).Str(types.Method, "SaveProposals").Err(err).Msg("unmarshal proposals error")
 	}
 
 	// proposal information for our database table
-	proposalInfo := make([]*dtypes.ProposalInfo, 0)
+	proposalInfo := make([]*types.ProposalInfo, 0)
 	if len(proposals) > 0 {
 		for _, proposal := range proposals {
 			proposalID, _ := strconv.ParseInt(proposal.ID, 10, 64)
@@ -45,25 +40,23 @@ func SaveProposals(db *pg.DB, config *config.Config) {
 			}
 
 			tallyResp, _ := resty.R().Get(config.Node.LCDURL + "/gov/proposals/" + proposal.ID + "/tally")
-			var responseWithHeight dtypes.ResponseWithHeight
-			_ = json.Unmarshal(tallyResp.Body(), &responseWithHeight)
 
-			var tallyInfo dtypes.TallyInfo
-			err = json.Unmarshal(responseWithHeight.Result, &tallyInfo)
+			var tally types.TallyInfo
+			err = json.Unmarshal(types.ReadRespWithHeight(tallyResp).Result, &tally)
 			if err != nil {
-				fmt.Printf("unmarshal tallyInfo error - %v\n", err)
+				log.Info().Str(types.Service, types.LogGovernance).Str(types.Method, "SaveProposals").Err(err).Msg("unmarshal tally error")
 			}
 
-			tempProposalInfo := &dtypes.ProposalInfo{
+			tempProposalInfo := &types.ProposalInfo{
 				ID:                 proposalID,
 				Title:              proposal.Content.Value.Title,
 				Description:        proposal.Content.Value.Description,
 				ProposalType:       proposal.Content.Type,
 				ProposalStatus:     proposal.ProposalStatus,
-				Yes:                tallyInfo.Yes,
-				Abstain:            tallyInfo.Abstain,
-				No:                 tallyInfo.No,
-				NoWithVeto:         tallyInfo.NoWithVeto,
+				Yes:                tally.Yes,
+				Abstain:            tally.Abstain,
+				No:                 tally.No,
+				NoWithVeto:         tally.NoWithVeto,
 				SubmitTime:         proposal.SubmitTime,
 				DepositEndtime:     proposal.DepositEndTime,
 				TotalDepositAmount: totalDepositAmount,
@@ -78,7 +71,7 @@ func SaveProposals(db *pg.DB, config *config.Config) {
 
 	// update proposerInfo
 	if len(proposalInfo) > 0 {
-		var tempProposalInfo dtypes.ProposalInfo
+		var tempProposalInfo types.ProposalInfo
 		for i := 0; i < len(proposalInfo); i++ {
 			// check if a validator already voted
 			count, _ := db.Model(&tempProposalInfo).

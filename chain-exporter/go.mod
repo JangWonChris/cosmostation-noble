@@ -7,6 +7,7 @@ require (
 	github.com/cosmos/gaia v0.0.0-20190920230642-8e4910eb3c02
 	github.com/go-pg/pg v8.0.4+incompatible
 	github.com/jinzhu/inflection v1.0.0 // indirect
+	github.com/rs/zerolog v1.17.2
 	github.com/spf13/viper v1.4.0
 	github.com/tendermint/tendermint v0.32.7
 	google.golang.org/appengine v1.4.0 // indirect
