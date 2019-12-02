@@ -2,7 +2,6 @@ package services
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/config"
@@ -11,13 +10,13 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/utils"
 
 	"github.com/go-pg/pg"
+	"github.com/rs/zerolog/log"
 	"github.com/tendermint/tendermint/rpc/client"
 	resty "gopkg.in/resty.v1"
 )
 
-// GetMarketInfo returns marketInfo
-func GetMarketInfo(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
-	// a number of price data to show in a chart
+// GetMarketStats returns marketInfo
+func GetMarketStats(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	limit := 24
 
 	// query current price
@@ -26,10 +25,10 @@ func GetMarketInfo(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w h
 	var coinGeckoMarket types.CoinGeckoMarket
 	err := json.Unmarshal(resp.Body(), &coinGeckoMarket)
 	if err != nil {
-		fmt.Printf("unmarshal CoinGeckoMarket error - %v\n", err)
+		log.Info().Str(models.Service, models.Statistics).Str(models.Method, "GetMarketStats").Err(err).Msg("unmarshal coinGeckoMarket error")
 	}
 
-	// Query price chart
+	// query price chart
 	var statsCoingeckoMarket1H []types.StatsCoingeckoMarket1H
 	_ = db.Model(&statsCoingeckoMarket1H).
 		Order("id DESC").
@@ -37,6 +36,7 @@ func GetMarketInfo(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w h
 		Select()
 
 	priceStats := make([]*models.PriceStats, 0)
+
 	for _, market := range statsCoingeckoMarket1H {
 		tempPriceStats := &models.PriceStats{
 			Price: market.Price,
@@ -65,7 +65,6 @@ func GetMarketInfo(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w h
 
 // GetNetworkStats returns network stats
 func GetNetworkStats(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
-	// a number of price data to show in a chart
 	limit := 24
 
 	// query bonded tokens chart

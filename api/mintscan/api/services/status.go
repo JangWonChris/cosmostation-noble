@@ -12,11 +12,14 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/utils"
 
 	"github.com/go-pg/pg"
+	"github.com/rs/zerolog/log"
 	"github.com/tendermint/tendermint/rpc/client"
 	resty "gopkg.in/resty.v1"
 )
 
 /*
+	[Vesting]
+
 	아래 두 기관에 분배된 토큰 수량 - 236,198,958.12
 
 		All in Bits Inc
@@ -35,19 +38,13 @@ import (
 
 // GetStatus returns ResultStatus, which includes current network status
 func GetStatus(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
-	// staking pool - bonded and not bonded tokens
 	resp, _ := resty.R().Get(config.Node.LCDURL + "/staking/pool")
 
-	var responseWithHeight types.ResponseWithHeight
-	err := json.Unmarshal(resp.Body(), &responseWithHeight)
-	if err != nil {
-		fmt.Printf("unmarshal responseWithHeight error - %v\n", err)
-	}
-
 	var pool models.Pool
-	err = json.Unmarshal(responseWithHeight.Result, &pool)
+	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &pool)
 	if err != nil {
 		fmt.Printf("staking/pool unmarshal pool error - %v\n", err)
+		log.Info().Str(models.Service, models.Status).Str(models.Method, "GetStatus").Err(err).Msg("unmarshal pool error")
 	}
 
 	notBondedTokens, err := strconv.ParseFloat(pool.NotBondedTokens, 64)

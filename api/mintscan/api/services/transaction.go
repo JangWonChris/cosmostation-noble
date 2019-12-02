@@ -26,22 +26,21 @@ import (
 
 // GetTxs returns latest transactions
 func GetTxs(codec *codec.Codec, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
-	// Declare default variables
 	limit := int(10)
 	from := int(1)
 
-	// Check limit param
+	// check limit param
 	if len(r.URL.Query()["limit"]) > 0 {
 		limit, _ = strconv.Atoi(r.URL.Query()["limit"][0])
 	}
 
-	// Max limit
+	// check max limit
 	if limit > 20 {
 		errors.ErrOverMaxLimit(w, http.StatusRequestEntityTooLarge)
 		return nil
 	}
 
-	// Check from param
+	// check from param
 	if len(r.URL.Query()["from"]) > 0 {
 		from, _ = strconv.Atoi(r.URL.Query()["from"][0])
 	} else {
@@ -56,7 +55,7 @@ func GetTxs(codec *codec.Codec, db *pg.DB, rpcClient *client.HTTP, w http.Respon
 		}
 	}
 
-	// Query a number of txs
+	// query a number of txs
 	transactionInfos := make([]*types.TransactionInfo, 0)
 	_ = db.Model(&transactionInfos).
 		Where("height <= ?", from).
@@ -64,7 +63,7 @@ func GetTxs(codec *codec.Codec, db *pg.DB, rpcClient *client.HTTP, w http.Respon
 		Order("height DESC").
 		Select()
 
-	// Check if any transaction exists
+	// check if any transaction exists
 	if len(transactionInfos) <= 0 {
 		return json.NewEncoder(w).Encode(transactionInfos)
 	}
@@ -85,24 +84,21 @@ func GetTxs(codec *codec.Codec, db *pg.DB, rpcClient *client.HTTP, w http.Respon
 
 // GetTx receives transaction hash and returns that transaction
 func GetTx(codec *codec.Codec, config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
-	// Get transaction hash
 	vars := mux.Vars(r)
 	txHexStr := vars["hash"]
 
-	// If txHexStr contains 0x, remove it
+	// check if txHexStr contains 0x, remove it
 	if strings.Contains(txHexStr, "0x") {
 		txHexStr = txHexStr[2:]
 	}
 
-	// Transaction length check
+	// check tx length
 	if len(txHexStr) != 64 {
 		errors.ErrInvalidFormat(w, http.StatusBadRequest)
 	}
 
-	// Query LCD
 	resp, _ := resty.R().Get(config.Node.LCDURL + "/txs/" + txHexStr)
 
-	// Parse struct
 	var generalTx types.GeneralTx
 	err := json.Unmarshal(resp.Body(), &generalTx)
 	if err != nil {
@@ -115,23 +111,21 @@ func GetTx(codec *codec.Codec, config *config.Config, db *pg.DB, rpcClient *clie
 
 // BroadcastTx sends transaction
 func BroadcastTx(codec *codec.Codec, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
-	// Get transaction hash
 	vars := mux.Vars(r)
 	txHexStr := vars["hash"]
 
-	// If txHexStr contains 0x, remove it
+	// check if txHexStr contains 0x, remove it
 	if strings.Contains(txHexStr, "0x") {
 		txHexStr = txHexStr[2:]
 	}
 
-	// Convert from hexadecimal string to bytes
+	// convert to bytes
 	txByteStr, err := hex.DecodeString(txHexStr)
 	if err != nil {
 		errors.ErrFailedConversion(w, http.StatusBadRequest)
 		return nil
 	}
 
-	// Unmarshalling JSON
 	var stdTx auth.StdTx
 	err = codec.UnmarshalJSON(txByteStr, &stdTx)
 	if err != nil {
@@ -139,14 +133,12 @@ func BroadcastTx(codec *codec.Codec, rpcClient *client.HTTP, w http.ResponseWrit
 		return nil
 	}
 
-	// Marshalling binary length prefix
 	bz, err := codec.MarshalBinaryLengthPrefixed(stdTx)
 	if err != nil {
 		errors.ErrFailedMarshalBinaryLengthPrefixed(w, http.StatusBadRequest)
 		return nil
 	}
 
-	// Broadcast transaction
 	result, err := rpcClient.BroadcastTxCommit(bz)
 	if err != nil {
 		return nil

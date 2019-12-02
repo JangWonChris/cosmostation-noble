@@ -8,6 +8,7 @@ require (
 	github.com/go-pg/pg v8.0.4+incompatible
 	github.com/gorilla/mux v1.7.3
 	github.com/jinzhu/inflection v1.0.0 // indirect
+	github.com/rs/zerolog v1.17.2
 	github.com/spf13/viper v1.4.0
 	github.com/tendermint/tendermint v0.32.7
 	gopkg.in/resty.v1 v1.12.0

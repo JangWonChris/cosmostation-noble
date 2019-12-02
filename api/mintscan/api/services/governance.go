@@ -2,7 +2,6 @@ package services
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/cosmostation/cosmostation-cosmos/api/mintscan/api/config"
@@ -16,26 +15,28 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/tendermint/tendermint/libs/bech32"
 	resty "gopkg.in/resty.v1"
+
+	"github.com/rs/zerolog/log"
 )
 
 // GetProposals returns all existing proposals
 func GetProposals(db *pg.DB, config *config.Config, w http.ResponseWriter, r *http.Request) error {
-	// Query all proposals
 	proposalInfo := make([]*types.ProposalInfo, 0)
 	_ = db.Model(&proposalInfo).Select()
 
-	// Check if any proposal exists
+	// check if any proposal exists
 	if len(proposalInfo) <= 0 {
 		return json.NewEncoder(w).Encode(proposalInfo)
 	}
 
 	resultProposal := make([]*models.ResultProposal, 0)
+
 	for _, proposal := range proposalInfo {
-		// Convert Cosmos Address to Opeartor Address
+		// convert to validator operator address
 		_, decoded, _ := bech32.DecodeAndConvert(proposal.Proposer)
 		cosmosOperAddress, _ := bech32.ConvertAndEncode(sdk.Bech32PrefixValAddr, decoded)
 
-		// Check if the address matches any moniker in our DB
+		// check if the address matches any moniker in our database
 		var validatorInfo types.ValidatorInfo
 		_ = db.Model(&validatorInfo).
 			Column("moniker").
@@ -43,7 +44,7 @@ func GetProposals(db *pg.DB, config *config.Config, w http.ResponseWriter, r *ht
 			Limit(1).
 			Select()
 
-		// Insert proposal data
+		// insert proposal data
 		tempProposal := &models.ResultProposal{
 			ProposalID:           proposal.ID,
 			TxHash:               proposal.TxHash,
@@ -75,11 +76,10 @@ func GetProposals(db *pg.DB, config *config.Config, w http.ResponseWriter, r *ht
 
 // GetProposal receives proposal id and returns particular proposal
 func GetProposal(db *pg.DB, config *config.Config, w http.ResponseWriter, r *http.Request) error {
-	// Receive proposal id
 	vars := mux.Vars(r)
 	proposalID := vars["proposalId"]
 
-	// Query particular proposal
+	// query particular proposal
 	var proposalInfo types.ProposalInfo
 	err := db.Model(&proposalInfo).
 		Where("id = ?", proposalID).
@@ -89,11 +89,11 @@ func GetProposal(db *pg.DB, config *config.Config, w http.ResponseWriter, r *htt
 		return nil
 	}
 
-	// Convert Cosmos Address to Opeartor Address
+	// convert to validator operator address
 	_, decoded, _ := bech32.DecodeAndConvert(proposalInfo.Proposer)
 	cosmosOperAddress, _ := bech32.ConvertAndEncode(sdk.Bech32PrefixValAddr, decoded)
 
-	// Check if the address matches any moniker in our DB
+	// check if the address matches any moniker in our DB
 	var validatorInfo types.ValidatorInfo
 	_ = db.Model(&validatorInfo).
 		Column("moniker").
@@ -128,8 +128,8 @@ func GetProposal(db *pg.DB, config *config.Config, w http.ResponseWriter, r *htt
 	return nil
 }
 
-// GetProposalVotes receives proposal id and returns voting information
-func GetProposalVotes(db *pg.DB, config *config.Config, w http.ResponseWriter, r *http.Request) error {
+// GetVotes receives proposal id and returns voting information
+func GetVotes(db *pg.DB, config *config.Config, w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	proposalID := vars["proposalId"]
 
@@ -190,23 +190,17 @@ func GetProposalVotes(db *pg.DB, config *config.Config, w http.ResponseWriter, r
 	// query tally information
 	resp, err := resty.R().Get(config.Node.LCDURL + "/gov/proposals/" + proposalID + "/tally")
 
-	var responseWithHeight types.ResponseWithHeight
-	err = json.Unmarshal(resp.Body(), &responseWithHeight)
+	var tally types.Tally
+	err = json.Unmarshal(types.ReadRespWithHeight(resp).Result, &tally)
 	if err != nil {
-		fmt.Printf("unmarshal responseWithHeight error - %v\n", err)
-	}
-
-	var tallyInfo types.Tally
-	err = json.Unmarshal(responseWithHeight.Result, &tallyInfo)
-	if err != nil {
-		fmt.Printf("Proposal unmarshal error - %v\n", err)
+		log.Info().Str(models.Service, models.Governance).Str(models.Method, "GetVotes").Err(err).Msg("unmarshal tally error")
 	}
 
 	tempResultTally := &models.ResultTally{
-		YesAmount:        tallyInfo.Yes,
-		NoAmount:         tallyInfo.No,
-		AbstainAmount:    tallyInfo.Abstain,
-		NoWithVetoAmount: tallyInfo.NoWithVeto,
+		YesAmount:        tally.Yes,
+		NoAmount:         tally.No,
+		AbstainAmount:    tally.Abstain,
+		NoWithVetoAmount: tally.NoWithVeto,
 		YesNum:           yesCnt,
 		AbstainNum:       abstainCnt,
 		NoNum:            noCnt,
@@ -222,8 +216,8 @@ func GetProposalVotes(db *pg.DB, config *config.Config, w http.ResponseWriter, r
 	return nil
 }
 
-// GetProposalDeposits receives proposal id and returns deposit information
-func GetProposalDeposits(db *pg.DB, w http.ResponseWriter, r *http.Request) error {
+// GetDeposits receives proposal id and returns deposit information
+func GetDeposits(db *pg.DB, w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	proposalID := vars["proposalId"]
 
@@ -251,7 +245,6 @@ func GetProposalDeposits(db *pg.DB, w http.ResponseWriter, r *http.Request) erro
 		return json.NewEncoder(w).Encode(resultDepositInfo)
 	}
 
-	// deposits
 	for _, deposit := range depositInfo {
 		moniker, _ := utils.ConvertCosmosAddressToMoniker(deposit.Depositor, db)
 

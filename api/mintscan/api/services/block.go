@@ -16,22 +16,21 @@ import (
 
 // GetBlocks returns latest blocks
 func GetBlocks(db *pg.DB, w http.ResponseWriter, r *http.Request) error {
-	// Declare default variables
 	limit := int(100)
 	afterBlock := int(1)
 
-	// Check limit param
+	// check limit param
 	if len(r.URL.Query()["limit"]) > 0 {
 		limit, _ = strconv.Atoi(r.URL.Query()["limit"][0])
 	}
 
-	// Check max limit
+	// check max limit
 	if limit > 100 {
 		errors.ErrOverMaxLimit(w, http.StatusUnauthorized)
 		return nil
 	}
 
-	// Check afterBlock param
+	// check afterBlock param
 	if len(r.URL.Query()["afterBlock"]) > 0 {
 		afterBlock, _ = strconv.Atoi(r.URL.Query()["afterBlock"][0])
 	} else {
@@ -47,7 +46,7 @@ func GetBlocks(db *pg.DB, w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 
-	// Query a number of blocks in an ascending order
+	// query a number of blocks in an ascending order
 	var blockInfos []dbtypes.BlockInfo
 	_ = db.Model(&blockInfos).
 		Where("height > ?", afterBlock).
@@ -55,7 +54,7 @@ func GetBlocks(db *pg.DB, w http.ResponseWriter, r *http.Request) error {
 		Order("id ASC").
 		Select()
 
-	// Check if blocks exists
+	// check if blocks exists
 	if len(blockInfos) <= 0 {
 		errors.ErrNotExist(w, http.StatusNotFound)
 		return nil
@@ -63,19 +62,19 @@ func GetBlocks(db *pg.DB, w http.ResponseWriter, r *http.Request) error {
 
 	resultBlock := make([]*models.ResultBlock, 0)
 	for _, blockInfo := range blockInfos {
-		// Query validator information using proposer address
+		// query validator information using proposer address
 		var validatorInfo dbtypes.ValidatorInfo
 		_ = db.Model(&validatorInfo).
 			Where("proposer = ?", blockInfo.Proposer).
 			Select()
 
-		// Query transactions in the block
+		// query transactions in the block
 		var transactionInfos []dbtypes.TransactionInfo
 		_ = db.Model(&transactionInfos).
 			Where("height = ?", blockInfo.Height).
 			Select()
 
-		// Append transactions
+		// append transactions
 		var txData models.TxData
 		for _, transactionInfo := range transactionInfos {
 			txData.Txs = append(txData.Txs, transactionInfo.TxHash)
@@ -101,38 +100,34 @@ func GetBlocks(db *pg.DB, w http.ResponseWriter, r *http.Request) error {
 
 // GetProposedBlocksByAddress returns proposed blocks by querying any type of address
 func GetProposedBlocks(db *pg.DB, w http.ResponseWriter, r *http.Request) error {
-	// Receive address
 	vars := mux.Vars(r)
 	address := vars["address"]
 
-	// Change to proposer address format
+	// convert to proposer address format
 	validatorInfo, _ := utils.ConvertToProposerSlice(address, db)
 
-	// Check the address by length of validatorInfo
 	if len(validatorInfo) <= 0 {
 		errors.ErrNotExist(w, http.StatusNotFound)
 		return nil
 	}
 
-	// Proposer Address
 	address = validatorInfo[0].Proposer
 
-	// Declare default variables
 	limit := int(100)
 	from := int(0)
 
-	// Check limit param
+	// check limit param
 	if len(r.URL.Query()["limit"]) > 0 {
 		limit, _ = strconv.Atoi(r.URL.Query()["limit"][0])
 	}
 
-	// Check max limit
+	// check max limit
 	if limit > 100 {
 		errors.ErrOverMaxLimit(w, http.StatusRequestedRangeNotSatisfiable)
 		return nil
 	}
 
-	// Check from param
+	// check from param
 	if len(r.URL.Query()["from"]) > 0 {
 		from, _ = strconv.Atoi(r.URL.Query()["from"][0])
 	} else {
@@ -148,7 +143,7 @@ func GetProposedBlocks(db *pg.DB, w http.ResponseWriter, r *http.Request) error 
 		}
 	}
 
-	// Query blocks
+	// query blocks
 	blockInfos := make([]*dbtypes.BlockInfo, 0)
 	_ = db.Model(&blockInfos).
 		Where("height < ? AND proposer = ?", from, address).
@@ -156,32 +151,31 @@ func GetProposedBlocks(db *pg.DB, w http.ResponseWriter, r *http.Request) error 
 		Order("height DESC").
 		Select()
 
-	// Check if blocks exists
+	// check if blocks exists
 	if len(blockInfos) <= 0 {
 		return json.NewEncoder(w).Encode(blockInfos)
 	}
 
-	// Query total number of proposer blocks
+	// query total number of proposer blocks
 	totalNumProposerBlocks, _ := db.Model(&blockInfos).
 		Where("proposer = ?", address).
 		Count()
 
 	resultBlocksByOperatorAddress := make([]*models.ResultBlocksByOperatorAddress, 0)
 	for _, blockInfo := range blockInfos {
-		// Query validator information
 		var validatorInfo dbtypes.ValidatorInfo
 		_ = db.Model(&validatorInfo).
 			Where("proposer = ?", blockInfo.Proposer).
 			Select()
 
-		// Query a number of txs
+		// query a number of txs
 		var transactionInfos []dbtypes.TransactionInfo
 		_ = db.Model(&transactionInfos).
 			Column("tx_hash").
 			Where("height = ?", blockInfo.Height).
 			Select()
 
-		// Append transactions
+		// append transactions
 		var txData models.TxData
 		for _, transactionInfo := range transactionInfos {
 			txData.Txs = append(txData.Txs, transactionInfo.TxHash)

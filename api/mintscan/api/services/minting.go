@@ -2,7 +2,6 @@ package services
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -15,19 +14,12 @@ import (
 	resty "gopkg.in/resty.v1"
 )
 
-// GetMintingInflation returns minting parameters
+// GetMintingInflation returns minting inflation rate
 func GetMintingInflation(config *config.Config, db *pg.DB, w http.ResponseWriter, r *http.Request) error {
-	// Query inflation
 	resp, _ := resty.R().Get(config.Node.LCDURL + "/minting/inflation")
 
-	var responseWithHeight types.ResponseWithHeight
-	err := json.Unmarshal(resp.Body(), &responseWithHeight)
-	if err != nil {
-		fmt.Printf("unmarshal responseWithHeight error - %v\n", err)
-	}
-
 	var tempInflation string
-	_ = json.Unmarshal(responseWithHeight.Result, &tempInflation)
+	_ = json.Unmarshal(types.ReadRespWithHeight(resp).Result, &tempInflation)
 
 	inflation, _ := strconv.ParseFloat(tempInflation, 64)
 

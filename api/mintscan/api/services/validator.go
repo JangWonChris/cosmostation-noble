@@ -19,14 +19,14 @@ import (
 	"github.com/tendermint/tendermint/rpc/client"
 
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/rs/zerolog/log"
 )
 
 // GetValidators returns all existing validators
 func GetValidators(db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
-	// Query all validators order by their tokens
 	validatorInfo := make([]*types.ValidatorInfo, 0)
 
-	// Check status param
+	// check status param
 	statusParam := r.FormValue("status")
 	switch statusParam {
 	case "":
@@ -119,14 +119,12 @@ func GetValidators(db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *
 
 // GetValidator receives validator address and returns that validator
 func GetValidator(db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
-	// Receive address
 	vars := mux.Vars(r)
 	address := vars["address"]
 
-	// Convert to proposer address format
 	validatorInfo, _ := utils.ConvertToProposer(address, db)
 
-	// Check if the input validator address exists
+	// check if the input validator address exists
 	if validatorInfo.Proposer == "" {
 		errors.ErrNotExist(w, http.StatusNotFound)
 		return nil
@@ -142,7 +140,7 @@ func GetValidator(db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *h
 
 	var missBlockCount int
 
-	// if a validator is jailed, missing block is 100
+	// check if a validator is jailed, missing block is 100
 	if validatorInfo.Jailed {
 		missBlockCount = 100
 	} else {
@@ -158,7 +156,7 @@ func GetValidator(db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *h
 		OverBlocks:   100,
 	}
 
-	// Validator's bonded height and its timestamp
+	// validator's bonded height and its timestamp
 	var validatorSetInfo types.ValidatorSetInfo
 	_ = db.Model(&validatorSetInfo).
 		Where("proposer = ? AND event_type = ?", validatorInfo.Proposer, "create_validator").
@@ -195,23 +193,21 @@ func GetValidator(db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *h
 
 // GetValidatorBlockMisses receives validator address and returns the validator's block consencutive misses
 func GetValidatorBlockMisses(db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
-	// Receive address
 	vars := mux.Vars(r)
 	address := vars["address"]
 
-	// Change to proposer address format
+	// convert to proposer address format
 	validatorInfo, _ := utils.ConvertToProposerSlice(address, db)
 
-	// Check if the validator address exists
+	// check if the validator address exists
 	if len(validatorInfo) <= 0 {
 		errors.ErrNotExist(w, http.StatusNotFound)
 		return nil
 	}
 
-	// Validator's proposer address
 	address = validatorInfo[0].Proposer
 
-	// Query a validator's missing blocks
+	// query a validator's missing blocks
 	var missInfos []types.MissInfo
 	err := db.Model(&missInfos).
 		Where("address = ?", address).
@@ -300,28 +296,26 @@ func GetValidatorBlockMissesDetail(db *pg.DB, rpcClient *client.HTTP, w http.Res
 
 // GetValidatorEvents receives validator address and returns the validator's events
 func GetValidatorEvents(db *pg.DB, w http.ResponseWriter, r *http.Request) error {
-	// Receive Address
 	vars := mux.Vars(r)
 	address := vars["address"]
 
-	// Define default variables
 	limit := int(50)
 	from := int(1)
 
-	// Check limit param
+	// check limit param
 	tempLimit := r.URL.Query()["limit"]
 	if len(tempLimit) > 0 {
 		tempLimit, _ := strconv.Atoi(tempLimit[0])
 		limit = tempLimit
 	}
 
-	// Max Limit
+	// check max Limit
 	if limit > 50 {
 		errors.ErrOverMaxLimit(w, http.StatusRequestedRangeNotSatisfiable)
 		return nil
 	}
 
-	// Check from param
+	// check from param
 	tempFrom := r.URL.Query()["from"]
 	if len(tempFrom) > 0 {
 		tempFrom, _ := strconv.Atoi(tempFrom[0])
@@ -336,19 +330,17 @@ func GetValidatorEvents(db *pg.DB, w http.ResponseWriter, r *http.Request) error
 		from = int(blocks.Height)
 	}
 
-	// Change to proposer address format
 	validatorInfo, _ := utils.ConvertToProposerSlice(address, db)
 
-	// Check if the input validator address exists
+	// check if the input validator address exists
 	if len(validatorInfo) <= 0 {
 		errors.ErrNotExist(w, http.StatusNotFound)
 		return nil
 	}
 
-	// Address
 	address = validatorInfo[0].Proposer
 
-	// Query id_validator
+	// query id_validator
 	var idValidatorSetInfo types.ValidatorSetInfo
 	_ = db.Model(&idValidatorSetInfo).
 		Column("id_validator").
@@ -399,16 +391,10 @@ func GetRedelegations(config *config.Config, db *pg.DB, w http.ResponseWriter, r
 
 	resp, _ := resty.R().Get(config.Node.LCDURL + endpoint)
 
-	var responseWithHeight types.ResponseWithHeight
-	err := json.Unmarshal(resp.Body(), &responseWithHeight)
-	if err != nil {
-		fmt.Printf("unmarshal responseWithHeight error - %v\n", err)
-	}
-
 	var redelegations []types.Redelegations
-	err = json.Unmarshal(responseWithHeight.Result, &redelegations)
+	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &redelegations)
 	if err != nil {
-		fmt.Printf("staking/redelegations? unmarshal error - %v, endpoint - %v\n", err, endpoint)
+		log.Info().Str(models.Service, models.Validator).Str(models.Method, "GetRedelegations").Err(err).Msg("unmarshal redelegations error")
 	}
 
 	utils.Respond(w, redelegations)
@@ -420,7 +406,6 @@ func GetValidatorDelegations(codec *codec.Codec, config *config.Config, db *pg.D
 	vars := mux.Vars(r)
 	operatorAddress := vars["address"]
 
-	// change to proposer address format
 	validatorInfo, _ := utils.ConvertToProposer(operatorAddress, db)
 
 	// check if the validator address exists
@@ -432,16 +417,10 @@ func GetValidatorDelegations(codec *codec.Codec, config *config.Config, db *pg.D
 	// query all delegations of the validator
 	resp, _ := resty.R().Get(config.Node.LCDURL + "/staking/validators/" + validatorInfo.OperatorAddress + "/delegations")
 
-	var responseWithHeight types.ResponseWithHeight
-	err := json.Unmarshal(resp.Body(), &responseWithHeight)
-	if err != nil {
-		fmt.Printf("unmarshal responseWithHeight error - %v\n", err)
-	}
-
 	var delegations []*types.ValidatorDelegations
-	err = json.Unmarshal(responseWithHeight.Result, &delegations)
+	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &delegations)
 	if err != nil {
-		fmt.Printf("staking/validators/{address}/delegations unmarshal error - %v\n", err)
+		log.Info().Str(models.Service, models.Validator).Str(models.Method, "GetValidatorDelegations").Err(err).Msg("unmarshal delegations error")
 	}
 
 	// validator's token divide by delegator_shares equals amount of uatom
