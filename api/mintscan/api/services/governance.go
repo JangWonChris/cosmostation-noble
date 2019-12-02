@@ -193,7 +193,7 @@ func GetVotes(db *pg.DB, config *config.Config, w http.ResponseWriter, r *http.R
 	var tally types.Tally
 	err = json.Unmarshal(types.ReadRespWithHeight(resp).Result, &tally)
 	if err != nil {
-		log.Info().Str(models.Service, models.Governance).Str(models.Method, "GetVotes").Err(err).Msg("unmarshal tally error")
+		log.Info().Str(models.Service, models.LogGovernance).Str(models.Method, "GetVotes").Err(err).Msg("unmarshal tally error")
 	}
 
 	tempResultTally := &models.ResultTally{

@@ -44,7 +44,7 @@ func GetStatus(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.
 	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &pool)
 	if err != nil {
 		fmt.Printf("staking/pool unmarshal pool error - %v\n", err)
-		log.Info().Str(models.Service, models.Status).Str(models.Method, "GetStatus").Err(err).Msg("unmarshal pool error")
+		log.Info().Str(models.Service, models.LogStatus).Str(models.Method, "GetStatus").Err(err).Msg("unmarshal pool error")
 	}
 
 	notBondedTokens, err := strconv.ParseFloat(pool.NotBondedTokens, 64)

@@ -394,7 +394,7 @@ func GetRedelegations(config *config.Config, db *pg.DB, w http.ResponseWriter, r
 	var redelegations []types.Redelegations
 	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &redelegations)
 	if err != nil {
-		log.Info().Str(models.Service, models.Validator).Str(models.Method, "GetRedelegations").Err(err).Msg("unmarshal redelegations error")
+		log.Info().Str(models.Service, models.LogValidator).Str(models.Method, "GetRedelegations").Err(err).Msg("unmarshal redelegations error")
 	}
 
 	utils.Respond(w, redelegations)
@@ -420,7 +420,7 @@ func GetValidatorDelegations(codec *codec.Codec, config *config.Config, db *pg.D
 	var delegations []*types.ValidatorDelegations
 	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &delegations)
 	if err != nil {
-		log.Info().Str(models.Service, models.Validator).Str(models.Method, "GetValidatorDelegations").Err(err).Msg("unmarshal delegations error")
+		log.Info().Str(models.Service, models.LogValidator).Str(models.Method, "GetValidatorDelegations").Err(err).Msg("unmarshal delegations error")
 	}
 
 	// validator's token divide by delegator_shares equals amount of uatom

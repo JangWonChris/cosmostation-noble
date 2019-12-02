@@ -43,7 +43,7 @@ func GetBalance(codec *codec.Codec, config *config.Config, db *pg.DB, rpcClient 
 	var balances []models.Coin
 	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &balances)
 	if err != nil {
-		log.Info().Str(models.Service, models.Account).Str(models.Method, "GetBalance").Err(err).Msg("unmarshal balances error")
+		log.Info().Str(models.Service, models.LogAccount).Str(models.Method, "GetBalance").Err(err).Msg("unmarshal balances error")
 	}
 
 	result := make([]models.Coin, 0)
@@ -75,7 +75,7 @@ func GetDelegationsRewards(codec *codec.Codec, config *config.Config, db *pg.DB,
 	var resultRewards models.ResultRewards
 	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &resultRewards)
 	if err != nil {
-		log.Info().Str(models.Service, models.Account).Str(models.Method, "GetDelegationsRewards").Err(err).Msg("unmarshal resultRewards error")
+		log.Info().Str(models.Service, models.LogAccount).Str(models.Method, "GetDelegationsRewards").Err(err).Msg("unmarshal resultRewards error")
 	}
 
 	resultDelegatorRewards := make([]models.Rewards, 0)
@@ -126,7 +126,7 @@ func GetDelegations(codec *codec.Codec, config *config.Config, db *pg.DB, rpcCli
 	delegations := make([]models.Delegations, 0)
 	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &delegations)
 	if err != nil {
-		log.Info().Str(models.Service, models.Account).Str(models.Method, "GetDelegations").Err(err).Msg("unmarshal delegations error")
+		log.Info().Str(models.Service, models.LogAccount).Str(models.Method, "GetDelegations").Err(err).Msg("unmarshal delegations error")
 	}
 
 	resultDelegations := make([]models.ResultDelegations, 0)
@@ -145,7 +145,7 @@ func GetDelegations(codec *codec.Codec, config *config.Config, db *pg.DB, rpcCli
 			var rewards []models.Coin
 			err = json.Unmarshal(types.ReadRespWithHeight(rewardsResp).Result, &rewards)
 			if err != nil {
-				log.Info().Str(models.Service, models.Account).Str(models.Method, "GetDelegations").Err(err).Msg("unmarshal rewards error")
+				log.Info().Str(models.Service, models.LogAccount).Str(models.Method, "GetDelegations").Err(err).Msg("unmarshal rewards error")
 			}
 
 			// if the fee of delegator's validator is 100%, then reward is null
@@ -172,7 +172,7 @@ func GetDelegations(codec *codec.Codec, config *config.Config, db *pg.DB, rpcCli
 			var validator types.Validator
 			err = json.Unmarshal(types.ReadRespWithHeight(validatorResp).Result, &validator)
 			if err != nil {
-				log.Info().Str(models.Service, models.Account).Str(models.Method, "GetDelegations").Err(err).Msg("unmarshal validator error")
+				log.Info().Str(models.Service, models.LogAccount).Str(models.Method, "GetDelegations").Err(err).Msg("unmarshal validator error")
 			}
 
 			// validator's token divide by delegator_shares equals amount of uatom
@@ -249,7 +249,7 @@ func GetUnbondingDelegations(codec *codec.Codec, config *config.Config, db *pg.D
 	unbondingDelegations := make([]models.UnbondingDelegations, 0)
 	err := json.Unmarshal(types.ReadRespWithHeight(unbondingDelegationsResp).Result, &unbondingDelegations)
 	if err != nil {
-		log.Info().Str(models.Service, models.Account).Str(models.Method, "GetUnbondingDelegations").Err(err).Msg("unmarshal unbondingDelegations error")
+		log.Info().Str(models.Service, models.LogAccount).Str(models.Method, "GetUnbondingDelegations").Err(err).Msg("unmarshal unbondingDelegations error")
 	}
 
 	resultUnbondingDelegations := make([]models.UnbondingDelegations, 0)

@@ -36,7 +36,7 @@ func GetDelegatorWithdrawAddress(config *config.Config, db *pg.DB, rpcClient *cl
 	var address string
 	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &address)
 	if err != nil {
-		log.Info().Str(models.Service, models.Distribution).Str(models.Method, "GetDelegatorWithdrawAddress").Err(err).Msg("unmarshal address error")
+		log.Info().Str(models.Service, models.LogDistribution).Str(models.Method, "GetDelegatorWithdrawAddress").Err(err).Msg("unmarshal address error")
 	}
 
 	result := make(map[string]string)
@@ -64,7 +64,7 @@ func GetDelegatorRewards(config *config.Config, db *pg.DB, rpcClient *client.HTT
 
 	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &coin)
 	if err != nil {
-		log.Info().Str(models.Service, models.Distribution).Str(models.Method, "GetDelegatorRewards").Err(err).Msg("unmarshal coin error")
+		log.Info().Str(models.Service, models.LogDistribution).Str(models.Method, "GetDelegatorRewards").Err(err).Msg("unmarshal coin error")
 	}
 
 	utils.Respond(w, coin)
@@ -78,7 +78,7 @@ func GetCommunityPool(config *config.Config, db *pg.DB, rpcClient *client.HTTP, 
 	var coin []models.Coin
 	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &coin)
 	if err != nil {
-		log.Info().Str(models.Service, models.Distribution).Str(models.Method, "GetCommunityPool").Err(err).Msg("unmarshal coin error")
+		log.Info().Str(models.Service, models.LogDistribution).Str(models.Method, "GetCommunityPool").Err(err).Msg("unmarshal coin error")
 	}
 
 	utils.Respond(w, coin)
