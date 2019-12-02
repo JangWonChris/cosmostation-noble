@@ -7,7 +7,7 @@ import (
 // BlockInfo is a struct for database table
 type BlockInfo struct {
 	ID        int64     `json:"id" sql:",pk"`
-	BlockHash string    `json:"block_hash"`
+	BlockHash string    `json:"block_hash" sql:",unique"`
 	Height    int64     `json:"height"`
 	Proposer  string    `json:"proposer"`
 	TotalTxs  int64     `json:"total_txs" sql:"default:0"`
