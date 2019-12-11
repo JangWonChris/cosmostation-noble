@@ -65,7 +65,19 @@ func GetMarketStats(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w 
 
 // GetNetworkStats returns network stats
 func GetNetworkStats(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
-	limit := 24
+	var limit int
+
+	var statsNetwork types.StatsNetwork1H
+	cntStats, _ := db.Model(&statsNetwork).Count()
+
+	switch {
+	case cntStats == 1:
+		return json.NewEncoder(w).Encode(&types.StatsNetwork1H{})
+	case cntStats <= 24:
+		limit = cntStats
+	default:
+		limit = 24
+	}
 
 	// query bonded tokens chart
 	var statsNetwork1H []types.StatsNetwork1H
@@ -78,13 +90,15 @@ func GetNetworkStats(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w
 	}
 
 	bondedTokensStats := make([]*models.BondedTokensStats, 0)
-	for _, networkStat := range statsNetwork1H {
-		tempBondedTokensStats := &models.BondedTokensStats{
-			BondedTokens: networkStat.BondedTokens,
-			BondedRatio:  networkStat.BondedRatio,
-			LastUpdated:  networkStat.Time,
+	if len(statsNetwork1H) > 0 {
+		for _, networkStat := range statsNetwork1H {
+			tempBondedTokensStats := &models.BondedTokensStats{
+				BondedTokens: networkStat.BondedTokens,
+				BondedRatio:  networkStat.BondedRatio,
+				LastUpdated:  networkStat.Time,
+			}
+			bondedTokensStats = append(bondedTokensStats, tempBondedTokensStats)
 		}
-		bondedTokensStats = append(bondedTokensStats, tempBondedTokensStats)
 	}
 
 	// bonded tokens percentage change in 24 hours
@@ -97,6 +111,7 @@ func GetNetworkStats(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w
 	// bonded tokens rate change in last 24 hours
 	percentChange24H := float64(0)
 
+	// TODO: cosmoshub-3 업그레이드 후 네트워크 데이터가 아예 없을경우, 1개일 경우 예외처리 하기
 	if len(statsNetwork24H) > 0 {
 		latestBondedTokens := statsNetwork24H[0].BondedTokens
 		before24HBondedTokens := statsNetwork24H[1].BondedTokens
