@@ -1,5 +1,6 @@
 package types
 
+// KeyBase is a struct for KeyBase API
 type KeyBase struct {
 	Status struct {
 		Code int64  `json:"code"`

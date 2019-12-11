@@ -30,7 +30,7 @@ type Validator struct {
 			Rate          string `json:"rate"`
 			MaxRate       string `json:"max_rate"`
 			MaxChangeRate string `json:"max_change_rate"`
-		}
+		} `json:"commission_rates"`
 		UpdateTime time.Time `json:"update_time"`
 	} `json:"commission"`
 	MinSelfDelegation string `json:"min_self_delegation"`

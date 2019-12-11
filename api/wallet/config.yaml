@@ -25,3 +25,17 @@ dev:
   port: 5000
   jwt:
     token: "SecureCosmostation!@#50291230728"
+
+testnet:
+  node: 
+    gaiad_url: "tcp://54.180.171.141:26657"
+    lcd_url: "https://lcd-cosmos-testnet.cosmostation.io"
+  database:
+    host: "cosmostation-dev.ci6bhjszmrb3.ap-northeast-2.rds.amazonaws.com:5432"
+    user: "root"
+    password: "dnpfqldwhr00!!"
+    table: "cosmos-testnet"
+  port: 5000
+  jwt:
+    token: "SecureCosmostation!@#50291230728"
+

@@ -6,12 +6,13 @@ import (
 	"fmt"
 	"strings"
 
-	dtypes "github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
+
 	resty "gopkg.in/resty.v1"
 )
 
 // getValidatorSetInfo provides validator set information in every block
-func (ces *ChainExporterService) getValidatorSetInfo(height int64) ([]*dtypes.ValidatorSetInfo, []*dtypes.MissInfo, []*dtypes.MissInfo, []*dtypes.MissDetailInfo, error) {
+func (ces *ChainExporterService) getValidatorSetInfo(height int64) ([]*types.ValidatorSetInfo, []*types.MissInfo, []*types.MissInfo, []*types.MissDetailInfo, error) {
 	nextHeight := height + 1
 
 	// query current block
@@ -43,23 +44,23 @@ func (ces *ChainExporterService) getValidatorSetInfo(height int64) ([]*dtypes.Va
 	// 	return tempToken1 > tempToken2
 	// })
 
-	genesisValidatorsInfo := make([]*dtypes.ValidatorSetInfo, 0)
-	missInfo := make([]*dtypes.MissInfo, 0)
-	accumMissInfo := make([]*dtypes.MissInfo, 0)
-	missDetailInfo := make([]*dtypes.MissDetailInfo, 0)
+	genesisValidatorsInfo := make([]*types.ValidatorSetInfo, 0)
+	missInfo := make([]*types.MissInfo, 0)
+	accumMissInfo := make([]*types.MissInfo, 0)
+	missDetailInfo := make([]*types.MissDetailInfo, 0)
 
 	// validator set for the height
 	for i, validator := range validators.Validators {
 		// insert genesis validators as an event_type of create_validator at height 1
 		if validators.BlockHeight == 1 {
-			tempValidatorSetInfo := &dtypes.ValidatorSetInfo{
+			tempValidatorSetInfo := &types.ValidatorSetInfo{
 				IDValidator:          i + 1,
 				Height:               block.Block.Height,
 				Proposer:             validator.Address.String(),
 				VotingPower:          float64(validator.VotingPower),
 				NewVotingPowerAmount: float64(validator.VotingPower),
-				NewVotingPowerDenom:  dtypes.Denom,
-				EventType:            dtypes.EventTypeMsgCreateValidator,
+				NewVotingPowerDenom:  types.Denom,
+				EventType:            types.EventTypeMsgCreateValidator,
 				Time:                 block.BlockMeta.Header.Time,
 			}
 			genesisValidatorsInfo = append(genesisValidatorsInfo, tempValidatorSetInfo)
@@ -69,7 +70,7 @@ func (ces *ChainExporterService) getValidatorSetInfo(height int64) ([]*dtypes.Va
 		// MissInfo saves ranges of missing information of validators
 		// check if a validator misses previous block
 		if nextBlock.Block.LastCommit.Precommits[i] == nil {
-			tempMissDetailInfo := &dtypes.MissDetailInfo{
+			tempMissDetailInfo := &types.MissDetailInfo{
 				Height:   block.BlockMeta.Header.Height,
 				Address:  validator.Address.String(),
 				Proposer: block.BlockMeta.Header.ProposerAddress.String(),
@@ -84,14 +85,14 @@ func (ces *ChainExporterService) getValidatorSetInfo(height int64) ([]*dtypes.Va
 			missingCount := int64(1)
 
 			// query to check if a validator missed previous block
-			var prevMissInfo dtypes.MissInfo
+			var prevMissInfo types.MissInfo
 			_ = ces.db.Model(&prevMissInfo).
 				Where("end_height = ? AND address = ?", endHeight-int64(1), validator.Address.String()).
 				Order("end_height DESC").
 				Select()
 
 			if prevMissInfo.Address == "" {
-				tempMissInfo := &dtypes.MissInfo{
+				tempMissInfo := &types.MissInfo{
 					Address:      validator.Address.String(),
 					StartHeight:  startHeight,
 					EndHeight:    endHeight,
@@ -102,7 +103,7 @@ func (ces *ChainExporterService) getValidatorSetInfo(height int64) ([]*dtypes.Va
 				}
 				missInfo = append(missInfo, tempMissInfo)
 			} else {
-				tempMissInfo := &dtypes.MissInfo{
+				tempMissInfo := &types.MissInfo{
 					Address:      prevMissInfo.Address,
 					StartHeight:  prevMissInfo.StartHeight,
 					EndHeight:    prevMissInfo.EndHeight + int64(1),
@@ -120,7 +121,7 @@ func (ces *ChainExporterService) getValidatorSetInfo(height int64) ([]*dtypes.Va
 }
 
 // getEvidenceInfo provides evidence (slashing) information
-func (ces *ChainExporterService) getEvidenceInfo(height int64) ([]*dtypes.EvidenceInfo, error) {
+func (ces *ChainExporterService) getEvidenceInfo(height int64) ([]*types.EvidenceInfo, error) {
 	nextHeight := height + 1
 
 	// query current block
@@ -138,10 +139,10 @@ func (ces *ChainExporterService) getEvidenceInfo(height int64) ([]*dtypes.Eviden
 	// cosmoshub-2
 	// 848187 = 1C4DB67E79B5BB30663B04245E064E6180EC6EA304EE83A7A879B04544A2EAD0
 	// in evidence, there is only DuplicateVoteEvidence. There is no downtime evidence.
-	evidenceInfo := make([]*dtypes.EvidenceInfo, 0)
+	evidenceInfo := make([]*types.EvidenceInfo, 0)
 	if nextBlock.Block.Evidence.Evidence != nil {
 		for _, evidence := range nextBlock.Block.Evidence.Evidence {
-			tempEvidenceInfo := &dtypes.EvidenceInfo{
+			tempEvidenceInfo := &types.EvidenceInfo{
 				Proposer: strings.ToUpper(string(hex.EncodeToString(evidence.Address()))),
 				Height:   evidence.Height(),
 				Hash:     nextBlock.BlockMeta.Header.EvidenceHash.String(),
@@ -156,7 +157,7 @@ func (ces *ChainExporterService) getEvidenceInfo(height int64) ([]*dtypes.Eviden
 
 // SaveValidatorKeyBase saves keybase urls for every validator
 func (ces *ChainExporterService) SaveValidatorKeyBase() error {
-	var validatorInfo []dtypes.ValidatorInfo
+	var validatorInfo []types.ValidatorInfo
 	err := ces.db.Model(&validatorInfo).
 		Column("id", "identity", "moniker").
 		Select()
@@ -164,7 +165,7 @@ func (ces *ChainExporterService) SaveValidatorKeyBase() error {
 		return err
 	}
 
-	validatorInfoUpdate := make([]*dtypes.ValidatorInfo, 0)
+	validatorInfoUpdate := make([]*types.ValidatorInfo, 0)
 	for _, validator := range validatorInfo {
 		if validator.Identity != "" {
 			resp, err := resty.R().Get(ces.config.KeybaseURL + validator.Identity)
@@ -172,7 +173,7 @@ func (ces *ChainExporterService) SaveValidatorKeyBase() error {
 				fmt.Printf("KeyBase request error - %v\n", err)
 			}
 
-			var keyBases dtypes.KeyBase
+			var keyBases types.KeyBase
 			err = json.Unmarshal(resp.Body(), &keyBases)
 			if err != nil {
 				fmt.Printf("KeyBase unmarshal error - %v\n", err)
@@ -186,7 +187,7 @@ func (ces *ChainExporterService) SaveValidatorKeyBase() error {
 				}
 			}
 
-			tempValidatorInfo := &dtypes.ValidatorInfo{
+			tempValidatorInfo := &types.ValidatorInfo{
 				ID:         validator.ID,
 				KeybaseURL: keybaseURL,
 			}
@@ -195,7 +196,7 @@ func (ces *ChainExporterService) SaveValidatorKeyBase() error {
 	}
 
 	if len(validatorInfoUpdate) > 0 {
-		var tempValidatorInfo dtypes.ValidatorInfo
+		var tempValidatorInfo types.ValidatorInfo
 		for i := 0; i < len(validatorInfoUpdate); i++ {
 			_, err = ces.db.Model(&tempValidatorInfo).
 				Set("keybase_url = ?", validatorInfoUpdate[i].KeybaseURL).
