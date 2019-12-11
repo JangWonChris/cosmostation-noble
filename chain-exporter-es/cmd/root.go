@@ -2,18 +2,19 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"os"
 )
 
 var configFile string
 
 // 모든 앱 설정
 var rootCmd = &cobra.Command{
-	Use:"chain-exporter-es",
-	Short:"ElasticSearch Crawler Application",
-	Run: rootCmtHandler,
+	Use:   "chain-exporter-es",
+	Short: "ElasticSearch Crawler Application",
+	Run:   rootCmtHandler,
 }
 
 func init() {
@@ -21,7 +22,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&configFile, "config", "", "config file (default is config.yaml)")
 }
 
-func Execute()  {
+func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -34,7 +35,7 @@ func initConfig() {
 	} else {
 		viper.SetConfigName("config")
 		viper.AddConfigPath(".")
-		//viper.AddConfigPath("/home/ubuntu/cosmos-proxy-api/api/proxy/")
+		viper.AddConfigPath("/home/ubuntu/chain-exporter-es/chain-exporter-es/")
 	}
 
 	viper.AutomaticEnv()
@@ -45,6 +46,6 @@ func initConfig() {
 	}
 }
 
-func rootCmtHandler(cmd *cobra.Command, args []string)  {
+func rootCmtHandler(cmd *cobra.Command, args []string) {
 	cmd.Usage()
 }
