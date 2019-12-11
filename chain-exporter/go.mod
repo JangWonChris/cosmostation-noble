@@ -10,7 +10,6 @@ require (
 	github.com/rs/zerolog v1.17.2
 	github.com/spf13/viper v1.4.0
 	github.com/tendermint/tendermint v0.32.7
-	google.golang.org/appengine v1.4.0 // indirect
 	gopkg.in/resty.v1 v1.12.0
 	mellium.im/sasl v0.2.1 // indirect
 )
