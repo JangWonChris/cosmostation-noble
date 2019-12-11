@@ -192,15 +192,15 @@ func (a *App) syncRoutine() {
 		eventsBytes, err := json.Marshal(events)
 
 		elasticTx := &model.ElasticsearchTxInfo{
-			Hash:txHash,
-			Height:block.Block.Height,
-			Timestamp:block.Block.Time,
-			Tx:txJson,
-			GasUsed:txResult.TxResult.GasUsed,
-			GasWanted:txResult.TxResult.GasWanted,
-			RawLog:txResult.TxResult.Log,
-			Logs:json.RawMessage(txResult.TxResult.Log),
-			Events: json.RawMessage(eventsBytes),
+			Hash:      txHash,
+			Height:    block.Block.Height,
+			Timestamp: block.Block.Time,
+			Tx:        txJson,
+			GasUsed:   txResult.TxResult.GasUsed,
+			GasWanted: txResult.TxResult.GasWanted,
+			RawLog:    txResult.TxResult.Log,
+			Logs:      json.RawMessage(txResult.TxResult.Log),
+			Events:    json.RawMessage(eventsBytes),
 		}
 		//logrus.Info(elasticTx)
 		a.ElasticSearch.InsertTx(a.WsCtx, elasticTx)
@@ -293,15 +293,15 @@ func (a *App) wsNewBlockRoutine(i ctypes.ResultEvent) {
 		eventsBytes, err := json.Marshal(events)
 
 		elasticTx := &model.ElasticsearchTxInfo{
-			Hash:txHash,
-			Height:newBlock.Block.Height,
-			Timestamp:newBlock.Block.Time,
-			Tx:txJson,
-			GasUsed:txResult.TxResult.GasUsed,
-			GasWanted:txResult.TxResult.GasWanted,
-			RawLog:txResult.TxResult.Log,
-			Logs:json.RawMessage(txResult.TxResult.Log),
-			Events: json.RawMessage(eventsBytes),
+			Hash:      txHash,
+			Height:    newBlock.Block.Height,
+			Timestamp: newBlock.Block.Time,
+			Tx:        txJson,
+			GasUsed:   txResult.TxResult.GasUsed,
+			GasWanted: txResult.TxResult.GasWanted,
+			RawLog:    txResult.TxResult.Log,
+			Logs:      json.RawMessage(txResult.TxResult.Log),
+			Events:    json.RawMessage(eventsBytes),
 		}
 
 		a.ElasticSearch.InsertTx(a.WsCtx, elasticTx)
