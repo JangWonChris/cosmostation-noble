@@ -348,6 +348,9 @@ func GetValidatorEvents(db *pg.DB, w http.ResponseWriter, r *http.Request) error
 		Limit(1).
 		Select()
 
+	fmt.Println("-----")
+	fmt.Println(idValidatorSetInfo.IDValidator)
+
 	resultVotingPowerHistory := make([]*models.ResultVotingPowerHistory, 0)
 	if idValidatorSetInfo.IDValidator != 0 {
 		var validatorSetInfo []types.ValidatorSetInfo
