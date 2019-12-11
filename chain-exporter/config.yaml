@@ -1,4 +1,4 @@
-active: "dev"
+active: "prod"
 
 prod:
   node: 
@@ -16,8 +16,8 @@ prod:
 
 dev:
   node: 
-    gaiad_url: "http://13.209.59.177:26657"
-    lcd_url: "https://lcd.cosmostation.io"
+    gaiad_url: "http://52.78.163.36:26657"
+    lcd_url: "https://lcd-mainnet-dev.cosmostation.io"
   database:
     host: "cosmostation-dev.ci6bhjszmrb3.ap-northeast-2.rds.amazonaws.com:5432"
     user: "root"
