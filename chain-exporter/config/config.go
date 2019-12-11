@@ -56,7 +56,7 @@ func NewConfig() *Config {
 	viper.AddConfigPath("/home/ubuntu/cosmostation-cosmos/chain-exporter") // call multiple times to add many search paths
 
 	if err := viper.ReadInConfig(); err != nil {
-		panic(fmt.Errorf("Fatal error config file: %s ", err))
+		panic(fmt.Errorf("fatal error config file: %s ", err))
 	}
 
 	config := &Config{}
@@ -65,7 +65,6 @@ func NewConfig() *Config {
 	nodeConfig := &NodeConfig{}
 	dbConfig := &DBConfig{}
 
-	// configuration for prod, dev, testnet
 	switch viper.GetString("active") {
 	case "prod":
 		nodeConfig.GaiadURL = viper.GetString("prod.node.gaiad_url")
@@ -89,7 +88,7 @@ func NewConfig() *Config {
 		dbConfig.Password = viper.GetString("testnet.database.password")
 		dbConfig.Table = viper.GetString("testnet.database.table")
 	default:
-		fmt.Println("Define active params in config.yaml")
+		fmt.Println("define active params in config.yaml")
 	}
 
 	config.Node = nodeConfig

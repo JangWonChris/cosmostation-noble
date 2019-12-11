@@ -8,15 +8,15 @@ import (
 	"time"
 
 	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/types"
-	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/utils"
 
 	resty "gopkg.in/resty.v1"
 )
 
+// SaveValidatorsStats1H saves validator statistics every hour
 func (ses *StatsExporterService) SaveValidatorsStats1H() {
 	log.Println("Save Validator Stats 1H")
 
-	// Query all validators order by their tokens
+	// query all validators order by their tokens
 	var validators []types.ValidatorInfo
 	err := ses.db.Model(&validators).
 		Order("rank ASC").
@@ -27,30 +27,31 @@ func (ses *StatsExporterService) SaveValidatorsStats1H() {
 
 	validatorStats := make([]*types.StatsValidators1H, 0)
 	for _, validator := range validators {
-		// validator's address
-		address := utils.ConvertOperatorAddressToAddress(validator.OperatorAddress)
-
 		// get self-bonded amount by querying the current delegation between a delegator and a validator
-		var delegatorDelegation types.DelegatorDelegation
-		selfBondedResp, err := resty.R().Get(ses.config.Node.LCDURL + "/staking/delegators/" + address + "/delegations/" + validator.OperatorAddress)
-		if err != nil {
-			fmt.Printf("Query /staking/delegators/{address}/delegations/{operatorAddr} error - %v\n", err)
-		}
+		selfBondedResp, _ := resty.R().Get(ses.config.Node.LCDURL + "/staking/delegators/" + validator.Address + "/delegations/" + validator.OperatorAddress)
 
-		err = json.Unmarshal(selfBondedResp.Body(), &delegatorDelegation)
-		if err != nil {
-			fmt.Printf("Unmarshal delegatorDelegation error - %v\n", err)
+		var responseWithHeight types.ResponseWithHeight
+		_ = json.Unmarshal(selfBondedResp.Body(), &responseWithHeight)
+
+		var delegatorDelegation types.DelegatorDelegation
+		err := json.Unmarshal(responseWithHeight.Result, &delegatorDelegation)
+		if err != nil { // "error": "{"codespace":"staking","code":102,"message":"no delegation for this (address, validator) pair"}"
+			fmt.Printf("unmarshal delegatorDelegation error - %v, validator address - %v, operator address - %v\n", err, validator.Address, validator.OperatorAddress)
 		}
 
 		// get all validator's delegations
-		var validatorDelegations []types.DelegatorDelegation
 		valiDelegationResp, err := resty.R().Get(ses.config.Node.LCDURL + "/staking/validators/" + validator.OperatorAddress + "/delegations")
-		err = json.Unmarshal(valiDelegationResp.Body(), &validatorDelegations)
+
+		var responseWithHeight2 types.ResponseWithHeight
+		_ = json.Unmarshal(valiDelegationResp.Body(), &responseWithHeight2)
+
+		var validatorDelegations []types.ValidatorDelegation
+		err = json.Unmarshal(responseWithHeight2.Result, &validatorDelegations)
 		if err != nil {
-			fmt.Printf("Unmarshal validatorDelegations error - %v\n", err)
+			fmt.Printf("unmarshal validatorDelegations error - %v\n", err)
 		}
 
-		// Initialize variables, otherwise throws an error if there is no delegations
+		// initialize variables, otherwise throws an error if there is no delegations
 		var selfBondedAmount float64
 		var othersAmount float64
 		var totalDelegationAmount float64
@@ -64,12 +65,14 @@ func (ses *StatsExporterService) SaveValidatorsStats1H() {
 		// delegator shares
 		if len(validatorDelegations) > 0 {
 			for _, validatorDelegation := range validatorDelegations {
-				if validatorDelegation.DelegatorAddress != address {
+				if validatorDelegation.DelegatorAddress != validator.Address {
 					shares, _ := strconv.ParseFloat(validatorDelegation.Shares, 64)
 					othersAmount += shares
 				}
 			}
 		}
+
+		totalDelegationAmount = selfBondedAmount + othersAmount
 
 		// delegator numbers
 		delegatorNum := len(validatorDelegations)
@@ -77,8 +80,9 @@ func (ses *StatsExporterService) SaveValidatorsStats1H() {
 		tempValidatorStats := &types.StatsValidators1H{
 			Moniker:          validator.Moniker,
 			OperatorAddress:  validator.OperatorAddress,
-			Address:          address,
+			Address:          validator.Address,
 			Proposer:         validator.Proposer,
+			ConsensusPubkey:  validator.ConsensusPubkey,
 			TotalDelegations: totalDelegationAmount,
 			SelfBonded:       selfBondedAmount,
 			Others:           othersAmount,
@@ -88,17 +92,17 @@ func (ses *StatsExporterService) SaveValidatorsStats1H() {
 		validatorStats = append(validatorStats, tempValidatorStats)
 	}
 
-	// Save
 	_, err = ses.db.Model(&validatorStats).Insert()
 	if err != nil {
-		fmt.Printf("save ValidatorStats error - %v\n", err)
+		fmt.Printf("save ValidatorStats1H error - %v\n", err)
 	}
 }
 
+// SaveValidatorsStats24H saves validator statistics 24 hours
 func (ses *StatsExporterService) SaveValidatorsStats24H() {
-	log.Println("Save Validator Stats 1H")
+	log.Println("Save Validator Stats 24H")
 
-	// Query all validators order by their tokens
+	// query all validators order by their tokens
 	var validators []types.ValidatorInfo
 	err := ses.db.Model(&validators).
 		Order("rank ASC").
@@ -109,30 +113,31 @@ func (ses *StatsExporterService) SaveValidatorsStats24H() {
 
 	validatorStats := make([]*types.StatsValidators24H, 0)
 	for _, validator := range validators {
-		// validator's address
-		address := utils.ConvertOperatorAddressToAddress(validator.OperatorAddress)
-
 		// get self-bonded amount by querying the current delegation between a delegator and a validator
-		var delegatorDelegation types.DelegatorDelegation
-		selfBondedResp, err := resty.R().Get(ses.config.Node.LCDURL + "/staking/delegators/" + address + "/delegations/" + validator.OperatorAddress)
-		if err != nil {
-			fmt.Printf("Query /staking/delegators/{address}/delegations/{operatorAddr} error - %v\n", err)
-		}
+		selfBondedResp, _ := resty.R().Get(ses.config.Node.LCDURL + "/staking/delegators/" + validator.Address + "/delegations/" + validator.OperatorAddress)
 
-		err = json.Unmarshal(selfBondedResp.Body(), &delegatorDelegation)
+		var responseWithHeight types.ResponseWithHeight
+		_ = json.Unmarshal(selfBondedResp.Body(), &responseWithHeight)
+
+		var delegatorDelegation types.DelegatorDelegation
+		err := json.Unmarshal(responseWithHeight.Result, &delegatorDelegation)
 		if err != nil {
-			fmt.Printf("Unmarshal delegatorDelegation error - %v\n", err)
+			fmt.Printf("unmarshal delegatorDelegation error - %v, validator address - %v, operator address - %v\n", err, validator.Address, validator.OperatorAddress)
 		}
 
 		// get all validator's delegations
-		var validatorDelegations []types.DelegatorDelegation
 		valiDelegationResp, err := resty.R().Get(ses.config.Node.LCDURL + "/staking/validators/" + validator.OperatorAddress + "/delegations")
-		err = json.Unmarshal(valiDelegationResp.Body(), &validatorDelegations)
+
+		var responseWithHeight2 types.ResponseWithHeight
+		_ = json.Unmarshal(valiDelegationResp.Body(), &responseWithHeight2)
+
+		var validatorDelegations []types.ValidatorDelegation
+		err = json.Unmarshal(responseWithHeight2.Result, &validatorDelegations)
 		if err != nil {
-			fmt.Printf("Unmarshal validatorDelegations error - %v\n", err)
+			fmt.Printf("unmarshal validatorDelegations error - %v\n", err)
 		}
 
-		// Initialize variables, otherwise throws an error if there is no delegations
+		// initialize variables, otherwise throws an error if there is no delegations
 		var selfBondedAmount float64
 		var othersAmount float64
 		var totalDelegationAmount float64
@@ -146,12 +151,14 @@ func (ses *StatsExporterService) SaveValidatorsStats24H() {
 		// delegator shares
 		if len(validatorDelegations) > 0 {
 			for _, validatorDelegation := range validatorDelegations {
-				if validatorDelegation.DelegatorAddress != address {
+				if validatorDelegation.DelegatorAddress != validator.Address {
 					shares, _ := strconv.ParseFloat(validatorDelegation.Shares, 64)
 					othersAmount += shares
 				}
 			}
 		}
+
+		totalDelegationAmount = selfBondedAmount + othersAmount
 
 		// delegator numbers
 		delegatorNum := len(validatorDelegations)
@@ -159,8 +166,9 @@ func (ses *StatsExporterService) SaveValidatorsStats24H() {
 		tempValidatorStats := &types.StatsValidators24H{
 			Moniker:          validator.Moniker,
 			OperatorAddress:  validator.OperatorAddress,
-			Address:          address,
+			Address:          validator.Address,
 			Proposer:         validator.Proposer,
+			ConsensusPubkey:  validator.ConsensusPubkey,
 			TotalDelegations: totalDelegationAmount,
 			SelfBonded:       selfBondedAmount,
 			Others:           othersAmount,
@@ -170,9 +178,8 @@ func (ses *StatsExporterService) SaveValidatorsStats24H() {
 		validatorStats = append(validatorStats, tempValidatorStats)
 	}
 
-	// Save
 	_, err = ses.db.Model(&validatorStats).Insert()
 	if err != nil {
-		fmt.Printf("save ValidatorStats error - %v\n", err)
+		fmt.Printf("save ValidatorStats24H error - %v\n", err)
 	}
 }

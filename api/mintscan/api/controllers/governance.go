@@ -22,9 +22,9 @@ func GovernanceController(codec *codec.Codec, config *config.Config, db *pg.DB, 
 		services.GetProposal(db, config, w, r)
 	})
 	router.HandleFunc("/gov/proposal/votes/{proposalId}", func(w http.ResponseWriter, r *http.Request) {
-		services.GetProposalVotes(db, config, w, r)
+		services.GetVotes(db, config, w, r)
 	})
 	router.HandleFunc("/gov/proposal/deposits/{proposalId}", func(w http.ResponseWriter, r *http.Request) {
-		services.GetProposalDeposits(db, w, r)
+		services.GetDeposits(db, w, r)
 	})
 }

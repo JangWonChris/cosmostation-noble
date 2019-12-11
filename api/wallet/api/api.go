@@ -5,62 +5,60 @@ import (
 	"log"
 	"net/http"
 
-	gaiaApp "github.com/cosmos/cosmos-sdk/cmd/gaia/app"
+	gaiaApp "github.com/cosmos/gaia/app"
+
+	"github.com/cosmostation/cosmostation-cosmos/api/wallet/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/api/wallet/api/controllers"
 	"github.com/cosmostation/cosmostation-cosmos/api/wallet/api/databases"
-	"github.com/cosmostation/cosmostation-cosmos/api/wallet/config"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/go-pg/pg"
 	"github.com/gorilla/mux"
+
 	"github.com/tendermint/tendermint/rpc/client"
-	"github.com/tendermint/tendermint/libs/log"
 )
 
 // App wraps up the required variables that are needed in this app
 type App struct {
-	Codec     *codec.Codec
-	Config    *config.Config
-	DB        *pg.DB
-	Router    *mux.Router
-	RPCClient *client.HTTP
+	codec     *codec.Codec
+	config    *config.Config
+	db        *pg.DB
+	router    *mux.Router
+	rpcClient *client.HTTP
 }
 
 // NewApp initializes the app with predefined configuration
 func (a *App) NewApp(config *config.Config) {
-	// Configuration
-	a.Config = config
+	a.config = config
 
-	// Connect to Tendermint RPC client through websocket
-	a.RPCClient = client.NewHTTP(a.Config.Node.GaiadURL, "/websocket")
+	// connect to Tendermint RPC client through websocket
+	a.rpcClient = client.NewHTTP(a.config.Node.GaiadURL, "/websocket")
 
-	// Connect to PostgreSQL
-	a.DB = databases.ConnectDatabase(config)
+	// connect to PostgreSQL and create database schema
+	a.db = databases.ConnectDatabase(config)
+	databases.CreateSchema(a.db)
 
-	// Setup database schema
-	databases.CreateSchema(a.DB)
+	// register Cosmos SDK codecs
+	a.codec = gaiaApp.MakeCodec()
 
-	// Register Cosmos SDK codecs
-	a.Codec = gaiaApp.MakeCodec()
-
-	// Register routers
+	// register routers
 	a.setRouters()
 }
 
-// Sets the all required routers
+// setRouters sets the all routers
 func (a *App) setRouters() {
-	a.Router = mux.NewRouter()
-	a.Router = a.Router.PathPrefix("/v1").Subrouter()
+	a.router = mux.NewRouter()
+	a.router = a.router.PathPrefix("/v1").Subrouter()
 	// 지금은 사용안함
-	// a.Router.Use(auth.JwtAuthentication) // attach JWT auth middleware
-	// controllers.AuthController(a.Router, a.RPCClient, a.DB)
-	controllers.AccountController(a.Router, a.RPCClient, a.DB)
-	controllers.AlarmController(a.Router, a.RPCClient, a.DB)
-	controllers.VersionController(a.Router, a.RPCClient, a.DB)
+	// a.router.Use(auth.JwtAuthentication) // attach JWT auth middleware
+	// controllers.AuthController(a.router, a.rpcClient, a.db)
+	controllers.AccountController(a.router, a.rpcClient, a.db)
+	controllers.AlarmController(a.router, a.rpcClient, a.db)
+	controllers.VersionController(a.router, a.rpcClient, a.db)
 }
 
 // Run the app
 func (a *App) Run(host string) {
 	fmt.Print("Server is Starting on http://localhost", host, "\n")
-	log.Fatal(http.ListenAndServe(host, a.Router))
+	log.Fatal(http.ListenAndServe(host, a.router))
 }

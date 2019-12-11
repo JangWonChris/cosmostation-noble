@@ -12,7 +12,7 @@ import (
 	"github.com/tendermint/tendermint/libs/bech32"
 )
 
-// ConvertCosmosAddressToMoniker() converts from cosmos address to moniker
+// ConvertCosmosAddressToMoniker converts from cosmos address to moniker
 func ConvertCosmosAddressToMoniker(cosmosAddr string, db *pg.DB) (string, error) {
 	// First convert from Cosmos Address to ValiOperatorAddress
 	_, decoded, err := bech32.DecodeAndConvert(cosmosAddr)
@@ -38,7 +38,7 @@ func ConvertCosmosAddressToMoniker(cosmosAddr string, db *pg.DB) (string, error)
 	return validatorInfo.Moniker, nil
 }
 
-// ConvertToProposer() converts any type of input address to proposer address
+// ConvertToProposer converts any type of input address to proposer address
 func ConvertToProposer(address string, db *pg.DB) (dbtypes.ValidatorInfo, error) {
 	var validatorInfo dbtypes.ValidatorInfo
 	switch {
@@ -76,7 +76,7 @@ func ConvertToProposer(address string, db *pg.DB) (dbtypes.ValidatorInfo, error)
 	return validatorInfo, nil
 }
 
-// ConvertToProposerSlice() converts any type of input address to proposer address
+// ConvertToProposerSlice converts any type of input address to proposer address
 func ConvertToProposerSlice(address string, db *pg.DB) ([]dbtypes.ValidatorInfo, error) {
 	var validatorInfo []dbtypes.ValidatorInfo
 	switch {

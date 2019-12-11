@@ -1,8 +1,8 @@
 package databases
 
 import (
+	"github.com/cosmostation/cosmostation-cosmos/api/wallet/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/api/wallet/api/models"
-	"github.com/cosmostation/cosmostation-cosmos/api/wallet/config"
 
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"

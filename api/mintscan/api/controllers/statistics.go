@@ -15,7 +15,7 @@ import (
 // Passes requests to its respective service
 func StatsController(codec *codec.Codec, config *config.Config, db *pg.DB, router *mux.Router, rpcClient *client.HTTP) {
 	router.HandleFunc("/stats/market", func(w http.ResponseWriter, r *http.Request) {
-		services.GetMarketInfo(config, db, rpcClient, w, r)
+		services.GetMarketStats(config, db, rpcClient, w, r)
 	})
 
 	router.HandleFunc("/stats/network", func(w http.ResponseWriter, r *http.Request) {

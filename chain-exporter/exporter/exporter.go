@@ -10,9 +10,10 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/databases"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/lcd"
 	dtypes "github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/utils"
 
 	"github.com/cosmos/cosmos-sdk/codec"
+
+	gaiaApp "github.com/cosmos/gaia/app"
 
 	"github.com/go-pg/pg"
 	"github.com/tendermint/tendermint/rpc/client"
@@ -34,7 +35,7 @@ type ChainExporterService struct {
 // NewChainExporterService initializes the required config
 func NewChainExporterService(config *config.Config) *ChainExporterService {
 	ces := &ChainExporterService{
-		codec:     utils.MakeCodec(), // register Cosmos SDK codecs
+		codec:     gaiaApp.MakeCodec(), // register Cosmos SDK codecs
 		config:    config,
 		db:        databases.ConnectDatabase(config), // connect to PostgreSQL
 		wsCtx:     context.Background(),
@@ -58,8 +59,7 @@ func (ces *ChainExporterService) OnStart() error {
 
 	// Store data initially
 	lcd.SaveBondedValidators(ces.db, ces.config)
-	lcd.SaveUnbondingValidators(ces.db, ces.config)
-	lcd.SaveUnbondedValidators(ces.db, ces.config)
+	lcd.SaveUnbondingAndUnBondedValidators(ces.db, ces.config)
 	lcd.SaveProposals(ces.db, ces.config)
 
 	c1 := make(chan string)
@@ -94,8 +94,7 @@ func (ces *ChainExporterService) OnStart() error {
 		case msg2 := <-c1:
 			fmt.Println("start - ", msg2)
 			lcd.SaveBondedValidators(ces.db, ces.config)
-			lcd.SaveUnbondingValidators(ces.db, ces.config)
-			lcd.SaveUnbondedValidators(ces.db, ces.config)
+			lcd.SaveUnbondingAndUnBondedValidators(ces.db, ces.config)
 			lcd.SaveProposals(ces.db, ces.config)
 			fmt.Println("finish - ", msg2)
 		case msg3 := <-c2:
@@ -134,11 +133,12 @@ func (ces *ChainExporterService) sync() error {
 	}
 	maxHeight := status.SyncInfo.LatestBlockHeight
 
-	fmt.Println(maxHeight)
+	// if currentHeight == 1 {
+	// 	currentHeight = 0
+	// }
 
-	if currentHeight == 1 {
-		currentHeight = 0
-	}
+	fmt.Println("CurrentHeight: ", currentHeight)
+	fmt.Println("MaxHeight: ", maxHeight)
 
 	// ingest all blocks up to the best height
 	for i := currentHeight + 1; i <= maxHeight; i++ {
