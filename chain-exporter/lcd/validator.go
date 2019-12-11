@@ -133,6 +133,9 @@ func SaveUnbondingAndUnBondedValidators(db *pg.DB, config *config.Config) {
 			}
 			validatorInfo = append(validatorInfo, tempValidatorInfo)
 		}
+	} else {
+		// save unbonded validators after succesfully saved unbonding validators
+		saveUnbondedValidators(db, config)
 	}
 
 	// ranking
@@ -226,7 +229,7 @@ func saveUnbondedValidators(db *pg.DB, config *config.Config) {
 		}
 	}
 
-	// ranking
+	// last rank number
 	var rankInfo types.ValidatorInfo
 	_ = db.Model(&rankInfo).
 		Where("status = ?", 1).
