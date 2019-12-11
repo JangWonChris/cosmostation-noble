@@ -429,22 +429,24 @@ func GetValidatorDelegations(codec *codec.Codec, config *config.Config, db *pg.D
 	uatom := tokens / delegatorShares
 
 	var validatorDelegations []*types.ValidatorDelegations
-	for _, delegation := range delegations {
-		shares, _ := strconv.ParseFloat(delegation.Shares.String(), 64)
-		amount := fmt.Sprintf("%f", shares*uatom)
+	if len(delegations) > 0 {
+		for _, delegation := range delegations {
+			shares, _ := strconv.ParseFloat(delegation.Shares.String(), 64)
+			amount := fmt.Sprintf("%f", shares*uatom)
 
-		tempValidatorDelegations := &types.ValidatorDelegations{
-			DelegatorAddress: delegation.DelegatorAddress,
-			ValidatorAddress: delegation.ValidatorAddress,
-			Shares:           delegation.Shares,
-			Amount:           amount,
+			tempValidatorDelegations := &types.ValidatorDelegations{
+				DelegatorAddress: delegation.DelegatorAddress,
+				ValidatorAddress: delegation.ValidatorAddress,
+				Shares:           delegation.Shares,
+				Amount:           amount,
+			}
+			validatorDelegations = append(validatorDelegations, tempValidatorDelegations)
 		}
-		validatorDelegations = append(validatorDelegations, tempValidatorDelegations)
 	}
 
 	// query delegation change rate in 24 hours by 24 rows order by descending id
 	statsValidators24H := make([]*types.StatsValidators24H, 0)
-	_ = db.Model(&statsValidators24H).
+	err = db.Model(&statsValidators24H).
 		Where("proposer = ?", validatorInfo.Proposer).
 		Order("id DESC").
 		Limit(2).
