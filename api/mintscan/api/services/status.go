@@ -56,9 +56,9 @@ func GetStatus(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.
 		fmt.Printf("supply/total unmarshal supply total error - %v\n", err)
 	}
 
-	notBondedTokens, err := strconv.ParseFloat(pool.NotBondedTokens, 64)
-	bondedTokens, err := strconv.ParseFloat(pool.BondedTokens, 64)
-	totalSupplyTokens, err := strconv.ParseFloat(coin[0].Amount, 64)
+	notBondedTokens, _ := strconv.ParseFloat(pool.NotBondedTokens, 64)
+	bondedTokens, _ := strconv.ParseFloat(pool.BondedTokens, 64)
+	totalSupplyTokens, _ := strconv.ParseFloat(coin[0].Amount, 64)
 
 	// a number of unjailed validators
 	var unjailedValidators types.ValidatorInfo

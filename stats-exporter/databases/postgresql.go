@@ -2,7 +2,7 @@ package databases
 
 import (
 	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/config"
-	dtypes "github.com/cosmostation/cosmostation-cosmos/stats-exporter/types"
+	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/types"
 
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
@@ -21,10 +21,10 @@ func ConnectDatabase(Config *config.Config) *pg.DB {
 
 // CreateSchema creates database tables using ORM
 func CreateSchema(db *pg.DB) error {
-	for _, model := range []interface{}{(*dtypes.StatsCoingeckoMarket1H)(nil), (*dtypes.StatsCoingeckoMarket24H)(nil),
-		(*dtypes.StatsCoinmarketcapMarket1H)(nil), (*dtypes.StatsCoinmarketcapMarket24H)(nil),
-		(*dtypes.StatsValidators1H)(nil), (*dtypes.StatsValidators24H)(nil),
-		(*dtypes.StatsNetwork1H)(nil), (*dtypes.StatsNetwork24H)(nil)} {
+	for _, model := range []interface{}{(*types.StatsCoingeckoMarket1H)(nil), (*types.StatsCoingeckoMarket24H)(nil),
+		(*types.StatsCoinmarketcapMarket1H)(nil), (*types.StatsCoinmarketcapMarket24H)(nil),
+		(*types.StatsValidators1H)(nil), (*types.StatsValidators24H)(nil),
+		(*types.StatsNetwork1H)(nil), (*types.StatsNetwork24H)(nil)} {
 		err := db.CreateTable(model, &orm.CreateTableOptions{IfNotExists: true})
 		if err != nil {
 			return err
