@@ -47,8 +47,18 @@ func GetStatus(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.
 		log.Info().Str(models.Service, models.LogStatus).Str(models.Method, "GetStatus").Err(err).Msg("unmarshal pool error")
 	}
 
+	// Query total supply
+	totalSupplyResp, _ := resty.R().Get(config.Node.LCDURL + "/supply/total")
+
+	var coin []models.Coin
+	err = json.Unmarshal(types.ReadRespWithHeight(totalSupplyResp).Result, &coin)
+	if err != nil {
+		fmt.Printf("supply/total unmarshal supply total error - %v\n", err)
+	}
+
 	notBondedTokens, err := strconv.ParseFloat(pool.NotBondedTokens, 64)
 	bondedTokens, err := strconv.ParseFloat(pool.BondedTokens, 64)
+	totalSupplyTokens, err := strconv.ParseFloat(coin[0].Amount, 64)
 
 	// a number of unjailed validators
 	var unjailedValidators types.ValidatorInfo
@@ -88,8 +98,6 @@ func GetStatus(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.
 	// * 실질적으로 status.SyncInfo.LatestBlockTime.UTC()로 비교를 해야 되지만 현재로써는 마지막, 두번째마지막으로 비교
 	// Get the block time that is taken from the previous block
 	diff := lastBlocktime.Sub(secondLastBlocktime)
-
-	totalSupplyTokens := bondedTokens + notBondedTokens
 
 	resultStatus := &models.ResultStatus{
 		ChainID:                status.NodeInfo.Network,
