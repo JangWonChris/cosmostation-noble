@@ -408,13 +408,13 @@ func GetValidatorDelegations(codec *codec.Codec, config *config.Config, db *pg.D
 
 	validatorInfo, _ := utils.ConvertToProposer(operatorAddress, db)
 
-	// check if the validator address exists
+	// Check if the validator address exists
 	if validatorInfo.Proposer == "" {
 		errors.ErrNotExist(w, http.StatusNotFound)
 		return nil
 	}
 
-	// query all delegations of the validator
+	// Query all delegations of the validator
 	resp, _ := resty.R().Get(config.Node.LCDURL + "/staking/validators/" + validatorInfo.OperatorAddress + "/delegations")
 
 	var delegations []*types.ValidatorDelegations
@@ -446,7 +446,7 @@ func GetValidatorDelegations(codec *codec.Codec, config *config.Config, db *pg.D
 
 	// query delegation change rate in 24 hours by 24 rows order by descending id
 	statsValidators24H := make([]*types.StatsValidators24H, 0)
-	err = db.Model(&statsValidators24H).
+	_ = db.Model(&statsValidators24H).
 		Where("proposer = ?", validatorInfo.Proposer).
 		Order("id DESC").
 		Limit(2).
@@ -457,7 +457,7 @@ func GetValidatorDelegations(codec *codec.Codec, config *config.Config, db *pg.D
 	latestDelegatorNum := int(0)
 
 	// get change delegator num in 24 hours
-	if len(statsValidators24H) > 0 {
+	if len(statsValidators24H) > 1 {
 		latestDelegatorNum = statsValidators24H[0].DelegatorNum
 		before24DelegatorNum := statsValidators24H[1].DelegatorNum
 		delegatorNumChange24H = latestDelegatorNum - before24DelegatorNum
