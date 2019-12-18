@@ -13,11 +13,11 @@ import (
 )
 
 // Passes requests to its respective service
-func BlockController(codec *codec.Codec, config *config.Config, db *pg.DB, router *mux.Router, rpcClient *client.HTTP) {
-	router.HandleFunc("/blocks", func(w http.ResponseWriter, r *http.Request) {
+func BlockController(codec *codec.Codec, config *config.Config, db *pg.DB, r *mux.Router, rpcClient *client.HTTP) {
+	r.HandleFunc("/blocks", func(w http.ResponseWriter, r *http.Request) {
 		services.GetBlocks(db, w, r)
-	})
-	router.HandleFunc("/blocks/{address}", func(w http.ResponseWriter, r *http.Request) {
+	}).Methods("GET")
+	r.HandleFunc("/blocks/{address}", func(w http.ResponseWriter, r *http.Request) {
 		services.GetProposedBlocks(db, w, r)
-	})
+	}).Methods("GET")
 }

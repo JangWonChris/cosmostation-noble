@@ -21,9 +21,16 @@ func ConnectDatabase(Config *config.Config) *pg.DB {
 
 // Create tables if it doesn't already exist
 func CreateSchema(DB *pg.DB) error {
-	for _, model := range []interface{}{(*models.Account)(nil), (*models.Version)(nil)} {
+	for _, model := range []interface{}{(*models.Account)(nil), (*models.AppVersion)(nil)} {
+		// disable pluralization
+		orm.SetTableNameInflector(func(s string) string {
+			return s
+		})
+
+		// create tables
 		err := DB.CreateTable(model, &orm.CreateTableOptions{
 			IfNotExists: true,
+			Varchar:     999, // replaces PostgreSQL data type `text` with `varchar(n)`
 		})
 		if err != nil {
 			panic(err)

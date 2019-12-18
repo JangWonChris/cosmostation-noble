@@ -2,7 +2,7 @@ package models
 
 import "time"
 
-type Version struct {
+type AppVersion struct {
 	IdfVersion uint16    `json:"idf_version,omitempty" sql:",pk"`
 	AppName    string    `json:"app_name,omitempty"`
 	DeviceType string    `json:"device_type,omitempty"`

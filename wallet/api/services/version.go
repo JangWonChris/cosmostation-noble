@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/cosmostation/cosmostation-cosmos/wallet/api/models"
@@ -15,7 +16,7 @@ func GetVersion(DB *pg.DB, w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	deviceType := vars["deviceType"]
 
-	var version models.Version
+	var version models.AppVersion
 
 	switch deviceType {
 	case "android":
@@ -38,4 +39,9 @@ func GetVersion(DB *pg.DB, w http.ResponseWriter, r *http.Request) {
 
 	u.Respond(w, version)
 	return
+}
+
+// SetVersion sets version number of an app
+func SetVersion(DB *pg.DB, w http.ResponseWriter, r *http.Request) {
+	fmt.Println("SetVersion")
 }

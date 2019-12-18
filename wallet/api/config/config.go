@@ -40,7 +40,6 @@ func NewConfig() *Config {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
-	viper.AddConfigPath("/home/ubuntu/cosmostation-cosmos/alarm-notification") // call multiple times to add many search paths
 
 	if err := viper.ReadInConfig(); err != nil {
 		panic(fmt.Errorf("Fatal error config file: %s ", err))
