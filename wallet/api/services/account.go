@@ -14,23 +14,25 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+// Regsiter registers an account for our mobile users
 func Register(DB *pg.DB, w http.ResponseWriter, r *http.Request) {
-	// Get post data from request
 	var account models.Account
+
+	// get post data from request
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&account)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		errors.ErrBadRequest(w, http.StatusBadRequest)
 		return
 	}
 
-	// Check the validity of cosmos address
+	// check validity of an address
 	if !strings.Contains(account.Address, sdk.Bech32PrefixAccAddr) || len(account.Address) != 45 {
 		errors.ErrInvalidFormat(w, http.StatusBadRequest)
 		return
 	}
 
-	// Check if same account already exists (alarm_token with same address)
+	// check if same account already exists (alarm_token with same address)
 	exist, err := DB.Model(&account).
 		Where("alarm_token = ? AND address = ?", account.AlarmToken, account.Address).
 		Exists()
