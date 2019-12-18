@@ -1,0 +1,16 @@
+package main
+
+import (
+	app "github.com/cosmostation/cosmostation-cosmos/wallet/api"
+	"github.com/cosmostation/cosmostation-cosmos/wallet/api/config"
+)
+
+func main() {
+	// configuration for this app in config.yaml
+	config := config.NewConfig()
+
+	// starting the server
+	app := &app.App{}
+	app.NewApp(config)
+	app.Run(":" + config.Web.Port)
+}
