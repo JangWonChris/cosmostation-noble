@@ -21,10 +21,14 @@ type WrapError struct {
 // Error code numbers
 const (
 	InternalServer ErrorCode = 101
+	NotFound       ErrorCode = 102
+	BadRequest     ErrorCode = 103
 
 	DuplicateAccount ErrorCode = 201
 	InvalidFormat    ErrorCode = 202
 	NotExist         ErrorCode = 203
+
+	InvalidDeviceType ErrorCode = 301
 )
 
 // ErrorCodeToErrorMsg returns error message from error code
@@ -32,12 +36,18 @@ func ErrorCodeToErrorMsg(code ErrorCode) ErrorMsg {
 	switch code {
 	case InternalServer:
 		return "Internal server error"
+	case NotFound:
+		return "Not Found"
+	case BadRequest:
+		return "BadRequest"
 	case DuplicateAccount:
 		return "Duplicate account"
 	case InvalidFormat:
 		return "Invalid format"
 	case NotExist:
 		return "NotExist"
+	case InvalidDeviceType:
+		return "InvalidDeviceType"
 	default:
 		return "Unknown"
 	}
@@ -51,6 +61,22 @@ func ErrInternalServer(w http.ResponseWriter, statusCode int) {
 	wrapError := WrapError{
 		ErrorCode: InternalServer,
 		ErrorMsg:  ErrorCodeToErrorMsg(InternalServer),
+	}
+	PrintException(w, statusCode, wrapError)
+}
+
+func ErrNotFound(w http.ResponseWriter, statusCode int) {
+	wrapError := WrapError{
+		ErrorCode: NotFound,
+		ErrorMsg:  ErrorCodeToErrorMsg(NotFound),
+	}
+	PrintException(w, statusCode, wrapError)
+}
+
+func ErrBadRequest(w http.ResponseWriter, statusCode int) {
+	wrapError := WrapError{
+		ErrorCode: BadRequest,
+		ErrorMsg:  ErrorCodeToErrorMsg(BadRequest),
 	}
 	PrintException(w, statusCode, wrapError)
 }
@@ -75,6 +101,14 @@ func ErrNotExist(w http.ResponseWriter, statusCode int) {
 	wrapError := WrapError{
 		ErrorCode: NotExist,
 		ErrorMsg:  ErrorCodeToErrorMsg(NotExist),
+	}
+	PrintException(w, statusCode, wrapError)
+}
+
+func ErrInvalidDeviceType(w http.ResponseWriter, statusCode int) {
+	wrapError := WrapError{
+		ErrorCode: InvalidDeviceType,
+		ErrorMsg:  ErrorCodeToErrorMsg(InvalidDeviceType),
 	}
 	PrintException(w, statusCode, wrapError)
 }
