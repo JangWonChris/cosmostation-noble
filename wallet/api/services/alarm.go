@@ -12,6 +12,10 @@ import (
 	"github.com/go-pg/pg"
 )
 
+func AlarmTest(DB *pg.DB, w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Alarm Test")
+}
+
 func UpdateAlarmStatus(DB *pg.DB, w http.ResponseWriter, r *http.Request) {
 	// Get post data from request
 	var account models.Account
