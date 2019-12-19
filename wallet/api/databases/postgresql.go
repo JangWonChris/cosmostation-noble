@@ -19,7 +19,7 @@ func ConnectDatabase(Config *config.Config) *pg.DB {
 	return database
 }
 
-// Create tables if it doesn't already exist
+// Create tables if they are not already exist
 func CreateSchema(db *pg.DB) error {
 	for _, model := range []interface{}{(*models.Account)(nil), (*models.AppVersion)(nil)} {
 		// disable pluralization

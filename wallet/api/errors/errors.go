@@ -29,6 +29,7 @@ const (
 	NotExist         ErrorCode = 203
 
 	InvalidDeviceType ErrorCode = 301
+	InvalidChainID    ErrorCode = 302
 )
 
 // ErrorCodeToErrorMsg returns error message from error code
@@ -37,9 +38,9 @@ func ErrorCodeToErrorMsg(code ErrorCode) ErrorMsg {
 	case InternalServer:
 		return "Internal server error"
 	case NotFound:
-		return "Not Found"
+		return "Data not found"
 	case BadRequest:
-		return "BadRequest"
+		return "Bad request"
 	case DuplicateAccount:
 		return "Duplicate account"
 	case InvalidFormat:
@@ -47,9 +48,11 @@ func ErrorCodeToErrorMsg(code ErrorCode) ErrorMsg {
 	case NotExist:
 		return "NotExist"
 	case InvalidDeviceType:
-		return "InvalidDeviceType"
+		return "Invalid device type"
+	case InvalidChainID:
+		return "Invalid ChainID"
 	default:
-		return "Unknown"
+		return "Unknown error"
 	}
 }
 
@@ -113,6 +116,14 @@ func ErrInvalidDeviceType(w http.ResponseWriter, statusCode int) {
 	PrintException(w, statusCode, wrapError)
 }
 
+func ErrInvalidChainID(w http.ResponseWriter, statusCode int) {
+	wrapError := WrapError{
+		ErrorCode: InvalidChainID,
+		ErrorMsg:  ErrorCodeToErrorMsg(InvalidChainID),
+	}
+	PrintException(w, statusCode, wrapError)
+}
+
 /*
 	----------------------------------------------- PrintException
 */
@@ -127,4 +138,5 @@ func PrintException(w http.ResponseWriter, statusCode int, err WrapError) {
 	result, _ := json.Marshal(err)
 
 	fmt.Fprint(w, string(result))
+	return
 }

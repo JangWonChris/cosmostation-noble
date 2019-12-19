@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
-	"time"
 
+	"github.com/cosmostation/cosmostation-cosmos/wallet/api/databases"
 	"github.com/cosmostation/cosmostation-cosmos/wallet/api/errors"
 	"github.com/cosmostation/cosmostation-cosmos/wallet/api/models"
 	u "github.com/cosmostation/cosmostation-cosmos/wallet/api/utils"
@@ -15,7 +15,7 @@ import (
 )
 
 // Regsiter registers an account for our mobile users
-func Register(DB *pg.DB, w http.ResponseWriter, r *http.Request) {
+func Register(db *pg.DB, w http.ResponseWriter, r *http.Request) {
 	var account models.Account
 
 	// get post data from request
@@ -26,33 +26,39 @@ func Register(DB *pg.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// lower case
+	account.Address = strings.ToLower(account.Address)
+	account.DeviceType = strings.ToLower(account.DeviceType)
+
+	// check device type
+	if account.DeviceType != models.Android && account.DeviceType != models.IOS {
+		errors.ErrInvalidDeviceType(w, http.StatusBadRequest)
+		return
+	}
+
+	// check chain id
+	if account.ChainID != models.CosmosHub && account.ChainID != models.IrisHub && account.ChainID != models.Kava {
+		errors.ErrInvalidChainID(w, http.StatusBadRequest)
+		return
+	}
+
 	// check validity of an address
 	if !strings.Contains(account.Address, sdk.Bech32PrefixAccAddr) || len(account.Address) != 45 {
 		errors.ErrInvalidFormat(w, http.StatusBadRequest)
 		return
 	}
 
-	// check if same account already exists (alarm_token with same address)
-	exist, err := DB.Model(&account).
-		Where("alarm_token = ? AND address = ?", account.AlarmToken, account.Address).
-		Exists()
+	// check if there is the same account
+	// alarm_token with same address
+	exist, _ := databases.QueryExistsAccount(w, db, account)
 	if exist {
 		errors.ErrDuplicateAccount(w, http.StatusConflict)
 		return
 	}
 
-	// Current time
-	account.Timestamp = time.Now()
+	// insert account
+	databases.InsertAccount(w, db, account)
 
-	// Insert account
-	err = DB.Insert(&account)
-	if err != nil {
-		errors.ErrInternalServer(w, http.StatusInternalServerError)
-		return
-	}
-
-	// resp := u.RespondSuccessMessage("Account has been created")
-
-	u.Respond(w, account)
+	u.SuccessResult(w, "success")
 	return
 }

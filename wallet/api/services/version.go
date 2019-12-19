@@ -3,7 +3,9 @@ package services
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
+	"github.com/cosmostation/cosmostation-cosmos/wallet/api/databases"
 	"github.com/cosmostation/cosmostation-cosmos/wallet/api/errors"
 	"github.com/cosmostation/cosmostation-cosmos/wallet/api/models"
 	u "github.com/cosmostation/cosmostation-cosmos/wallet/api/utils"
@@ -13,28 +15,27 @@ import (
 )
 
 // GetVersion returns version number of an app
-func GetVersion(DB *pg.DB, w http.ResponseWriter, r *http.Request) {
+func GetVersion(db *pg.DB, w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	deviceType := vars["deviceType"]
+
+	// lower case
+	deviceType = strings.ToLower(deviceType)
 
 	var version models.AppVersion
 
 	switch deviceType {
 	case models.Android:
-		_ = DB.Model(&version).
-			Where("device_type = ?", deviceType).
-			Select()
+		version, _ = databases.QueryAppVersion(w, db, deviceType)
 	case models.IOS:
-		_ = DB.Model(&version).
-			Where("device_type = ?", deviceType).
-			Select()
+		version, _ = databases.QueryAppVersion(w, db, deviceType)
 	default:
 		errors.ErrInvalidDeviceType(w, http.StatusBadRequest)
 		return
 	}
 
+	// in case when data is empty
 	if version.Latest == 0 {
-		errors.ErrNotFound(w, http.StatusNotFound)
 		return
 	}
 
@@ -54,27 +55,19 @@ func SetVersion(db *pg.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	exist, err := db.Model(&version).
-		Where("app_name = ? AND device_type = ?", version.AppName, version.DeviceType).
-		Count()
+	// lower case
+	version.AppName = strings.ToLower(version.AppName)
+	version.DeviceType = strings.ToLower(version.DeviceType)
+
+	exist, _ := databases.QueryExistsAppVersion(w, db, version)
 
 	// update version info if it exists. Otherwise, insert version info
-	if exist > 0 {
-		_, err = db.Model(&version).
-			Set("acceptable = ?", version.Acceptable).
-			Set("latest = ?", version.Latest).
-			Where("app_name = ? AND device_type = ?", version.AppName, version.DeviceType).
-			Update()
-		if err != nil {
-			errors.ErrInternalServer(w, http.StatusInternalServerError)
-			return
-		}
+	if exist {
+		databases.UpdateAppVersion(w, db, version)
 	} else {
-		err = db.Insert(&version)
-		if err != nil {
-			errors.ErrInternalServer(w, http.StatusInternalServerError)
-			return
-		}
+		databases.InsertAppVersion(w, db, version)
 	}
 
+	u.Respond(w, version)
+	return
 }
