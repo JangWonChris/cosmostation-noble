@@ -16,4 +16,7 @@ func AccountController(r *mux.Router, c *client.HTTP, db *pg.DB) {
 	r.HandleFunc("/account/register", func(w http.ResponseWriter, r *http.Request) {
 		services.Register(db, w, r)
 	}).Methods("POST")
+	r.HandleFunc("/account/update", func(w http.ResponseWriter, r *http.Request) {
+		services.Update(db, w, r)
+	}).Methods("POST")
 }

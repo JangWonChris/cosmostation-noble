@@ -11,12 +11,19 @@ import (
 // 	Msg    interface{} `json:"msg"`
 // }
 
+type ResultMsg struct {
+	Result bool   `json:"result"`
+	Msg    string `json:"msg"`
+}
+
 // Result returns result of the message
-func Result(w http.ResponseWriter, msg string) {
+func Result(w http.ResponseWriter, result bool, msg string) {
 	w.Header().Add("Content-Type", "application/json")
-	result := make(map[string]string)
-	result["result"] = msg
-	json.NewEncoder(w).Encode(result)
+	data := &ResultMsg{
+		Result: result,
+		Msg:    msg,
+	}
+	json.NewEncoder(w).Encode(data)
 }
 
 // Respond responds json format with any data type

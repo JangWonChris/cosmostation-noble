@@ -59,6 +59,22 @@ func Register(db *pg.DB, w http.ResponseWriter, r *http.Request) {
 	// insert account
 	databases.InsertAccount(w, db, account)
 
-	u.Result(w, "success")
+	u.Result(w, true, "successfully saved")
+	return
+}
+
+// Update updates the account information
+func Update(db *pg.DB, w http.ResponseWriter, r *http.Request) {
+	var account models.Account
+
+	// get post data from request
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&account)
+	if err != nil {
+		errors.ErrBadRequest(w, http.StatusBadRequest)
+		return
+	}
+
+	u.Result(w, true, "successfully updated")
 	return
 }
