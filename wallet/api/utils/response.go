@@ -11,8 +11,8 @@ import (
 // 	Msg    interface{} `json:"msg"`
 // }
 
-// SuccessResult responds map string format with any data type
-func SuccessResult(w http.ResponseWriter, msg string) {
+// Result returns result of the message
+func Result(w http.ResponseWriter, msg string) {
 	w.Header().Add("Content-Type", "application/json")
 	result := make(map[string]string)
 	result["result"] = msg

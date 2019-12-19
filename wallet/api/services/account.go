@@ -59,6 +59,6 @@ func Register(db *pg.DB, w http.ResponseWriter, r *http.Request) {
 	// insert account
 	databases.InsertAccount(w, db, account)
 
-	u.SuccessResult(w, "success")
+	u.Result(w, "success")
 	return
 }
