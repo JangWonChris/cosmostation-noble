@@ -72,3 +72,15 @@ func UpdateAppVersion(w http.ResponseWriter, db *pg.DB, version models.AppVersio
 	}
 	return version, nil
 }
+
+// UpdateAccount updates the account information
+func UpdateAccount(w http.ResponseWriter, db *pg.DB, account models.Account) (models.Account, error) {
+	_, err := db.Model(&account).
+		Set("alarm_status = ?", account.AlarmStatus).
+		Where("device_type = ? alarm_token = ? AND address = ?", account.DeviceType, account.AlarmToken, account.Address).
+		Update()
+	if err != nil {
+		errors.ErrInternalServer(w, http.StatusInternalServerError)
+	}
+	return account, nil
+}

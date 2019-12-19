@@ -42,7 +42,7 @@ func Register(db *pg.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// check validity of an address
+	// [TODO]: check validity of an address depending on which network
 	if !strings.Contains(account.Address, sdk.Bech32PrefixAccAddr) || len(account.Address) != 45 {
 		errors.ErrInvalidFormat(w, http.StatusBadRequest)
 		return
@@ -74,6 +74,17 @@ func Update(db *pg.DB, w http.ResponseWriter, r *http.Request) {
 		errors.ErrBadRequest(w, http.StatusBadRequest)
 		return
 	}
+
+	// check if there is the same account
+	// alarm_token with same address
+	exist, _ := databases.QueryExistsAccount(w, db, account)
+	if !exist {
+		errors.ErrNotFound(w, http.StatusNotFound)
+		return
+	}
+
+	// update account
+	databases.UpdateAccount(w, db, account)
 
 	u.Result(w, true, "successfully updated")
 	return

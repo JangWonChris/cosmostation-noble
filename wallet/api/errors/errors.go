@@ -26,7 +26,6 @@ const (
 
 	DuplicateAccount ErrorCode = 201
 	InvalidFormat    ErrorCode = 202
-	NotExist         ErrorCode = 203
 
 	InvalidDeviceType ErrorCode = 301
 	InvalidChainID    ErrorCode = 302
@@ -45,8 +44,6 @@ func ErrorCodeToErrorMsg(code ErrorCode) ErrorMsg {
 		return "Duplicate account"
 	case InvalidFormat:
 		return "Invalid format"
-	case NotExist:
-		return "NotExist"
 	case InvalidDeviceType:
 		return "Invalid device type"
 	case InvalidChainID:
@@ -96,14 +93,6 @@ func ErrInvalidFormat(w http.ResponseWriter, statusCode int) {
 	wrapError := WrapError{
 		ErrorCode: InvalidFormat,
 		ErrorMsg:  ErrorCodeToErrorMsg(InvalidFormat),
-	}
-	PrintException(w, statusCode, wrapError)
-}
-
-func ErrNotExist(w http.ResponseWriter, statusCode int) {
-	wrapError := WrapError{
-		ErrorCode: NotExist,
-		ErrorMsg:  ErrorCodeToErrorMsg(NotExist),
 	}
 	PrintException(w, statusCode, wrapError)
 }

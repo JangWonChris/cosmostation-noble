@@ -37,7 +37,7 @@ func UpdateAlarmStatus(DB *pg.DB, w http.ResponseWriter, r *http.Request) {
 		Where("alarm_token = ? AND address = ?", account.AlarmToken, account.Address).
 		Exists()
 	if !exist {
-		errors.ErrNotExist(w, http.StatusBadRequest)
+		errors.ErrNotFound(w, http.StatusBadRequest)
 		return
 	}
 

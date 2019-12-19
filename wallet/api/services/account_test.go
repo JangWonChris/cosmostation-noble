@@ -10,20 +10,46 @@ import (
 // Sample accounts
 var sampleAccounts = []models.Account{
 	{
-		IdfAccount: 1,
-		AlarmToken: "AAAAAAAAAAAAAAA",
-		DeviceType: "android",
-		Address:    "cosmos1dlpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9c",
-		CoinType:   "ATOM",
-		Status:     true,
+		ChainID:     1,
+		DeviceType:  "android",
+		Address:     "cosmos1dlpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9c",
+		AlarmToken:  "dIhWxooEtBY:APA91bGcX_rhNSi4GfXEdWCa1yle_p7QmZl8CbU5KwFUMkDaKBPi--mBZNwQi3eGUA8KwBJXp9rcd0NuJtAajGjHuqwNGxtOH0LL1sRi3l4ubgk0KJB7ZIBvoQUal-_7C0FriGztaPEn",
+		AlarmStatus: true,
 	},
 	{
-		IdfAccount: 2,
-		AlarmToken: "BBBBBBBBBBBBBBB",
-		DeviceType: "android",
-		Address:    "cosmos1dlpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9d",
-		CoinType:   "ATOM",
-		Status:     true,
+		ChainID:     2,
+		DeviceType:  "ios",
+		Address:     "cosmos1dlpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9c",
+		AlarmToken:  "eIzWxooEtBY:APA91bGcX_rhNSi4GfXEdWCa1yle_p7QmZl8CbU5KwFUMkDaKBPi--mBZNwQi3eGUA8KwBJXp9rcd0NuBtAajMjPuqwAGxtOH0LL1sRi2l1ubgk0KJB7ZIBvpLUty-_7C0FriGztaPEn",
+		AlarmStatus: true,
+	},
+	{
+		ChainID:     1,
+		DeviceType:  "ANDROID",
+		Address:     "cosmos1dlpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9c",
+		AlarmToken:  "eIzWxooEtBY:APA91bGcX_rhNSi4GfXEdWCa1yle_p7QmZl8CbU5KwFUMkDaKBPi--mBZNwQi3eGUA8KwBJXp9rcd0NuBtAajMjPuqwAGxtOH0LL1sRi2l1ubgk0KJB7ZIBvpLUty-_7C0FriGztaPEn",
+		AlarmStatus: true,
+	},
+	{
+		ChainID:     1,
+		DeviceType:  "GOOGLE",
+		Address:     "cosmos1dlpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9c",
+		AlarmToken:  "eIzWxooEtBY:APA91bGcX_rhNSi4GfXEdWCa1yle_p7QmZl8CbU5KwFUMkDaKBPi--mBZNwQi3eGUA8KwBJXp9rcd0NuBtAajMjPuqwAGxtOH0LL1sRi2l1ubgk0KJB7ZIBvpLUty-_7C0FriGztaPEn",
+		AlarmStatus: true,
+	},
+	{
+		ChainID:     1,
+		DeviceType:  "GOOGLE",
+		Address:     "kava1dlpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9c",
+		AlarmToken:  "eIzWxooEtBY:APA91bGcX_rhNSi4GfXEdWCa1yle_p7QmZl8CbU5KwFUMkDaKBPi--mBZNwQi3eGUA8KwBJXp9rcd0NuBtAajMjPuqwAGxtOH0LL1sRi2l1ubgk0KJB7ZIBvpLUty-_7C0FriGztaPEn",
+		AlarmStatus: true,
+	},
+	{
+		ChainID:     4,
+		DeviceType:  "ios",
+		Address:     "cosmos1dlpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9c",
+		AlarmToken:  "eIzWxooEtBY:APA91bGcX_rhNSi4GfXEdWCa1yle_p7QmZl8CbU5KwFUMkDaKBPi--mBZNwQi3eGUA8KwBJXp9rcd0NuBtAajMjPuqwAGxtOH0LL1sRi2l1ubgk0KJB7ZIBvpLUty-_7C0FriGztaPEn",
+		AlarmStatus: true,
 	},
 }
 
