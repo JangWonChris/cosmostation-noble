@@ -21,10 +21,14 @@ type WrapError struct {
 // Error code numbers
 const (
 	InternalServer ErrorCode = 101
+	NotFound       ErrorCode = 102
+	BadRequest     ErrorCode = 103
 
 	DuplicateAccount ErrorCode = 201
 	InvalidFormat    ErrorCode = 202
-	NotExist         ErrorCode = 203
+
+	InvalidDeviceType ErrorCode = 301
+	InvalidChainID    ErrorCode = 302
 )
 
 // ErrorCodeToErrorMsg returns error message from error code
@@ -32,14 +36,20 @@ func ErrorCodeToErrorMsg(code ErrorCode) ErrorMsg {
 	switch code {
 	case InternalServer:
 		return "Internal server error"
+	case NotFound:
+		return "Data not found"
+	case BadRequest:
+		return "Bad request"
 	case DuplicateAccount:
 		return "Duplicate account"
 	case InvalidFormat:
 		return "Invalid format"
-	case NotExist:
-		return "NotExist"
+	case InvalidDeviceType:
+		return "Invalid device type"
+	case InvalidChainID:
+		return "Invalid ChainID"
 	default:
-		return "Unknown"
+		return "Unknown error"
 	}
 }
 
@@ -51,6 +61,22 @@ func ErrInternalServer(w http.ResponseWriter, statusCode int) {
 	wrapError := WrapError{
 		ErrorCode: InternalServer,
 		ErrorMsg:  ErrorCodeToErrorMsg(InternalServer),
+	}
+	PrintException(w, statusCode, wrapError)
+}
+
+func ErrNotFound(w http.ResponseWriter, statusCode int) {
+	wrapError := WrapError{
+		ErrorCode: NotFound,
+		ErrorMsg:  ErrorCodeToErrorMsg(NotFound),
+	}
+	PrintException(w, statusCode, wrapError)
+}
+
+func ErrBadRequest(w http.ResponseWriter, statusCode int) {
+	wrapError := WrapError{
+		ErrorCode: BadRequest,
+		ErrorMsg:  ErrorCodeToErrorMsg(BadRequest),
 	}
 	PrintException(w, statusCode, wrapError)
 }
@@ -71,10 +97,18 @@ func ErrInvalidFormat(w http.ResponseWriter, statusCode int) {
 	PrintException(w, statusCode, wrapError)
 }
 
-func ErrNotExist(w http.ResponseWriter, statusCode int) {
+func ErrInvalidDeviceType(w http.ResponseWriter, statusCode int) {
 	wrapError := WrapError{
-		ErrorCode: NotExist,
-		ErrorMsg:  ErrorCodeToErrorMsg(NotExist),
+		ErrorCode: InvalidDeviceType,
+		ErrorMsg:  ErrorCodeToErrorMsg(InvalidDeviceType),
+	}
+	PrintException(w, statusCode, wrapError)
+}
+
+func ErrInvalidChainID(w http.ResponseWriter, statusCode int) {
+	wrapError := WrapError{
+		ErrorCode: InvalidChainID,
+		ErrorMsg:  ErrorCodeToErrorMsg(InvalidChainID),
 	}
 	PrintException(w, statusCode, wrapError)
 }
@@ -93,4 +127,5 @@ func PrintException(w http.ResponseWriter, statusCode int, err WrapError) {
 	result, _ := json.Marshal(err)
 
 	fmt.Fprint(w, string(result))
+	return
 }

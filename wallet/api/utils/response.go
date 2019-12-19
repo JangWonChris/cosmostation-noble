@@ -5,24 +5,39 @@ import (
 	"net/http"
 )
 
-/*
-	어떠한 타입의 struct가 와도 json 포맷으로 리턴할 수 있게끔 구현
-*/
+// type ResponseMsg struct {
+// 	Code   uint16      `json:"code"`
+// 	Result string      `json:"result"`
+// 	Msg    interface{} `json:"msg"`
+// }
 
+type ResultMsg struct {
+	Result bool   `json:"result"`
+	Msg    string `json:"msg"`
+}
+
+// Result returns result of the message
+func Result(w http.ResponseWriter, result bool, msg string) {
+	w.Header().Add("Content-Type", "application/json")
+	data := &ResultMsg{
+		Result: result,
+		Msg:    msg,
+	}
+	json.NewEncoder(w).Encode(data)
+}
+
+// Respond responds json format with any data type
 func Respond(w http.ResponseWriter, data interface{}) {
 	w.Header().Add("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(data)
 }
 
-func RespondSuccessMessage(message string) map[string]interface{} {
-	return map[string]interface{}{
-		"code":   101,
-		"result": "success",
-		"msg":    message,
-	}
-}
-
-// func Respond(w http.ResponseWriter, data map[string]interface{}) {
+// func Respond(w http.ResponseWriter, data interface{}) {
 // 	w.Header().Add("Content-Type", "application/json")
-// 	json.NewEncoder(w).Encode(data)
+// 	resp := &ResponseMsg{
+// 		Code:   101,
+// 		Result: Success,
+// 		Msg:    data,
+// 	}
+// 	json.NewEncoder(w).Encode(resp)
 // }
