@@ -18,5 +18,8 @@ func AccountController(r *mux.Router, c *client.HTTP, db *pg.DB) {
 	}).Methods("POST")
 	r.HandleFunc("/account/update", func(w http.ResponseWriter, r *http.Request) {
 		services.Update(db, w, r)
-	}).Methods("POST")
+	}).Methods("PUT")
+	r.HandleFunc("/account/delete", func(w http.ResponseWriter, r *http.Request) {
+		services.Delete(db, w, r)
+	}).Methods("DELETE")
 }

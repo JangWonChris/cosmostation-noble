@@ -73,14 +73,25 @@ func UpdateAppVersion(w http.ResponseWriter, db *pg.DB, version models.AppVersio
 	return version, nil
 }
 
-// UpdateAccount updates the account information
-func UpdateAccount(w http.ResponseWriter, db *pg.DB, account models.Account) (models.Account, error) {
+// UpdateAccount updates the account
+func UpdateAccount(w http.ResponseWriter, db *pg.DB, account models.Account) (bool, error) {
 	_, err := db.Model(&account).
 		Set("alarm_status = ?", account.AlarmStatus).
-		Where("device_type = ? alarm_token = ? AND address = ?", account.DeviceType, account.AlarmToken, account.Address).
+		Where("device_type = ? AND alarm_token = ? AND address = ?", account.DeviceType, account.AlarmToken, account.Address).
 		Update()
 	if err != nil {
 		errors.ErrInternalServer(w, http.StatusInternalServerError)
 	}
-	return account, nil
+	return true, nil
+}
+
+// DeleteAccount deletes the account
+func DeleteAccount(w http.ResponseWriter, db *pg.DB, account models.Account) (bool, error) {
+	_, err := db.Model(&account).
+		Where("device_type = ? AND alarm_token = ? AND address = ?", account.DeviceType, account.AlarmToken, account.Address).
+		Delete()
+	if err != nil {
+		errors.ErrInternalServer(w, http.StatusInternalServerError)
+	}
+	return true, nil
 }

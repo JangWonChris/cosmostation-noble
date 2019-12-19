@@ -76,7 +76,6 @@ func Update(db *pg.DB, w http.ResponseWriter, r *http.Request) {
 	}
 
 	// check if there is the same account
-	// alarm_token with same address
 	exist, _ := databases.QueryExistsAccount(w, db, account)
 	if !exist {
 		errors.ErrNotFound(w, http.StatusNotFound)
@@ -87,5 +86,33 @@ func Update(db *pg.DB, w http.ResponseWriter, r *http.Request) {
 	databases.UpdateAccount(w, db, account)
 
 	u.Result(w, true, "successfully updated")
+	return
+}
+
+// Delete delete the account information
+func Delete(db *pg.DB, w http.ResponseWriter, r *http.Request) {
+	var account models.Account
+
+	// get post data from request
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&account)
+	if err != nil {
+		errors.ErrBadRequest(w, http.StatusBadRequest)
+		return
+	}
+
+	// check if there is the same account
+	exist, _ := databases.QueryExistsAccount(w, db, account)
+	if !exist {
+		errors.ErrNotFound(w, http.StatusNotFound)
+		return
+	}
+
+	// delete the account
+	if exist {
+		databases.DeleteAccount(w, db, account)
+	}
+
+	u.Result(w, true, "successfully deleted")
 	return
 }
