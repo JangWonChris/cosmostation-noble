@@ -1,16 +1,16 @@
 package services
 
 import (
-	"fmt"
+	"encoding/json"
 	"net/http"
 	"strings"
 
 	"github.com/cosmostation/cosmostation-cosmos/wallet/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/wallet/api/databases"
+	"github.com/cosmostation/cosmostation-cosmos/wallet/api/errors"
 	"github.com/cosmostation/cosmostation-cosmos/wallet/api/models"
 	u "github.com/cosmostation/cosmostation-cosmos/wallet/api/utils"
 	"github.com/go-pg/pg"
-	"github.com/gorilla/mux"
 
 	resty "gopkg.in/resty.v1"
 )
@@ -35,15 +35,24 @@ JSON structure that is required when sending push notification
 // PushNotification receives an address from push-tx-parser and
 // sends push notification to its respective device
 func PushNotification(db *pg.DB, cf *config.Config, w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	address := vars["address"]
+	var nrp models.NotificationReceivePayload
+
+	// get post data from request
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&nrp)
+	if err != nil {
+		errors.ErrBadRequest(w, http.StatusBadRequest)
+		return
+	}
 
 	// lower case
-	address = strings.ToLower(address)
+	nrp.From = strings.ToLower(nrp.From)
+	nrp.To = strings.ToLower(nrp.To)
+	nrp.Txid = strings.ToLower(nrp.Txid)
 
 	// query account information
 	var account models.Account
-	account, _ = databases.QueryAccount(w, db, address)
+	account, _ = databases.QueryAccount(w, db, nrp.To)
 
 	// return when data is empty
 	if account.AlarmToken == "" {
@@ -56,62 +65,33 @@ func PushNotification(db *pg.DB, cf *config.Config, w http.ResponseWriter, r *ht
 		return
 	}
 
-	// send push notification
-	resp, err := resty.R().
-		SetHeader("Content-Type", "application/json").
-		SetBody(`{	
-  "notifications": [	
-    {	
-      "tokens": [
-      	"dRtiaZY5JzI:APA91bEEVWV7AbszQutnuAlFZfn9aXucZUCo_sbTltmKB7F1_l3n2TtlR31HmPx04xSw6kl0V0Fafjn4koAqydPMR8heKv8n_9Zr0bLIjsjVzfOFXC2jjWbfTxhURSDTnW0_Zvh1s6J5"
-      ],	
-      "platform": 2,	
-      "title": "Received 11.434532Atom",	
-      "message": "you received atom with txid 06FA072B36E4D9D0E99C9BAA826794DE11109F697916F3B0A93FCA8919754827",	
-      "data": {
-      	"notifyto" : "cosmos188z9th39f54sqmexvgj5wvjg4sus9qmm9w665e",
-      	"txid" : "06FA072B36E4D9D0E99C9BAA826794DE11109F697916F3B0A93FCA8919754827"
-      }	
-    }	
-  ]	
-}`).
-		Post(cf.Web.PushServerURL)
-
-	if err != nil {
-		fmt.Println("err: ", err)
-	}
-
-	fmt.Println(resp)
-
-	u.Result(w, true, "successfully sent push notification")
-	return
-}
-
-func PushTest(db *pg.DB, cf *config.Config, w http.ResponseWriter, r *http.Request) {
-
-	payload := models.Payload{
-		NotifyTo: "cosmos1ma02nlc7lchu7caufyrrqt4r6v2mpsj92s3mw7",
-		Txid:     "06FA072B36E4D9D0E99C9BAA826794DE11109F697916F3B0A93FCA8919754827",
-	}
-
-	var notification []models.Notification
-	tempNotification := models.Notification{
-		Tokens:   []string{"APA91bEEVWV7AbszQutnuAlFZfn9aXucZUCo_sbTltmKB7F1_l3n2TtlR31HmPx04xSw6kl0V0Fafjn4koAqydPMR8heKv8n_9Zr0bLIjsjVzfOFXC2jjWbfTxhURSDTnW0_Zvh1s6J5"},
+	// push notification payload
+	var notification []models.Notifications
+	tempNotification := models.Notifications{
+		Tokens:   []string{account.AlarmToken},
 		Platform: 2,
-		Message:  "Hello World",
-		Title:    "Title",
-		Data:     payload,
+		Title:    models.AlarmTitle + nrp.Amount,
+		Message:  models.AlarmMessage + nrp.Amount,
+		Data: models.Data{
+			NotifyTo: nrp.To,
+			Txid:     nrp.Txid,
+		},
 	}
 	notification = append(notification, tempNotification)
 
-	pushNotification := models.PushNotification{
+	notificationPayload := models.NotificationPayload{
 		Notifications: notification,
 	}
 
-	fmt.Println("notification", notification)
-	fmt.Println("payload", payload)
-	fmt.Println("pushNotification", pushNotification)
+	// send push notification
+	_, err = resty.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(notificationPayload).
+		Post(cf.Web.PushServerURL)
+	if err != nil {
+		errors.ErrInternalServer(w, http.StatusInternalServerError)
+	}
 
-	u.Respond(w, pushNotification)
+	u.Result(w, true, "successfully sent push notification")
 	return
 }

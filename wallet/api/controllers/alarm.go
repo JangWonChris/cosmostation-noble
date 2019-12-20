@@ -13,10 +13,7 @@ import (
 
 // AlarmController passes requests to its respective service
 func AlarmController(r *mux.Router, c *client.HTTP, db *pg.DB, cf *config.Config) {
-	r.HandleFunc("/alarm/push/{address}", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/alarm/push", func(w http.ResponseWriter, r *http.Request) {
 		services.PushNotification(db, cf, w, r)
-	}).Methods("GET")
-	r.HandleFunc("/alarm/test", func(w http.ResponseWriter, r *http.Request) {
-		services.PushTest(db, cf, w, r)
-	}).Methods("GET")
+	}).Methods("POST")
 }
