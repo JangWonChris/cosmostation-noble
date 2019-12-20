@@ -53,7 +53,7 @@ func (a *App) setRouters() {
 	// a.router.Use(auth.JwtAuthentication) // attach JWT auth middleware
 	// controllers.AuthController(a.router, a.rpcClient, a.db)
 	controllers.AccountController(a.router, a.rpcClient, a.db)
-	controllers.AlarmController(a.router, a.rpcClient, a.db)
+	controllers.AlarmController(a.router, a.rpcClient, a.db, a.config)
 	controllers.VersionController(a.router, a.rpcClient, a.db)
 }
 

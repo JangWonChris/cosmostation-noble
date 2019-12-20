@@ -38,6 +38,18 @@ func QueryAppVersion(w http.ResponseWriter, db *pg.DB, deviceType string) (model
 	return version, nil
 }
 
+// QueryAccount queries account information
+func QueryAccount(w http.ResponseWriter, db *pg.DB, address string) (models.Account, error) {
+	var account models.Account
+	err := db.Model(&account).
+		Where("address = ?", address).
+		Select()
+	if err != nil {
+		errors.ErrNotFound(w, http.StatusNotFound)
+	}
+	return account, nil
+}
+
 // QueryExistsAppVersion queries to check if the app data already exists
 func QueryExistsAppVersion(w http.ResponseWriter, db *pg.DB, version models.AppVersion) (bool, error) {
 	exist, err := db.Model(&version).

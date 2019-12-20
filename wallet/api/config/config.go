@@ -10,7 +10,6 @@ type Config struct {
 	Node *NodeConfig
 	DB   *DBConfig
 	Web  *WebConfig
-	JWT  *JWTConfig
 }
 
 type (
@@ -27,11 +26,9 @@ type (
 	}
 
 	WebConfig struct {
-		Port string
-	}
-
-	JWTConfig struct {
-		Token string
+		PushServerURL string
+		Port          string
+		JWTToken      string
 	}
 )
 
@@ -49,7 +46,6 @@ func NewConfig() *Config {
 	nodeConfig := &NodeConfig{}
 	dbConfig := &DBConfig{}
 	webConfig := &WebConfig{}
-	jwtConfig := &JWTConfig{}
 
 	// configuration for prod, dev, testnet
 	switch viper.GetString("active") {
@@ -60,8 +56,9 @@ func NewConfig() *Config {
 		dbConfig.User = viper.GetString("prod.database.user")
 		dbConfig.Password = viper.GetString("prod.database.password")
 		dbConfig.Table = viper.GetString("prod.database.table")
-		webConfig.Port = viper.GetString("prod.port")
-		jwtConfig.Token = viper.GetString("prod.jwt.token")
+		webConfig.PushServerURL = viper.GetString("prod.web.push_server_url")
+		webConfig.Port = viper.GetString("prod.web.port")
+		webConfig.JWTToken = viper.GetString("prod.web.jwt_token")
 	case "dev":
 		nodeConfig.GaiadURL = viper.GetString("dev.node.gaiad_url")
 		nodeConfig.LCDURL = viper.GetString("dev.node.lcd_url")
@@ -69,8 +66,9 @@ func NewConfig() *Config {
 		dbConfig.User = viper.GetString("dev.database.user")
 		dbConfig.Password = viper.GetString("dev.database.password")
 		dbConfig.Table = viper.GetString("dev.database.table")
-		webConfig.Port = viper.GetString("dev.port")
-		jwtConfig.Token = viper.GetString("dev.jwt.token")
+		webConfig.PushServerURL = viper.GetString("dev.web.push_server_url")
+		webConfig.Port = viper.GetString("dev.web.port")
+		webConfig.JWTToken = viper.GetString("dev.web.jwt_token")
 	case "testnet":
 		nodeConfig.GaiadURL = viper.GetString("testnet.node.gaiad_url")
 		nodeConfig.LCDURL = viper.GetString("testnet.node.lcd_url")
@@ -78,8 +76,9 @@ func NewConfig() *Config {
 		dbConfig.User = viper.GetString("testnet.database.user")
 		dbConfig.Password = viper.GetString("testnet.database.password")
 		dbConfig.Table = viper.GetString("testnet.database.table")
-		webConfig.Port = viper.GetString("testnet.port")
-		jwtConfig.Token = viper.GetString("testnet.jwt.token")
+		webConfig.PushServerURL = viper.GetString("testnet.web.push_server_url")
+		webConfig.Port = viper.GetString("testnet.web.port")
+		webConfig.JWTToken = viper.GetString("testnet.web.jwt_token")
 	default:
 		fmt.Println("Define active params in config.yaml")
 	}
@@ -87,7 +86,6 @@ func NewConfig() *Config {
 	config.Node = nodeConfig
 	config.DB = dbConfig
 	config.Web = webConfig
-	config.JWT = jwtConfig
 
 	return config
 }
