@@ -10,7 +10,7 @@ prod:
     password: "CosmosGo00!!"
     table: "mainnet"
   web: 
-    push_server_url: "http://localhost:65522"
+    push_server_url: "http://localhost:65522/api/push"
     port: 5000
     jwt_token: "SecureCosmostation!@#50291230728"
 
@@ -24,7 +24,7 @@ dev:
     password: "dnpfqldwhr00!!"
     table: "test"
   web: 
-    push_server_url: "http://localhost:65522"
+    push_server_url: "http://localhost:65522/api/push"
     port: 5000
     jwt_token: "SecureCosmostation!@#50291230728"
 
@@ -38,7 +38,7 @@ testnet:
     password: "dnpfqldwhr00!!"
     table: "cosmos-testnet"
   web: 
-    push_server_url: "http://localhost:65522"
+    push_server_url: "http://localhost:65522/api/push"
     port: 5000
     jwt_token: "SecureCosmostation!@#50291230728"
 
