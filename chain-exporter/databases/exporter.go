@@ -1,14 +1,14 @@
 package databases
 
 import (
-	dtypes "github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 	"github.com/go-pg/pg"
 )
 
 // SaveExportedData saves exported blockchain data
-func SaveExportedData(db *pg.DB, blockInfo []*dtypes.BlockInfo, evidenceInfo []*dtypes.EvidenceInfo, genesisValidatorsInfo []*dtypes.ValidatorSetInfo,
-	missInfo []*dtypes.MissInfo, accumMissInfo []*dtypes.MissInfo, missDetailInfo []*dtypes.MissDetailInfo, transactionInfo []*dtypes.TransactionInfo,
-	voteInfo []*dtypes.VoteInfo, depositInfo []*dtypes.DepositInfo, proposalInfo []*dtypes.ProposalInfo, validatorSetInfo []*dtypes.ValidatorSetInfo) error {
+func SaveExportedData(db *pg.DB, blockInfo []*schema.BlockInfo, evidenceInfo []*schema.EvidenceInfo, genesisValidatorsInfo []*schema.ValidatorSetInfo,
+	missInfo []*schema.MissInfo, accumMissInfo []*schema.MissInfo, missDetailInfo []*schema.MissDetailInfo, transactionInfo []*schema.TransactionInfo,
+	voteInfo []*schema.VoteInfo, depositInfo []*schema.DepositInfo, proposalInfo []*schema.ProposalInfo, validatorSetInfo []*schema.ValidatorSetInfo) error {
 	err := db.RunInTransaction(func(tx *pg.Tx) error {
 		if len(blockInfo) > 0 {
 			err := tx.Insert(&blockInfo)
@@ -67,7 +67,7 @@ func SaveExportedData(db *pg.DB, blockInfo []*dtypes.BlockInfo, evidenceInfo []*
 		}
 
 		// update accumulative missing block info
-		var tempMissInfo dtypes.MissInfo
+		var tempMissInfo schema.MissInfo
 		if len(accumMissInfo) > 0 {
 			for i := 0; i < len(accumMissInfo); i++ {
 				_, err := tx.Model(&tempMissInfo).
@@ -87,7 +87,7 @@ func SaveExportedData(db *pg.DB, blockInfo []*dtypes.BlockInfo, evidenceInfo []*
 
 		// insert vote tx info
 		if len(voteInfo) > 0 {
-			var tempVoteInfo dtypes.VoteInfo
+			var tempVoteInfo schema.VoteInfo
 			for i := 0; i < len(voteInfo); i++ {
 				// Check if a validator already voted
 				count, _ := tx.Model(&tempVoteInfo).
@@ -117,7 +117,7 @@ func SaveExportedData(db *pg.DB, blockInfo []*dtypes.BlockInfo, evidenceInfo []*
 
 		// update proposerInfo
 		if len(proposalInfo) > 0 {
-			var tempProposalInfo dtypes.ProposalInfo
+			var tempProposalInfo schema.ProposalInfo
 			for i := 0; i < len(proposalInfo); i++ {
 				// check if a validator already voted
 				count, _ := tx.Model(&tempProposalInfo).

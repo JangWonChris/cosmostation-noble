@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/utils"
 
@@ -33,9 +34,9 @@ func SaveBondedValidators(db *pg.DB, config *config.Config) {
 	})
 
 	// bondedValidator information for our database table
-	validatorInfo := make([]*types.ValidatorInfo, 0)
+	validatorInfo := make([]*schema.ValidatorInfo, 0)
 	for i, bondedValidator := range bondedValidators {
-		tempValidatorInfo := &types.ValidatorInfo{
+		tempValidatorInfo := &schema.ValidatorInfo{
 			Rank:                 i + 1,
 			OperatorAddress:      bondedValidator.OperatorAddress,
 			Address:              utils.AccAddressFromOperatorAddress(bondedValidator.OperatorAddress),
@@ -107,10 +108,10 @@ func SaveUnbondingAndUnBondedValidators(db *pg.DB, config *config.Config) {
 	})
 
 	// validators information for our database table
-	validatorInfo := make([]*types.ValidatorInfo, 0)
+	validatorInfo := make([]*schema.ValidatorInfo, 0)
 	if len(unbondingValidators) > 0 {
 		for _, unbondingValidator := range unbondingValidators {
-			tempValidatorInfo := &types.ValidatorInfo{
+			tempValidatorInfo := &schema.ValidatorInfo{
 				OperatorAddress:      unbondingValidator.OperatorAddress,
 				Address:              utils.AccAddressFromOperatorAddress(unbondingValidator.OperatorAddress),
 				ConsensusPubkey:      unbondingValidator.ConsensusPubkey,
@@ -139,7 +140,7 @@ func SaveUnbondingAndUnBondedValidators(db *pg.DB, config *config.Config) {
 	}
 
 	// ranking
-	var rankInfo types.ValidatorInfo
+	var rankInfo schema.ValidatorInfo
 	_ = db.Model(&rankInfo).
 		Where("status = ?", 2).
 		Order("rank DESC").
@@ -201,10 +202,10 @@ func saveUnbondedValidators(db *pg.DB, config *config.Config) {
 	})
 
 	// validators information for our database table
-	validatorInfo := make([]*types.ValidatorInfo, 0)
+	validatorInfo := make([]*schema.ValidatorInfo, 0)
 	if len(unbondedValidators) > 0 {
 		for _, unbondedValidator := range unbondedValidators {
-			tempValidatorInfo := &types.ValidatorInfo{
+			tempValidatorInfo := &schema.ValidatorInfo{
 				OperatorAddress:      unbondedValidator.OperatorAddress,
 				Address:              utils.AccAddressFromOperatorAddress(unbondedValidator.OperatorAddress),
 				ConsensusPubkey:      unbondedValidator.ConsensusPubkey,
@@ -230,7 +231,7 @@ func saveUnbondedValidators(db *pg.DB, config *config.Config) {
 	}
 
 	// last rank number
-	var rankInfo types.ValidatorInfo
+	var rankInfo schema.ValidatorInfo
 	_ = db.Model(&rankInfo).
 		Where("status = ?", 1).
 		Order("rank DESC").

@@ -9,7 +9,7 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/databases"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/lcd"
-	dtypes "github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 
@@ -110,7 +110,7 @@ func (ces *ChainExporterService) OnStop() {
 
 // sync synchronizes the block data from connected full node
 func (ces *ChainExporterService) sync() error {
-	var blocks []dtypes.BlockInfo
+	var blocks []schema.BlockInfo
 	err := ces.db.Model(&blocks).
 		Order("height DESC").
 		Limit(1).
