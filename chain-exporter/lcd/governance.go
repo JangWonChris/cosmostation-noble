@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 
 	"github.com/go-pg/pg"
@@ -27,7 +28,7 @@ func SaveProposals(db *pg.DB, config *config.Config) {
 	}
 
 	// proposal information for our database table
-	proposalInfo := make([]*types.ProposalInfo, 0)
+	proposalInfo := make([]*schema.ProposalInfo, 0)
 	if len(proposals) > 0 {
 		for _, proposal := range proposals {
 			proposalID, _ := strconv.ParseInt(proposal.ID, 10, 64)
@@ -41,13 +42,13 @@ func SaveProposals(db *pg.DB, config *config.Config) {
 
 			tallyResp, _ := resty.R().Get(config.Node.LCDURL + "/gov/proposals/" + proposal.ID + "/tally")
 
-			var tally types.TallyInfo
+			var tally types.Tally
 			err = json.Unmarshal(types.ReadRespWithHeight(tallyResp).Result, &tally)
 			if err != nil {
 				log.Info().Str(types.Service, types.LogGovernance).Str(types.Method, "SaveProposals").Err(err).Msg("unmarshal tally error")
 			}
 
-			tempProposalInfo := &types.ProposalInfo{
+			tempProposalInfo := &schema.ProposalInfo{
 				ID:                 proposalID,
 				Title:              proposal.Content.Value.Title,
 				Description:        proposal.Content.Value.Description,
@@ -71,7 +72,7 @@ func SaveProposals(db *pg.DB, config *config.Config) {
 
 	// update proposerInfo
 	if len(proposalInfo) > 0 {
-		var tempProposalInfo types.ProposalInfo
+		var tempProposalInfo schema.ProposalInfo
 		for i := 0; i < len(proposalInfo); i++ {
 			// check if a validator already voted
 			count, _ := db.Model(&tempProposalInfo).
