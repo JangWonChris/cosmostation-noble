@@ -27,4 +27,5 @@ type Notifications struct {
 type Data struct {
 	NotifyTo string `json:"notifyto"`
 	Txid     string `json:"txid"`
+	Type     string `json:"type"`
 }

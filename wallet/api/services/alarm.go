@@ -26,7 +26,11 @@ JSON structure that is required when sending push notification
       "platform": 2,
       "message": "you received atom with txid 06FA072B36E4D9D0E99C9BAA826794DE11109F697916F3B0A93FCA8919754827",
       "title": "Received 11.434532Atom",
-      "data": {"notifyto" : "cosmos1ma02nlc7lchu7caufyrrqt4r6v2mpsj92s3mw7","txid" : "06FA072B36E4D9D0E99C9BAA826794DE11109F697916F3B0A93FCA8919754827"}
+      "data": {
+		  "notifyto" : "cosmos1ma02nlc7lchu7caufyrrqt4r6v2mpsj92s3mw7",
+		  "txid" : "06FA072B36E4D9D0E99C9BAA826794DE11109F697916F3B0A93FCA8919754827",
+		  "type" : "send or receive"
+		}
     }
   ]
 }
