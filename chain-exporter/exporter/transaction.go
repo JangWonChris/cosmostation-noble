@@ -45,6 +45,19 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tra
 			txHash := hex.EncodeToString(txByte)
 			txHash = strings.ToUpper(txHash)
 
+			/*
+				함수형 프로그래밍
+				juno 구조 파악: codec, db, client 쪼개놨다. config를 그 안에서 필요한 것만 선언하여 사용하게끔.
+
+				[Alarm]
+				LCD로 그대로 파싱 로직을 남겨둔 뒤 switch case문에 MsgSend, MsgMultiSend 추가 후 알람 로직 만들어 푸시 알림 구현!
+
+				[ES 분리]
+				데이터베이스에 직접적으로 넣지 않고 테스트 가능한 환경을 일단 먼저 만들고
+				juno를 참고해서 TxHash 구하는 법, Transaction 테이블에 들어가는 jsonb타입의 json array 넣기
+				넣은 뒤에 코드를 분리하던지 해야 될 것 같다.
+			*/
+
 			// unmarshal general transaction format
 			var generalTx types.GeneralTx
 			resp, _ := resty.R().Get(ces.config.Node.LCDURL + "/txs/" + txHash)
