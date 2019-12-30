@@ -53,7 +53,7 @@ func NewConfig() *Config {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
-	viper.AddConfigPath("/home/ubuntu/cosmostation-cosmos/chain-exporter") // call multiple times to add many search paths
+	viper.AddConfigPath("/home/ubuntu/cosmostation-cosmos/chain-exporter")
 
 	if err := viper.ReadInConfig(); err != nil {
 		panic(fmt.Errorf("fatal error config file: %s ", err))
@@ -61,7 +61,6 @@ func NewConfig() *Config {
 
 	config := &Config{}
 	config.KeybaseURL = viper.GetString("keybase_url")
-
 	nodeConfig := &NodeConfig{}
 	dbConfig := &DBConfig{}
 

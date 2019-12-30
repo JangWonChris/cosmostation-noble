@@ -8,3 +8,9 @@ const (
 	EventTypeMsgUndelegate      = "begin_unbonding"
 	EventTypeMsgBeginRedelegate = "begin_redelegate"
 )
+
+type Signature struct {
+	Address   string `json:"address,omitempty"`
+	Pubkey    string `json:"pubkey,omitempty"`
+	Signature string `json:"signature,omitempty"`
+}

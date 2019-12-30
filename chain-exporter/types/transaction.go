@@ -51,8 +51,12 @@ type GeneralTx struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
-// cosmoshub-1 https://lcd.cosmostation.io/txs/D867403BDD544A0FE41EDB6AE0368CACAADFF6A98BF3AD3E76D868D104DEC2F6
-// cosmoshub-2 https://lcd.cosmostation.io/txs/
+type MsgSend struct {
+}
+
+type MsgMultiSend struct {
+}
+
 type MsgCreateValidator struct {
 	Description struct {
 		Moniker  string `json:"moniker"`
@@ -75,8 +79,6 @@ type MsgCreateValidator struct {
 	} `json:"value"`
 }
 
-// cosmoshub-1 https://lcd.cosmostation.io/txs/284184911ba7d486f752c2354576bebb3d4780d98608be49830a48ac573f06af
-// cosmoshub-2 https://lcd.cosmostation.io/txs/F341DD756A93D5BA8433E92A7D92922BB99A138C85EFCDA8256E958A6E388589
 type MsgDelegate struct {
 	DelegatorAddress string `json:"delegator_address"`
 	ValidatorAddress string `json:"validator_address"`
@@ -86,8 +88,6 @@ type MsgDelegate struct {
 	} `json:"amount"`
 }
 
-// cosmoshub-1 https://lcd.cosmostation.io/txs/1ABCE9FE606B5CBC991E09B1D2EA0263EAE34FF49B19E09E0330F6CA165B2C96
-// cosmoshub-2 https://lcd.cosmostation.io/txs/31CD1C12F1DCECDB8C5FE00A01F68E696D2338BCDD9D08AA7702F56F6ACF19FC
 type MsgUndelegate struct {
 	DelegatorAddress string `json:"delegator_address"`
 	ValidatorAddress string `json:"validator_address"`
@@ -97,8 +97,6 @@ type MsgUndelegate struct {
 	} `json:"amount"`
 }
 
-// cosmoshub-1 https://lcd.cosmostation.io/txs/48853f0ff5d23096b90f3844ea97938936eae651625f4b3109ca5e7406d91edf
-// cosmoshub-2 https://lcd.cosmostation.io/txs/44D490262824A6BD9E110E82586E208E587CB6079E51FBCF450C7B49F2FECA94
 type MsgBeginRedelegate struct {
 	DelegatorAddress    string `json:"delegator_address"`
 	ValidatorSrcAddress string `json:"validator_src_address"`
@@ -109,8 +107,6 @@ type MsgBeginRedelegate struct {
 	} `json:"amount"`
 }
 
-// cosmoshub-1 https://lcd.cosmostation.io/txs/A126E48228271FBAEDF49028E4CB724049E09C831769AE402BBB80CCA197C62D
-// cosmoshub-2 https://lcd.cosmostation.io/txs/183CD449019835854C7C48712D275E05FEDA56ACCCE0E2C740C511F183B0729E
 type MsgSubmitProposal struct {
 	Title          string `json:"title"`
 	Description    string `json:"description"`
@@ -122,16 +118,12 @@ type MsgSubmitProposal struct {
 	} `json:"initial_deposit"`
 }
 
-// cosmoshub-1 https://lcd.cosmostation.io/txs/8D17DC38DE754B544F1183AC96FD91D7E9559893A12FCD013E1A87A619856C61
-// cosmoshub-2 https://lcd.cosmostation.io/txs/
 type MsgVote struct {
 	ProposalID string `json:"proposal_id"`
 	Voter      string `json:"voter"`
 	Option     string `json:"option"`
 }
 
-// cosmoshub-2 https://lcd.cosmostation.io/txs/5EED165DE065D07B6772DD0994F8CD23177C5FDE76235012865C5110E52FAF31
-// cosmoshub-2 https://lcd.cosmostation.io/txs/B2EDFC1539FD0E58FFE5367BB297C904D4DDACD41F62414503735865C2BA57D7
 type MsgDeposit struct {
 	ProposalID string `json:"proposal_id"`
 	Depositor  string `json:"depositor"`

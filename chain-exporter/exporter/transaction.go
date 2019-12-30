@@ -1,25 +1,28 @@
 package exporter
 
 import (
-	"encoding/hex"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"net/http"
 	"strconv"
-	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 
+	ceCodec "github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/databases"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/utils"
 
-	"github.com/tendermint/tendermint/crypto"
 	resty "gopkg.in/resty.v1"
 )
 
 // getTransactionInfo provides information about each transaction in every block
-func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*schema.TransactionInfo, []*schema.VoteInfo,
+func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.TransactionInfo, []*schema.VoteInfo,
 	[]*schema.DepositInfo, []*schema.ProposalInfo, []*schema.ValidatorSetInfo, error) {
 
 	transactionInfo := make([]*schema.TransactionInfo, 0)
@@ -35,62 +38,41 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tra
 	}
 
 	if len(block.Block.Data.Txs) > 0 {
-		for _, tx := range block.Block.Data.Txs {
+		for _, tmTx := range block.Block.Data.Txs {
 			// use tx codec to unmarshal binary length prefix
 			var sdkTx sdk.Tx
-			_ = ces.codec.UnmarshalBinaryLengthPrefixed([]byte(tx), &sdkTx)
+			_ = ces.codec.UnmarshalBinaryLengthPrefixed([]byte(tmTx), &sdkTx)
 
 			// transaction hash
-			txByte := crypto.Sha256(tx)
-			txHash := hex.EncodeToString(txByte)
-			txHash = strings.ToUpper(txHash)
+			txHash := fmt.Sprintf("%X", tmTx.Hash())
 
-			/*
-				함수형 프로그래밍
-				juno 구조 파악: codec, db, client 쪼개놨다. config를 그 안에서 필요한 것만 선언하여 사용하게끔.
+			tx, err := ces.Tx(txHash)
+			if err != nil {
+				log.Printf("failed to get tx %s: %s", txHash, err)
+				continue
+			}
 
-				[Alarm]
-				LCD로 그대로 파싱 로직을 남겨둔 뒤 switch case문에 MsgSend, MsgMultiSend 추가 후 알람 로직 만들어 푸시 알림 구현!
-
-				[ES 분리]
-				데이터베이스에 직접적으로 넣지 않고 테스트 가능한 환경을 일단 먼저 만들고
-				juno를 참고해서 TxHash 구하는 법, Transaction 테이블에 들어가는 jsonb타입의 json array 넣기
-				넣은 뒤에 코드를 분리하던지 해야 될 것 같다.
-			*/
+			var tempTxInfo schema.TransactionInfo
+			tempTxInfo, err = ces.SetTx(tx, txHash)
+			if err != nil {
+				log.Printf("failed to persist transaction %s: %s", txHash, err)
+			}
+			transactionInfo = append(transactionInfo, &tempTxInfo)
 
 			// unmarshal general transaction format
 			var generalTx types.GeneralTx
 			resp, _ := resty.R().Get(ces.config.Node.LCDURL + "/txs/" + txHash)
-			err := json.Unmarshal(resp.Body(), &generalTx)
+			err = json.Unmarshal(resp.Body(), &generalTx)
 			if err != nil {
 				fmt.Printf("unmarshal generalTx error - %v\n", err)
-			}
-
-			// save all txs in PostgreSQL if it is success or fail
-			if len(generalTx.Tx.Value.Msg) == 1 {
-				tempTransactionInfo := &schema.TransactionInfo{
-					Height:  block.Block.Height,
-					TxHash:  txHash,
-					MsgType: generalTx.Tx.Value.Msg[0].Type,
-					Memo:    generalTx.Tx.Value.Memo,
-					Time:    block.BlockMeta.Header.Time,
-				}
-				transactionInfo = append(transactionInfo, tempTransactionInfo)
-			} else {
-				tempTransactionInfo := &schema.TransactionInfo{
-					Height:  block.Block.Height,
-					TxHash:  txHash,
-					MsgType: types.MultiMsg,
-					Memo:    generalTx.Tx.Value.Memo,
-					Time:    block.BlockMeta.Header.Time,
-				}
-				transactionInfo = append(transactionInfo, tempTransactionInfo)
 			}
 
 			// check log to see if tx is success
 			for j, log := range generalTx.Logs {
 				if log.Success {
 					switch generalTx.Tx.Value.Msg[j].Type {
+					case "cosmos-sdk/MsgSend":
+					case "cosmos-sdk/MultiSend":
 					case "cosmos-sdk/MsgCreateValidator":
 						var msgCreateValidator types.MsgCreateValidator
 						_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &msgCreateValidator)
@@ -374,4 +356,108 @@ func (ces *ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tra
 	}
 
 	return transactionInfo, voteInfo, depositInfo, proposalInfo, validatorSetInfo, nil
+}
+
+// Tx queries for a transaction from the REST client and decodes it into a sdk.Tx
+// if the transaction exists. An error is returned if the tx doesn't exist or
+// decoding fails.
+func (ces ChainExporterService) Tx(hash string) (sdk.TxResponse, error) {
+	resp, err := http.Get(fmt.Sprintf("%s/txs/%s", ces.config.Node.LCDURL, hash))
+	if err != nil {
+		return sdk.TxResponse{}, err
+	}
+
+	defer resp.Body.Close()
+
+	bz, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return sdk.TxResponse{}, err
+	}
+
+	var tx sdk.TxResponse
+
+	if err := ces.codec.UnmarshalJSON(bz, &tx); err != nil {
+		return sdk.TxResponse{}, err
+	}
+
+	return tx, nil
+}
+
+// SetTx stores a transaction and returns the resulting record ID. An error is
+// returned if the operation fails.
+func (ces ChainExporterService) SetTx(tx sdk.TxResponse, txHash string) (schema.TransactionInfo, error) {
+	stdTx, ok := tx.Tx.(auth.StdTx)
+	if !ok {
+		return schema.TransactionInfo{}, fmt.Errorf("unsupported tx type: %T", tx.Tx)
+	}
+
+	msgsBz, err := ceCodec.Codec.MarshalJSON(stdTx.GetMsgs())
+	if err != nil {
+		return schema.TransactionInfo{}, fmt.Errorf("failed to JSON encode tx messages: %s", err)
+	}
+
+	feeBz, err := ceCodec.Codec.MarshalJSON(stdTx.Fee)
+	if err != nil {
+		return schema.TransactionInfo{}, fmt.Errorf("failed to JSON encode tx fee: %s", err)
+	}
+
+	// convert Tendermint signatures into a more human-readable format
+	sigs := make([]types.Signature, len(stdTx.GetSignatures()), len(stdTx.GetSignatures()))
+	for i, sig := range stdTx.GetSignatures() {
+		consPubKey, err := sdk.Bech32ifyConsPub(sig.PubKey) // nolint: typecheck
+		if err != nil {
+			return schema.TransactionInfo{}, fmt.Errorf("failed to convert validator public key %s: %s\n", sig.PubKey, err)
+		}
+
+		sigs[i] = types.Signature{
+			Address:   sig.Address().String(),
+			Signature: base64.StdEncoding.EncodeToString(sig.Signature),
+			Pubkey:    consPubKey,
+		}
+	}
+
+	sigsBz, err := ceCodec.Codec.MarshalJSON(sigs)
+	if err != nil {
+		return schema.TransactionInfo{}, fmt.Errorf("failed to JSON encode tx signatures: %s", err)
+	}
+
+	eventsBz, err := ceCodec.Codec.MarshalJSON(tx.Events)
+	if err != nil {
+		return schema.TransactionInfo{}, fmt.Errorf("failed to JSON encode tx events: %s", err)
+	}
+
+	logsBz, err := ceCodec.Codec.MarshalJSON(tx.Logs)
+	if err != nil {
+		return schema.TransactionInfo{}, fmt.Errorf("failed to JSON encode tx logs: %s", err)
+	}
+
+	msgs := make([]schema.Message, 1)
+	msgs[0].Message = string(msgsBz)
+
+	fee := &schema.Fee{
+		Fee: string(feeBz),
+	}
+
+	signatures := make([]schema.Signature, 1)
+	signatures[0].Signature = string(sigsBz)
+
+	logs := make([]schema.Log, 1)
+	logs[0].Log = string(logsBz)
+
+	events := make([]schema.Event, 1)
+	events[0].Event = string(eventsBz)
+
+	return schema.TransactionInfo{
+		Height:     tx.Height,
+		TxHash:     txHash,
+		GasWanted:  tx.GasWanted,
+		GasUsed:    tx.GasUsed,
+		Messages:   msgs,
+		Fee:        *fee,
+		Signatures: signatures,
+		Logs:       logs,
+		Events:     events,
+		Memo:       stdTx.GetMemo(),
+		Time:       tx.Timestamp,
+	}, err
 }

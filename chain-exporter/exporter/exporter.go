@@ -6,14 +6,13 @@ import (
 	"fmt"
 	"time"
 
+	ceCodec "github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/databases"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/lcd"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-
-	gaiaApp "github.com/cosmos/gaia/app"
 
 	"github.com/go-pg/pg"
 	"github.com/tendermint/tendermint/rpc/client"
@@ -35,7 +34,7 @@ type ChainExporterService struct {
 // NewChainExporterService initializes the required config
 func NewChainExporterService(config *config.Config) *ChainExporterService {
 	ces := &ChainExporterService{
-		codec:     gaiaApp.MakeCodec(), // register Cosmos SDK codecs
+		codec:     ceCodec.Codec, // register Cosmos SDK codecs
 		config:    config,
 		db:        databases.ConnectDatabase(config), // connect to PostgreSQL
 		wsCtx:     context.Background(),
@@ -51,8 +50,7 @@ func NewChainExporterService(config *config.Config) *ChainExporterService {
 }
 
 // OnStart is an override method for BaseService, which starts a service
-func (ces *ChainExporterService) OnStart() error {
-	// OnStart rpc client
+func (ces ChainExporterService) OnStart() error {
 	ces.rpcClient.OnStart()
 
 	// Store data initially
@@ -74,12 +72,14 @@ func (ces *ChainExporterService) OnStart() error {
 			time.Sleep(time.Second)
 		}
 	}()
+
 	go func() {
 		for {
 			time.Sleep(7 * time.Second)
 			c1 <- "sync governance and validators via LCD"
 		}
 	}()
+
 	go func() {
 		for {
 			time.Sleep(20 * time.Minute)
@@ -89,27 +89,27 @@ func (ces *ChainExporterService) OnStart() error {
 
 	for {
 		select {
-		case msg2 := <-c1:
-			fmt.Println("start - ", msg2)
+		case msg1 := <-c1:
+			fmt.Println("start - ", msg1)
 			lcd.SaveBondedValidators(ces.db, ces.config)
 			lcd.SaveUnbondingAndUnBondedValidators(ces.db, ces.config)
 			lcd.SaveProposals(ces.db, ces.config)
-			fmt.Println("finish - ", msg2)
-		case msg3 := <-c2:
-			fmt.Println("start - ", msg3)
+			fmt.Println("finish - ", msg1)
+		case msg2 := <-c2:
+			fmt.Println("start - ", msg2)
 			ces.SaveValidatorKeyBase()
-			fmt.Println("finish - ", msg3)
+			fmt.Println("finish - ", msg2)
 		}
 	}
 }
 
 // OnStop is an override method for BaseService, which stops a service
-func (ces *ChainExporterService) OnStop() {
+func (ces ChainExporterService) OnStop() {
 	ces.rpcClient.OnStop()
 }
 
 // sync synchronizes the block data from connected full node
-func (ces *ChainExporterService) sync() error {
+func (ces ChainExporterService) sync() error {
 	var blocks []schema.BlockInfo
 	err := ces.db.Model(&blocks).
 		Order("height DESC").
@@ -148,7 +148,7 @@ func (ces *ChainExporterService) sync() error {
 
 // sync queries the block at the given height-1 from the node and ingests its metadata (blockinfo,evidence)
 // into the database. It also queries the next block to access the commits and stores the missed signatures.
-func (ces *ChainExporterService) process(height int64) error {
+func (ces ChainExporterService) process(height int64) error {
 	blockInfo, err := ces.getBlockInfo(height)
 	if err != nil {
 		return err
