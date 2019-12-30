@@ -13,7 +13,7 @@ import (
 )
 
 // getValidatorSetInfo provides validator set information in every block
-func (ces *ChainExporterService) getValidatorSetInfo(height int64) ([]*schema.ValidatorSetInfo, []*schema.MissInfo, []*schema.MissInfo, []*schema.MissDetailInfo, error) {
+func (ces ChainExporterService) getValidatorSetInfo(height int64) ([]*schema.ValidatorSetInfo, []*schema.MissInfo, []*schema.MissInfo, []*schema.MissDetailInfo, error) {
 	nextHeight := height + 1
 
 	// Query current block
@@ -122,7 +122,7 @@ func (ces *ChainExporterService) getValidatorSetInfo(height int64) ([]*schema.Va
 }
 
 // getEvidenceInfo provides evidence (slashing) information
-func (ces *ChainExporterService) getEvidenceInfo(height int64) ([]*schema.EvidenceInfo, error) {
+func (ces ChainExporterService) getEvidenceInfo(height int64) ([]*schema.EvidenceInfo, error) {
 	nextHeight := height + 1
 
 	// Query current block
@@ -157,7 +157,7 @@ func (ces *ChainExporterService) getEvidenceInfo(height int64) ([]*schema.Eviden
 }
 
 // SaveValidatorKeyBase saves keybase urls for every validator
-func (ces *ChainExporterService) SaveValidatorKeyBase() error {
+func (ces ChainExporterService) SaveValidatorKeyBase() error {
 	var validatorInfo []schema.ValidatorInfo
 	err := ces.db.Model(&validatorInfo).
 		Column("id", "identity", "moniker").

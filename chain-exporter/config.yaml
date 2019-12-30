@@ -9,10 +9,8 @@ prod:
     user: "root"
     password: "CosmosGo00!!"
     table: "cosmoshub-3"
-  raven:
-    dsn: "https://02db34c9482641eba0f7d28c6f1c2607:26977dd6d1cb45ef95c2e2b1466f4d8a@sentry.io/1360655"
-    address: "063286B58F0D01406B188796820C2DC895B21063"
-    period: "10"
+  alarm:
+    push_server_url: "http://localhost:5000/v1/api/push"
 
 dev:
   node: 
@@ -23,10 +21,8 @@ dev:
     user: "root"
     password: "dnpfqldwhr00!!"
     table: "cosmos-dev"
-  raven:
-    dsn: "https://02db34c9482641eba0f7d28c6f1c2607:26977dd6d1cb45ef95c2e2b1466f4d8a@sentry.io/1360655"
-    address: "063286B58F0D01406B188796820C2DC895B21063"
-    period: "10"
+  alarm:
+    push_server_url: "http://localhost:5000/v1/api/push"
 
 testnet:
   node: 
@@ -37,9 +33,8 @@ testnet:
     user: "root"
     password: "dnpfqldwhr00!!"
     table: "cosmos-testnet"
-  raven:
-    dsn: "https://02db34c9482641eba0f7d28c6f1c2607:26977dd6d1cb45ef95c2e2b1466f4d8a@sentry.io/1360655"
-    address: "063286B58F0D01406B188796820C2DC895B21063"
-    period: "10"
+  alarm:
+    push_server_url: "http://localhost:5000/v1/api/push"
+  
 
 keybase_url: "https://keybase.io/_/api/1.0/user/lookup.json?fields=pictures&key_suffix="

@@ -9,9 +9,11 @@ prod:
     user: "root"
     password: "CosmosGo00!!"
     table: "mainnet"
-  port: 5000
-  jwt: 
-    token: "SecureCosmostation!@#50291230728"
+  web: 
+    port: 5000
+    jwt_token: "SecureCosmostation!@#50291230728"
+  alarm:
+    push_server_url: "http://localhost:65522/api/push"
 
 dev:
   node: 
@@ -22,9 +24,11 @@ dev:
     user: "root"
     password: "dnpfqldwhr00!!"
     table: "test"
-  port: 5000
-  jwt:
-    token: "SecureCosmostation!@#50291230728"
+  web: 
+    port: 5000
+    jwt_token: "SecureCosmostation!@#50291230728"
+  alarm:
+    push_server_url: "http://localhost:65522/api/push"
 
 testnet:
   node: 
@@ -35,7 +39,9 @@ testnet:
     user: "root"
     password: "dnpfqldwhr00!!"
     table: "cosmos-testnet"
-  port: 5000
-  jwt:
-    token: "SecureCosmostation!@#50291230728"
+  web: 
+    port: 5000
+    jwt_token: "SecureCosmostation!@#50291230728"
+  alarm:
+    push_server_url: "http://localhost:65522/api/push"
 

@@ -66,7 +66,6 @@ func SaveExportedData(db *pg.DB, blockInfo []*schema.BlockInfo, evidenceInfo []*
 			}
 		}
 
-		// update accumulative missing block info
 		var tempMissInfo schema.MissInfo
 		if len(accumMissInfo) > 0 {
 			for i := 0; i < len(accumMissInfo); i++ {
@@ -85,7 +84,6 @@ func SaveExportedData(db *pg.DB, blockInfo []*schema.BlockInfo, evidenceInfo []*
 			}
 		}
 
-		// insert vote tx info
 		if len(voteInfo) > 0 {
 			var tempVoteInfo schema.VoteInfo
 			for i := 0; i < len(voteInfo); i++ {
@@ -115,7 +113,6 @@ func SaveExportedData(db *pg.DB, blockInfo []*schema.BlockInfo, evidenceInfo []*
 			}
 		}
 
-		// update proposerInfo
 		if len(proposalInfo) > 0 {
 			var tempProposalInfo schema.ProposalInfo
 			for i := 0; i < len(proposalInfo); i++ {
