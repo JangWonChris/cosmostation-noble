@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strconv"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	bank "github.com/cosmos/cosmos-sdk/x/bank"
 
 	ceCodec "github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/databases"
@@ -43,23 +43,22 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 			var sdkTx sdk.Tx
 			_ = ces.codec.UnmarshalBinaryLengthPrefixed([]byte(tmTx), &sdkTx)
 
-			// transaction hash
 			txHash := fmt.Sprintf("%X", tmTx.Hash())
 
 			tx, err := ces.Tx(txHash)
 			if err != nil {
-				log.Printf("failed to get tx %s: %s", txHash, err)
+				fmt.Printf("failed to get tx %s: %s", txHash, err)
 				continue
 			}
 
+			// Save txInfo in PostgreSQL database
 			var tempTxInfo schema.TransactionInfo
 			tempTxInfo, err = ces.SetTx(tx, txHash)
 			if err != nil {
-				log.Printf("failed to persist transaction %s: %s", txHash, err)
+				fmt.Printf("failed to persist transaction %s: %s", txHash, err)
 			}
 			transactionInfo = append(transactionInfo, &tempTxInfo)
 
-			// unmarshal general transaction format
 			var generalTx types.GeneralTx
 			resp, _ := resty.R().Get(ces.config.Node.LCDURL + "/txs/" + txHash)
 			err = json.Unmarshal(resp.Body(), &generalTx)
@@ -72,7 +71,12 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 				if log.Success {
 					switch generalTx.Tx.Value.Msg[j].Type {
 					case "cosmos-sdk/MsgSend":
+						var msgSend bank.MsgSend
+						fmt.Println(msgSend)
+
 					case "cosmos-sdk/MultiSend":
+						// var msgMultiSend bank.MsgMultiSend
+
 					case "cosmos-sdk/MsgCreateValidator":
 						var msgCreateValidator types.MsgCreateValidator
 						_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &msgCreateValidator)
@@ -431,32 +435,16 @@ func (ces ChainExporterService) SetTx(tx sdk.TxResponse, txHash string) (schema.
 		return schema.TransactionInfo{}, fmt.Errorf("failed to JSON encode tx logs: %s", err)
 	}
 
-	msgs := make([]schema.Message, 1)
-	msgs[0].Message = string(msgsBz)
-
-	fee := &schema.Fee{
-		Fee: string(feeBz),
-	}
-
-	signatures := make([]schema.Signature, 1)
-	signatures[0].Signature = string(sigsBz)
-
-	logs := make([]schema.Log, 1)
-	logs[0].Log = string(logsBz)
-
-	events := make([]schema.Event, 1)
-	events[0].Event = string(eventsBz)
-
 	return schema.TransactionInfo{
 		Height:     tx.Height,
 		TxHash:     txHash,
 		GasWanted:  tx.GasWanted,
 		GasUsed:    tx.GasUsed,
-		Messages:   msgs,
-		Fee:        *fee,
-		Signatures: signatures,
-		Logs:       logs,
-		Events:     events,
+		Messages:   string(msgsBz),
+		Fee:        string(feeBz),
+		Signatures: string(sigsBz),
+		Logs:       string(logsBz),
+		Events:     string(eventsBz),
 		Memo:       stdTx.GetMemo(),
 		Time:       tx.Timestamp,
 	}, err

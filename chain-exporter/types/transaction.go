@@ -7,10 +7,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-const (
-	MultiMsg = "multi_msg"
-)
-
 // GeneralTx is general tx struct that is unmarshallable for any tx_msg type
 type GeneralTx struct {
 	Height string `json:"height"`
@@ -52,6 +48,12 @@ type GeneralTx struct {
 }
 
 type MsgSend struct {
+	FromAddress string `json:"from_address"`
+	ToAddress   string `json:"to_address"`
+	Amount      []struct {
+		Denom  string  `json:"denom"`
+		Amount sdk.Dec `json:"amount"`
+	}
 }
 
 type MsgMultiSend struct {
