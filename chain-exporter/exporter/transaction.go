@@ -18,6 +18,8 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/utils"
 
+	"github.com/tendermint/tendermint/libs/bech32"
+
 	resty "gopkg.in/resty.v1"
 )
 
@@ -72,10 +74,34 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 					switch generalTx.Tx.Value.Msg[j].Type {
 					case "cosmos-sdk/MsgSend":
 						var msgSend bank.MsgSend
-						fmt.Println(msgSend)
+						err = ces.codec.UnmarshalJSON(generalTx.Tx.Value.Msg[j].Value, &msgSend)
+						if err != nil {
+							fmt.Printf("failed to JSON encode msgSend: %s", err)
+						}
+
+						// Convert to bech32 cosmos address format
+						fromAddress, _ := bech32.ConvertAndEncode(sdk.Bech32PrefixAccAddr, msgSend.FromAddress)
+						toAddress, _ := bech32.ConvertAndEncode(sdk.Bech32PrefixAccAddr, msgSend.ToAddress)
+
+						fmt.Println("=======================================[send]")
+						fmt.Println("height: ", generalTx.Height)
+						fmt.Println("txHash: ", txHash)
+						fmt.Println("fromAddress: ", fromAddress)
+						fmt.Println("toAddress: ", toAddress)
+						fmt.Println("amount: ", msgSend.Amount)
+						fmt.Println("=======================================")
 
 					case "cosmos-sdk/MultiSend":
-						// var msgMultiSend bank.MsgMultiSend
+						var multiSendTx bank.MsgMultiSend
+						err = ces.codec.UnmarshalJSON(generalTx.Tx.Value.Msg[j].Value, &multiSendTx)
+						if err != nil {
+							fmt.Println("Unmarshal MsgMultiSend JSON Error: ", err)
+						}
+
+						fmt.Println("=======================================[multisend]")
+						fmt.Println(multiSendTx.Inputs)
+						fmt.Println(multiSendTx.Outputs)
+						fmt.Println("=======================================")
 
 					case "cosmos-sdk/MsgCreateValidator":
 						var msgCreateValidator types.MsgCreateValidator

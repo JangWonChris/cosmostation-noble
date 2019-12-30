@@ -91,7 +91,7 @@ func PushNotification(db *pg.DB, cf *config.Config, w http.ResponseWriter, r *ht
 	_, err = resty.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(notificationPayload).
-		Post(cf.Web.PushServerURL)
+		Post(cf.Alarm.PushServerURL)
 	if err != nil {
 		errors.ErrInternalServer(w, http.StatusInternalServerError)
 	}
