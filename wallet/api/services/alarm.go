@@ -94,6 +94,7 @@ func PushNotification(db *pg.DB, cf *config.Config, w http.ResponseWriter, r *ht
 		Post(cf.Alarm.PushServerURL)
 	if err != nil {
 		errors.ErrInternalServer(w, http.StatusInternalServerError)
+		return
 	}
 
 	u.Result(w, true, "successfully sent push notification")

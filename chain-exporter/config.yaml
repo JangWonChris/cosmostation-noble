@@ -10,7 +10,7 @@ prod:
     password: "CosmosGo00!!"
     table: "cosmoshub-3"
   alarm:
-    push_server_url: "http://localhost:65522/api/push"
+    push_server_url: "http://localhost:5000/v1/api/push"
 
 dev:
   node: 
@@ -22,7 +22,7 @@ dev:
     password: "dnpfqldwhr00!!"
     table: "cosmos-dev"
   alarm:
-    push_server_url: "http://localhost:65522/api/push"
+    push_server_url: "http://localhost:5000/v1/api/push"
 
 testnet:
   node: 
@@ -34,7 +34,7 @@ testnet:
     password: "dnpfqldwhr00!!"
     table: "cosmos-testnet"
   alarm:
-    push_server_url: "http://localhost:65522/api/push"
+    push_server_url: "http://localhost:5000/v1/api/push"
   
 
 keybase_url: "https://keybase.io/_/api/1.0/user/lookup.json?fields=pictures&key_suffix="

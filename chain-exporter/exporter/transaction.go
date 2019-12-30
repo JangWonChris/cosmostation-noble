@@ -91,6 +91,22 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 						fmt.Println("amount: ", msgSend.Amount)
 						fmt.Println("=======================================")
 
+						notificationPayload := &types.NotificationPayload{
+							From:   fromAddress,
+							To:     toAddress,
+							Txid:   txHash,
+							Amount: msgSend.Amount.String(),
+						}
+
+						// send push notification
+						_, err = resty.R().
+							SetHeader("Content-Type", "application/json").
+							SetBody(notificationPayload).
+							Post(ces.config.Alarm.PushServerURL)
+						if err != nil {
+							fmt.Printf("failed to push alarm notification: %s", err)
+						}
+
 					case "cosmos-sdk/MultiSend":
 						var multiSendTx bank.MsgMultiSend
 						err = ces.codec.UnmarshalJSON(generalTx.Tx.Value.Msg[j].Value, &multiSendTx)
