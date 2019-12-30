@@ -10,15 +10,12 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	bank "github.com/cosmos/cosmos-sdk/x/bank"
 
 	ceCodec "github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/databases"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/utils"
-
-	"github.com/tendermint/tendermint/libs/bech32"
 
 	resty "gopkg.in/resty.v1"
 )
@@ -73,42 +70,63 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 				if log.Success {
 					switch generalTx.Tx.Value.Msg[j].Type {
 					case "cosmos-sdk/MsgSend":
-						var msgSend bank.MsgSend
+						var msgSend types.MsgSend
 						err = ces.codec.UnmarshalJSON(generalTx.Tx.Value.Msg[j].Value, &msgSend)
 						if err != nil {
 							fmt.Printf("failed to JSON encode msgSend: %s", err)
 						}
 
-						// Convert to bech32 cosmos address format
-						fromAddress, _ := bech32.ConvertAndEncode(sdk.Bech32PrefixAccAddr, msgSend.FromAddress)
-						toAddress, _ := bech32.ConvertAndEncode(sdk.Bech32PrefixAccAddr, msgSend.ToAddress)
+						// query account information
+						var account types.Account
+						account, _ = databases.QueryAccount(ces.db, msgSend.ToAddress)
 
+						// DB를 Chain Exporter DB가 아니라서 그렇다
+						// API 서버에서만 찌르면 되려나?
 						fmt.Println("=======================================[send]")
 						fmt.Println("height: ", generalTx.Height)
 						fmt.Println("txHash: ", txHash)
-						fmt.Println("fromAddress: ", fromAddress)
-						fmt.Println("toAddress: ", toAddress)
-						fmt.Println("amount: ", msgSend.Amount)
+						fmt.Println("toAddress: ", msgSend.FromAddress)
+						fmt.Println("toAddress: ", msgSend.ToAddress)
+						fmt.Println("alarm_status: ", account.AlarmStatus)
+						fmt.Println("")
 						fmt.Println("=======================================")
-
-						notificationPayload := &types.NotificationPayload{
-							From:   fromAddress,
-							To:     toAddress,
-							Txid:   txHash,
-							Amount: msgSend.Amount.String(),
-						}
+						fmt.Println("")
 
 						// send push notification
-						_, err = resty.R().
-							SetHeader("Content-Type", "application/json").
-							SetBody(notificationPayload).
-							Post(ces.config.Alarm.PushServerURL)
-						if err != nil {
-							fmt.Printf("failed to push alarm notification: %s", err)
+						if account.AlarmStatus {
+							from := msgSend.FromAddress
+							to := msgSend.ToAddress
+
+							var amount sdk.Dec
+							if len(msgSend.Amount) > 0 {
+								amount = msgSend.Amount[0].Amount
+							}
+
+							notificationPayload := &types.NotificationPayload{
+								From:   from,
+								To:     to,
+								Txid:   txHash,
+								Amount: amount.String(),
+							}
+
+							fmt.Println("=======================================")
+							fmt.Println("fromAddress: ", from)
+							fmt.Println("toAddress: ", msgSend.ToAddress)
+							fmt.Println("amount: ", amount.String())
+
+							if account.AlarmToken != "" {
+								_, err = resty.R().
+									SetHeader("Content-Type", "application/json").
+									SetBody(notificationPayload).
+									Post(ces.config.Alarm.PushServerURL)
+								if err != nil {
+									fmt.Printf("failed to push alarm notification: %s", err)
+								}
+							}
 						}
 
 					case "cosmos-sdk/MultiSend":
-						var multiSendTx bank.MsgMultiSend
+						var multiSendTx types.MsgMultiSend
 						err = ces.codec.UnmarshalJSON(generalTx.Tx.Value.Msg[j].Value, &multiSendTx)
 						if err != nil {
 							fmt.Println("Unmarshal MsgMultiSend JSON Error: ", err)

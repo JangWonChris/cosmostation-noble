@@ -57,7 +57,10 @@ func Register(db *pg.DB, w http.ResponseWriter, r *http.Request) {
 	}
 
 	// insert account
-	databases.InsertAccount(w, db, account)
+	result, _, err := databases.InsertAccount(w, db, account)
+	if result != 1 {
+		return
+	}
 
 	u.Result(w, true, "successfully saved")
 	return
@@ -82,8 +85,10 @@ func Update(db *pg.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// update account
-	databases.UpdateAccount(w, db, account)
+	result, err := databases.UpdateAccount(w, db, account)
+	if !result {
+		return
+	}
 
 	u.Result(w, true, "successfully updated")
 	return

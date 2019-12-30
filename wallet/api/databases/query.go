@@ -9,21 +9,23 @@ import (
 )
 
 // InsertAccount inserts new account information
-func InsertAccount(w http.ResponseWriter, db *pg.DB, account models.Account) (models.Account, error) {
+func InsertAccount(w http.ResponseWriter, db *pg.DB, account models.Account) (uint64, models.Account, error) {
 	err := db.Insert(&account)
 	if err != nil {
 		errors.ErrInternalServer(w, http.StatusInternalServerError)
+		return 0, account, err
 	}
-	return account, nil
+	return 1, account, nil
 }
 
 // InsertAppVersion inserts new app version
-func InsertAppVersion(w http.ResponseWriter, db *pg.DB, version models.AppVersion) (models.AppVersion, error) {
+func InsertAppVersion(w http.ResponseWriter, db *pg.DB, version models.AppVersion) (uint64, models.AppVersion, error) {
 	err := db.Insert(&version)
 	if err != nil {
 		errors.ErrInternalServer(w, http.StatusInternalServerError)
+		return 0, version, err
 	}
-	return version, nil
+	return 1, version, nil
 }
 
 // QueryAppVersion queries mobile app version
@@ -93,6 +95,7 @@ func UpdateAccount(w http.ResponseWriter, db *pg.DB, account models.Account) (bo
 		Update()
 	if err != nil {
 		errors.ErrInternalServer(w, http.StatusInternalServerError)
+		return false, err
 	}
 	return true, nil
 }

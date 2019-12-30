@@ -9,6 +9,7 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/rs/zerolog v1.17.2
 	github.com/spf13/viper v1.4.0
+	github.com/syndtr/goleveldb v1.0.1-0.20190318030020-c3a204f8e965
 	github.com/tendermint/tendermint v0.32.7
 	gopkg.in/resty.v1 v1.12.0
 	mellium.im/sasl v0.2.1 // indirect

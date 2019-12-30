@@ -57,6 +57,20 @@ type MsgSend struct {
 }
 
 type MsgMultiSend struct {
+	Inputs  []Input  `json:"inputs" yaml:"inputs"`
+	Outputs []Output `json:"outputs" yaml:"outputs"`
+}
+
+// Input models transaction input
+type Input struct {
+	Address sdk.AccAddress `json:"address" yaml:"address"`
+	Coins   sdk.Coins      `json:"coins" yaml:"coins"`
+}
+
+// Output models transaction outputs
+type Output struct {
+	Address sdk.AccAddress `json:"address" yaml:"address"`
+	Coins   sdk.Coins      `json:"coins" yaml:"coins"`
 }
 
 type MsgCreateValidator struct {
