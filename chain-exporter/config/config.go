@@ -10,7 +10,7 @@ type Config struct {
 	Node          *NodeConfig
 	DB            *DBConfig
 	ES            *ESConfig
-	Raven         *RavenConfig
+	Alarm         *AlarmConfig
 	Coinmarketcap *CoinmarketcapConfig
 	KeybaseURL    string
 }
@@ -36,15 +36,20 @@ type (
 		Table    string
 	}
 
-	RavenConfig struct {
-		RavenDSN string
-		Address  string
-		Period   string
+	AlarmConfig struct {
+		PushServerURL string
 	}
 
 	CoinmarketcapConfig struct {
 		CoinID string
 		APIKey string
+	}
+
+	// Currently not using this alarm service
+	RavenConfig struct {
+		RavenDSN string
+		Address  string
+		Period   string
 	}
 )
 
@@ -63,6 +68,7 @@ func NewConfig() *Config {
 	config.KeybaseURL = viper.GetString("keybase_url")
 	nodeConfig := &NodeConfig{}
 	dbConfig := &DBConfig{}
+	alarmConfig := &AlarmConfig{}
 
 	switch viper.GetString("active") {
 	case "prod":
@@ -72,6 +78,7 @@ func NewConfig() *Config {
 		dbConfig.User = viper.GetString("prod.database.user")
 		dbConfig.Password = viper.GetString("prod.database.password")
 		dbConfig.Table = viper.GetString("prod.database.table")
+		alarmConfig.PushServerURL = viper.GetString("prod.alarm.push_server_url")
 	case "dev":
 		nodeConfig.GaiadURL = viper.GetString("dev.node.gaiad_url")
 		nodeConfig.LCDURL = viper.GetString("dev.node.lcd_url")
@@ -79,6 +86,7 @@ func NewConfig() *Config {
 		dbConfig.User = viper.GetString("dev.database.user")
 		dbConfig.Password = viper.GetString("dev.database.password")
 		dbConfig.Table = viper.GetString("dev.database.table")
+		alarmConfig.PushServerURL = viper.GetString("dev.alarm.push_server_url")
 	case "testnet":
 		nodeConfig.GaiadURL = viper.GetString("testnet.node.gaiad_url")
 		nodeConfig.LCDURL = viper.GetString("testnet.node.lcd_url")
@@ -86,12 +94,14 @@ func NewConfig() *Config {
 		dbConfig.User = viper.GetString("testnet.database.user")
 		dbConfig.Password = viper.GetString("testnet.database.password")
 		dbConfig.Table = viper.GetString("testnet.database.table")
+		alarmConfig.PushServerURL = viper.GetString("testnet.alarm.push_server_url")
 	default:
 		fmt.Println("define active params in config.yaml")
 	}
 
 	config.Node = nodeConfig
 	config.DB = dbConfig
+	config.Alarm = alarmConfig
 
 	return config
 }
