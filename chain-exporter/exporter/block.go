@@ -1,12 +1,12 @@
 package exporter
 
 import (
-	dtypes "github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 )
 
 // getBlockInfo provides block information
-func (ces *ChainExporterService) getBlockInfo(height int64) ([]*dtypes.BlockInfo, error) {
-	blockInfo := make([]*dtypes.BlockInfo, 0)
+func (ces *ChainExporterService) getBlockInfo(height int64) ([]*schema.BlockInfo, error) {
+	blockInfo := make([]*schema.BlockInfo, 0)
 
 	// query current block
 	block, err := ces.rpcClient.Block(&height)
@@ -14,7 +14,7 @@ func (ces *ChainExporterService) getBlockInfo(height int64) ([]*dtypes.BlockInfo
 		return nil, err
 	}
 
-	tempBlockInfo := &dtypes.BlockInfo{
+	tempBlockInfo := &schema.BlockInfo{
 		BlockHash: block.BlockMeta.BlockID.Hash.String(),
 		Proposer:  block.Block.ProposerAddress.String(),
 		Height:    block.Block.Height,

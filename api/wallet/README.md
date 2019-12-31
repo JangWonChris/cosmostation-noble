@@ -1,1 +1,0 @@
-# cosmostation-wallet-api

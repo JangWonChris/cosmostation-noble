@@ -19,11 +19,8 @@ func (ses *StatsExporterService) SaveNetworkStats1H() {
 	// query pool
 	poolResp, _ := resty.R().Get(ses.config.Node.LCDURL + "/staking/pool")
 
-	var responseWithHeight types.ResponseWithHeight
-	_ = json.Unmarshal(poolResp.Body(), &responseWithHeight)
-
 	var pool types.Pool
-	err := json.Unmarshal(responseWithHeight.Result, &pool)
+	err := json.Unmarshal(types.ReadRespWithHeight(poolResp).Result, &pool)
 	if err != nil {
 		fmt.Printf("unmarshal pool error - %v\n ", err)
 	}
@@ -37,10 +34,19 @@ func (ses *StatsExporterService) SaveNetworkStats1H() {
 		fmt.Printf("unmarshal inflation error - %v\n ", err)
 	}
 
+	// Query total supply
+	totalSupplyResp, _ := resty.R().Get(ses.config.Node.LCDURL + "/supply/total")
+
+	var coin []types.Coin
+	err = json.Unmarshal(types.ReadRespWithHeight(totalSupplyResp).Result, &coin)
+	if err != nil {
+		fmt.Printf("supply/total unmarshal supply total error - %v\n", err)
+	}
+
 	bondedTokens, _ := strconv.ParseFloat(pool.BondedTokens, 64)
 	notBondedTokens, _ := strconv.ParseFloat(pool.NotBondedTokens, 64)
-	totalBondedTokens := bondedTokens + notBondedTokens
-	bondedRatio := bondedTokens / totalBondedTokens * 100
+	totalSupplyTokens, _ := strconv.ParseFloat(coin[0].Amount, 64)
+	bondedRatio := bondedTokens / totalSupplyTokens * 100
 	inflationRatio, _ := strconv.ParseFloat(inflation.Result, 64)
 
 	// get block time - (last block time - second last block time)
@@ -64,7 +70,7 @@ func (ses *StatsExporterService) SaveNetworkStats1H() {
 
 	networkStats := &types.StatsNetwork1H{
 		BlockTime:       blockTime.Seconds(),
-		TotalSupply:     totalBondedTokens,
+		TotalSupply:     totalSupplyTokens,
 		BondedTokens:    bondedTokens,
 		NotBondedTokens: notBondedTokens,
 		BondedRatio:     bondedRatio,
@@ -86,11 +92,8 @@ func (ses *StatsExporterService) SaveNetworkStats24H() {
 	// query pool
 	poolResp, _ := resty.R().Get(ses.config.Node.LCDURL + "/staking/pool")
 
-	var responseWithHeight types.ResponseWithHeight
-	_ = json.Unmarshal(poolResp.Body(), &responseWithHeight)
-
 	var pool types.Pool
-	err := json.Unmarshal(responseWithHeight.Result, &pool)
+	err := json.Unmarshal(types.ReadRespWithHeight(poolResp).Result, &pool)
 	if err != nil {
 		fmt.Printf("unmarshal pool error - %v\n ", err)
 	}
@@ -104,10 +107,19 @@ func (ses *StatsExporterService) SaveNetworkStats24H() {
 		fmt.Printf("unmarshal inflation error - %v\n ", err)
 	}
 
+	// Query total supply
+	totalSupplyResp, _ := resty.R().Get(ses.config.Node.LCDURL + "/supply/total")
+
+	var coin []types.Coin
+	err = json.Unmarshal(types.ReadRespWithHeight(totalSupplyResp).Result, &coin)
+	if err != nil {
+		fmt.Printf("supply/total unmarshal supply total error - %v\n", err)
+	}
+
 	bondedTokens, _ := strconv.ParseFloat(pool.BondedTokens, 64)
 	notBondedTokens, _ := strconv.ParseFloat(pool.NotBondedTokens, 64)
-	totalBondedTokens := bondedTokens + notBondedTokens
-	bondedRatio := bondedTokens / totalBondedTokens * 100
+	totalSupplyTokens, _ := strconv.ParseFloat(coin[0].Amount, 64)
+	bondedRatio := bondedTokens / totalSupplyTokens * 100
 	inflationRatio, _ := strconv.ParseFloat(inflation.Result, 64)
 
 	// get block time - (last block time - second last block time)
@@ -131,7 +143,7 @@ func (ses *StatsExporterService) SaveNetworkStats24H() {
 
 	networkStats := &types.StatsNetwork24H{
 		BlockTime:       blockTime.Seconds(),
-		TotalSupply:     totalBondedTokens,
+		TotalSupply:     totalSupplyTokens,
 		BondedTokens:    bondedTokens,
 		NotBondedTokens: notBondedTokens,
 		BondedRatio:     bondedRatio,
