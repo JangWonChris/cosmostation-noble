@@ -23,9 +23,10 @@ func ConnectDatabase(Config *config.Config) *pg.DB {
 func CreateSchema(db *pg.DB) error {
 	for _, model := range []interface{}{(*models.Account)(nil), (*models.AppVersion)(nil)} {
 		// disable pluralization
-		orm.SetTableNameInflector(func(s string) string {
-			return s
-		})
+		// [WARN]: chain exporter currently uses plural, so it is better to make it consistent
+		// orm.SetTableNameInflector(func(s string) string {
+		// 	return s
+		// })
 
 		// create tables
 		err := db.CreateTable(model, &orm.CreateTableOptions{
