@@ -35,9 +35,11 @@ func GetVersion(db *pg.DB, w http.ResponseWriter, r *http.Request) {
 	}
 
 	// in case when data is empty
-	if version.Latest == 0 {
+	if version.Version == 0 {
 		return
 	}
+
+	version.IdfVersion = 0
 
 	u.Respond(w, version)
 	return
@@ -47,7 +49,6 @@ func GetVersion(db *pg.DB, w http.ResponseWriter, r *http.Request) {
 func SetVersion(db *pg.DB, w http.ResponseWriter, r *http.Request) {
 	var version models.AppVersion
 
-	// get post data from request
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&version)
 	if err != nil {
