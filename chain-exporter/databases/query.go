@@ -7,12 +7,10 @@ import (
 
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
-
-	"github.com/go-pg/pg"
 )
 
 // QueryValidatorInfo returns validator information
-func QueryValidatorInfo(db *pg.DB, address string) (schema.ValidatorInfo, error) {
+func (db *Database) QueryValidatorInfo(address string) (schema.ValidatorInfo, error) {
 	var validatorInfo schema.ValidatorInfo
 	switch {
 	case strings.HasPrefix(address, sdk.GetConfig().GetBech32ConsensusPubPrefix()):
@@ -44,7 +42,7 @@ func QueryValidatorInfo(db *pg.DB, address string) (schema.ValidatorInfo, error)
 }
 
 // QueryIDValidatorSetInfo returns id of a validator from validator_set_infos table
-func QueryIDValidatorSetInfo(db *pg.DB, proposer string) (schema.ValidatorSetInfo, error) {
+func (db *Database) QueryIDValidatorSetInfo(proposer string) (schema.ValidatorSetInfo, error) {
 	var validatorSetInfo schema.ValidatorSetInfo
 	err := db.Model(&validatorSetInfo).
 		Column("id_validator", "voting_power").
@@ -59,7 +57,7 @@ func QueryIDValidatorSetInfo(db *pg.DB, proposer string) (schema.ValidatorSetInf
 }
 
 // QueryHighestIDValidatorNum returns highest id of a validator from validator_set_infos table
-func QueryHighestIDValidatorNum(db *pg.DB) (int, error) {
+func (db *Database) QueryHighestIDValidatorNum() (int, error) {
 	var validatorSetInfo schema.ValidatorSetInfo
 	err := db.Model(&validatorSetInfo).
 		Column("id_validator").
@@ -73,7 +71,7 @@ func QueryHighestIDValidatorNum(db *pg.DB) (int, error) {
 }
 
 // QueryAccount queries account information
-func QueryAccount(db *pg.DB, address string) (types.Account, error) {
+func (db *Database) QueryAccount(address string) (types.Account, error) {
 	var account types.Account
 	_ = db.Model(&account).
 		Where("address = ?", address).

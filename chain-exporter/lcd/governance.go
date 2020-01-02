@@ -6,16 +6,16 @@ import (
 	"strconv"
 
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/databases"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 
-	"github.com/go-pg/pg"
 	"github.com/rs/zerolog/log"
 	resty "gopkg.in/resty.v1"
 )
 
 // SaveProposals saves governance proposals in database
-func SaveProposals(db *pg.DB, config *config.Config) {
+func SaveProposals(db *databases.Database, config *config.Config) {
 	resp, err := resty.R().Get(config.Node.LCDURL + "/gov/proposals")
 	if err != nil {
 		fmt.Printf("query /gov/proposals error - %v\n", err)
