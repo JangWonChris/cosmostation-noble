@@ -12,6 +12,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 
 	ceCodec "github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/notification"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/utils"
@@ -75,20 +76,34 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 							fmt.Printf("failed to JSON encode msgSend: %s", err)
 						}
 
-						// query account information
+						var amount string
+						var denom string
 
-						// DB를 Chain Exporter DB가 아니라서 그렇다
-						// API 서버에서만 찌르면 되려나?
-						fmt.Println("=======================================[send]")
-						fmt.Println("height: ", generalTx.Height)
-						fmt.Println("txHash: ", txHash)
-						fmt.Println("toAddress: ", msgSend.FromAddress)
-						fmt.Println("toAddress: ", msgSend.ToAddress)
-						fmt.Println("")
-						fmt.Println("=======================================")
-						fmt.Println("")
+						if len(msgSend.Amount) > 0 {
+							amount = msgSend.Amount[0].Amount.String()
+							denom = msgSend.Amount[0].Denom
+						}
 
-						// send push notification
+						pnp := &types.PushNotificationPayload{
+							From:   msgSend.FromAddress,
+							To:     msgSend.ToAddress,
+							Txid:   txHash,
+							Amount: amount,
+							Denom:  denom,
+						}
+
+						// push notification to both from and to accounts
+						nof := notification.New()
+
+						fromAccount := nof.VerifyAccount(msgSend.FromAddress)
+						if fromAccount != nil {
+							nof.PushNotification(pnp, fromAccount.AlarmToken, types.FROM)
+						}
+
+						toAccount := nof.VerifyAccount(msgSend.ToAddress)
+						if toAccount != nil {
+							nof.PushNotification(pnp, toAccount.AlarmToken, types.TO)
+						}
 
 					case "cosmos-sdk/MultiSend":
 						var multiSendTx types.MsgMultiSend

@@ -1,6 +1,12 @@
 package types
 
 var (
+	FROM = "from"
+	TO   = "to"
+
+	SENT     = "sent"
+	RECEIVED = "received"
+
 	PushNotificationSentTitle   = "Sent "
 	PushNotificationSentMessage = "You have just sent "
 
@@ -13,6 +19,7 @@ type PushNotificationPayload struct {
 	To     string `json:"to"`
 	Txid   string `json:"txid"`
 	Amount string `json:"amount"`
+	Denom  string `json:"denom"`
 }
 
 type PushNotificationServerPayload struct {

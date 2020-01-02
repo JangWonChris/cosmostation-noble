@@ -48,12 +48,9 @@ type GeneralTx struct {
 }
 
 type MsgSend struct {
-	FromAddress string `json:"from_address"`
-	ToAddress   string `json:"to_address"`
-	Amount      []struct {
-		Denom  string  `json:"denom"`
-		Amount sdk.Dec `json:"amount"`
-	}
+	FromAddress string    `json:"from_address"`
+	ToAddress   string    `json:"to_address"`
+	Amount      sdk.Coins `json:"amount"`
 }
 
 type MsgMultiSend struct {

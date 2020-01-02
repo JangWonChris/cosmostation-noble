@@ -1,75 +1,92 @@
-package alarm
+package notification
 
 import (
-	"strings"
+	"fmt"
 
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/databases"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 
-	"github.com/go-pg/pg"
-
 	resty "gopkg.in/resty.v1"
 )
 
+// Notification implemnts a wrapper around configuration for this project
+type Notification struct {
+	cfg *config.Config
+	db  *databases.Database
+}
+
+func New() Notification {
+	config := config.NewConfig()
+	return Notification{
+		cfg: config,
+		db:  databases.Connect(config),
+	}
+}
+
 // PushNotification sends push notification to its respective device
-func PushNotification(cf *config.Config, db *pg.DB, pnp types.PushNotificationPayload) {
-
-	// query account information
-	var fromAccount types.Account
-	var toAccount types.Account
-
-	// return when data is empty
-	if account.AlarmToken == "" {
-		return
-	}
-
-	// check user's alarm status
-	if !account.AlarmStatus {
-		return
-	}
-
-	// push notification payload
+func (nof *Notification) PushNotification(pnp *types.PushNotificationPayload, alarmToken string, target string) {
 	var pns []types.PushNotifications
-	tempNotification := types.PushNotifications{
-		Tokens:   []string{account.AlarmToken},
-		Platform: 2,
-		Title:    types.PushNotificationReceivedTitle + pnp.Amount,
-		Message:  types.PushNotificationReceivedMessage + pnp.Amount,
-		Data: types.PushNotificationData{
-			NotifyTo: pnp.To,
-			Txid:     pnp.Txid,
-		},
+
+	switch target {
+	case "from":
+		tempNotification := types.PushNotifications{
+			Tokens:   []string{alarmToken},
+			Platform: 2,
+			Title:    types.PushNotificationSentTitle + pnp.Amount + pnp.Denom,
+			Message:  types.PushNotificationSentMessage + pnp.Amount + pnp.Denom,
+			Data: types.PushNotificationData{
+				NotifyTo: pnp.From,
+				Txid:     pnp.Txid,
+				Type:     types.SENT,
+			},
+		}
+		pns = append(pns, tempNotification)
+	case "to":
+		tempNotification := types.PushNotifications{
+			Tokens:   []string{alarmToken},
+			Platform: 2,
+			Title:    types.PushNotificationReceivedTitle + pnp.Amount + pnp.Denom,
+			Message:  types.PushNotificationReceivedMessage + pnp.Amount + pnp.Denom,
+			Data: types.PushNotificationData{
+				NotifyTo: pnp.To,
+				Txid:     pnp.Txid,
+				Type:     types.RECEIVED,
+			},
+		}
+		pns = append(pns, tempNotification)
+	default:
+		fmt.Printf("invalid target: %s ", target)
 	}
-	pns = append(pns, tempNotification)
 
 	pnsp := types.PushNotificationServerPayload{
 		Notifications: pns,
 	}
 
 	// send push notification
-	_, err = resty.R().
+	_, err := resty.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(pnsp).
-		Post(cf.Alarm.PushServerURL)
+		Post(nof.cfg.Alarm.PushServerURL)
 	if err != nil {
-		return
+		fmt.Printf("failed to push notification %s: ", err)
 	}
-
 }
 
 // VerifyAccount verifes account before sending push notification
-func VerifyAccount(pnp types.PushNotificationPayload) {
-	cf := config.NewConfig()
-	db := databases.Connect(cf)
+func (nof *Notification) VerifyAccount(address string) *types.Account {
+	var account types.Account
+	account, _ = nof.db.QueryAccount(address)
 
-	defer db.Close()
+	// return when data is empty
+	if account.AlarmToken == "" {
+		return nil
+	}
 
-	fromAccount, _ := db.QueryAccount(db, pnp.From)
-	toAccount, _ := db.QueryAccount(db, pnp.To)
+	// check user's alarm status
+	if !account.AlarmStatus {
+		return nil
+	}
 
-	pnp.From = strings.ToLower(pnp.From)
-	pnp.To = strings.ToLower(pnp.To)
-	pnp.Txid = strings.ToLower(pnp.Txid)
-
+	return &account
 }
