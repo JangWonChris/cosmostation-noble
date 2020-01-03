@@ -76,33 +76,37 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 							fmt.Printf("failed to JSON encode msgSend: %s", err)
 						}
 
-						var amount string
-						var denom string
+						// switch param in config.yaml
+						// this param is to start or stop sending push notifications in case of syncing from the scratch
+						if ces.config.Alarm.Switch {
+							var amount string
+							var denom string
 
-						if len(msgSend.Amount) > 0 {
-							amount = msgSend.Amount[0].Amount.String()
-							denom = msgSend.Amount[0].Denom
-						}
+							if len(msgSend.Amount) > 0 {
+								amount = msgSend.Amount[0].Amount.String()
+								denom = msgSend.Amount[0].Denom
+							}
 
-						pnp := &types.PushNotificationPayload{
-							From:   msgSend.FromAddress,
-							To:     msgSend.ToAddress,
-							Txid:   txHash,
-							Amount: amount,
-							Denom:  denom,
-						}
+							pnp := &types.PushNotificationPayload{
+								From:   msgSend.FromAddress,
+								To:     msgSend.ToAddress,
+								Txid:   txHash,
+								Amount: amount,
+								Denom:  denom,
+							}
 
-						// push notification to both from and to accounts
-						nof := notification.New()
+							// push notification to both from and to accounts
+							nof := notification.New()
 
-						fromAccount := nof.VerifyAccount(msgSend.FromAddress)
-						if fromAccount != nil {
-							nof.PushNotification(pnp, fromAccount.AlarmToken, types.FROM)
-						}
+							fromAccount := nof.VerifyAccount(msgSend.FromAddress)
+							if fromAccount != nil {
+								nof.PushNotification(pnp, fromAccount.AlarmToken, types.FROM)
+							}
 
-						toAccount := nof.VerifyAccount(msgSend.ToAddress)
-						if toAccount != nil {
-							nof.PushNotification(pnp, toAccount.AlarmToken, types.TO)
+							toAccount := nof.VerifyAccount(msgSend.ToAddress)
+							if toAccount != nil {
+								nof.PushNotification(pnp, toAccount.AlarmToken, types.TO)
+							}
 						}
 
 					case "cosmos-sdk/MsgMultiSend":
@@ -114,49 +118,52 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 
 						nof := notification.New()
 
-						// push notifications to all intputs
-						for _, input := range multiSendTx.Inputs {
-							var amount string
-							var denom string
+						// switch param in config.yaml
+						// this param is to start or stop sending push notifications in case of syncing from the scratch
+						if ces.config.Alarm.Switch {
+							for _, input := range multiSendTx.Inputs {
+								var amount string
+								var denom string
 
-							if len(input.Coins) > 0 {
-								amount = input.Coins[0].Amount.String()
-								denom = input.Coins[0].Denom
+								if len(input.Coins) > 0 {
+									amount = input.Coins[0].Amount.String()
+									denom = input.Coins[0].Denom
+								}
+
+								pnp := &types.PushNotificationPayload{
+									From:   input.Address.String(),
+									Txid:   txHash,
+									Amount: amount,
+									Denom:  denom,
+								}
+
+								fromAccount := nof.VerifyAccount(input.Address.String())
+								if fromAccount != nil {
+									nof.PushNotification(pnp, fromAccount.AlarmToken, types.FROM)
+								}
 							}
 
-							pnp := &types.PushNotificationPayload{
-								From:   input.Address.String(),
-								Txid:   txHash,
-								Amount: amount,
-								Denom:  denom,
-							}
+							// push notifications to all outputs
+							for _, output := range multiSendTx.Outputs {
+								var amount string
+								var denom string
 
-							fromAccount := nof.VerifyAccount(input.Address.String())
-							if fromAccount != nil {
-								nof.PushNotification(pnp, fromAccount.AlarmToken, types.FROM)
-							}
-						}
+								if len(output.Coins) > 0 {
+									amount = output.Coins[0].Amount.String()
+									denom = output.Coins[0].Denom
+								}
 
-						// push notifications to all outputs
-						for _, output := range multiSendTx.Outputs {
-							var amount string
-							var denom string
+								pnp := &types.PushNotificationPayload{
+									To:     output.Address.String(),
+									Txid:   txHash,
+									Amount: amount,
+									Denom:  denom,
+								}
 
-							if len(output.Coins) > 0 {
-								amount = output.Coins[0].Amount.String()
-								denom = output.Coins[0].Denom
-							}
-
-							pnp := &types.PushNotificationPayload{
-								To:     output.Address.String(),
-								Txid:   txHash,
-								Amount: amount,
-								Denom:  denom,
-							}
-
-							toAccount := nof.VerifyAccount(output.Address.String())
-							if toAccount != nil {
-								nof.PushNotification(pnp, toAccount.AlarmToken, types.TO)
+								toAccount := nof.VerifyAccount(output.Address.String())
+								if toAccount != nil {
+									nof.PushNotification(pnp, toAccount.AlarmToken, types.TO)
+								}
 							}
 						}
 

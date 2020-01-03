@@ -38,6 +38,7 @@ type (
 
 	AlarmConfig struct {
 		PushServerURL string
+		Switch        bool
 	}
 
 	CoinmarketcapConfig struct {
@@ -79,6 +80,7 @@ func NewConfig() *Config {
 		dbConfig.Password = viper.GetString("prod.database.password")
 		dbConfig.Table = viper.GetString("prod.database.table")
 		alarmConfig.PushServerURL = viper.GetString("prod.alarm.push_server_url")
+		alarmConfig.Switch = viper.GetBool("prod.alarm.switch")
 	case "dev":
 		nodeConfig.GaiadURL = viper.GetString("dev.node.gaiad_url")
 		nodeConfig.LCDURL = viper.GetString("dev.node.lcd_url")
@@ -87,6 +89,7 @@ func NewConfig() *Config {
 		dbConfig.Password = viper.GetString("dev.database.password")
 		dbConfig.Table = viper.GetString("dev.database.table")
 		alarmConfig.PushServerURL = viper.GetString("dev.alarm.push_server_url")
+		alarmConfig.Switch = viper.GetBool("dev.alarm.switch")
 	case "testnet":
 		nodeConfig.GaiadURL = viper.GetString("testnet.node.gaiad_url")
 		nodeConfig.LCDURL = viper.GetString("testnet.node.lcd_url")
@@ -95,6 +98,7 @@ func NewConfig() *Config {
 		dbConfig.Password = viper.GetString("testnet.database.password")
 		dbConfig.Table = viper.GetString("testnet.database.table")
 		alarmConfig.PushServerURL = viper.GetString("testnet.alarm.push_server_url")
+		alarmConfig.Switch = viper.GetBool("testnet.alarm.switch")
 	default:
 		fmt.Println("define active params in config.yaml")
 	}
