@@ -6,9 +6,11 @@ import (
 )
 
 // SaveExportedData saves exported blockchain data
+// if function returns an error transaction is rollbacked, otherwise transaction is committed.
 func (db *Database) SaveExportedData(blockInfo []*schema.BlockInfo, evidenceInfo []*schema.EvidenceInfo, genesisValidatorsInfo []*schema.ValidatorSetInfo,
 	missInfo []*schema.MissInfo, accumMissInfo []*schema.MissInfo, missDetailInfo []*schema.MissDetailInfo, transactionInfo []*schema.TransactionInfo,
 	voteInfo []*schema.VoteInfo, depositInfo []*schema.DepositInfo, proposalInfo []*schema.ProposalInfo, validatorSetInfo []*schema.ValidatorSetInfo) error {
+
 	err := db.RunInTransaction(func(tx *pg.Tx) error {
 		if len(blockInfo) > 0 {
 			err := tx.Insert(&blockInfo)

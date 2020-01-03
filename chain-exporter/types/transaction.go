@@ -7,7 +7,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-// GeneralTx is general tx struct that is unmarshallable for any tx_msg type
 type GeneralTx struct {
 	Height string `json:"height"`
 	TxHash string `json:"txhash"`

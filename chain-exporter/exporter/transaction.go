@@ -112,6 +112,7 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 							fmt.Println("Unmarshal MsgMultiSend JSON Error: ", err)
 						}
 
+						// https://lcd-cosmos-testnet.cosmostation.io/txs/6FC03A41B4929968C4506EC7A8FB2F8BA58674A23736983C80D4B36B8DA0ED2E
 						fmt.Println("=======================================[multisend]")
 						fmt.Println(multiSendTx.Inputs)
 						fmt.Println(multiSendTx.Outputs)
@@ -126,7 +127,7 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 						*/
 
 						// query the highest height of id_validator
-						highestIDValidatorNum, _ := ces.db.QueryHighestIDValidatorNum()
+						highestIDValidatorNum, _ := ces.db.QueryHighestValidatorID()
 
 						height, _ := strconv.ParseInt(generalTx.Height, 10, 64)
 						newVotingPowerAmount, _ := strconv.ParseFloat(msgCreateValidator.Value.Amount.String(), 64) // parseFloat from sdk.Dec.String()
@@ -153,7 +154,7 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 						validatorInfo, _ := ces.db.QueryValidatorInfo(msgDelegate.ValidatorAddress)
 
 						// query to get id_validator of lastly inserted data
-						idValidatorSetInfo, _ := ces.db.QueryIDValidatorSetInfo(validatorInfo.Proposer)
+						idValidatorSetInfo, _ := ces.db.QueryValidatorID(validatorInfo.Proposer)
 
 						height, _ := strconv.ParseInt(generalTx.Height, 10, 64)
 						newVotingPowerAmount, _ := strconv.ParseFloat(msgDelegate.Amount.Amount.String(), 64) // parseFloat from sdk.Dec.String()
@@ -196,7 +197,7 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 						validatorInfo, _ := ces.db.QueryValidatorInfo(msgUndelegate.ValidatorAddress)
 
 						// query to get id_validator of lastly inserted data
-						idValidatorSetInfo, _ := ces.db.QueryIDValidatorSetInfo(validatorInfo.Proposer)
+						idValidatorSetInfo, _ := ces.db.QueryValidatorID(validatorInfo.Proposer)
 
 						height, _ := strconv.ParseInt(generalTx.Height, 10, 64)
 						newVotingPowerAmount, _ := strconv.ParseFloat(msgUndelegate.Amount.Amount.String(), 64) // parseFloat from sdk.Dec.String()
@@ -239,11 +240,11 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 
 						// query validator_dst_address info
 						validatorDstInfo, _ := ces.db.QueryValidatorInfo(msgBeginRedelegate.ValidatorDstAddress)
-						dstValidatorSetInfo, _ := ces.db.QueryIDValidatorSetInfo(validatorDstInfo.Proposer)
+						dstValidatorSetInfo, _ := ces.db.QueryValidatorID(validatorDstInfo.Proposer)
 
 						// query validator_src_address info
 						validatorSrcInfo, _ := ces.db.QueryValidatorInfo(msgBeginRedelegate.ValidatorSrcAddress)
-						srcValidatorSetInfo, _ := ces.db.QueryIDValidatorSetInfo(validatorSrcInfo.Proposer)
+						srcValidatorSetInfo, _ := ces.db.QueryValidatorID(validatorSrcInfo.Proposer)
 
 						height, _ := strconv.ParseInt(generalTx.Height, 10, 64)
 						newVotingPowerAmount, _ := strconv.ParseFloat(msgBeginRedelegate.Amount.Amount.String(), 64)

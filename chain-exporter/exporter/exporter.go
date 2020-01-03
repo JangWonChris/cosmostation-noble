@@ -20,7 +20,7 @@ import (
 	resty "gopkg.in/resty.v1"
 )
 
-// ChainExporterService wraps below params
+// ChainExporterService implemnts a wrapper around configuration for this project
 type ChainExporterService struct {
 	codec     *codec.Codec
 	config    *config.Config

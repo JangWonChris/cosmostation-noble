@@ -12,7 +12,7 @@ type Database struct {
 	*pg.DB
 }
 
-// Connect connects to PostgreSQL
+// Connect connects to PostgreSQL database
 func Connect(Config *config.Config) *Database {
 	db := pg.Connect(&pg.Options{
 		Addr:     Config.DB.Host,
@@ -23,7 +23,7 @@ func Connect(Config *config.Config) *Database {
 	return &Database{db}
 }
 
-// CreateSchema creates database tables using ORM
+// CreateSchema creates database tables using object relational mapper (ORM)
 func (db *Database) CreateSchema() error {
 	for _, model := range []interface{}{(*schema.BlockInfo)(nil), (*schema.EvidenceInfo)(nil), (*schema.MissInfo)(nil),
 		(*schema.MissDetailInfo)(nil), (*schema.ProposalInfo)(nil), (*schema.ValidatorSetInfo)(nil), (*schema.ValidatorInfo)(nil),
@@ -38,7 +38,7 @@ func (db *Database) CreateSchema() error {
 	}
 
 	// RunInTransaction runs a function in a transaction.
-	// If function returns an error transaction is rollbacked, otherwise transaction is committed.
+	// if function returns an error transaction is rollbacked, otherwise transaction is committed.
 	err := db.RunInTransaction(func(tx *pg.Tx) error {
 		// Create indexes to reduce the cost of lookup queries in case of server traffic jams (B-Tree Index)
 		_, err := db.Model(schema.BlockInfo{}).Exec(`CREATE INDEX block_info_height_idx ON block_infos USING btree(height);`)

@@ -41,8 +41,8 @@ func (db *Database) QueryValidatorInfo(address string) (schema.ValidatorInfo, er
 	return validatorInfo, nil
 }
 
-// QueryIDValidatorSetInfo returns id of a validator from validator_set_infos table
-func (db *Database) QueryIDValidatorSetInfo(proposer string) (schema.ValidatorSetInfo, error) {
+// QueryValidatorID returns the id number of a validator from validator_set_infos table
+func (db *Database) QueryValidatorID(proposer string) (schema.ValidatorSetInfo, error) {
 	var validatorSetInfo schema.ValidatorSetInfo
 	err := db.Model(&validatorSetInfo).
 		Column("id_validator", "voting_power").
@@ -56,8 +56,8 @@ func (db *Database) QueryIDValidatorSetInfo(proposer string) (schema.ValidatorSe
 	return validatorSetInfo, nil
 }
 
-// QueryHighestIDValidatorNum returns highest id of a validator from validator_set_infos table
-func (db *Database) QueryHighestIDValidatorNum() (int, error) {
+// QueryHighestValidatorID returns highest id number of a validator from validator_set_infos table
+func (db *Database) QueryHighestValidatorID() (int, error) {
 	var validatorSetInfo schema.ValidatorSetInfo
 	err := db.Model(&validatorSetInfo).
 		Column("id_validator").
