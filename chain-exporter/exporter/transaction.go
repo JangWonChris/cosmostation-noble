@@ -105,18 +105,60 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 							nof.PushNotification(pnp, toAccount.AlarmToken, types.TO)
 						}
 
-					case "cosmos-sdk/MultiSend":
+					case "cosmos-sdk/MsgMultiSend":
 						var multiSendTx types.MsgMultiSend
 						err = ces.codec.UnmarshalJSON(generalTx.Tx.Value.Msg[j].Value, &multiSendTx)
 						if err != nil {
-							fmt.Println("Unmarshal MsgMultiSend JSON Error: ", err)
+							fmt.Printf("failed to JSON encode multiSendTx: %s", err)
 						}
 
-						// https://lcd-cosmos-testnet.cosmostation.io/txs/6FC03A41B4929968C4506EC7A8FB2F8BA58674A23736983C80D4B36B8DA0ED2E
-						fmt.Println("=======================================[multisend]")
-						fmt.Println(multiSendTx.Inputs)
-						fmt.Println(multiSendTx.Outputs)
-						fmt.Println("=======================================")
+						nof := notification.New()
+
+						// push notifications to all intputs
+						for _, input := range multiSendTx.Inputs {
+							var amount string
+							var denom string
+
+							if len(input.Coins) > 0 {
+								amount = input.Coins[0].Amount.String()
+								denom = input.Coins[0].Denom
+							}
+
+							pnp := &types.PushNotificationPayload{
+								From:   input.Address.String(),
+								Txid:   txHash,
+								Amount: amount,
+								Denom:  denom,
+							}
+
+							fromAccount := nof.VerifyAccount(input.Address.String())
+							if fromAccount != nil {
+								nof.PushNotification(pnp, fromAccount.AlarmToken, types.FROM)
+							}
+						}
+
+						// push notifications to all outputs
+						for _, output := range multiSendTx.Outputs {
+							var amount string
+							var denom string
+
+							if len(output.Coins) > 0 {
+								amount = output.Coins[0].Amount.String()
+								denom = output.Coins[0].Denom
+							}
+
+							pnp := &types.PushNotificationPayload{
+								To:     output.Address.String(),
+								Txid:   txHash,
+								Amount: amount,
+								Denom:  denom,
+							}
+
+							toAccount := nof.VerifyAccount(output.Address.String())
+							if toAccount != nil {
+								nof.PushNotification(pnp, toAccount.AlarmToken, types.TO)
+							}
+						}
 
 					case "cosmos-sdk/MsgCreateValidator":
 						var msgCreateValidator types.MsgCreateValidator

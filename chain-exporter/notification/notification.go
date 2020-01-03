@@ -42,6 +42,7 @@ func (nof *Notification) PushNotification(pnp *types.PushNotificationPayload, al
 			},
 		}
 		pns = append(pns, tempNotification)
+		fmt.Printf("sent push notification - Hash: %s, From: %s \n", pnp.Txid, pnp.From)
 	case "to":
 		tempNotification := types.PushNotifications{
 			Tokens:   []string{alarmToken},
@@ -55,6 +56,7 @@ func (nof *Notification) PushNotification(pnp *types.PushNotificationPayload, al
 			},
 		}
 		pns = append(pns, tempNotification)
+		fmt.Printf("sent push notification - Hash: %s, To: %s \n", pnp.Txid, pnp.To)
 	default:
 		fmt.Printf("invalid target: %s ", target)
 	}
