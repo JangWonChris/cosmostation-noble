@@ -14,14 +14,14 @@ import (
 )
 
 // Passes requests to its respective service
-func DistributionController(codec *codec.Codec, config *config.Config, db *pg.DB, router *mux.Router, rpcClient *client.HTTP) {
-	router.HandleFunc("/distribution/delegators/{delegatorAddr}/withdraw_address", func(w http.ResponseWriter, r *http.Request) {
+func DistributionController(codec *codec.Codec, config *config.Config, db *pg.DB, r *mux.Router, rpcClient *client.HTTP) {
+	r.HandleFunc("/distribution/delegators/{delegatorAddr}/withdraw_address", func(w http.ResponseWriter, r *http.Request) {
 		services.GetDelegatorWithdrawAddress(config, db, rpcClient, w, r)
 	})
-	router.HandleFunc("/distribution/delegators/{delegatorAddr}/rewards/{validatorAddr}", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/distribution/delegators/{delegatorAddr}/rewards/{validatorAddr}", func(w http.ResponseWriter, r *http.Request) {
 		services.GetDelegatorRewards(config, db, rpcClient, w, r)
 	})
-	router.HandleFunc("/distribution/community_pool", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/distribution/community_pool", func(w http.ResponseWriter, r *http.Request) {
 		services.GetCommunityPool(config, db, rpcClient, w, r)
 	})
 }

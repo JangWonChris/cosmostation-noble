@@ -1,4 +1,4 @@
-active: "prod"
+active: "testnet"
 
 prod:
   node: 

@@ -13,12 +13,12 @@ import (
 )
 
 // Passes requests to its respective service
-func StatsController(codec *codec.Codec, config *config.Config, db *pg.DB, router *mux.Router, rpcClient *client.HTTP) {
-	router.HandleFunc("/stats/market", func(w http.ResponseWriter, r *http.Request) {
+func StatsController(codec *codec.Codec, config *config.Config, db *pg.DB, r *mux.Router, rpcClient *client.HTTP) {
+	r.HandleFunc("/stats/market", func(w http.ResponseWriter, r *http.Request) {
 		services.GetMarketStats(config, db, rpcClient, w, r)
 	})
 
-	router.HandleFunc("/stats/network", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/stats/network", func(w http.ResponseWriter, r *http.Request) {
 		services.GetNetworkStats(config, db, rpcClient, w, r)
 	})
 }
