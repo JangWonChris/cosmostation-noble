@@ -105,7 +105,6 @@ func RegisterOrUpdate(db *pg.DB, w http.ResponseWriter, r *http.Request) {
 	if !exist {
 		result, _, _ := databases.InsertAccount(w, db, account)
 		if result != 1 {
-			u.Result(w, false, "failed to insert")
 			return
 		}
 		u.Result(w, true, "successfully inserted")
@@ -114,7 +113,6 @@ func RegisterOrUpdate(db *pg.DB, w http.ResponseWriter, r *http.Request) {
 
 	result, err := databases.UpdateAccount(w, db, account)
 	if !result {
-		u.Result(w, false, "failed to update")
 		return
 	}
 
