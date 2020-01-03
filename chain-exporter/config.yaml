@@ -37,6 +37,6 @@ testnet:
     table: "cosmos-testnet"
   alarm:
     push_server_url: "http://localhost:65522/api/push"
-    switch: false # purpose is to stop sending push notification when syncing from the scratch 
+    switch: true # purpose is to stop sending push notification when syncing from the scratch 
 
 keybase_url: "https://keybase.io/_/api/1.0/user/lookup.json?fields=pictures&key_suffix="
