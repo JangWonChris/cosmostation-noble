@@ -30,7 +30,7 @@ func (db *Database) CreateSchema() error {
 		(*schema.TransactionInfo)(nil), (*schema.VoteInfo)(nil), (*schema.DepositInfo)(nil)} {
 		err := db.CreateTable(model, &orm.CreateTableOptions{
 			IfNotExists: true,
-			Varchar:     5000, // replaces PostgreSQL data type `text` to `varchar(n)`
+			Varchar:     20000, // replaces PostgreSQL data type `text` to `varchar(n)`
 		})
 		if err != nil {
 			return err
