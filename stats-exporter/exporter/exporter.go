@@ -61,10 +61,10 @@ func NewStatsExporterService(config *config.Config) *StatsExporterService {
 func (ses *StatsExporterService) OnStart() {
 	fmt.Println("<Starts Stats Exporter>")
 
-	ses.setCronJobs()
+	// ses.setCronJobs()
 
 	// TEST
-	// ses.SaveValidatorsStats1H()
+	ses.SaveValidatorsStats1H()
 	// ses.SaveValidatorsStats24H()
 
 	// ses.SaveNetworkStats1H()

@@ -3,6 +3,7 @@ package lcd
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"sort"
 	"strconv"
 
@@ -12,7 +13,6 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/utils"
 
-	"github.com/rs/zerolog/log"
 	resty "gopkg.in/resty.v1"
 )
 
@@ -23,7 +23,7 @@ func SaveBondedValidators(db *db.Database, config *config.Config) {
 	var bondedValidators []*types.Validator
 	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &bondedValidators)
 	if err != nil {
-		log.Info().Str(types.Service, types.LogValidator).Str(types.Method, "SaveBondedValidators").Err(err).Msg("unmarshal bondedValidators error")
+		fmt.Printf("failed to request /staking/validators?status=bonded: %v \n", err)
 	}
 
 	// sort out bondedValidators by highest tokens
@@ -35,6 +35,7 @@ func SaveBondedValidators(db *db.Database, config *config.Config) {
 
 	// bondedValidator information for our database table
 	validatorInfo := make([]*schema.ValidatorInfo, 0)
+
 	for i, bondedValidator := range bondedValidators {
 		tempValidatorInfo := &schema.ValidatorInfo{
 			Rank:                 i + 1,
@@ -61,31 +62,10 @@ func SaveBondedValidators(db *db.Database, config *config.Config) {
 		validatorInfo = append(validatorInfo, tempValidatorInfo)
 	}
 
-	// save and update validatorInfo
 	if len(validatorInfo) > 0 {
-		_, err = db.Model(&validatorInfo).
-			OnConflict("(operator_address) DO UPDATE").
-			Set("rank = EXCLUDED.rank").
-			Set("consensus_pubkey = EXCLUDED.consensus_pubkey").
-			Set("proposer = EXCLUDED.proposer").
-			Set("jailed = EXCLUDED.jailed").
-			Set("status = EXCLUDED.status").
-			Set("tokens = EXCLUDED.tokens").
-			Set("delegator_shares = EXCLUDED.delegator_shares").
-			Set("moniker = EXCLUDED.moniker").
-			Set("identity = EXCLUDED.identity").
-			Set("website = EXCLUDED.website").
-			Set("details = EXCLUDED.details").
-			Set("unbonding_height = EXCLUDED.unbonding_height").
-			Set("unbonding_time = EXCLUDED.unbonding_time").
-			Set("commission_rate = EXCLUDED.commission_rate").
-			Set("commission_max_rate = EXCLUDED.commission_max_rate").
-			Set("commission_change_rate = EXCLUDED.commission_change_rate").
-			Set("update_time = EXCLUDED.update_time").
-			Set("min_self_delegation = EXCLUDED.min_self_delegation").
-			Insert()
-		if err != nil {
-			fmt.Printf("error - sync validators: %v\n", err)
+		result, err := db.InsertOrUpdateValidators(validatorInfo)
+		if !result {
+			log.Printf("failed to insert or update bonded validators: %t", err)
 		}
 	}
 }
@@ -97,7 +77,7 @@ func SaveUnbondingAndUnBondedValidators(db *db.Database, config *config.Config) 
 	var unbondingValidators []*types.Validator
 	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &unbondingValidators)
 	if err != nil {
-		log.Info().Str(types.Service, types.LogValidator).Str(types.Method, "SaveUnbondingAndUnBondedValidators").Err(err).Msg("unmarshal unbondingValidators error")
+		fmt.Printf("failed to request /staking/validators?status=unbonding: %v \n", err)
 	}
 
 	// sort out bondedValidators by highest tokens
@@ -153,34 +133,13 @@ func SaveUnbondingAndUnBondedValidators(db *db.Database, config *config.Config) 
 
 	// save and update validatorInfo
 	if len(validatorInfo) > 0 {
-		_, err := db.Model(&validatorInfo).
-			OnConflict("(operator_address) DO UPDATE").
-			Set("rank = EXCLUDED.rank").
-			Set("consensus_pubkey = EXCLUDED.consensus_pubkey").
-			Set("proposer = EXCLUDED.proposer").
-			Set("jailed = EXCLUDED.jailed").
-			Set("status = EXCLUDED.status").
-			Set("tokens = EXCLUDED.tokens").
-			Set("delegator_shares = EXCLUDED.delegator_shares").
-			Set("moniker = EXCLUDED.moniker").
-			Set("identity = EXCLUDED.identity").
-			Set("website = EXCLUDED.website").
-			Set("details = EXCLUDED.details").
-			Set("unbonding_height = EXCLUDED.unbonding_height").
-			Set("unbonding_time = EXCLUDED.unbonding_time").
-			Set("commission_rate = EXCLUDED.commission_rate").
-			Set("commission_max_rate = EXCLUDED.commission_max_rate").
-			Set("commission_change_rate = EXCLUDED.commission_change_rate").
-			Set("update_time = EXCLUDED.update_time").
-			Set("min_self_delegation = EXCLUDED.min_self_delegation").
-			Insert()
+		result, err := db.InsertOrUpdateValidators(validatorInfo)
+		if !result {
+			log.Printf("failed to insert or update unbonding validators: %t", err)
+		}
 
 		// save unbonded validators after succesfully saved unbonding validators
 		saveUnbondedValidators(db, config)
-
-		if err != nil {
-			fmt.Printf("error - save and update validatorinfo: %v\n", err)
-		}
 	}
 }
 
@@ -191,7 +150,7 @@ func saveUnbondedValidators(db *db.Database, config *config.Config) {
 	var unbondedValidators []*types.Validator
 	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &unbondedValidators)
 	if err != nil {
-		log.Info().Str(types.Service, types.LogValidator).Str(types.Method, "saveUnbondedValidators").Err(err).Msg("unmarshal unbondedValidators error")
+		fmt.Printf("failed to request /staking/validators?status=unbonded: %v \n", err)
 	}
 
 	// sort out bondedValidators by highest tokens
@@ -244,29 +203,9 @@ func saveUnbondedValidators(db *db.Database, config *config.Config) {
 
 	// save and update validatorInfo
 	if len(validatorInfo) > 0 {
-		_, err := db.Model(&validatorInfo).
-			OnConflict("(operator_address) DO UPDATE").
-			Set("rank = EXCLUDED.rank").
-			Set("consensus_pubkey = EXCLUDED.consensus_pubkey").
-			Set("proposer = EXCLUDED.proposer").
-			Set("jailed = EXCLUDED.jailed").
-			Set("status = EXCLUDED.status").
-			Set("tokens = EXCLUDED.tokens").
-			Set("delegator_shares = EXCLUDED.delegator_shares").
-			Set("moniker = EXCLUDED.moniker").
-			Set("identity = EXCLUDED.identity").
-			Set("website = EXCLUDED.website").
-			Set("details = EXCLUDED.details").
-			Set("unbonding_height = EXCLUDED.unbonding_height").
-			Set("unbonding_time = EXCLUDED.unbonding_time").
-			Set("commission_rate = EXCLUDED.commission_rate").
-			Set("commission_max_rate = EXCLUDED.commission_max_rate").
-			Set("commission_change_rate = EXCLUDED.commission_change_rate").
-			Set("update_time = EXCLUDED.update_time").
-			Set("min_self_delegation = EXCLUDED.min_self_delegation").
-			Insert()
-		if err != nil {
-			fmt.Printf("error - save and update validatorinfo: %v\n", err)
+		result, err := db.InsertOrUpdateValidators(validatorInfo)
+		if !result {
+			log.Printf("failed to insert or update unbonded validators: %t", err)
 		}
 	}
 }

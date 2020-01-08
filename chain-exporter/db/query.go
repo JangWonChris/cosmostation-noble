@@ -9,8 +9,20 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 )
 
-// QueryValidatorInfo returns validator information
-func (db *Database) QueryValidatorInfo(address string) (schema.ValidatorInfo, error) {
+// QueryValidators returns validators info
+func (db *Database) QueryValidators() ([]schema.ValidatorInfo, error) {
+	var validators []schema.ValidatorInfo
+	err := db.Model(&validators).
+		Column("id", "identity", "moniker").
+		Select()
+	if err != nil {
+		return validators, err
+	}
+	return validators, nil
+}
+
+// QueryValidatorByAddr returns validator information
+func (db *Database) QueryValidatorByAddr(address string) (schema.ValidatorInfo, error) {
 	var validatorInfo schema.ValidatorInfo
 	switch {
 	case strings.HasPrefix(address, sdk.GetConfig().GetBech32ConsensusPubPrefix()):
@@ -78,4 +90,16 @@ func (db *Database) QueryAccount(address string) (types.Account, error) {
 		Select()
 
 	return account, nil
+}
+
+// QueryExistProposal queries to find out if the same proposal is already saved
+func (db *Database) QueryExistProposal(proposalID int64) (bool, error) {
+	var proposalInfo schema.ProposalInfo
+	exist, _ := db.Model(&proposalInfo).
+		Where("id = ?", proposalID).
+		Exists()
+	if !exist {
+		return exist, nil
+	}
+	return exist, nil
 }

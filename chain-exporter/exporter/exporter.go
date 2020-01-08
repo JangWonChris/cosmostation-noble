@@ -169,7 +169,7 @@ func (ces ChainExporterService) process(height int64) error {
 	}
 
 	// Insert data into database
-	err = ces.db.SaveExportedData(blockInfo, evidenceInfo, genesisValsInfo, missInfo, accumMissInfo,
+	err = ces.db.InsertExportedData(blockInfo, evidenceInfo, genesisValsInfo, missInfo, accumMissInfo,
 		missDetailInfo, transactionInfo, voteInfo, depositInfo, proposalInfo, validatorSetInfo)
 
 	if err != nil {

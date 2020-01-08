@@ -2,10 +2,6 @@ package schema
 
 import "time"
 
-/*
-	Every 1 hour
-*/
-
 // StatsCoingeckoMarket1H is a struct for market statistics from Coingecko
 type StatsCoingeckoMarket1H struct {
 	ID                int64     `json:"id" sql:",pk"`

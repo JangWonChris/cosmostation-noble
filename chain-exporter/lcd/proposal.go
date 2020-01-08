@@ -3,6 +3,7 @@ package lcd
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"strconv"
 
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
@@ -10,7 +11,6 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 
-	"github.com/rs/zerolog/log"
 	resty "gopkg.in/resty.v1"
 )
 
@@ -18,13 +18,13 @@ import (
 func SaveProposals(db *db.Database, config *config.Config) {
 	resp, err := resty.R().Get(config.Node.LCDURL + "/gov/proposals")
 	if err != nil {
-		fmt.Printf("query /gov/proposals error - %v\n", err)
+		fmt.Printf("failed to request /gov/proposals: %v \n", err)
 	}
 
 	proposals := make([]*types.Proposal, 0)
 	err = json.Unmarshal(types.ReadRespWithHeight(resp).Result, &proposals)
 	if err != nil {
-		log.Info().Str(types.Service, types.LogGovernance).Str(types.Method, "SaveProposals").Err(err).Msg("unmarshal proposals error")
+		fmt.Printf("failed to unmarshal Proposal: %v \n", err)
 	}
 
 	// proposal information for our database table
@@ -45,7 +45,7 @@ func SaveProposals(db *db.Database, config *config.Config) {
 			var tally types.Tally
 			err = json.Unmarshal(types.ReadRespWithHeight(tallyResp).Result, &tally)
 			if err != nil {
-				log.Info().Str(types.Service, types.LogGovernance).Str(types.Method, "SaveProposals").Err(err).Msg("unmarshal tally error")
+				fmt.Printf("failed to unmarshal Tally: %v \n", err)
 			}
 
 			tempProposalInfo := &schema.ProposalInfo{
@@ -70,37 +70,19 @@ func SaveProposals(db *db.Database, config *config.Config) {
 		}
 	}
 
-	// update proposerInfo
 	if len(proposalInfo) > 0 {
-		var tempProposalInfo schema.ProposalInfo
 		for _, proposal := range proposalInfo {
-			exist, _ := db.Model(&tempProposalInfo).
-				Where("id = ?", proposal.ID).
-				Exists()
+			exist, _ := db.QueryExistProposal(proposal.ID)
 
 			if exist {
-				// save and update proposalInfo
-				_, _ = db.Model(&tempProposalInfo).
-					Set("title = ?", proposal.Title).
-					Set("description = ?", proposal.Description).
-					Set("proposal_type = ?", proposal.ProposalType).
-					Set("proposal_status = ?", proposal.ProposalStatus).
-					Set("yes = ?", proposal.Yes).
-					Set("abstain = ?", proposal.Abstain).
-					Set("no = ?", proposal.No).
-					Set("no_with_veto = ?", proposal.NoWithVeto).
-					Set("deposit_end_time = ?", proposal.DepositEndtime).
-					Set("total_deposit_amount = ?", proposal.TotalDepositAmount).
-					Set("total_deposit_denom = ?", proposal.TotalDepositDenom).
-					Set("submit_time = ?", proposal.SubmitTime).
-					Set("voting_start_time = ?", proposal.VotingStartTime).
-					Set("voting_end_time = ?", proposal.VotingEndTime).
-					Where("id = ?", proposal.ID).
-					Update()
+				result, _ := db.UpdateProposal(proposal)
+				if !result {
+					log.Printf("failed to update Proposal ID: %d", proposal.ID)
+				}
 			} else {
-				err := db.Insert(proposal)
-				if err != nil {
-					fmt.Printf("error - save and update proposalInfo: %v\n", err)
+				result, _ := db.InsertProposal(proposal)
+				if !result {
+					log.Printf("failed to save Proposal ID: %d", proposal.ID)
 				}
 			}
 		}

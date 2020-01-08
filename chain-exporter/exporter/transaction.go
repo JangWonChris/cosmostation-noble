@@ -200,7 +200,7 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 						_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &msgDelegate)
 
 						// query validator information fro validator_infos table
-						validatorInfo, _ := ces.db.QueryValidatorInfo(msgDelegate.ValidatorAddress)
+						validatorInfo, _ := ces.db.QueryValidatorByAddr(msgDelegate.ValidatorAddress)
 
 						// query to get id_validator of lastly inserted data
 						idValidatorSetInfo, _ := ces.db.QueryValidatorID(validatorInfo.Proposer)
@@ -243,7 +243,7 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 						_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &msgUndelegate)
 
 						// query validator info
-						validatorInfo, _ := ces.db.QueryValidatorInfo(msgUndelegate.ValidatorAddress)
+						validatorInfo, _ := ces.db.QueryValidatorByAddr(msgUndelegate.ValidatorAddress)
 
 						// query to get id_validator of lastly inserted data
 						idValidatorSetInfo, _ := ces.db.QueryValidatorID(validatorInfo.Proposer)
@@ -288,11 +288,11 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 						_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &msgBeginRedelegate)
 
 						// query validator_dst_address info
-						validatorDstInfo, _ := ces.db.QueryValidatorInfo(msgBeginRedelegate.ValidatorDstAddress)
+						validatorDstInfo, _ := ces.db.QueryValidatorByAddr(msgBeginRedelegate.ValidatorDstAddress)
 						dstValidatorSetInfo, _ := ces.db.QueryValidatorID(validatorDstInfo.Proposer)
 
 						// query validator_src_address info
-						validatorSrcInfo, _ := ces.db.QueryValidatorInfo(msgBeginRedelegate.ValidatorSrcAddress)
+						validatorSrcInfo, _ := ces.db.QueryValidatorByAddr(msgBeginRedelegate.ValidatorSrcAddress)
 						srcValidatorSetInfo, _ := ces.db.QueryValidatorID(validatorSrcInfo.Proposer)
 
 						height, _ := strconv.ParseInt(generalTx.Height, 10, 64)

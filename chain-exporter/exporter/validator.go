@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
@@ -158,29 +159,24 @@ func (ces ChainExporterService) getEvidenceInfo(height int64) ([]*schema.Evidenc
 
 // SaveValidatorKeyBase saves keybase urls for every validator
 func (ces ChainExporterService) SaveValidatorKeyBase() error {
-	var validatorInfo []schema.ValidatorInfo
-	err := ces.db.Model(&validatorInfo).
-		Column("id", "identity", "moniker").
-		Select()
-	if err != nil {
-		return err
-	}
+	validatorsInfo := make([]*schema.ValidatorInfo, 0)
 
-	validatorInfoUpdate := make([]*schema.ValidatorInfo, 0)
-	for _, validator := range validatorInfo {
+	// query validators info
+	validators, _ := ces.db.QueryValidators()
+
+	for _, validator := range validators {
 		if validator.Identity != "" {
 			resp, err := resty.R().Get(ces.config.KeybaseURL + validator.Identity)
 			if err != nil {
-				fmt.Printf("KeyBase request error - %v\n", err)
+				fmt.Printf("failed to request KeyBase: %v \n", err)
 			}
 
 			var keyBases types.KeyBase
 			err = json.Unmarshal(resp.Body(), &keyBases)
 			if err != nil {
-				fmt.Printf("KeyBase unmarshal error - %v\n", err)
+				fmt.Printf("failed to unmarshal KeyBase: %v \n", err)
 			}
 
-			// get keybase urls
 			var keybaseURL string
 			if len(keyBases.Them) > 0 {
 				for _, keybase := range keyBases.Them {
@@ -192,19 +188,15 @@ func (ces ChainExporterService) SaveValidatorKeyBase() error {
 				ID:         validator.ID,
 				KeybaseURL: keybaseURL,
 			}
-			validatorInfoUpdate = append(validatorInfoUpdate, tempValidatorInfo)
+			validatorsInfo = append(validatorsInfo, tempValidatorInfo)
 		}
 	}
 
-	if len(validatorInfoUpdate) > 0 {
-		var tempValidatorInfo schema.ValidatorInfo
-		for i := 0; i < len(validatorInfoUpdate); i++ {
-			_, err = ces.db.Model(&tempValidatorInfo).
-				Set("keybase_url = ?", validatorInfoUpdate[i].KeybaseURL).
-				Where("id = ?", validatorInfoUpdate[i].ID).
-				Update()
-			if err != nil {
-				return err
+	if len(validatorsInfo) > 0 {
+		for _, validator := range validatorsInfo {
+			result, err := ces.db.UpdateKeyBase(validator.ID, validator.KeybaseURL)
+			if !result {
+				log.Printf("failed to update KeyBase URL: %v \n", err)
 			}
 		}
 	}

@@ -15,8 +15,8 @@ prod:
 
 dev:
   node: 
-    gaiad_url: "http://3.120.254.79:26657" # frankfurt sentry node
-    lcd_url: "https://lcd-cosmos-free.cosmostation.io"
+    gaiad_url: "http://13.209.59.177:26657"
+    lcd_url: "https://lcd-cosmos.cosmostation.io"
   database:
     host: "cosmostation-dev.ci6bhjszmrb3.ap-northeast-2.rds.amazonaws.com:5432"
     user: "root"
@@ -24,7 +24,7 @@ dev:
     table: "cosmos-dev"
   alarm:
     push_server_url: "http://localhost:65522/api/push"
-    switch: true # purpose is to stop sending push notification in case of syncing from the scratch 
+    switch: false # purpose is to stop sending push notification in case of syncing from the scratch 
 
 testnet:
   node: 
@@ -37,6 +37,6 @@ testnet:
     table: "cosmos-testnet"
   alarm:
     push_server_url: "http://localhost:65522/api/push"
-    switch: true # purpose is to stop sending push notification in case of syncing from the scratch 
+    switch: false # purpose is to stop sending push notification in case of syncing from the scratch 
 
 keybase_url: "https://keybase.io/_/api/1.0/user/lookup.json?fields=pictures&key_suffix="
