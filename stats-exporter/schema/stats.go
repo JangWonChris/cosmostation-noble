@@ -2,10 +2,6 @@ package schema
 
 import "time"
 
-const (
-	Currency = "USD"
-)
-
 /*
 	Every 1 hour
 */

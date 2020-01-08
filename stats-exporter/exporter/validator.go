@@ -26,7 +26,7 @@ func (ses *StatsExporterService) SaveValidatorsStats1H() {
 		fmt.Printf("ValidatorInfo DB error - %v\n", err)
 	}
 
-	validatorStats := make([]*types.StatsValidators1H, 0)
+	validatorStats := make([]*schema.StatsValidators1H, 0)
 	for _, validator := range validators {
 		// get self-bonded amount by querying the current delegation between a delegator and a validator
 		selfBondedResp, _ := resty.R().Get(ses.config.Node.LCDURL + "/staking/delegators/" + validator.Address + "/delegations/" + validator.OperatorAddress)
@@ -78,7 +78,7 @@ func (ses *StatsExporterService) SaveValidatorsStats1H() {
 		// delegator numbers
 		delegatorNum := len(validatorDelegations)
 
-		tempValidatorStats := &types.StatsValidators1H{
+		tempValidatorStats := &schema.StatsValidators1H{
 			Moniker:          validator.Moniker,
 			OperatorAddress:  validator.OperatorAddress,
 			Address:          validator.Address,
@@ -112,7 +112,7 @@ func (ses *StatsExporterService) SaveValidatorsStats24H() {
 		fmt.Printf("ValidatorInfo DB error - %v\n", err)
 	}
 
-	validatorStats := make([]*types.StatsValidators24H, 0)
+	validatorStats := make([]*schema.StatsValidators24H, 0)
 	for _, validator := range validators {
 		// get self-bonded amount by querying the current delegation between a delegator and a validator
 		selfBondedResp, _ := resty.R().Get(ses.config.Node.LCDURL + "/staking/delegators/" + validator.Address + "/delegations/" + validator.OperatorAddress)
@@ -164,7 +164,7 @@ func (ses *StatsExporterService) SaveValidatorsStats24H() {
 		// delegator numbers
 		delegatorNum := len(validatorDelegations)
 
-		tempValidatorStats := &types.StatsValidators24H{
+		tempValidatorStats := &schema.StatsValidators24H{
 			Moniker:          validator.Moniker,
 			OperatorAddress:  validator.OperatorAddress,
 			Address:          validator.Address,

@@ -3,6 +3,7 @@ package exporter
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"os"
 	"os/signal"
 	"time"
@@ -58,6 +59,7 @@ func NewStatsExporterService(config *config.Config) *StatsExporterService {
 
 // OnStart overrides method for BaseService, which starts a service
 func (ses *StatsExporterService) OnStart() {
+	fmt.Println("<Starts Stats Exporter>")
 
 	// ses.setCronJobs()
 
@@ -65,11 +67,11 @@ func (ses *StatsExporterService) OnStart() {
 	// ses.SaveValidatorsStats1H()
 	// ses.SaveValidatorsStats24H()
 
-	// ses.SaveNetworkStats1H()
-	// ses.SaveNetworkStats24H()
+	ses.SaveNetworkStats1H()
+	ses.SaveNetworkStats24H()
 
-	ses.SaveCoinGeckoMarketStats1H()
-	ses.SaveCoinGeckoMarketStats24H()
+	// ses.SaveCoinGeckoMarketStats1H()
+	// ses.SaveCoinGeckoMarketStats24H()
 
 	// ses.SaveCoinMarketCapMarketStats1H()
 	// ses.SaveCoinMarketCapMarketStats24H()

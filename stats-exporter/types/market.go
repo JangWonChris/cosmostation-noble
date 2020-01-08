@@ -5,6 +5,10 @@ import (
 	"time"
 )
 
+const (
+	Currency = "USD"
+)
+
 // CoinGeckoMarket describes for CoinGecko API
 type CoinGeckoMarket struct {
 	ID                  string          `json:"id"`
