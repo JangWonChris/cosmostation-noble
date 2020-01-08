@@ -8,7 +8,7 @@ import (
 
 	ceCodec "github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/databases"
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/db"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/lcd"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 
@@ -24,7 +24,7 @@ import (
 type ChainExporterService struct {
 	codec     *codec.Codec
 	config    *config.Config
-	db        *databases.Database
+	db        *db.Database
 	wsCtx     context.Context
 	wsOut     <-chan ctypes.ResultEvent
 	rpcClient *client.HTTP
@@ -35,7 +35,7 @@ func NewChainExporterService(config *config.Config) *ChainExporterService {
 	ces := &ChainExporterService{
 		codec:     ceCodec.Codec, // register Cosmos SDK codecs
 		config:    config,
-		db:        databases.Connect(config), // connect to PostgreSQL
+		db:        db.Connect(config), // connect to PostgreSQL
 		wsCtx:     context.Background(),
 		rpcClient: client.NewHTTP(config.Node.GaiadURL, "/websocket"), // connect to Tendermint RPC client
 	}

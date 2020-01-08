@@ -22,3 +22,31 @@ func ReadRespWithHeight(resp *resty.Response) ResponseWithHeight {
 	}
 	return responseWithHeight
 }
+
+// Pool describes Pool REST API
+type Pool struct {
+	NotBondedTokens string `json:"not_bonded_tokens"`
+	BondedTokens    string `json:"bonded_tokens"`
+}
+
+// Inflation describes Inflation REST API
+type Inflation struct {
+	Height string `json:"height"`
+	Result string `json:"result"`
+}
+
+// DelegatorDelegation describes DelegatorDelegation REST API
+type DelegatorDelegation struct {
+	DelegatorAddress string `json:"delegator_address"`
+	ValidatorAddress string `json:"validator_address"`
+	Shares           string `json:"shares"`
+	Balance          string `json:"balance"`
+}
+
+// ValidatorDelegation describes ValidatorDelegation REST API
+type ValidatorDelegation struct {
+	DelegatorAddress string `json:"delegator_address"`
+	ValidatorAddress string `json:"validator_address"`
+	Shares           string `json:"shares"`
+	Balance          string `json:"balance"`
+}

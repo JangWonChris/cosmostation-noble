@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/databases"
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/db"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/utils"
@@ -17,7 +17,7 @@ import (
 )
 
 // SaveBondedValidators saves bonded validators information in database
-func SaveBondedValidators(db *databases.Database, config *config.Config) {
+func SaveBondedValidators(db *db.Database, config *config.Config) {
 	resp, _ := resty.R().Get(config.Node.LCDURL + "/staking/validators?status=bonded")
 
 	var bondedValidators []*types.Validator
@@ -91,7 +91,7 @@ func SaveBondedValidators(db *databases.Database, config *config.Config) {
 }
 
 // SaveUnbondingAndUnBondedValidators saves unbonding and unbonded validators information in database
-func SaveUnbondingAndUnBondedValidators(db *databases.Database, config *config.Config) {
+func SaveUnbondingAndUnBondedValidators(db *db.Database, config *config.Config) {
 	resp, _ := resty.R().Get(config.Node.LCDURL + "/staking/validators?status=unbonding")
 
 	var unbondingValidators []*types.Validator
@@ -185,7 +185,7 @@ func SaveUnbondingAndUnBondedValidators(db *databases.Database, config *config.C
 }
 
 // saveUnbondedValidators saves unbonded validators information in database
-func saveUnbondedValidators(db *databases.Database, config *config.Config) {
+func saveUnbondedValidators(db *db.Database, config *config.Config) {
 	resp, _ := resty.R().Get(config.Node.LCDURL + "/staking/validators?status=unbonded")
 
 	var unbondedValidators []*types.Validator

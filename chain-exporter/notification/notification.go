@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/databases"
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/db"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 
 	resty "gopkg.in/resty.v1"
@@ -13,14 +13,14 @@ import (
 // Notification implemnts a wrapper around configuration for this project
 type Notification struct {
 	cfg *config.Config
-	db  *databases.Database
+	db  *db.Database
 }
 
 func New() Notification {
 	config := config.NewConfig()
 	return Notification{
 		cfg: config,
-		db:  databases.Connect(config),
+		db:  db.Connect(config),
 	}
 }
 

@@ -7,7 +7,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/schema"
 	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/types"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	resty "gopkg.in/resty.v1"
 )
@@ -37,7 +40,7 @@ func (ses *StatsExporterService) SaveNetworkStats1H() {
 	// Query total supply
 	totalSupplyResp, _ := resty.R().Get(ses.config.Node.LCDURL + "/supply/total")
 
-	var coin []types.Coin
+	var coin []sdk.Coin
 	err = json.Unmarshal(types.ReadRespWithHeight(totalSupplyResp).Result, &coin)
 	if err != nil {
 		fmt.Printf("supply/total unmarshal supply total error - %v\n", err)
@@ -45,12 +48,12 @@ func (ses *StatsExporterService) SaveNetworkStats1H() {
 
 	bondedTokens, _ := strconv.ParseFloat(pool.BondedTokens, 64)
 	notBondedTokens, _ := strconv.ParseFloat(pool.NotBondedTokens, 64)
-	totalSupplyTokens, _ := strconv.ParseFloat(coin[0].Amount, 64)
+	totalSupplyTokens, _ := strconv.ParseFloat(coin[0].Amount.String(), 64)
 	bondedRatio := bondedTokens / totalSupplyTokens * 100
 	inflationRatio, _ := strconv.ParseFloat(inflation.Result, 64)
 
 	// get block time - (last block time - second last block time)
-	var blockInfo []types.BlockInfo
+	var blockInfo []schema.BlockInfo
 	err = ses.db.Model(&blockInfo).
 		Column("time").
 		Order("height DESC").
@@ -110,7 +113,7 @@ func (ses *StatsExporterService) SaveNetworkStats24H() {
 	// Query total supply
 	totalSupplyResp, _ := resty.R().Get(ses.config.Node.LCDURL + "/supply/total")
 
-	var coin []types.Coin
+	var coin []sdk.Coin
 	err = json.Unmarshal(types.ReadRespWithHeight(totalSupplyResp).Result, &coin)
 	if err != nil {
 		fmt.Printf("supply/total unmarshal supply total error - %v\n", err)
@@ -118,12 +121,12 @@ func (ses *StatsExporterService) SaveNetworkStats24H() {
 
 	bondedTokens, _ := strconv.ParseFloat(pool.BondedTokens, 64)
 	notBondedTokens, _ := strconv.ParseFloat(pool.NotBondedTokens, 64)
-	totalSupplyTokens, _ := strconv.ParseFloat(coin[0].Amount, 64)
+	totalSupplyTokens, _ := strconv.ParseFloat(coin[0].Amount.String(), 64)
 	bondedRatio := bondedTokens / totalSupplyTokens * 100
 	inflationRatio, _ := strconv.ParseFloat(inflation.Result, 64)
 
 	// get block time - (last block time - second last block time)
-	var blockInfo []types.BlockInfo
+	var blockInfo []schema.BlockInfo
 	err = ses.db.Model(&blockInfo).
 		Column("time").
 		Order("height DESC").

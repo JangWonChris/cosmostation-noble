@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/schema"
 	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/types"
 
 	resty "gopkg.in/resty.v1"
@@ -17,7 +18,7 @@ func (ses *StatsExporterService) SaveValidatorsStats1H() {
 	log.Println("Save Validator Stats 1H")
 
 	// query all validators order by their tokens
-	var validators []types.ValidatorInfo
+	var validators []schema.ValidatorInfo
 	err := ses.db.Model(&validators).
 		Order("rank ASC").
 		Select()
@@ -103,7 +104,7 @@ func (ses *StatsExporterService) SaveValidatorsStats24H() {
 	log.Println("Save Validator Stats 24H")
 
 	// query all validators order by their tokens
-	var validators []types.ValidatorInfo
+	var validators []schema.ValidatorInfo
 	err := ses.db.Model(&validators).
 		Order("rank ASC").
 		Select()

@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/databases"
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/db"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 
@@ -15,7 +15,7 @@ import (
 )
 
 // SaveProposals saves governance proposals in database
-func SaveProposals(db *databases.Database, config *config.Config) {
+func SaveProposals(db *db.Database, config *config.Config) {
 	resp, err := resty.R().Get(config.Node.LCDURL + "/gov/proposals")
 	if err != nil {
 		fmt.Printf("query /gov/proposals error - %v\n", err)
@@ -73,33 +73,32 @@ func SaveProposals(db *databases.Database, config *config.Config) {
 	// update proposerInfo
 	if len(proposalInfo) > 0 {
 		var tempProposalInfo schema.ProposalInfo
-		for i := 0; i < len(proposalInfo); i++ {
-			// check if a validator already voted
-			count, _ := db.Model(&tempProposalInfo).
-				Where("id = ?", proposalInfo[i].ID).
-				Count()
+		for _, proposal := range proposalInfo {
+			exist, _ := db.Model(&tempProposalInfo).
+				Where("id = ?", proposal.ID).
+				Exists()
 
-			if count > 0 {
+			if exist {
 				// save and update proposalInfo
 				_, _ = db.Model(&tempProposalInfo).
-					Set("title = ?", proposalInfo[i].Title).
-					Set("description = ?", proposalInfo[i].Description).
-					Set("proposal_type = ?", proposalInfo[i].ProposalType).
-					Set("proposal_status = ?", proposalInfo[i].ProposalStatus).
-					Set("yes = ?", proposalInfo[i].Yes).
-					Set("abstain = ?", proposalInfo[i].Abstain).
-					Set("no = ?", proposalInfo[i].No).
-					Set("no_with_veto = ?", proposalInfo[i].NoWithVeto).
-					Set("deposit_end_time = ?", proposalInfo[i].DepositEndtime).
-					Set("total_deposit_amount = ?", proposalInfo[i].TotalDepositAmount).
-					Set("total_deposit_denom = ?", proposalInfo[i].TotalDepositDenom).
-					Set("submit_time = ?", proposalInfo[i].SubmitTime).
-					Set("voting_start_time = ?", proposalInfo[i].VotingStartTime).
-					Set("voting_end_time = ?", proposalInfo[i].VotingEndTime).
-					Where("id = ?", proposalInfo[i].ID).
+					Set("title = ?", proposal.Title).
+					Set("description = ?", proposal.Description).
+					Set("proposal_type = ?", proposal.ProposalType).
+					Set("proposal_status = ?", proposal.ProposalStatus).
+					Set("yes = ?", proposal.Yes).
+					Set("abstain = ?", proposal.Abstain).
+					Set("no = ?", proposal.No).
+					Set("no_with_veto = ?", proposal.NoWithVeto).
+					Set("deposit_end_time = ?", proposal.DepositEndtime).
+					Set("total_deposit_amount = ?", proposal.TotalDepositAmount).
+					Set("total_deposit_denom = ?", proposal.TotalDepositDenom).
+					Set("submit_time = ?", proposal.SubmitTime).
+					Set("voting_start_time = ?", proposal.VotingStartTime).
+					Set("voting_end_time = ?", proposal.VotingEndTime).
+					Where("id = ?", proposal.ID).
 					Update()
 			} else {
-				err := db.Insert(&proposalInfo)
+				err := db.Insert(proposal)
 				if err != nil {
 					fmt.Printf("error - save and update proposalInfo: %v\n", err)
 				}

@@ -1,4 +1,4 @@
-package databases
+package db
 
 import (
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
