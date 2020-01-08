@@ -1,4 +1,4 @@
-active: "prod"
+active: "dev"
 
 prod:
   node: 

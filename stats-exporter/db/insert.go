@@ -65,3 +65,23 @@ func (db *Database) InsertNetworkStats24H(data schema.StatsNetwork24H) (bool, er
 	}
 	return true, nil
 }
+
+// InsertValidatorStats1H saves StatsValidators1H
+func (db *Database) InsertValidatorStats1H(data []*schema.StatsValidators1H) (bool, error) {
+	_, err := db.Model(&data).Insert()
+	if err != nil {
+		log.Printf("failed to insert StatsValidators1H: %v \n", err)
+		return false, nil
+	}
+	return true, nil
+}
+
+// InsertValidatorStats24H saves StatsValidators24H
+func (db *Database) InsertValidatorStats24H(data []*schema.StatsValidators24H) (bool, error) {
+	_, err := db.Model(&data).Insert()
+	if err != nil {
+		log.Printf("failed to insert StatsValidators24H: %v \n", err)
+		return false, nil
+	}
+	return true, nil
+}

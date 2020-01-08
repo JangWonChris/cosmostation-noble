@@ -42,7 +42,7 @@ type EvidenceInfo struct {
 	ID       int64     `json:"id" sql:",pk"`
 	Proposer string    `json:"proposer"`
 	Height   int64     `json:"height"`
-	Hash     string    `json:"hash"`
+	Hash     string    `json:"hash" sql:",unique"`
 	Time     time.Time `json:"time"`
 }
 
@@ -65,7 +65,7 @@ type TransactionInfo struct {
 // ProposalInfo is a struct for database table
 type ProposalInfo struct {
 	ID                   int64     `json:"proposal_id" sql:",pk"`
-	TxHash               string    `json:"tx_hash"`
+	TxHash               string    `json:"tx_hash" sql:",unique"`
 	Proposer             string    `json:"proposer" sql:"default:null"`
 	Title                string    `json:"title"`
 	Description          string    `json:"description"`
@@ -107,7 +107,7 @@ type DepositInfo struct {
 	Depositor  string    `json:"depositor"`
 	Amount     string    `json:"amount"`
 	Denom      string    `json:"denom"`
-	TxHash     string    `json:"tx_hash"`
+	TxHash     string    `json:"tx_hash" sql:",unique"`
 	GasWanted  int64     `json:"gas_wanted"`
 	GasUsed    int64     `json:"gas_used"`
 	Time       time.Time `json:"time"`

@@ -61,14 +61,14 @@ func NewStatsExporterService(config *config.Config) *StatsExporterService {
 func (ses *StatsExporterService) OnStart() {
 	fmt.Println("<Starts Stats Exporter>")
 
-	// ses.setCronJobs()
+	ses.setCronJobs()
 
 	// TEST
 	// ses.SaveValidatorsStats1H()
 	// ses.SaveValidatorsStats24H()
 
-	ses.SaveNetworkStats1H()
-	ses.SaveNetworkStats24H()
+	// ses.SaveNetworkStats1H()
+	// ses.SaveNetworkStats24H()
 
 	// ses.SaveCoinGeckoMarketStats1H()
 	// ses.SaveCoinGeckoMarketStats24H()
@@ -77,14 +77,14 @@ func (ses *StatsExporterService) OnStart() {
 	// ses.SaveCoinMarketCapMarketStats24H()
 }
 
+// Every hour
+// 0 * * * * = every minute
+// 0 */60 * * * = every hour
+// 0 0 * * * * = every hour
 func (ses *StatsExporterService) setCronJobs() {
-	// Cron jobs
 	c := cron.New()
 
 	// Every hour
-	// 0 * * * * = every minute
-	// 0 */60 * * * = every hour
-	// 0 0 * * * * = every hour
 	c.AddFunc("0 0 * * * *", func() { ses.SaveValidatorsStats1H() })
 	c.AddFunc("0 0 * * * *", func() { ses.SaveNetworkStats1H() })
 	c.AddFunc("0 0 * * * *", func() { ses.SaveCoinGeckoMarketStats1H() })
