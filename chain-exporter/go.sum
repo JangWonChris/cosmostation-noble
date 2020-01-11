@@ -47,6 +47,7 @@ github.com/cosmos/cosmos-sdk v0.37.1 h1:mz5W3Au32VIPPtrY65dheVYeVDSFfS3eSSmuIj+c
 github.com/cosmos/cosmos-sdk v0.37.1/go.mod h1:faHZQpT/hgAjTvSq8gsjlUZ7iWOvZvT+6oqIFAiJ02o=
 github.com/cosmos/cosmos-sdk v0.37.4 h1:1ioXxkpiS+wOgaUbROeDIyuF7hciU5nti0TSyBmV2Ok=
 github.com/cosmos/cosmos-sdk v0.37.4/go.mod h1:Axr+Q+G2Ffduxt4zMA6KwxxvyVSKPB9+nXZVPKgpC2c=
+github.com/cosmos/cosmos-sdk v0.37.5 h1:s03HFQ5N2CkiS/nENtACdfCwUUXSn7E5AvkWBk7wNGM=
 github.com/cosmos/gaia v0.0.0-20190920230642-8e4910eb3c02 h1:RYISoika5837Dym4yDVH9S0lCIWcC6A6Qf+X6UpGGnQ=
 github.com/cosmos/gaia v0.0.0-20190920230642-8e4910eb3c02/go.mod h1:Zs00fRnPwQ9A/ge5vWUVzNZ0Y84WRcxOfVcf9m+6vY8=
 github.com/cosmos/go-bip39 v0.0.0-20180618194314-52158e4697b8 h1:Iwin12wRQtyZhH6FV3ykFcdGNlYEzoeR0jN8Vn+JWsI=

@@ -8,24 +8,23 @@ import (
 
 	ceCodec "github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/databases"
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/db"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/lcd"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 
-	"github.com/go-pg/pg"
 	"github.com/tendermint/tendermint/rpc/client"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	resty "gopkg.in/resty.v1"
 )
 
-// ChainExporterService wraps below params
+// ChainExporterService implemnts a wrapper around configuration for this project
 type ChainExporterService struct {
 	codec     *codec.Codec
 	config    *config.Config
-	db        *pg.DB
+	db        *db.Database
 	wsCtx     context.Context
 	wsOut     <-chan ctypes.ResultEvent
 	rpcClient *client.HTTP
@@ -36,12 +35,12 @@ func NewChainExporterService(config *config.Config) *ChainExporterService {
 	ces := &ChainExporterService{
 		codec:     ceCodec.Codec, // register Cosmos SDK codecs
 		config:    config,
-		db:        databases.ConnectDatabase(config), // connect to PostgreSQL
+		db:        db.Connect(config), // connect to PostgreSQL
 		wsCtx:     context.Background(),
 		rpcClient: client.NewHTTP(config.Node.GaiadURL, "/websocket"), // connect to Tendermint RPC client
 	}
 
-	databases.CreateSchema(ces.db)
+	ces.db.CreateSchema()
 
 	resty.SetTimeout(5 * time.Second)
 	resty.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
@@ -170,7 +169,7 @@ func (ces ChainExporterService) process(height int64) error {
 	}
 
 	// Insert data into database
-	err = databases.SaveExportedData(ces.db, blockInfo, evidenceInfo, genesisValsInfo, missInfo, accumMissInfo,
+	err = ces.db.InsertExportedData(blockInfo, evidenceInfo, genesisValsInfo, missInfo, accumMissInfo,
 		missDetailInfo, transactionInfo, voteInfo, depositInfo, proposalInfo, validatorSetInfo)
 
 	if err != nil {

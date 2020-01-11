@@ -1,4 +1,4 @@
-package databases
+package db
 
 import (
 	"strings"
@@ -7,12 +7,22 @@ import (
 
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
-
-	"github.com/go-pg/pg"
 )
 
-// QueryValidatorInfo returns validator information
-func QueryValidatorInfo(db *pg.DB, address string) (schema.ValidatorInfo, error) {
+// QueryValidators returns validators info
+func (db *Database) QueryValidators() ([]schema.ValidatorInfo, error) {
+	var validators []schema.ValidatorInfo
+	err := db.Model(&validators).
+		Column("id", "identity", "moniker").
+		Select()
+	if err != nil {
+		return validators, err
+	}
+	return validators, nil
+}
+
+// QueryValidatorByAddr returns validator information
+func (db *Database) QueryValidatorByAddr(address string) (schema.ValidatorInfo, error) {
 	var validatorInfo schema.ValidatorInfo
 	switch {
 	case strings.HasPrefix(address, sdk.GetConfig().GetBech32ConsensusPubPrefix()):
@@ -43,8 +53,8 @@ func QueryValidatorInfo(db *pg.DB, address string) (schema.ValidatorInfo, error)
 	return validatorInfo, nil
 }
 
-// QueryIDValidatorSetInfo returns id of a validator from validator_set_infos table
-func QueryIDValidatorSetInfo(db *pg.DB, proposer string) (schema.ValidatorSetInfo, error) {
+// QueryValidatorID returns the id number of a validator from validator_set_infos table
+func (db *Database) QueryValidatorID(proposer string) (schema.ValidatorSetInfo, error) {
 	var validatorSetInfo schema.ValidatorSetInfo
 	err := db.Model(&validatorSetInfo).
 		Column("id_validator", "voting_power").
@@ -58,8 +68,8 @@ func QueryIDValidatorSetInfo(db *pg.DB, proposer string) (schema.ValidatorSetInf
 	return validatorSetInfo, nil
 }
 
-// QueryHighestIDValidatorNum returns highest id of a validator from validator_set_infos table
-func QueryHighestIDValidatorNum(db *pg.DB) (int, error) {
+// QueryHighestValidatorID returns highest id number of a validator from validator_set_infos table
+func (db *Database) QueryHighestValidatorID() (int, error) {
 	var validatorSetInfo schema.ValidatorSetInfo
 	err := db.Model(&validatorSetInfo).
 		Column("id_validator").
@@ -73,11 +83,23 @@ func QueryHighestIDValidatorNum(db *pg.DB) (int, error) {
 }
 
 // QueryAccount queries account information
-func QueryAccount(db *pg.DB, address string) (types.Account, error) {
+func (db *Database) QueryAccount(address string) (types.Account, error) {
 	var account types.Account
 	_ = db.Model(&account).
 		Where("address = ?", address).
 		Select()
 
 	return account, nil
+}
+
+// QueryExistProposal queries to find out if the same proposal is already saved
+func (db *Database) QueryExistProposal(proposalID int64) (bool, error) {
+	var proposalInfo schema.ProposalInfo
+	exist, _ := db.Model(&proposalInfo).
+		Where("id = ?", proposalID).
+		Exists()
+	if !exist {
+		return exist, nil
+	}
+	return exist, nil
 }

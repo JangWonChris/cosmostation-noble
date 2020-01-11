@@ -77,8 +77,8 @@ func QueryExistsAccount(w http.ResponseWriter, db *pg.DB, account models.Account
 // UpdateAppVersion updates the app version
 func UpdateAppVersion(w http.ResponseWriter, db *pg.DB, version models.AppVersion) (models.AppVersion, error) {
 	_, err := db.Model(&version).
-		Set("acceptable = ?", version.Acceptable).
-		Set("latest = ?", version.Latest).
+		Set("version = ?", version.Version).
+		Set("enable = ?", version.Enable).
 		Where("app_name = ? AND device_type = ?", version.AppName, version.DeviceType).
 		Update()
 	if err != nil {

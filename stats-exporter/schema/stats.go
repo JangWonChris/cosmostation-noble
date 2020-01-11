@@ -1,14 +1,6 @@
-package types
+package schema
 
 import "time"
-
-const (
-	Currency = "USD"
-)
-
-/*
-	Every 1 hour
-*/
 
 // StatsCoingeckoMarket1H is a struct for market statistics from Coingecko
 type StatsCoingeckoMarket1H struct {

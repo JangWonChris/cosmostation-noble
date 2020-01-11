@@ -13,8 +13,8 @@ import (
 )
 
 // Passes requests to its respective service
-func MintingController(codec *codec.Codec, config *config.Config, db *pg.DB, router *mux.Router, rpcClient *client.HTTP) {
-	router.HandleFunc("/minting/inflation", func(w http.ResponseWriter, r *http.Request) {
+func MintingController(codec *codec.Codec, config *config.Config, db *pg.DB, r *mux.Router, rpcClient *client.HTTP) {
+	r.HandleFunc("/minting/inflation", func(w http.ResponseWriter, r *http.Request) {
 		services.GetMintingInflation(config, db, w, r)
 	}).Methods("GET")
 }

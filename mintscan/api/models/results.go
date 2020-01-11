@@ -132,9 +132,9 @@ type ResultStatus struct {
 
 // ResultTransactionInfo is a struct for tx result response
 type ResultTransactionInfo struct {
-	Height int64     `json:"height"`
-	TxHash string    `json:"tx_hash"`
-	Time   time.Time `json:"time"`
+	Height int64  `json:"height"`
+	TxHash string `json:"tx_hash"`
+	Time   string `json:"time"`
 }
 
 // ResultValidator is a struct for validator result response

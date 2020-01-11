@@ -3,17 +3,17 @@ package exporter
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"os"
 	"os/signal"
 	"time"
 
 	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/config"
-	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/databases"
+	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/db"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	gaiaApp "github.com/cosmos/gaia/app"
 
-	"github.com/go-pg/pg"
 	cmn "github.com/tendermint/tendermint/libs/common"
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/rpc/client"
@@ -32,7 +32,7 @@ type StatsExporterService struct {
 	cmn.BaseService
 	codec     *codec.Codec
 	config    *config.Config
-	db        *pg.DB
+	db        *db.Database
 	wsCtx     context.Context
 	rpcClient *client.HTTP
 }
@@ -42,13 +42,13 @@ func NewStatsExporterService(config *config.Config) *StatsExporterService {
 	ses := &StatsExporterService{
 		codec:     gaiaApp.MakeCodec(), // register Cosmos SDK codecs
 		config:    config,
-		db:        databases.ConnectDatabase(config), // connect to PostgreSQL
+		db:        db.Connect(config), // connect to PostgreSQL
 		wsCtx:     context.Background(),
 		rpcClient: client.NewHTTP(config.Node.GaiadURL, "/websocket"), // connect to Tendermint RPC client
 	}
 
 	// create database schema
-	databases.CreateSchema(ses.db)
+	ses.db.CreateSchema()
 
 	// sets timeout for request.
 	resty.SetTimeout(5 * time.Second)
@@ -59,13 +59,32 @@ func NewStatsExporterService(config *config.Config) *StatsExporterService {
 
 // OnStart overrides method for BaseService, which starts a service
 func (ses *StatsExporterService) OnStart() {
-	// Cron jobs
+	fmt.Println("<Starts Stats Exporter>")
+
+	// ses.setCronJobs()
+
+	// TEST
+	ses.SaveValidatorsStats1H()
+	// ses.SaveValidatorsStats24H()
+
+	// ses.SaveNetworkStats1H()
+	// ses.SaveNetworkStats24H()
+
+	// ses.SaveCoinGeckoMarketStats1H()
+	// ses.SaveCoinGeckoMarketStats24H()
+
+	// ses.SaveCoinMarketCapMarketStats1H()
+	// ses.SaveCoinMarketCapMarketStats24H()
+}
+
+// Every hour
+// 0 * * * * = every minute
+// 0 */60 * * * = every hour
+// 0 0 * * * * = every hour
+func (ses *StatsExporterService) setCronJobs() {
 	c := cron.New()
 
 	// Every hour
-	// 0 * * * * = every minute
-	// 0 */60 * * * = every hour
-	// 0 0 * * * * = every hour
 	c.AddFunc("0 0 * * * *", func() { ses.SaveValidatorsStats1H() })
 	c.AddFunc("0 0 * * * *", func() { ses.SaveNetworkStats1H() })
 	c.AddFunc("0 0 * * * *", func() { ses.SaveCoinGeckoMarketStats1H() })
@@ -82,17 +101,4 @@ func (ses *StatsExporterService) OnStart() {
 	signalCh := make(chan os.Signal, 1)
 	signal.Notify(signalCh, os.Interrupt)
 	<-signalCh
-
-	// TEST
-	// ses.SaveValidatorsStats1H()
-	// ses.SaveValidatorsStats24H()
-
-	// ses.SaveNetworkStats1H()
-	// ses.SaveNetworkStats24H()
-
-	// ses.SaveCoinGeckoMarketStats1H()
-	// ses.SaveCoinGeckoMarketStats24H()
-
-	// ses.SaveCoinMarketCapMarketStats1H()
-	// ses.SaveCoinMarketCapMarketStats24H()
 }

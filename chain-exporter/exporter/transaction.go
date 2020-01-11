@@ -12,7 +12,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 
 	ceCodec "github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/databases"
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/notification"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/utils"
@@ -76,66 +76,96 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 							fmt.Printf("failed to JSON encode msgSend: %s", err)
 						}
 
-						// query account information
-						var account types.Account
-						account, _ = databases.QueryAccount(ces.db, msgSend.ToAddress)
+						// switch param in config.yaml
+						// this param is to start or stop sending push notifications in case of syncing from the scratch
+						if ces.config.Alarm.Switch {
+							var amount string
+							var denom string
 
-						// DB를 Chain Exporter DB가 아니라서 그렇다
-						// API 서버에서만 찌르면 되려나?
-						fmt.Println("=======================================[send]")
-						fmt.Println("height: ", generalTx.Height)
-						fmt.Println("txHash: ", txHash)
-						fmt.Println("toAddress: ", msgSend.FromAddress)
-						fmt.Println("toAddress: ", msgSend.ToAddress)
-						fmt.Println("alarm_status: ", account.AlarmStatus)
-						fmt.Println("")
-						fmt.Println("=======================================")
-						fmt.Println("")
-
-						// send push notification
-						if account.AlarmStatus {
-							from := msgSend.FromAddress
-							to := msgSend.ToAddress
-
-							var amount sdk.Dec
 							if len(msgSend.Amount) > 0 {
-								amount = msgSend.Amount[0].Amount
+								amount = msgSend.Amount[0].Amount.String()
+								denom = msgSend.Amount[0].Denom
 							}
 
-							notificationPayload := &types.NotificationPayload{
-								From:   from,
-								To:     to,
+							pnp := &types.PushNotificationPayload{
+								From:   msgSend.FromAddress,
+								To:     msgSend.ToAddress,
 								Txid:   txHash,
-								Amount: amount.String(),
+								Amount: amount,
+								Denom:  denom,
 							}
 
-							fmt.Println("=======================================")
-							fmt.Println("fromAddress: ", from)
-							fmt.Println("toAddress: ", msgSend.ToAddress)
-							fmt.Println("amount: ", amount.String())
+							// push notification to both from and to accounts
+							nof := notification.New()
 
-							if account.AlarmToken != "" {
-								_, err = resty.R().
-									SetHeader("Content-Type", "application/json").
-									SetBody(notificationPayload).
-									Post(ces.config.Alarm.PushServerURL)
-								if err != nil {
-									fmt.Printf("failed to push alarm notification: %s", err)
-								}
+							fromAccount := nof.VerifyAccount(msgSend.FromAddress)
+							if fromAccount != nil {
+								nof.PushNotification(pnp, fromAccount.AlarmToken, types.FROM)
+							}
+
+							toAccount := nof.VerifyAccount(msgSend.ToAddress)
+							if toAccount != nil {
+								nof.PushNotification(pnp, toAccount.AlarmToken, types.TO)
 							}
 						}
 
-					case "cosmos-sdk/MultiSend":
+					case "cosmos-sdk/MsgMultiSend":
 						var multiSendTx types.MsgMultiSend
 						err = ces.codec.UnmarshalJSON(generalTx.Tx.Value.Msg[j].Value, &multiSendTx)
 						if err != nil {
-							fmt.Println("Unmarshal MsgMultiSend JSON Error: ", err)
+							fmt.Printf("failed to JSON encode multiSendTx: %s", err)
 						}
 
-						fmt.Println("=======================================[multisend]")
-						fmt.Println(multiSendTx.Inputs)
-						fmt.Println(multiSendTx.Outputs)
-						fmt.Println("=======================================")
+						nof := notification.New()
+
+						// switch param in config.yaml
+						// this param is to start or stop sending push notifications in case of syncing from the scratch
+						if ces.config.Alarm.Switch {
+							for _, input := range multiSendTx.Inputs {
+								var amount string
+								var denom string
+
+								if len(input.Coins) > 0 {
+									amount = input.Coins[0].Amount.String()
+									denom = input.Coins[0].Denom
+								}
+
+								pnp := &types.PushNotificationPayload{
+									From:   input.Address.String(),
+									Txid:   txHash,
+									Amount: amount,
+									Denom:  denom,
+								}
+
+								fromAccount := nof.VerifyAccount(input.Address.String())
+								if fromAccount != nil {
+									nof.PushNotification(pnp, fromAccount.AlarmToken, types.FROM)
+								}
+							}
+
+							// push notifications to all outputs
+							for _, output := range multiSendTx.Outputs {
+								var amount string
+								var denom string
+
+								if len(output.Coins) > 0 {
+									amount = output.Coins[0].Amount.String()
+									denom = output.Coins[0].Denom
+								}
+
+								pnp := &types.PushNotificationPayload{
+									To:     output.Address.String(),
+									Txid:   txHash,
+									Amount: amount,
+									Denom:  denom,
+								}
+
+								toAccount := nof.VerifyAccount(output.Address.String())
+								if toAccount != nil {
+									nof.PushNotification(pnp, toAccount.AlarmToken, types.TO)
+								}
+							}
+						}
 
 					case "cosmos-sdk/MsgCreateValidator":
 						var msgCreateValidator types.MsgCreateValidator
@@ -146,7 +176,7 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 						*/
 
 						// query the highest height of id_validator
-						highestIDValidatorNum, _ := databases.QueryHighestIDValidatorNum(ces.db)
+						highestIDValidatorNum, _ := ces.db.QueryHighestValidatorID()
 
 						height, _ := strconv.ParseInt(generalTx.Height, 10, 64)
 						newVotingPowerAmount, _ := strconv.ParseFloat(msgCreateValidator.Value.Amount.String(), 64) // parseFloat from sdk.Dec.String()
@@ -170,10 +200,10 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 						_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &msgDelegate)
 
 						// query validator information fro validator_infos table
-						validatorInfo, _ := databases.QueryValidatorInfo(ces.db, msgDelegate.ValidatorAddress)
+						validatorInfo, _ := ces.db.QueryValidatorByAddr(msgDelegate.ValidatorAddress)
 
 						// query to get id_validator of lastly inserted data
-						idValidatorSetInfo, _ := databases.QueryIDValidatorSetInfo(ces.db, validatorInfo.Proposer)
+						idValidatorSetInfo, _ := ces.db.QueryValidatorID(validatorInfo.Proposer)
 
 						height, _ := strconv.ParseInt(generalTx.Height, 10, 64)
 						newVotingPowerAmount, _ := strconv.ParseFloat(msgDelegate.Amount.Amount.String(), 64) // parseFloat from sdk.Dec.String()
@@ -213,10 +243,10 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 						_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &msgUndelegate)
 
 						// query validator info
-						validatorInfo, _ := databases.QueryValidatorInfo(ces.db, msgUndelegate.ValidatorAddress)
+						validatorInfo, _ := ces.db.QueryValidatorByAddr(msgUndelegate.ValidatorAddress)
 
 						// query to get id_validator of lastly inserted data
-						idValidatorSetInfo, _ := databases.QueryIDValidatorSetInfo(ces.db, validatorInfo.Proposer)
+						idValidatorSetInfo, _ := ces.db.QueryValidatorID(validatorInfo.Proposer)
 
 						height, _ := strconv.ParseInt(generalTx.Height, 10, 64)
 						newVotingPowerAmount, _ := strconv.ParseFloat(msgUndelegate.Amount.Amount.String(), 64) // parseFloat from sdk.Dec.String()
@@ -258,12 +288,12 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 						_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &msgBeginRedelegate)
 
 						// query validator_dst_address info
-						validatorDstInfo, _ := databases.QueryValidatorInfo(ces.db, msgBeginRedelegate.ValidatorDstAddress)
-						dstValidatorSetInfo, _ := databases.QueryIDValidatorSetInfo(ces.db, validatorDstInfo.Proposer)
+						validatorDstInfo, _ := ces.db.QueryValidatorByAddr(msgBeginRedelegate.ValidatorDstAddress)
+						dstValidatorSetInfo, _ := ces.db.QueryValidatorID(validatorDstInfo.Proposer)
 
 						// query validator_src_address info
-						validatorSrcInfo, _ := databases.QueryValidatorInfo(ces.db, msgBeginRedelegate.ValidatorSrcAddress)
-						srcValidatorSetInfo, _ := databases.QueryIDValidatorSetInfo(ces.db, validatorSrcInfo.Proposer)
+						validatorSrcInfo, _ := ces.db.QueryValidatorByAddr(msgBeginRedelegate.ValidatorSrcAddress)
+						srcValidatorSetInfo, _ := ces.db.QueryValidatorID(validatorSrcInfo.Proposer)
 
 						height, _ := strconv.ParseInt(generalTx.Height, 10, 64)
 						newVotingPowerAmount, _ := strconv.ParseFloat(msgBeginRedelegate.Amount.Amount.String(), 64)

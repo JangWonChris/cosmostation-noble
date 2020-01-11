@@ -1,14 +1,54 @@
-package databases
+package db
 
 import (
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 	"github.com/go-pg/pg"
 )
 
-// SaveExportedData saves exported blockchain data
-func SaveExportedData(db *pg.DB, blockInfo []*schema.BlockInfo, evidenceInfo []*schema.EvidenceInfo, genesisValidatorsInfo []*schema.ValidatorSetInfo,
+// InsertProposal saves on-chain proposals getting from /gov/proposals REST API
+func (db *Database) InsertProposal(data *schema.ProposalInfo) (bool, error) {
+	err := db.Insert(data)
+	if err != nil {
+		return false, nil
+	}
+	return true, nil
+}
+
+// InsertOrUpdateValidators updates the given validator set
+func (db *Database) InsertOrUpdateValidators(data []*schema.ValidatorInfo) (bool, error) {
+	_, err := db.Model(&data).
+		OnConflict("(operator_address) DO UPDATE").
+		Set("rank = EXCLUDED.rank").
+		Set("consensus_pubkey = EXCLUDED.consensus_pubkey").
+		Set("proposer = EXCLUDED.proposer").
+		Set("jailed = EXCLUDED.jailed").
+		Set("status = EXCLUDED.status").
+		Set("tokens = EXCLUDED.tokens").
+		Set("delegator_shares = EXCLUDED.delegator_shares").
+		Set("moniker = EXCLUDED.moniker").
+		Set("identity = EXCLUDED.identity").
+		Set("website = EXCLUDED.website").
+		Set("details = EXCLUDED.details").
+		Set("unbonding_height = EXCLUDED.unbonding_height").
+		Set("unbonding_time = EXCLUDED.unbonding_time").
+		Set("commission_rate = EXCLUDED.commission_rate").
+		Set("commission_max_rate = EXCLUDED.commission_max_rate").
+		Set("commission_change_rate = EXCLUDED.commission_change_rate").
+		Set("update_time = EXCLUDED.update_time").
+		Set("min_self_delegation = EXCLUDED.min_self_delegation").
+		Insert()
+	if err != nil {
+		return false, nil
+	}
+	return true, nil
+}
+
+// InsertExportedData saves exported blockchain data
+// if function returns an error transaction is rollbacked, otherwise transaction is committed.
+func (db *Database) InsertExportedData(blockInfo []*schema.BlockInfo, evidenceInfo []*schema.EvidenceInfo, genesisValidatorsInfo []*schema.ValidatorSetInfo,
 	missInfo []*schema.MissInfo, accumMissInfo []*schema.MissInfo, missDetailInfo []*schema.MissDetailInfo, transactionInfo []*schema.TransactionInfo,
 	voteInfo []*schema.VoteInfo, depositInfo []*schema.DepositInfo, proposalInfo []*schema.ProposalInfo, validatorSetInfo []*schema.ValidatorSetInfo) error {
+
 	err := db.RunInTransaction(func(tx *pg.Tx) error {
 		if len(blockInfo) > 0 {
 			err := tx.Insert(&blockInfo)

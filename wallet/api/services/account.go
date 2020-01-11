@@ -14,8 +14,61 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-// Regsiter registers an account for our mobile users
-func Register(db *pg.DB, w http.ResponseWriter, r *http.Request) {
+// // Regsiter registers an account for our mobile users
+// func Register(db *pg.DB, w http.ResponseWriter, r *http.Request) {
+// 	var account models.Account
+
+// 	// get post data from request
+// 	decoder := json.NewDecoder(r.Body)
+// 	err := decoder.Decode(&account)
+// 	if err != nil {
+// 		errors.ErrBadRequest(w, http.StatusBadRequest)
+// 		return
+// 	}
+
+// 	// lower case
+// 	account.Address = strings.ToLower(account.Address)
+// 	account.DeviceType = strings.ToLower(account.DeviceType)
+
+// 	// check device type
+// 	if account.DeviceType != models.Android && account.DeviceType != models.IOS {
+// 		errors.ErrInvalidDeviceType(w, http.StatusBadRequest)
+// 		return
+// 	}
+
+// 	// check chain id
+// 	if account.ChainID != models.CosmosHub && account.ChainID != models.IrisHub && account.ChainID != models.Kava {
+// 		errors.ErrInvalidChainID(w, http.StatusBadRequest)
+// 		return
+// 	}
+
+// 	// [TODO]: check validity of an address depending on which network
+// 	if !strings.Contains(account.Address, sdk.Bech32PrefixAccAddr) || len(account.Address) != 45 {
+// 		errors.ErrInvalidFormat(w, http.StatusBadRequest)
+// 		return
+// 	}
+
+// 	// check if there is the same account
+// 	// alarm_token with same address
+// 	exist, _ := databases.QueryExistsAccount(w, db, account)
+// 	if exist {
+// 		errors.ErrDuplicateAccount(w, http.StatusConflict)
+// 		return
+// 	}
+
+// 	// insert account
+// 	result, _, err := databases.InsertAccount(w, db, account)
+// 	if result != 1 {
+// 		return
+// 	}
+
+// 	u.Result(w, true, "successfully saved")
+// 	return
+// }
+
+// RegisterOrUpdate registers an account if it doesn't exist and
+// updates the account information if it exists
+func RegisterOrUpdate(db *pg.DB, w http.ResponseWriter, r *http.Request) {
 	var account models.Account
 
 	// get post data from request
@@ -26,7 +79,6 @@ func Register(db *pg.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// lower case
 	account.Address = strings.ToLower(account.Address)
 	account.DeviceType = strings.ToLower(account.DeviceType)
 
@@ -48,40 +100,14 @@ func Register(db *pg.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// check if there is the same account
-	// alarm_token with same address
-	exist, _ := databases.QueryExistsAccount(w, db, account)
-	if exist {
-		errors.ErrDuplicateAccount(w, http.StatusConflict)
-		return
-	}
-
-	// insert account
-	result, _, err := databases.InsertAccount(w, db, account)
-	if result != 1 {
-		return
-	}
-
-	u.Result(w, true, "successfully saved")
-	return
-}
-
-// Update updates the account information
-func Update(db *pg.DB, w http.ResponseWriter, r *http.Request) {
-	var account models.Account
-
-	// get post data from request
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&account)
-	if err != nil {
-		errors.ErrBadRequest(w, http.StatusBadRequest)
-		return
-	}
-
-	// check if there is the same account
+	// insert account information if it doesn't exist
 	exist, _ := databases.QueryExistsAccount(w, db, account)
 	if !exist {
-		errors.ErrNotFound(w, http.StatusNotFound)
+		result, _, _ := databases.InsertAccount(w, db, account)
+		if result != 1 {
+			return
+		}
+		u.Result(w, true, "successfully inserted")
 		return
 	}
 
@@ -95,6 +121,7 @@ func Update(db *pg.DB, w http.ResponseWriter, r *http.Request) {
 }
 
 // Delete delete the account information
+// CURRENTLY NOT USED
 func Delete(db *pg.DB, w http.ResponseWriter, r *http.Request) {
 	var account models.Account
 

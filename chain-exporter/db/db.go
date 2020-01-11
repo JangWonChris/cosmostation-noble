@@ -1,4 +1,4 @@
-package databases
+package db
 
 import (
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
@@ -8,25 +8,29 @@ import (
 	"github.com/go-pg/pg/orm"
 )
 
-// ConnectDatabase connects to PostgreSQL
-func ConnectDatabase(Config *config.Config) *pg.DB {
-	database := pg.Connect(&pg.Options{
+type Database struct {
+	*pg.DB
+}
+
+// Connect connects to PostgreSQL database
+func Connect(Config *config.Config) *Database {
+	db := pg.Connect(&pg.Options{
 		Addr:     Config.DB.Host,
 		User:     Config.DB.User,
 		Password: Config.DB.Password,
 		Database: Config.DB.Table,
 	})
-	return database
+	return &Database{db}
 }
 
-// CreateSchema creates database tables using ORM
-func CreateSchema(db *pg.DB) error {
+// CreateSchema creates database tables using object relational mapper (ORM)
+func (db *Database) CreateSchema() error {
 	for _, model := range []interface{}{(*schema.BlockInfo)(nil), (*schema.EvidenceInfo)(nil), (*schema.MissInfo)(nil),
 		(*schema.MissDetailInfo)(nil), (*schema.ProposalInfo)(nil), (*schema.ValidatorSetInfo)(nil), (*schema.ValidatorInfo)(nil),
 		(*schema.TransactionInfo)(nil), (*schema.VoteInfo)(nil), (*schema.DepositInfo)(nil)} {
 		err := db.CreateTable(model, &orm.CreateTableOptions{
 			IfNotExists: true,
-			Varchar:     5000, // replaces PostgreSQL data type `text` to `varchar(n)`
+			Varchar:     20000, // replaces PostgreSQL data type `text` to `varchar(n)`
 		})
 		if err != nil {
 			return err
@@ -34,7 +38,7 @@ func CreateSchema(db *pg.DB) error {
 	}
 
 	// RunInTransaction runs a function in a transaction.
-	// If function returns an error transaction is rollbacked, otherwise transaction is committed.
+	// if function returns an error transaction is rollbacked, otherwise transaction is committed.
 	err := db.RunInTransaction(func(tx *pg.Tx) error {
 		// Create indexes to reduce the cost of lookup queries in case of server traffic jams (B-Tree Index)
 		_, err := db.Model(schema.BlockInfo{}).Exec(`CREATE INDEX block_info_height_idx ON block_infos USING btree(height);`)
