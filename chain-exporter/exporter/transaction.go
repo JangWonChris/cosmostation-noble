@@ -98,14 +98,20 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 							// push notification to both from and to accounts
 							nof := notification.New()
 
-							fromAccount := nof.VerifyAccount(msgSend.FromAddress)
-							if fromAccount != nil {
-								nof.PushNotification(pnp, fromAccount.AlarmToken, types.FROM)
+							fromAcctStatus := nof.VerifyAccount(msgSend.FromAddress)
+							if fromAcctStatus {
+								tokens, _ := ces.db.QueryAlarmTokens(msgSend.FromAddress)
+								if len(tokens) > 0 {
+									nof.PushNotification(pnp, tokens, types.FROM)
+								}
 							}
 
-							toAccount := nof.VerifyAccount(msgSend.ToAddress)
-							if toAccount != nil {
-								nof.PushNotification(pnp, toAccount.AlarmToken, types.TO)
+							toAcctStatus := nof.VerifyAccount(msgSend.ToAddress)
+							if toAcctStatus {
+								tokens, _ := ces.db.QueryAlarmTokens(msgSend.ToAddress)
+								if len(tokens) > 0 {
+									nof.PushNotification(pnp, tokens, types.TO)
+								}
 							}
 						}
 
@@ -137,9 +143,12 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 									Denom:  denom,
 								}
 
-								fromAccount := nof.VerifyAccount(input.Address.String())
-								if fromAccount != nil {
-									nof.PushNotification(pnp, fromAccount.AlarmToken, types.FROM)
+								fromAcctStatus := nof.VerifyAccount(input.Address.String())
+								if fromAcctStatus {
+									tokens, _ := ces.db.QueryAlarmTokens(input.Address.String())
+									if len(tokens) > 0 {
+										nof.PushNotification(pnp, tokens, types.FROM)
+									}
 								}
 							}
 
@@ -160,9 +169,12 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 									Denom:  denom,
 								}
 
-								toAccount := nof.VerifyAccount(output.Address.String())
-								if toAccount != nil {
-									nof.PushNotification(pnp, toAccount.AlarmToken, types.TO)
+								toAcctStatus := nof.VerifyAccount(output.Address.String())
+								if toAcctStatus {
+									tokens, _ := ces.db.QueryAlarmTokens(output.Address.String())
+									if len(tokens) > 0 {
+										nof.PushNotification(pnp, tokens, types.TO)
+									}
 								}
 							}
 						}
@@ -200,7 +212,7 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 						_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &msgDelegate)
 
 						// query validator information fro validator_infos table
-						validatorInfo, _ := ces.db.QueryValidatorByAddr(msgDelegate.ValidatorAddress)
+						validatorInfo, _ := ces.db.QueryValidator(msgDelegate.ValidatorAddress)
 
 						// query to get id_validator of lastly inserted data
 						idValidatorSetInfo, _ := ces.db.QueryValidatorID(validatorInfo.Proposer)
@@ -243,7 +255,7 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 						_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &msgUndelegate)
 
 						// query validator info
-						validatorInfo, _ := ces.db.QueryValidatorByAddr(msgUndelegate.ValidatorAddress)
+						validatorInfo, _ := ces.db.QueryValidator(msgUndelegate.ValidatorAddress)
 
 						// query to get id_validator of lastly inserted data
 						idValidatorSetInfo, _ := ces.db.QueryValidatorID(validatorInfo.Proposer)
@@ -288,11 +300,11 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 						_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &msgBeginRedelegate)
 
 						// query validator_dst_address info
-						validatorDstInfo, _ := ces.db.QueryValidatorByAddr(msgBeginRedelegate.ValidatorDstAddress)
+						validatorDstInfo, _ := ces.db.QueryValidator(msgBeginRedelegate.ValidatorDstAddress)
 						dstValidatorSetInfo, _ := ces.db.QueryValidatorID(validatorDstInfo.Proposer)
 
 						// query validator_src_address info
-						validatorSrcInfo, _ := ces.db.QueryValidatorByAddr(msgBeginRedelegate.ValidatorSrcAddress)
+						validatorSrcInfo, _ := ces.db.QueryValidator(msgBeginRedelegate.ValidatorSrcAddress)
 						srcValidatorSetInfo, _ := ces.db.QueryValidatorID(validatorSrcInfo.Proposer)
 
 						height, _ := strconv.ParseInt(generalTx.Height, 10, 64)
@@ -500,7 +512,7 @@ func (ces ChainExporterService) SetTx(tx sdk.TxResponse, txHash string) (schema.
 	for i, sig := range stdTx.GetSignatures() {
 		consPubKey, err := sdk.Bech32ifyConsPub(sig.PubKey) // nolint: typecheck
 		if err != nil {
-			return schema.TransactionInfo{}, fmt.Errorf("failed to convert validator public key %s: %s\n", sig.PubKey, err)
+			return schema.TransactionInfo{}, fmt.Errorf("failed to convert validator public key %s: %t", sig.PubKey, err)
 		}
 
 		sigs[i] = types.Signature{
