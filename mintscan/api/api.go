@@ -9,7 +9,7 @@ import (
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/controllers"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/databases"
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/db"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	gaiaApp "github.com/cosmos/gaia/app"
@@ -38,7 +38,7 @@ func (a *App) NewApp(config *config.Config) {
 	a.rpcClient = client.NewHTTP(a.config.Node.GaiadURL, "/websocket")
 
 	// connect to PostgreSQL
-	a.db = databases.ConnectDatabase(config)
+	a.db = db.ConnectDatabase(config)
 
 	// register Cosmos SDK codecs
 	a.codec = gaiaApp.MakeCodec()

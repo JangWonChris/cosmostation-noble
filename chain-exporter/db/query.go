@@ -21,8 +21,8 @@ func (db *Database) QueryValidators() ([]schema.ValidatorInfo, error) {
 	return validators, nil
 }
 
-// QueryValidatorByAddr returns validator information
-func (db *Database) QueryValidatorByAddr(address string) (schema.ValidatorInfo, error) {
+// QueryValidator returns validator information
+func (db *Database) QueryValidator(address string) (schema.ValidatorInfo, error) {
 	var validatorInfo schema.ValidatorInfo
 	switch {
 	case strings.HasPrefix(address, sdk.GetConfig().GetBech32ConsensusPubPrefix()):
@@ -90,6 +90,24 @@ func (db *Database) QueryAccount(address string) (types.Account, error) {
 		Select()
 
 	return account, nil
+}
+
+// QueryAlarmTokens queries user's alarm tokens
+func (db *Database) QueryAlarmTokens(address string) ([]string, error) {
+	var accounts []types.Account
+	_ = db.Model(&accounts).
+		Column("alarm_token").
+		Where("address = ?", address).
+		Select()
+
+	var result []string
+	if len(accounts) > 0 {
+		for _, account := range accounts {
+			result = append(result, account.AlarmToken)
+		}
+	}
+
+	return result, nil
 }
 
 // QueryExistProposal queries to find out if the same proposal is already saved

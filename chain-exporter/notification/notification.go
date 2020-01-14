@@ -25,13 +25,13 @@ func New() Notification {
 }
 
 // PushNotification sends push notification to its respective device
-func (nof *Notification) PushNotification(pnp *types.PushNotificationPayload, alarmToken string, target string) {
+func (nof *Notification) PushNotification(pnp *types.PushNotificationPayload, tokens []string, target string) {
 	var pns []types.PushNotifications
 
 	switch target {
 	case "from":
 		tempNotification := types.PushNotifications{
-			Tokens:   []string{alarmToken},
+			Tokens:   tokens,
 			Platform: 2,
 			Title:    types.PushNotificationSentTitle + pnp.Amount + pnp.Denom,
 			Message:  types.PushNotificationSentMessage + pnp.Amount + pnp.Denom,
@@ -45,7 +45,7 @@ func (nof *Notification) PushNotification(pnp *types.PushNotificationPayload, al
 		fmt.Printf("sent push notification - Hash: %s, From: %s \n", pnp.Txid, pnp.From)
 	case "to":
 		tempNotification := types.PushNotifications{
-			Tokens:   []string{alarmToken},
+			Tokens:   tokens,
 			Platform: 2,
 			Title:    types.PushNotificationReceivedTitle + pnp.Amount + pnp.Denom,
 			Message:  types.PushNotificationReceivedMessage + pnp.Amount + pnp.Denom,
@@ -76,19 +76,19 @@ func (nof *Notification) PushNotification(pnp *types.PushNotificationPayload, al
 }
 
 // VerifyAccount verifes account before sending push notification
-func (nof *Notification) VerifyAccount(address string) *types.Account {
+func (nof *Notification) VerifyAccount(address string) bool {
 	var account types.Account
 	account, _ = nof.db.QueryAccount(address)
 
 	// return when data is empty
 	if account.AlarmToken == "" {
-		return nil
+		return false
 	}
 
 	// check user's alarm status
 	if !account.AlarmStatus {
-		return nil
+		return false
 	}
 
-	return &account
+	return true
 }
