@@ -14,6 +14,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/distribution/client/common"
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/config"
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/db"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/schema"
@@ -21,14 +22,13 @@ import (
 
 	"github.com/tendermint/tendermint/rpc/client"
 
-	"github.com/go-pg/pg"
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
 	resty "gopkg.in/resty.v1"
 )
 
 // GetBalance returns balance of an anddress
-func GetBalance(codec *codec.Codec, config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
+func GetBalance(codec *codec.Codec, config *config.Config, db *db.Database, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	accAddress := vars["accAddress"]
 
@@ -60,7 +60,7 @@ func GetBalance(codec *codec.Codec, config *config.Config, db *pg.DB, rpcClient 
 }
 
 // GetDelegationsRewards returns total amount of rewards
-func GetDelegationsRewards(codec *codec.Codec, config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
+func GetDelegationsRewards(codec *codec.Codec, config *config.Config, db *db.Database, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	accAddress := vars["accAddress"]
 
@@ -110,7 +110,7 @@ func GetDelegationsRewards(codec *codec.Codec, config *config.Config, db *pg.DB,
 }
 
 // GetDelegations returns all delegations from an address
-func GetDelegations(codec *codec.Codec, config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
+func GetDelegations(codec *codec.Codec, config *config.Config, db *db.Database, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	accAddress := vars["accAddress"]
 
@@ -199,7 +199,7 @@ func GetDelegations(codec *codec.Codec, config *config.Config, db *pg.DB, rpcCli
 }
 
 // GetCommission returns commission information for validator's address
-func GetCommission(codec *codec.Codec, config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
+func GetCommission(codec *codec.Codec, config *config.Config, db *db.Database, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	accAddress := vars["accAddress"]
 
@@ -233,7 +233,7 @@ func GetCommission(codec *codec.Codec, config *config.Config, db *pg.DB, rpcClie
 }
 
 // GetUnbondingDelegations returns unbonding delegations from an address
-func GetUnbondingDelegations(codec *codec.Codec, config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
+func GetUnbondingDelegations(codec *codec.Codec, config *config.Config, db *db.Database, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	accAddress := vars["accAddress"]
 

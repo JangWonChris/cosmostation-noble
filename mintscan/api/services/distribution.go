@@ -6,10 +6,10 @@ import (
 	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/go-pg/pg"
 	"github.com/gorilla/mux"
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/config"
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/db"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/utils"
@@ -20,7 +20,7 @@ import (
 )
 
 // GetDelegatorWithdrawAddress returns delegator's reward withdraw address
-func GetDelegatorWithdrawAddress(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
+func GetDelegatorWithdrawAddress(config *config.Config, db *db.Database, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	delegatorAddr := vars["delegatorAddr"]
 
@@ -46,7 +46,7 @@ func GetDelegatorWithdrawAddress(config *config.Config, db *pg.DB, rpcClient *cl
 }
 
 // GetDelegatorRewards returns a withdrawn delegation rewards
-func GetDelegatorRewards(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
+func GetDelegatorRewards(config *config.Config, db *db.Database, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	delegatorAddr := vars["delegatorAddr"]
 	validatorAddr := vars["validatorAddr"]
@@ -71,7 +71,7 @@ func GetDelegatorRewards(config *config.Config, db *pg.DB, rpcClient *client.HTT
 }
 
 // GetCommunityPool returns current community pool
-func GetCommunityPool(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
+func GetCommunityPool(config *config.Config, db *db.Database, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	resp, _ := resty.R().Get(config.Node.LCDURL + "/distribution/community_pool")
 
 	var coin []models.Coin

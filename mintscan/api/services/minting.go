@@ -6,15 +6,15 @@ import (
 	"strconv"
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/config"
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/db"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models"
 	u "github.com/cosmostation/cosmostation-cosmos/mintscan/api/utils"
 
-	"github.com/go-pg/pg"
 	resty "gopkg.in/resty.v1"
 )
 
 // GetMintingInflation returns minting inflation rate
-func GetMintingInflation(config *config.Config, db *pg.DB, w http.ResponseWriter, r *http.Request) error {
+func GetMintingInflation(config *config.Config, db *db.Database, w http.ResponseWriter, r *http.Request) error {
 	resp, _ := resty.R().Get(config.Node.LCDURL + "/minting/inflation")
 
 	var tempInflation string

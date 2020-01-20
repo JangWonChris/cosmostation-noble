@@ -4,18 +4,18 @@ import (
 	"net/http"
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/config"
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/db"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/services"
 
 	"github.com/tendermint/tendermint/rpc/client"
 
-	"github.com/go-pg/pg"
 	"github.com/gorilla/mux"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 )
 
 // Passes requests to its respective service
-func ValidatorController(codec *codec.Codec, config *config.Config, db *pg.DB, r *mux.Router, rpcClient *client.HTTP) {
+func ValidatorController(codec *codec.Codec, config *config.Config, db *db.Database, r *mux.Router, rpcClient *client.HTTP) {
 	r.HandleFunc("/staking/validators", func(w http.ResponseWriter, r *http.Request) {
 		services.GetValidators(db, rpcClient, w, r)
 	})

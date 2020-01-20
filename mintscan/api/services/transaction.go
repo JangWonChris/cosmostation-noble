@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/config"
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/db"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/schema"
@@ -19,13 +20,11 @@ import (
 	"github.com/gorilla/mux"
 	resty "gopkg.in/resty.v1"
 
-	"github.com/go-pg/pg"
-
 	"github.com/tendermint/tendermint/rpc/client"
 )
 
 // GetTxs returns latest transactions
-func GetTxs(codec *codec.Codec, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
+func GetTxs(codec *codec.Codec, db *db.Database, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	limit := int(10)
 	from := int(1)
 
@@ -83,7 +82,7 @@ func GetTxs(codec *codec.Codec, db *pg.DB, rpcClient *client.HTTP, w http.Respon
 }
 
 // GetTx receives transaction hash and returns that transaction
-func GetTx(codec *codec.Codec, config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
+func GetTx(codec *codec.Codec, config *config.Config, db *db.Database, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	txHexStr := vars["hash"]
 

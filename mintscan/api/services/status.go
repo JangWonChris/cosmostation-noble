@@ -7,11 +7,11 @@ import (
 	"strconv"
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/config"
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/db"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/schema"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/utils"
 
-	"github.com/go-pg/pg"
 	"github.com/rs/zerolog/log"
 	"github.com/tendermint/tendermint/rpc/client"
 	resty "gopkg.in/resty.v1"
@@ -37,7 +37,7 @@ import (
 */
 
 // GetStatus returns ResultStatus, which includes current network status
-func GetStatus(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
+func GetStatus(config *config.Config, db *db.Database, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	resp, _ := resty.R().Get(config.Node.LCDURL + "/staking/pool")
 
 	var pool models.Pool

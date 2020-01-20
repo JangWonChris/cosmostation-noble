@@ -1,19 +1,16 @@
-package utils
+package db
 
 import (
-	"fmt"
 	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/schema"
 
-	"github.com/go-pg/pg"
-
 	"github.com/tendermint/tendermint/libs/bech32"
 )
 
 // ConvertCosmosAddressToMoniker converts from cosmos address to moniker
-func ConvertCosmosAddressToMoniker(cosmosAddr string, db *pg.DB) (string, error) {
+func (db *Database) ConvertCosmosAddressToMoniker(cosmosAddr string) (string, error) {
 	// First convert from Cosmos Address to ValiOperatorAddress
 	_, decoded, err := bech32.DecodeAndConvert(cosmosAddr)
 	if err != nil {
@@ -39,7 +36,7 @@ func ConvertCosmosAddressToMoniker(cosmosAddr string, db *pg.DB) (string, error)
 }
 
 // ConvertToProposer converts any type of input address to proposer address
-func ConvertToProposer(address string, db *pg.DB) (schema.ValidatorInfo, error) {
+func (db *Database) ConvertToProposer(address string) (schema.ValidatorInfo, error) {
 	var validatorInfo schema.ValidatorInfo
 	switch {
 	case strings.HasPrefix(address, sdk.Bech32PrefixAccAddr):
@@ -60,8 +57,6 @@ func ConvertToProposer(address string, db *pg.DB) (schema.ValidatorInfo, error) 
 			Limit(1).
 			Select()
 	case len(address) == 40:
-		fmt.Println("")
-		fmt.Println("address: ", address)
 		address := strings.ToUpper(address)
 		_ = db.Model(&validatorInfo).
 			Where("proposer = ?", address).
@@ -77,7 +72,7 @@ func ConvertToProposer(address string, db *pg.DB) (schema.ValidatorInfo, error) 
 }
 
 // ConvertToProposerSlice converts any type of input address to proposer address
-func ConvertToProposerSlice(address string, db *pg.DB) ([]schema.ValidatorInfo, error) {
+func (db *Database) ConvertToProposerSlice(address string) ([]schema.ValidatorInfo, error) {
 	var validatorInfo []schema.ValidatorInfo
 	switch {
 	case strings.HasPrefix(address, sdk.Bech32PrefixAccAddr):

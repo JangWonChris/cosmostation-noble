@@ -15,3 +15,19 @@ type TransactionInfo struct {
 	Events     string `json:"events" sql:"type:jsonb, default: '[]'::jsonb"`
 	Time       string `json:"time"` // format that TxResponse returns
 }
+
+// [
+//     {
+//         "type": "cosmos-sdk/MsgSend",
+//         "value": {
+//             "amount": [
+//                 {
+//                     "denom": "umuon",
+//                     "amount": "50000000000"
+//                 }
+//             ],
+//             "to_address": "cosmos1tt5pxlaazxql7qpg4cfx6adk0m76u3pavzq5yn",
+//             "from_address": "cosmos1y3v65vhz5f93k8uk7vnz5v7yr7ks5gdce0udvs"
+//         }
+//     }
+// ]

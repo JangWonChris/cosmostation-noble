@@ -5,13 +5,13 @@ import (
 	"net/http"
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/config"
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/db"
 	errors "github.com/cosmostation/cosmostation-cosmos/mintscan/api/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/schema"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/utils"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/go-pg/pg"
 	"github.com/gorilla/mux"
 	"github.com/tendermint/tendermint/libs/bech32"
 	resty "gopkg.in/resty.v1"
@@ -20,7 +20,7 @@ import (
 )
 
 // GetProposals returns all existing proposals
-func GetProposals(db *pg.DB, config *config.Config, w http.ResponseWriter, r *http.Request) error {
+func GetProposals(db *db.Database, config *config.Config, w http.ResponseWriter, r *http.Request) error {
 	proposalInfo := make([]*schema.ProposalInfo, 0)
 	_ = db.Model(&proposalInfo).Select()
 
@@ -75,7 +75,7 @@ func GetProposals(db *pg.DB, config *config.Config, w http.ResponseWriter, r *ht
 }
 
 // GetProposal receives proposal id and returns particular proposal
-func GetProposal(db *pg.DB, config *config.Config, w http.ResponseWriter, r *http.Request) error {
+func GetProposal(db *db.Database, config *config.Config, w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	proposalID := vars["proposalId"]
 
@@ -129,7 +129,7 @@ func GetProposal(db *pg.DB, config *config.Config, w http.ResponseWriter, r *htt
 }
 
 // GetVotes receives proposal id and returns voting information
-func GetVotes(db *pg.DB, config *config.Config, w http.ResponseWriter, r *http.Request) error {
+func GetVotes(db *db.Database, config *config.Config, w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	proposalID := vars["proposalId"]
 
@@ -175,7 +175,7 @@ func GetVotes(db *pg.DB, config *config.Config, w http.ResponseWriter, r *http.R
 	// votes
 	votes := make([]*models.Votes, 0)
 	for _, vote := range voteInfo {
-		moniker, _ := utils.ConvertCosmosAddressToMoniker(vote.Voter, db)
+		moniker, _ := db.ConvertCosmosAddressToMoniker(vote.Voter)
 
 		tempVoteInfo := &models.Votes{
 			Voter:   vote.Voter,
@@ -217,7 +217,7 @@ func GetVotes(db *pg.DB, config *config.Config, w http.ResponseWriter, r *http.R
 }
 
 // GetDeposits receives proposal id and returns deposit information
-func GetDeposits(db *pg.DB, w http.ResponseWriter, r *http.Request) error {
+func GetDeposits(db *db.Database, w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	proposalID := vars["proposalId"]
 
@@ -246,7 +246,7 @@ func GetDeposits(db *pg.DB, w http.ResponseWriter, r *http.Request) error {
 	}
 
 	for _, deposit := range depositInfo {
-		moniker, _ := utils.ConvertCosmosAddressToMoniker(deposit.Depositor, db)
+		moniker, _ := db.ConvertCosmosAddressToMoniker(deposit.Depositor)
 
 		tempResultDeposit := &models.ResultDeposit{
 			Depositor:     deposit.Depositor,

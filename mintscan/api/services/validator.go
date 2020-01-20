@@ -8,13 +8,13 @@ import (
 	"strconv"
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/config"
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/db"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/schema"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/utils"
 	resty "gopkg.in/resty.v1"
 
-	"github.com/go-pg/pg"
 	"github.com/gorilla/mux"
 	"github.com/tendermint/tendermint/rpc/client"
 
@@ -23,7 +23,7 @@ import (
 )
 
 // GetValidators returns all existing validators
-func GetValidators(db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
+func GetValidators(db *db.Database, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	validatorInfo := make([]*schema.ValidatorInfo, 0)
 
 	// check status param
@@ -118,11 +118,11 @@ func GetValidators(db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *
 }
 
 // GetValidator receives validator address and returns that validator
-func GetValidator(db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
+func GetValidator(db *db.Database, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	address := vars["address"]
 
-	validatorInfo, _ := utils.ConvertToProposer(address, db)
+	validatorInfo, _ := db.ConvertToProposer(address)
 
 	// check if the input validator address exists
 	if validatorInfo.Proposer == "" {
@@ -192,12 +192,12 @@ func GetValidator(db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *h
 }
 
 // GetValidatorBlockMisses receives validator address and returns the validator's block consencutive misses
-func GetValidatorBlockMisses(db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
+func GetValidatorBlockMisses(db *db.Database, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	address := vars["address"]
 
 	// convert to proposer address format
-	validatorInfo, _ := utils.ConvertToProposerSlice(address, db)
+	validatorInfo, _ := db.ConvertToProposerSlice(address)
 
 	// check if the validator address exists
 	if len(validatorInfo) <= 0 {
@@ -238,12 +238,12 @@ func GetValidatorBlockMisses(db *pg.DB, rpcClient *client.HTTP, w http.ResponseW
 // When uptime is 100%, there is no missing blocks in database therefore it returns an empty array.
 // When uptime is from 1% through 99%, just return how many missing blocks are recorded in database.
 // When uptime is 0%, there are two cases. Missing last 100 blocks or a validator is unbonded | unbonding state.
-func GetValidatorBlockMissesDetail(db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
+func GetValidatorBlockMissesDetail(db *db.Database, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	address := vars["address"]
 
 	// change to proposer address format
-	validatorInfo, _ := utils.ConvertToProposerSlice(address, db)
+	validatorInfo, _ := db.ConvertToProposerSlice(address)
 
 	// check if the validator exists
 	if len(validatorInfo) <= 0 {
@@ -285,9 +285,21 @@ func GetValidatorBlockMissesDetail(db *pg.DB, rpcClient *client.HTTP, w http.Res
 }
 
 // GetValidatorEvents receives validator address and returns the validator's events
-func GetValidatorEvents(db *pg.DB, w http.ResponseWriter, r *http.Request) error {
+func GetValidatorEvents(db db.Database, w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	address := vars["address"]
+
+	test, _ := db.ConvertToProposer(address)
+	fmt.Println("===ConvertToProposer===")
+	fmt.Println(test)
+	fmt.Println(test.Proposer)
+
+	// Check if the address is validator
+	validatorInfo, _ := db.ConvertToProposerSlice(address)
+	if len(validatorInfo) <= 0 {
+		errors.ErrNotExist(w, http.StatusNotFound)
+		return nil
+	}
 
 	// Max limit is 50
 	limit := int(50)
@@ -305,21 +317,8 @@ func GetValidatorEvents(db *pg.DB, w http.ResponseWriter, r *http.Request) error
 	if len(r.URL.Query()["from"]) > 0 {
 		from, _ = strconv.Atoi(r.URL.Query()["from"][0])
 	} else {
-		// Get current height in DB
-		var blocks schema.BlockInfo
-		_ = db.Model(&blocks).
-			Order("id DESC").
-			Limit(1).
-			Select()
-		from = int(blocks.Height)
-	}
-
-	validatorInfo, _ := utils.ConvertToProposerSlice(address, db)
-
-	// check if the input validator address exists
-	if len(validatorInfo) <= 0 {
-		errors.ErrNotExist(w, http.StatusNotFound)
-		return nil
+		from, _ = db.QueryLatestBlockHeight()
+		from, _ = strconv.Atoi(from)
 	}
 
 	address = validatorInfo[0].Proposer
@@ -359,7 +358,7 @@ func GetValidatorEvents(db *pg.DB, w http.ResponseWriter, r *http.Request) error
 }
 
 // GetRedelegations receives delegator, srcvalidator, dstvalidator address and returns redelegations information
-func GetRedelegations(config *config.Config, db *pg.DB, w http.ResponseWriter, r *http.Request) error {
+func GetRedelegations(config *config.Config, db *db.Database, w http.ResponseWriter, r *http.Request) error {
 	endpoint := "/staking/redelegations?"
 	if len(r.URL.Query()["delegator"]) > 0 {
 		endpoint += fmt.Sprintf("delegator=%s&", r.URL.Query()["delegator"][0])
@@ -386,11 +385,11 @@ func GetRedelegations(config *config.Config, db *pg.DB, w http.ResponseWriter, r
 }
 
 // GetValidatorDelegations receives validator address and returns all existing delegations that are delegated to the validator
-func GetValidatorDelegations(codec *codec.Codec, config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
+func GetValidatorDelegations(codec *codec.Codec, config *config.Config, db *db.Database, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	operatorAddress := vars["address"]
 
-	validatorInfo, _ := utils.ConvertToProposer(operatorAddress, db)
+	validatorInfo, _ := db.ConvertToProposer(operatorAddress)
 
 	// Check if the validator address exists
 	if validatorInfo.Proposer == "" {

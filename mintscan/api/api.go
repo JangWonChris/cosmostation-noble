@@ -42,15 +42,15 @@ func NewApp(config *config.Config) *App {
 		client.NewHTTP(config.Node.GaiadURL, "/websocket"), // Tendermint RPC client
 	}
 
-	controllers.AccountController(app.codec, app.config, app.db.DB, app.router, app.rpcClient)
-	controllers.BlockController(app.codec, app.config, app.db.DB, app.router, app.rpcClient)
-	controllers.DistributionController(app.codec, app.config, app.db.DB, app.router, app.rpcClient)
-	controllers.GovernanceController(app.codec, app.config, app.db.DB, app.router, app.rpcClient)
-	controllers.MintingController(app.codec, app.config, app.db.DB, app.router, app.rpcClient)
-	controllers.TransactionController(app.codec, app.config, app.db.DB, app.router, app.rpcClient)
-	controllers.ValidatorController(app.codec, app.config, app.db.DB, app.router, app.rpcClient)
-	controllers.StatusController(app.codec, app.config, app.db.DB, app.router, app.rpcClient)
-	controllers.StatsController(app.codec, app.config, app.db.DB, app.router, app.rpcClient)
+	controllers.AccountController(app.codec, app.config, app.db, app.router, app.rpcClient)
+	controllers.BlockController(app.codec, app.config, app.db, app.router, app.rpcClient)
+	controllers.DistributionController(app.codec, app.config, app.db, app.router, app.rpcClient)
+	controllers.GovernanceController(app.codec, app.config, app.db, app.router, app.rpcClient)
+	controllers.MintingController(app.codec, app.config, app.db, app.router, app.rpcClient)
+	controllers.TransactionController(app.codec, app.config, app.db, app.router, app.rpcClient)
+	controllers.ValidatorController(app.codec, app.config, app.db, app.router, app.rpcClient)
+	controllers.StatusController(app.codec, app.config, app.db, app.router, app.rpcClient)
+	controllers.StatsController(app.codec, app.config, app.db, app.router, app.rpcClient)
 
 	return app
 }

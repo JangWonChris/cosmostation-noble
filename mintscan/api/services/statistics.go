@@ -5,17 +5,17 @@ import (
 	"net/http"
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/config"
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/db"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/utils"
 
-	"github.com/go-pg/pg"
 	"github.com/rs/zerolog/log"
 	"github.com/tendermint/tendermint/rpc/client"
 	resty "gopkg.in/resty.v1"
 )
 
 // GetMarketStats returns marketInfo
-func GetMarketStats(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
+func GetMarketStats(config *config.Config, db *db.Database, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	limit := 24
 
 	// query current price
@@ -63,7 +63,7 @@ func GetMarketStats(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w 
 }
 
 // GetNetworkStats returns network stats
-func GetNetworkStats(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
+func GetNetworkStats(config *config.Config, db *db.Database, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	var limit int
 
 	var statsNetwork models.StatsNetwork1H

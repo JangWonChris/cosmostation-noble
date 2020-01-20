@@ -5,17 +5,17 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/db"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/schema"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/utils"
 
-	"github.com/go-pg/pg"
 	"github.com/gorilla/mux"
 )
 
 // GetBlocks returns latest blocks
-func GetBlocks(db *pg.DB, w http.ResponseWriter, r *http.Request) error {
+func GetBlocks(db *db.Database, w http.ResponseWriter, r *http.Request) error {
 	limit := int(100)
 	afterBlock := int(1)
 
@@ -99,12 +99,12 @@ func GetBlocks(db *pg.DB, w http.ResponseWriter, r *http.Request) error {
 }
 
 // GetProposedBlocksByAddress returns proposed blocks by querying any type of address
-func GetProposedBlocks(db *pg.DB, w http.ResponseWriter, r *http.Request) error {
+func GetProposedBlocks(db *db.Database, w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	address := vars["address"]
 
 	// convert to proposer address format
-	validatorInfo, _ := utils.ConvertToProposerSlice(address, db)
+	validatorInfo, _ := db.ConvertToProposerSlice(address)
 
 	if len(validatorInfo) <= 0 {
 		errors.ErrNotExist(w, http.StatusNotFound)
