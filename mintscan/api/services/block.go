@@ -139,7 +139,7 @@ func GetProposedBlocks(db *db.Database, w http.ResponseWriter, r *http.Request) 
 	totalNumProposerBlocks, _ := db.QueryTotalBlocksByProposer(address)
 
 	resultBlocksByOperatorAddress := make([]*models.ResultBlocksByOperatorAddress, 0)
-	for _, block := range blocks {
+	for i, block := range blocks {
 		validatorInfo, _ := db.QueryValidatorInfoByProposer(block.Proposer)
 
 		// query a number of txs
@@ -154,6 +154,7 @@ func GetProposedBlocks(db *db.Database, w http.ResponseWriter, r *http.Request) 
 		}
 
 		tempResultBlocksByOperatorAddress := &models.ResultBlocksByOperatorAddress{
+			ID:                     i + 1,
 			Height:                 block.Height,
 			Proposer:               block.Proposer,
 			OperatorAddress:        validatorInfo.OperatorAddress,

@@ -21,6 +21,7 @@ type ResultBlock struct {
 
 // ResultBlocksByOperatorAddress is a struct for block result response
 type ResultBlocksByOperatorAddress struct {
+	ID                     int       `json:"id"`
 	Height                 int64     `json:"height"`
 	Proposer               string    `json:"proposer"`
 	OperatorAddress        string    `json:"operator_address"`
