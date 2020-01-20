@@ -122,9 +122,8 @@ func GetValidator(db *db.Database, rpcClient *client.HTTP, w http.ResponseWriter
 	vars := mux.Vars(r)
 	address := vars["address"]
 
-	validatorInfo, _ := db.ConvertToProposer(address)
-
 	// check if the input validator address exists
+	validatorInfo, _ := db.ConvertToProposer(address)
 	if validatorInfo.Proposer == "" {
 		errors.ErrNotExist(w, http.StatusNotFound)
 		return nil
@@ -196,16 +195,15 @@ func GetValidatorBlockMisses(db *db.Database, rpcClient *client.HTTP, w http.Res
 	vars := mux.Vars(r)
 	address := vars["address"]
 
-	// convert to proposer address format
-	validatorInfo, _ := db.ConvertToProposerSlice(address)
+	// check if the input validator address exists
+	validatorInfo, _ := db.ConvertToProposer(address)
 
-	// check if the validator address exists
-	if len(validatorInfo) <= 0 {
+	if validatorInfo.Proposer == "" {
 		errors.ErrNotExist(w, http.StatusNotFound)
 		return nil
 	}
 
-	address = validatorInfo[0].Proposer
+	address = validatorInfo.Proposer
 
 	// query a validator's missing blocks
 	var missInfos []schema.MissInfo
@@ -242,11 +240,9 @@ func GetValidatorBlockMissesDetail(db *db.Database, rpcClient *client.HTTP, w ht
 	vars := mux.Vars(r)
 	address := vars["address"]
 
-	// change to proposer address format
-	validatorInfo, _ := db.ConvertToProposerSlice(address)
-
 	// check if the validator exists
-	if len(validatorInfo) <= 0 {
+	validatorInfo, _ := db.ConvertToProposer(address)
+	if validatorInfo.Proposer == "" {
 		errors.ErrNotExist(w, http.StatusNotFound)
 		return nil
 	}
@@ -262,7 +258,7 @@ func GetValidatorBlockMissesDetail(db *db.Database, rpcClient *client.HTTP, w ht
 	// query a validator's missing blocks
 	var missDetailInfos []schema.MissDetailInfo
 	_ = db.Model(&missDetailInfos).
-		Where("address = ? AND height BETWEEN ? AND ?", validatorInfo[0].Proposer, blockInfo[0].Height-int64(104), blockInfo[0].Height).
+		Where("address = ? AND height BETWEEN ? AND ?", validatorInfo.Proposer, blockInfo[0].Height-int64(104), blockInfo[0].Height).
 		Limit(104).
 		Order("height DESC").
 		Select()
@@ -285,25 +281,22 @@ func GetValidatorBlockMissesDetail(db *db.Database, rpcClient *client.HTTP, w ht
 }
 
 // GetValidatorEvents receives validator address and returns the validator's events
-func GetValidatorEvents(db db.Database, w http.ResponseWriter, r *http.Request) error {
+func GetValidatorEvents(db *db.Database, w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	address := vars["address"]
 
-	test, _ := db.ConvertToProposer(address)
-	fmt.Println("===ConvertToProposer===")
-	fmt.Println(test)
-	fmt.Println(test.Proposer)
-
 	// Check if the address is validator
-	validatorInfo, _ := db.ConvertToProposerSlice(address)
-	if len(validatorInfo) <= 0 {
+	validatorInfo, _ := db.ConvertToProposer(address)
+	if validatorInfo.Proposer == "" {
 		errors.ErrNotExist(w, http.StatusNotFound)
 		return nil
 	}
 
-	// Max limit is 50
+	address = validatorInfo.Proposer
+
+	// default limit and max is 50 and offset is 0 (latest blocks)
 	limit := int(50)
-	from := int(1)
+	offset := int(0)
 
 	if len(r.URL.Query()["limit"]) > 0 {
 		limit, _ = strconv.Atoi(r.URL.Query()["limit"][0])
@@ -314,40 +307,29 @@ func GetValidatorEvents(db db.Database, w http.ResponseWriter, r *http.Request) 
 		return nil
 	}
 
-	if len(r.URL.Query()["from"]) > 0 {
-		from, _ = strconv.Atoi(r.URL.Query()["from"][0])
-	} else {
-		from, _ = db.QueryLatestBlockHeight()
-		from, _ = strconv.Atoi(from)
+	if len(r.URL.Query()["offset"]) > 0 {
+		offset, _ = strconv.Atoi(r.URL.Query()["offset"][0])
 	}
 
-	address = validatorInfo[0].Proposer
-
-	// query id_validator
-	var idValidatorSetInfo schema.ValidatorSetInfo
-	_ = db.Model(&idValidatorSetInfo).
-		Column("id_validator").
-		Where("proposer = ?", address).
-		Limit(1).
-		Select()
+	validatorID, _ := db.QueryValidatorID(address)
+	if validatorID == -1 {
+		fmt.Printf("failed to query the latest block height from database.")
+		return nil
+	}
 
 	resultVotingPowerHistory := make([]*models.ResultVotingPowerHistory, 0)
-	if idValidatorSetInfo.IDValidator != 0 {
-		var validatorSetInfo []schema.ValidatorSetInfo
-		_ = db.Model(&validatorSetInfo).
-			Where("id_validator = ? AND height <= ?", idValidatorSetInfo.IDValidator, from).
-			Limit(limit).
-			Order("id DESC").
-			Select()
+	if validatorID != 0 {
+		events, _ := db.QueryValidatorPowerEvents(validatorID, limit, offset)
 
-		for _, validatorSet := range validatorSetInfo {
+		for i, event := range events {
 			tempResultValidatorSet := &models.ResultVotingPowerHistory{
-				Height:         validatorSet.Height,
-				EventType:      validatorSet.EventType,
-				VotingPower:    validatorSet.VotingPower * 1000000,
-				NewVotingPower: validatorSet.NewVotingPowerAmount * 1000000,
-				TxHash:         validatorSet.TxHash,
-				Timestamp:      validatorSet.Time,
+				ID:             i + 1,
+				Height:         event.Height,
+				EventType:      event.EventType,
+				VotingPower:    event.VotingPower * 1000000,
+				NewVotingPower: event.NewVotingPowerAmount * 1000000,
+				TxHash:         event.TxHash,
+				Timestamp:      event.Time,
 			}
 			resultVotingPowerHistory = append(resultVotingPowerHistory, tempResultValidatorSet)
 		}

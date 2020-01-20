@@ -204,6 +204,7 @@ type ResultMissesDetail struct {
 
 // ResultVotingPowerHistory is a struct for validator voting power history result response
 type ResultVotingPowerHistory struct {
+	ID             int       `json:"id"`
 	Height         int64     `json:"height"`
 	EventType      string    `json:"event_type"`
 	VotingPower    float64   `json:"voting_power"`

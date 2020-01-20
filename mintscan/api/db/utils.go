@@ -70,39 +70,3 @@ func (db *Database) ConvertToProposer(address string) (schema.ValidatorInfo, err
 	}
 	return validatorInfo, nil
 }
-
-// ConvertToProposerSlice converts any type of input address to proposer address
-func (db *Database) ConvertToProposerSlice(address string) ([]schema.ValidatorInfo, error) {
-	var validatorInfo []schema.ValidatorInfo
-	switch {
-	case strings.HasPrefix(address, sdk.Bech32PrefixAccAddr):
-		_, decoded, _ := bech32.DecodeAndConvert(address)
-		cosmosOperAddress, _ := bech32.ConvertAndEncode(sdk.Bech32PrefixValAddr, decoded)
-		_ = db.Model(&validatorInfo).
-			Where("operator_address = ?", cosmosOperAddress).
-			Limit(1).
-			Select()
-	case strings.HasPrefix(address, sdk.Bech32PrefixValAddr):
-		_ = db.Model(&validatorInfo).
-			Where("operator_address = ?", address).
-			Limit(1).
-			Select()
-	case strings.HasPrefix(address, sdk.Bech32PrefixValPub):
-		_ = db.Model(&validatorInfo).
-			Where("consensus_pubkey = ?", address).
-			Limit(1).
-			Select()
-	case len(address) == 40:
-		upperCaseAddr := strings.ToUpper(address)
-		_ = db.Model(&validatorInfo).
-			Where("proposer = ?", upperCaseAddr).
-			Limit(1).
-			Select()
-	default:
-		_ = db.Model(&validatorInfo).
-			Where("moniker = ?", address).
-			Limit(1).
-			Select()
-	}
-	return validatorInfo, nil
-}
