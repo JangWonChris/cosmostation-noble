@@ -8,7 +8,7 @@ import (
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models/types"
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/schema"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/utils"
 
 	"github.com/go-pg/pg"
@@ -41,7 +41,7 @@ func GetStatus(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.
 	resp, _ := resty.R().Get(config.Node.LCDURL + "/staking/pool")
 
 	var pool models.Pool
-	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &pool)
+	err := json.Unmarshal(models.ReadRespWithHeight(resp).Result, &pool)
 	if err != nil {
 		fmt.Printf("staking/pool unmarshal pool error - %v\n", err)
 		log.Info().Str(models.Service, models.LogStatus).Str(models.Method, "GetStatus").Err(err).Msg("unmarshal pool error")
@@ -51,7 +51,7 @@ func GetStatus(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.
 	totalSupplyResp, _ := resty.R().Get(config.Node.LCDURL + "/supply/total")
 
 	var coin []models.Coin
-	err = json.Unmarshal(types.ReadRespWithHeight(totalSupplyResp).Result, &coin)
+	err = json.Unmarshal(models.ReadRespWithHeight(totalSupplyResp).Result, &coin)
 	if err != nil {
 		fmt.Printf("supply/total unmarshal supply total error - %v\n", err)
 	}
@@ -61,19 +61,19 @@ func GetStatus(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.
 	totalSupplyTokens, _ := strconv.ParseFloat(coin[0].Amount, 64)
 
 	// a number of unjailed validators
-	var unjailedValidators types.ValidatorInfo
+	var unjailedValidators schema.ValidatorInfo
 	unJailedNum, _ := db.Model(&unjailedValidators).
 		Where("status = ?", 2).
 		Count()
 
 	// a number of jailed validators
-	var jailedValidators types.ValidatorInfo
+	var jailedValidators schema.ValidatorInfo
 	jailedNum, _ := db.Model(&jailedValidators).
 		Where("status = ? OR status = ?", 0, 1).
 		Count()
 
 	// total txs num
-	var blockInfo types.BlockInfo
+	var blockInfo schema.BlockInfo
 	_ = db.Model(&blockInfo).
 		Column("total_txs").
 		Order("height DESC").
@@ -84,7 +84,7 @@ func GetStatus(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.
 	status, _ := rpcClient.Status()
 
 	// query the lastly saved block time
-	var lastBlockTime []types.BlockInfo
+	var lastBlockTime []schema.BlockInfo
 	_ = db.Model(&lastBlockTime).
 		Column("time").
 		Order("height DESC").

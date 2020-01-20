@@ -6,7 +6,6 @@ import (
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models/types"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/utils"
 
 	"github.com/go-pg/pg"
@@ -22,14 +21,14 @@ func GetMarketStats(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w 
 	// query current price
 	resp, _ := resty.R().Get(config.Market.CoinGecko.URL)
 
-	var coinGeckoMarket types.CoinGeckoMarket
+	var coinGeckoMarket models.CoinGeckoMarket
 	err := json.Unmarshal(resp.Body(), &coinGeckoMarket)
 	if err != nil {
 		log.Info().Str(models.Service, models.LogStatistics).Str(models.Method, "GetMarketStats").Err(err).Msg("unmarshal coinGeckoMarket error")
 	}
 
 	// query price chart
-	var statsCoingeckoMarket1H []types.StatsCoingeckoMarket1H
+	var statsCoingeckoMarket1H []models.StatsCoingeckoMarket1H
 	_ = db.Model(&statsCoingeckoMarket1H).
 		Order("id DESC").
 		Limit(limit).
@@ -67,12 +66,12 @@ func GetMarketStats(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w 
 func GetNetworkStats(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	var limit int
 
-	var statsNetwork types.StatsNetwork1H
+	var statsNetwork models.StatsNetwork1H
 	cntStats, _ := db.Model(&statsNetwork).Count()
 
 	switch {
 	case cntStats == 1:
-		return json.NewEncoder(w).Encode(&types.StatsNetwork1H{})
+		return json.NewEncoder(w).Encode(&models.StatsNetwork1H{})
 	case cntStats <= 24:
 		limit = cntStats
 	default:
@@ -80,13 +79,13 @@ func GetNetworkStats(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w
 	}
 
 	// query bonded tokens chart
-	var statsNetwork1H []types.StatsNetwork1H
+	var statsNetwork1H []models.StatsNetwork1H
 	err := db.Model(&statsNetwork1H).
 		Order("id DESC").
 		Limit(limit).
 		Select()
 	if err != nil {
-		return json.NewEncoder(w).Encode(&types.StatsNetwork1H{})
+		return json.NewEncoder(w).Encode(&models.StatsNetwork1H{})
 	}
 
 	bondedTokensStats := make([]*models.BondedTokensStats, 0)
@@ -102,7 +101,7 @@ func GetNetworkStats(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w
 	}
 
 	// bonded tokens percentage change in 24 hours
-	var statsNetwork24H []types.StatsNetwork24H
+	var statsNetwork24H []models.StatsNetwork24H
 	_ = db.Model(&statsNetwork24H).
 		Order("id DESC").
 		Limit(2).

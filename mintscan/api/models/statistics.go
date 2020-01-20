@@ -1,8 +1,9 @@
-package types
+package models
 
 import "time"
 
 const (
+	// Currency
 	Currency = "USD"
 )
 

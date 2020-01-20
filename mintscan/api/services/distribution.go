@@ -12,7 +12,6 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models/types"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/utils"
 
 	"github.com/rs/zerolog/log"
@@ -34,7 +33,7 @@ func GetDelegatorWithdrawAddress(config *config.Config, db *pg.DB, rpcClient *cl
 	resp, _ := resty.R().Get(config.Node.LCDURL + "/distribution/delegators/" + delegatorAddr + "/withdraw_address")
 
 	var address string
-	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &address)
+	err := json.Unmarshal(models.ReadRespWithHeight(resp).Result, &address)
 	if err != nil {
 		log.Info().Str(models.Service, models.LogDistribution).Str(models.Method, "GetDelegatorWithdrawAddress").Err(err).Msg("unmarshal address error")
 	}
@@ -62,7 +61,7 @@ func GetDelegatorRewards(config *config.Config, db *pg.DB, rpcClient *client.HTT
 
 	coin := make([]models.Coin, 0)
 
-	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &coin)
+	err := json.Unmarshal(models.ReadRespWithHeight(resp).Result, &coin)
 	if err != nil {
 		log.Info().Str(models.Service, models.LogDistribution).Str(models.Method, "GetDelegatorRewards").Err(err).Msg("unmarshal coin error")
 	}
@@ -76,7 +75,7 @@ func GetCommunityPool(config *config.Config, db *pg.DB, rpcClient *client.HTTP, 
 	resp, _ := resty.R().Get(config.Node.LCDURL + "/distribution/community_pool")
 
 	var coin []models.Coin
-	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &coin)
+	err := json.Unmarshal(models.ReadRespWithHeight(resp).Result, &coin)
 	if err != nil {
 		log.Info().Str(models.Service, models.LogDistribution).Str(models.Method, "GetCommunityPool").Err(err).Msg("unmarshal coin error")
 	}

@@ -7,7 +7,6 @@ import (
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models/types"
 	u "github.com/cosmostation/cosmostation-cosmos/mintscan/api/utils"
 
 	"github.com/go-pg/pg"
@@ -19,7 +18,7 @@ func GetMintingInflation(config *config.Config, db *pg.DB, w http.ResponseWriter
 	resp, _ := resty.R().Get(config.Node.LCDURL + "/minting/inflation")
 
 	var tempInflation string
-	_ = json.Unmarshal(types.ReadRespWithHeight(resp).Result, &tempInflation)
+	_ = json.Unmarshal(models.ReadRespWithHeight(resp).Result, &tempInflation)
 
 	inflation, _ := strconv.ParseFloat(tempInflation, 64)
 

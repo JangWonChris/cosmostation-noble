@@ -10,7 +10,7 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models/types"
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/schema"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/utils"
 	resty "gopkg.in/resty.v1"
 
@@ -24,7 +24,7 @@ import (
 
 // GetValidators returns all existing validators
 func GetValidators(db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
-	validatorInfo := make([]*types.ValidatorInfo, 0)
+	validatorInfo := make([]*schema.ValidatorInfo, 0)
 
 	// check status param
 	statusParam := r.FormValue("status")
@@ -53,7 +53,7 @@ func GetValidators(db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *
 	}
 
 	// query the latest block height saved in database - currently use second highest block height in database to easing client's handling
-	var blockInfo []types.BlockInfo
+	var blockInfo []schema.BlockInfo
 	_ = db.Model(&blockInfo).
 		Column("height").
 		Order("id DESC").
@@ -75,7 +75,7 @@ func GetValidators(db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *
 		if validator.Jailed {
 			missBlockCount = 100
 		} else {
-			var missDetailInfo []types.MissDetailInfo
+			var missDetailInfo []schema.MissDetailInfo
 			missBlockCount, _ = db.Model(&missDetailInfo).
 				Where("address = ? AND height BETWEEN ? AND ?", validator.Proposer, blockInfo[1].Height-int64(99), blockInfo[1].Height).
 				Count()
@@ -131,7 +131,7 @@ func GetValidator(db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *h
 	}
 
 	// query the latest block height saved in database - currently use second highest block height in database to easing client's handling
-	var blockInfo []types.BlockInfo
+	var blockInfo []schema.BlockInfo
 	_ = db.Model(&blockInfo).
 		Column("height").
 		Order("id DESC").
@@ -144,7 +144,7 @@ func GetValidator(db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *h
 	if validatorInfo.Jailed {
 		missBlockCount = 100
 	} else {
-		var missDetailInfo []types.MissDetailInfo
+		var missDetailInfo []schema.MissDetailInfo
 		missBlockCount, _ = db.Model(&missDetailInfo).
 			Where("address = ? AND height BETWEEN ? AND ?", validatorInfo.Proposer, blockInfo[1].Height-int64(99), blockInfo[1].Height).
 			Count()
@@ -157,7 +157,7 @@ func GetValidator(db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *h
 	}
 
 	// validator's bonded height and its timestamp
-	var validatorSetInfo types.ValidatorSetInfo
+	var validatorSetInfo schema.ValidatorSetInfo
 	_ = db.Model(&validatorSetInfo).
 		Where("proposer = ? AND event_type = ?", validatorInfo.Proposer, "create_validator").
 		Select()
@@ -208,7 +208,7 @@ func GetValidatorBlockMisses(db *pg.DB, rpcClient *client.HTTP, w http.ResponseW
 	address = validatorInfo[0].Proposer
 
 	// query a validator's missing blocks
-	var missInfos []types.MissInfo
+	var missInfos []schema.MissInfo
 	err := db.Model(&missInfos).
 		Where("address = ?", address).
 		Limit(50).
@@ -234,20 +234,10 @@ func GetValidatorBlockMisses(db *pg.DB, rpcClient *client.HTTP, w http.ResponseW
 	return nil
 }
 
-/*
-	100%
-		리턴값: 빈배열
-		DB에 저장된 미싱 블록 height가 아예 없을때 (block 테이블에 저장된 가장 최신 블록 - 100개)
-	1%~99%
-		리턴값: 미싱 block height
-		미싱 블록 수 만큼
-	0%
-		리턴값: 100개의 block height
-		미싱 블록 100개
-		진작에 죽었을 경우엔 precommit률이 없다. 예외처리 해줘야 하나? 0%로 (unbonded, unbonding)
-*/
-
 // GetValidatorBlockMissesDetail receives validator address and returns the validator's block misses (uptime)
+// When uptime is 100%, there is no missing blocks in database therefore it returns an empty array.
+// When uptime is from 1% through 99%, just return how many missing blocks are recorded in database.
+// When uptime is 0%, there are two cases. Missing last 100 blocks or a validator is unbonded | unbonding state.
 func GetValidatorBlockMissesDetail(db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	address := vars["address"]
@@ -262,7 +252,7 @@ func GetValidatorBlockMissesDetail(db *pg.DB, rpcClient *client.HTTP, w http.Res
 	}
 
 	// query the latest block height saved in database - currently use second highest block height in database to easing client's handling
-	var blockInfo []types.BlockInfo
+	var blockInfo []schema.BlockInfo
 	_ = db.Model(&blockInfo).
 		Column("height").
 		Order("id DESC").
@@ -270,7 +260,7 @@ func GetValidatorBlockMissesDetail(db *pg.DB, rpcClient *client.HTTP, w http.Res
 		Select()
 
 	// query a validator's missing blocks
-	var missDetailInfos []types.MissDetailInfo
+	var missDetailInfos []schema.MissDetailInfo
 	_ = db.Model(&missDetailInfos).
 		Where("address = ? AND height BETWEEN ? AND ?", validatorInfo[0].Proposer, blockInfo[0].Height-int64(104), blockInfo[0].Height).
 		Limit(104).
@@ -299,30 +289,24 @@ func GetValidatorEvents(db *pg.DB, w http.ResponseWriter, r *http.Request) error
 	vars := mux.Vars(r)
 	address := vars["address"]
 
+	// Max limit is 50
 	limit := int(50)
 	from := int(1)
 
-	// check limit param
-	tempLimit := r.URL.Query()["limit"]
-	if len(tempLimit) > 0 {
-		tempLimit, _ := strconv.Atoi(tempLimit[0])
-		limit = tempLimit
+	if len(r.URL.Query()["limit"]) > 0 {
+		limit, _ = strconv.Atoi(r.URL.Query()["limit"][0])
 	}
 
-	// check max Limit
 	if limit > 50 {
 		errors.ErrOverMaxLimit(w, http.StatusRequestedRangeNotSatisfiable)
 		return nil
 	}
 
-	// check from param
-	tempFrom := r.URL.Query()["from"]
-	if len(tempFrom) > 0 {
-		tempFrom, _ := strconv.Atoi(tempFrom[0])
-		from = tempFrom
+	if len(r.URL.Query()["from"]) > 0 {
+		from, _ = strconv.Atoi(r.URL.Query()["from"][0])
 	} else {
 		// Get current height in DB
-		var blocks types.BlockInfo
+		var blocks schema.BlockInfo
 		_ = db.Model(&blocks).
 			Order("id DESC").
 			Limit(1).
@@ -341,7 +325,7 @@ func GetValidatorEvents(db *pg.DB, w http.ResponseWriter, r *http.Request) error
 	address = validatorInfo[0].Proposer
 
 	// query id_validator
-	var idValidatorSetInfo types.ValidatorSetInfo
+	var idValidatorSetInfo schema.ValidatorSetInfo
 	_ = db.Model(&idValidatorSetInfo).
 		Column("id_validator").
 		Where("proposer = ?", address).
@@ -350,7 +334,7 @@ func GetValidatorEvents(db *pg.DB, w http.ResponseWriter, r *http.Request) error
 
 	resultVotingPowerHistory := make([]*models.ResultVotingPowerHistory, 0)
 	if idValidatorSetInfo.IDValidator != 0 {
-		var validatorSetInfo []types.ValidatorSetInfo
+		var validatorSetInfo []schema.ValidatorSetInfo
 		_ = db.Model(&validatorSetInfo).
 			Where("id_validator = ? AND height <= ?", idValidatorSetInfo.IDValidator, from).
 			Limit(limit).
@@ -391,8 +375,8 @@ func GetRedelegations(config *config.Config, db *pg.DB, w http.ResponseWriter, r
 
 	resp, _ := resty.R().Get(config.Node.LCDURL + endpoint)
 
-	var redelegations []types.Redelegations
-	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &redelegations)
+	var redelegations []models.Redelegations
+	err := json.Unmarshal(models.ReadRespWithHeight(resp).Result, &redelegations)
 	if err != nil {
 		log.Info().Str(models.Service, models.LogValidator).Str(models.Method, "GetRedelegations").Err(err).Msg("unmarshal redelegations error")
 	}
@@ -417,8 +401,8 @@ func GetValidatorDelegations(codec *codec.Codec, config *config.Config, db *pg.D
 	// Query all delegations of the validator
 	resp, _ := resty.R().Get(config.Node.LCDURL + "/staking/validators/" + validatorInfo.OperatorAddress + "/delegations")
 
-	var delegations []*types.ValidatorDelegations
-	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &delegations)
+	var delegations []*models.ValidatorDelegations
+	err := json.Unmarshal(models.ReadRespWithHeight(resp).Result, &delegations)
 	if err != nil {
 		log.Info().Str(models.Service, models.LogValidator).Str(models.Method, "GetValidatorDelegations").Err(err).Msg("unmarshal delegations error")
 	}
@@ -428,13 +412,13 @@ func GetValidatorDelegations(codec *codec.Codec, config *config.Config, db *pg.D
 	delegatorShares, _ := strconv.ParseFloat(validatorInfo.DelegatorShares, 64)
 	uatom := tokens / delegatorShares
 
-	var validatorDelegations []*types.ValidatorDelegations
+	var validatorDelegations []*models.ValidatorDelegations
 	if len(delegations) > 0 {
 		for _, delegation := range delegations {
 			shares, _ := strconv.ParseFloat(delegation.Shares.String(), 64)
 			amount := fmt.Sprintf("%f", shares*uatom)
 
-			tempValidatorDelegations := &types.ValidatorDelegations{
+			tempValidatorDelegations := &models.ValidatorDelegations{
 				DelegatorAddress: delegation.DelegatorAddress,
 				ValidatorAddress: delegation.ValidatorAddress,
 				Shares:           delegation.Shares,
@@ -445,7 +429,7 @@ func GetValidatorDelegations(codec *codec.Codec, config *config.Config, db *pg.D
 	}
 
 	// query delegation change rate in 24 hours by 24 rows order by descending id
-	statsValidators24H := make([]*types.StatsValidators24H, 0)
+	statsValidators24H := make([]*models.StatsValidators24H, 0)
 	_ = db.Model(&statsValidators24H).
 		Where("proposer = ?", validatorInfo.Proposer).
 		Order("id DESC").

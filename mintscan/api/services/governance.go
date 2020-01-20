@@ -7,7 +7,7 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/config"
 	errors "github.com/cosmostation/cosmostation-cosmos/mintscan/api/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models/types"
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/schema"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/utils"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -21,7 +21,7 @@ import (
 
 // GetProposals returns all existing proposals
 func GetProposals(db *pg.DB, config *config.Config, w http.ResponseWriter, r *http.Request) error {
-	proposalInfo := make([]*types.ProposalInfo, 0)
+	proposalInfo := make([]*schema.ProposalInfo, 0)
 	_ = db.Model(&proposalInfo).Select()
 
 	// check if any proposal exists
@@ -37,7 +37,7 @@ func GetProposals(db *pg.DB, config *config.Config, w http.ResponseWriter, r *ht
 		cosmosOperAddress, _ := bech32.ConvertAndEncode(sdk.Bech32PrefixValAddr, decoded)
 
 		// check if the address matches any moniker in our database
-		var validatorInfo types.ValidatorInfo
+		var validatorInfo schema.ValidatorInfo
 		_ = db.Model(&validatorInfo).
 			Column("moniker").
 			Where("operator_address = ?", cosmosOperAddress).
@@ -80,7 +80,7 @@ func GetProposal(db *pg.DB, config *config.Config, w http.ResponseWriter, r *htt
 	proposalID := vars["proposalId"]
 
 	// query particular proposal
-	var proposalInfo types.ProposalInfo
+	var proposalInfo schema.ProposalInfo
 	err := db.Model(&proposalInfo).
 		Where("id = ?", proposalID).
 		Select()
@@ -94,7 +94,7 @@ func GetProposal(db *pg.DB, config *config.Config, w http.ResponseWriter, r *htt
 	cosmosOperAddress, _ := bech32.ConvertAndEncode(sdk.Bech32PrefixValAddr, decoded)
 
 	// check if the address matches any moniker in our DB
-	var validatorInfo types.ValidatorInfo
+	var validatorInfo schema.ValidatorInfo
 	_ = db.Model(&validatorInfo).
 		Column("moniker").
 		Where("operator_address = ?", cosmosOperAddress).
@@ -134,7 +134,7 @@ func GetVotes(db *pg.DB, config *config.Config, w http.ResponseWriter, r *http.R
 	proposalID := vars["proposalId"]
 
 	// check if proposal id exists
-	var proposalInfo types.ProposalInfo
+	var proposalInfo schema.ProposalInfo
 	err := db.Model(&proposalInfo).
 		Where("id = ?", proposalID).
 		Select()
@@ -144,7 +144,7 @@ func GetVotes(db *pg.DB, config *config.Config, w http.ResponseWriter, r *http.R
 	}
 
 	// query all votes
-	voteInfo := make([]*types.VoteInfo, 0)
+	voteInfo := make([]*schema.VoteInfo, 0)
 	_ = db.Model(&voteInfo).
 		Where("proposal_id = ?", proposalID).
 		Order("id DESC").
@@ -190,8 +190,8 @@ func GetVotes(db *pg.DB, config *config.Config, w http.ResponseWriter, r *http.R
 	// query tally information
 	resp, err := resty.R().Get(config.Node.LCDURL + "/gov/proposals/" + proposalID + "/tally")
 
-	var tally types.Tally
-	err = json.Unmarshal(types.ReadRespWithHeight(resp).Result, &tally)
+	var tally models.Tally
+	err = json.Unmarshal(models.ReadRespWithHeight(resp).Result, &tally)
 	if err != nil {
 		log.Info().Str(models.Service, models.LogGovernance).Str(models.Method, "GetVotes").Err(err).Msg("unmarshal tally error")
 	}
@@ -222,7 +222,7 @@ func GetDeposits(db *pg.DB, w http.ResponseWriter, r *http.Request) error {
 	proposalID := vars["proposalId"]
 
 	// check if proposal id exists
-	var proposalInfo types.ProposalInfo
+	var proposalInfo schema.ProposalInfo
 	err := db.Model(&proposalInfo).
 		Where("id = ?", proposalID).
 		Select()
@@ -234,7 +234,7 @@ func GetDeposits(db *pg.DB, w http.ResponseWriter, r *http.Request) error {
 	resultDepositInfo := make([]*models.ResultDeposit, 0)
 
 	// query all deposit info
-	depositInfo := make([]*types.DepositInfo, 0)
+	depositInfo := make([]*schema.DepositInfo, 0)
 	_ = db.Model(&depositInfo).
 		Where("proposal_id = ?", proposalID).
 		Order("id DESC").

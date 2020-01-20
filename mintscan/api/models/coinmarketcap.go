@@ -1,4 +1,4 @@
-package types
+package models
 
 // CoinmarketcapQuotes is a struct for Coinmarketcap API
 type CoinmarketcapQuotes struct {

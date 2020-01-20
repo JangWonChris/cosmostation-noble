@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models/types"
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/schema"
 )
 
 // ResultBlock is a struct for block result response
@@ -107,11 +107,11 @@ type ResultVote struct {
 
 // ResultProposalDetail is a struct for deposit detail information result response
 type ResultProposalDetail struct {
-	ProposalID         int64             `json:"proposal_id"`
-	TotalVotesNum      int               `json:"total_votes_num"`
-	TotalDepositAmount float64           `json:"total_deposit_amount"`
-	ResultVoteInfo     ResultVote        `json:"vote_info"`
-	DepositInfo        types.DepositInfo `json:"deposit_info"`
+	ProposalID         int64              `json:"proposal_id"`
+	TotalVotesNum      int                `json:"total_votes_num"`
+	TotalDepositAmount float64            `json:"total_deposit_amount"`
+	ResultVoteInfo     ResultVote         `json:"vote_info"`
+	DepositInfo        schema.DepositInfo `json:"deposit_info"`
 }
 
 // ResultStatus is a struct for status result response
@@ -214,9 +214,9 @@ type ResultVotingPowerHistory struct {
 
 // ResultValidatorDelegations is a struct for validator delegations result response
 type ResultValidatorDelegations struct {
-	TotalDelegatorNum     int                           `json:"total_delegator_num"`
-	DelegatorNumChange24H int                           `json:"delegator_num_change_24h"`
-	ValidatorDelegations  []*types.ValidatorDelegations `json:"delegations"`
+	TotalDelegatorNum     int                     `json:"total_delegator_num"`
+	DelegatorNumChange24H int                     `json:"delegator_num_change_24h"`
+	ValidatorDelegations  []*ValidatorDelegations `json:"delegations"`
 }
 
 // ResultRewards is a struct for rewards result response

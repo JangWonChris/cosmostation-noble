@@ -6,13 +6,17 @@ import (
 	"github.com/go-pg/pg"
 )
 
-// Connect to PostgreSQL
-func ConnectDatabase(Config *config.Config) *pg.DB {
-	database := pg.Connect(&pg.Options{
+type Database struct {
+	*pg.DB
+}
+
+// Connect connects to PostgreSQL
+func Connect(Config *config.Config) *Database {
+	db := pg.Connect(&pg.Options{
 		Addr:     Config.DB.Host,
 		User:     Config.DB.User,
 		Password: Config.DB.Password,
 		Database: Config.DB.Table,
 	})
-	return database
+	return &Database{db}
 }

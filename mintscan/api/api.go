@@ -7,13 +7,12 @@ import (
 	"net/http"
 	"time"
 
+	ceCodec "github.com/cosmostation/cosmostation-cosmos/mintscan/api/codec"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/controllers"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/db"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-	gaiaApp "github.com/cosmos/gaia/app"
-	"github.com/go-pg/pg"
 	"github.com/gorilla/mux"
 	"github.com/tendermint/tendermint/rpc/client"
 
@@ -24,47 +23,44 @@ import (
 type App struct {
 	codec     *codec.Codec
 	config    *config.Config
-	db        *pg.DB
+	db        *db.Database
 	router    *mux.Router
 	rpcClient *client.HTTP
 }
 
 // NewApp initializes the app with predefined configuration
-func (a *App) NewApp(config *config.Config) {
-	// configuration
-	a.config = config
-
-	// connect to Tendermint RPC client through websocket
-	a.rpcClient = client.NewHTTP(a.config.Node.GaiadURL, "/websocket")
-
-	// connect to PostgreSQL
-	a.db = db.ConnectDatabase(config)
-
-	// register Cosmos SDK codecs
-	a.codec = gaiaApp.MakeCodec()
-
-	// register routers
-	a.setRouters()
-
+func NewApp(config *config.Config) *App {
 	// sets timeout for request.
 	resty.SetTimeout(5 * time.Second)
 	resty.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true}) // local test
+
+	app := &App{
+		ceCodec.Codec,
+		config,
+		db.Connect(config),
+		setRouter(),
+		client.NewHTTP(config.Node.GaiadURL, "/websocket"), // Tendermint RPC client
+	}
+
+	controllers.AccountController(app.codec, app.config, app.db.DB, app.router, app.rpcClient)
+	controllers.BlockController(app.codec, app.config, app.db.DB, app.router, app.rpcClient)
+	controllers.DistributionController(app.codec, app.config, app.db.DB, app.router, app.rpcClient)
+	controllers.GovernanceController(app.codec, app.config, app.db.DB, app.router, app.rpcClient)
+	controllers.MintingController(app.codec, app.config, app.db.DB, app.router, app.rpcClient)
+	controllers.TransactionController(app.codec, app.config, app.db.DB, app.router, app.rpcClient)
+	controllers.ValidatorController(app.codec, app.config, app.db.DB, app.router, app.rpcClient)
+	controllers.StatusController(app.codec, app.config, app.db.DB, app.router, app.rpcClient)
+	controllers.StatsController(app.codec, app.config, app.db.DB, app.router, app.rpcClient)
+
+	return app
 }
 
-// Sets the all required routers
-func (a *App) setRouters() {
-	a.router = mux.NewRouter()
-	a.router = a.router.PathPrefix("/v1").Subrouter()
+// setRouter sets the all required routers
+func setRouter() *mux.Router {
+	r := mux.NewRouter()
+	r = r.PathPrefix("/v1").Subrouter()
 
-	controllers.AccountController(a.codec, a.config, a.db, a.router, a.rpcClient)
-	controllers.BlockController(a.codec, a.config, a.db, a.router, a.rpcClient)
-	controllers.DistributionController(a.codec, a.config, a.db, a.router, a.rpcClient)
-	controllers.GovernanceController(a.codec, a.config, a.db, a.router, a.rpcClient)
-	controllers.MintingController(a.codec, a.config, a.db, a.router, a.rpcClient)
-	controllers.TransactionController(a.codec, a.config, a.db, a.router, a.rpcClient)
-	controllers.ValidatorController(a.codec, a.config, a.db, a.router, a.rpcClient)
-	controllers.StatusController(a.codec, a.config, a.db, a.router, a.rpcClient)
-	controllers.StatsController(a.codec, a.config, a.db, a.router, a.rpcClient)
+	return r
 }
 
 // Run the app

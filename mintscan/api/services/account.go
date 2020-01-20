@@ -12,12 +12,11 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	distr "github.com/cosmos/cosmos-sdk/x/distribution"
 	"github.com/cosmos/cosmos-sdk/x/distribution/client/common"
-	distrTypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models/types"
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/schema"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/utils"
 
 	"github.com/tendermint/tendermint/rpc/client"
@@ -41,7 +40,7 @@ func GetBalance(codec *codec.Codec, config *config.Config, db *pg.DB, rpcClient 
 	resp, _ := resty.R().Get(config.Node.LCDURL + "/bank/balances/" + accAddress)
 
 	var balances []models.Coin
-	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &balances)
+	err := json.Unmarshal(models.ReadRespWithHeight(resp).Result, &balances)
 	if err != nil {
 		log.Info().Str(models.Service, models.LogAccount).Str(models.Method, "GetBalance").Err(err).Msg("unmarshal balances error")
 	}
@@ -73,7 +72,7 @@ func GetDelegationsRewards(codec *codec.Codec, config *config.Config, db *pg.DB,
 	resp, _ := resty.R().Get(config.Node.LCDURL + "/distribution/delegators/" + accAddress + "/rewards")
 
 	var resultRewards models.ResultRewards
-	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &resultRewards)
+	err := json.Unmarshal(models.ReadRespWithHeight(resp).Result, &resultRewards)
 	if err != nil {
 		log.Info().Str(models.Service, models.LogAccount).Str(models.Method, "GetDelegationsRewards").Err(err).Msg("unmarshal resultRewards error")
 	}
@@ -124,7 +123,7 @@ func GetDelegations(codec *codec.Codec, config *config.Config, db *pg.DB, rpcCli
 	resp, _ := resty.R().Get(config.Node.LCDURL + "/staking/delegators/" + accAddress + "/delegations")
 
 	delegations := make([]models.Delegations, 0)
-	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &delegations)
+	err := json.Unmarshal(models.ReadRespWithHeight(resp).Result, &delegations)
 	if err != nil {
 		log.Info().Str(models.Service, models.LogAccount).Str(models.Method, "GetDelegations").Err(err).Msg("unmarshal delegations error")
 	}
@@ -132,7 +131,7 @@ func GetDelegations(codec *codec.Codec, config *config.Config, db *pg.DB, rpcCli
 	resultDelegations := make([]models.ResultDelegations, 0)
 	if len(delegations) > 0 {
 		for _, delegation := range delegations {
-			var validatorInfo types.ValidatorInfo
+			var validatorInfo schema.ValidatorInfo
 			_ = db.Model(&validatorInfo).
 				Column("moniker"). // query validator's moniker
 				Where("operator_address = ?", delegation.ValidatorAddress).
@@ -143,7 +142,7 @@ func GetDelegations(codec *codec.Codec, config *config.Config, db *pg.DB, rpcCli
 			rewardsResp, _ := resty.R().Get(config.Node.LCDURL + "/distribution/delegators/" + accAddress + "/rewards/" + delegation.ValidatorAddress)
 
 			var rewards []models.Coin
-			err = json.Unmarshal(types.ReadRespWithHeight(rewardsResp).Result, &rewards)
+			err = json.Unmarshal(models.ReadRespWithHeight(rewardsResp).Result, &rewards)
 			if err != nil {
 				log.Info().Str(models.Service, models.LogAccount).Str(models.Method, "GetDelegations").Err(err).Msg("unmarshal rewards error")
 			}
@@ -169,8 +168,8 @@ func GetDelegations(codec *codec.Codec, config *config.Config, db *pg.DB, rpcCli
 			// query information of the validator
 			validatorResp, _ := resty.R().Get(config.Node.LCDURL + "/staking/validators/" + delegation.ValidatorAddress)
 
-			var validator types.Validator
-			err = json.Unmarshal(types.ReadRespWithHeight(validatorResp).Result, &validator)
+			var validator models.Validator
+			err = json.Unmarshal(models.ReadRespWithHeight(validatorResp).Result, &validator)
 			if err != nil {
 				log.Info().Str(models.Service, models.LogAccount).Str(models.Method, "GetDelegations").Err(err).Msg("unmarshal validator error")
 			}
@@ -217,7 +216,7 @@ func GetCommission(codec *codec.Codec, config *config.Config, db *pg.DB, rpcClie
 		valAddr, _ := sdk.ValAddressFromBech32(valAddress)
 		result, _ := common.QueryValidatorCommission(ctx, distr.QuerierRoute, valAddr)
 
-		var valCom distrTypes.ValidatorAccumulatedCommission
+		var valCom distr.ValidatorAccumulatedCommission
 		ctx.Codec.MustUnmarshalJSON(result, &valCom)
 
 		if valCom != nil {
@@ -247,14 +246,14 @@ func GetUnbondingDelegations(codec *codec.Codec, config *config.Config, db *pg.D
 	unbondingDelegationsResp, _ := resty.R().Get(config.Node.LCDURL + "/staking/delegators/" + accAddress + "/unbonding_delegations")
 
 	unbondingDelegations := make([]models.UnbondingDelegations, 0)
-	err := json.Unmarshal(types.ReadRespWithHeight(unbondingDelegationsResp).Result, &unbondingDelegations)
+	err := json.Unmarshal(models.ReadRespWithHeight(unbondingDelegationsResp).Result, &unbondingDelegations)
 	if err != nil {
 		log.Info().Str(models.Service, models.LogAccount).Str(models.Method, "GetUnbondingDelegations").Err(err).Msg("unmarshal unbondingDelegations error")
 	}
 
 	resultUnbondingDelegations := make([]models.UnbondingDelegations, 0)
 	for _, unbondingDelegation := range unbondingDelegations {
-		var validatorInfo types.ValidatorInfo
+		var validatorInfo schema.ValidatorInfo
 		_ = db.Model(&validatorInfo).
 			Column("moniker").
 			Where("operator_address = ?", unbondingDelegation.ValidatorAddress).

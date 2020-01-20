@@ -7,7 +7,7 @@ import (
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models"
-	dbtypes "github.com/cosmostation/cosmostation-cosmos/mintscan/api/models/types"
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/schema"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/utils"
 
 	"github.com/go-pg/pg"
@@ -35,7 +35,7 @@ func GetBlocks(db *pg.DB, w http.ResponseWriter, r *http.Request) error {
 		afterBlock, _ = strconv.Atoi(r.URL.Query()["afterBlock"][0])
 	} else {
 		// Query the lastest block height
-		var blockInfo []dbtypes.BlockInfo
+		var blockInfo []schema.BlockInfo
 		_ = db.Model(&blockInfo).
 			Column("height").
 			Order("id DESC").
@@ -47,7 +47,7 @@ func GetBlocks(db *pg.DB, w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// query a number of blocks in an ascending order
-	var blockInfos []dbtypes.BlockInfo
+	var blockInfos []schema.BlockInfo
 	_ = db.Model(&blockInfos).
 		Where("height > ?", afterBlock).
 		Limit(limit).
@@ -63,13 +63,13 @@ func GetBlocks(db *pg.DB, w http.ResponseWriter, r *http.Request) error {
 	resultBlock := make([]*models.ResultBlock, 0)
 	for _, blockInfo := range blockInfos {
 		// query validator information using proposer address
-		var validatorInfo dbtypes.ValidatorInfo
+		var validatorInfo schema.ValidatorInfo
 		_ = db.Model(&validatorInfo).
 			Where("proposer = ?", blockInfo.Proposer).
 			Select()
 
 		// query transactions in the block
-		var transactionInfos []dbtypes.TransactionInfo
+		var transactionInfos []schema.TransactionInfo
 		_ = db.Model(&transactionInfos).
 			Where("height = ?", blockInfo.Height).
 			Select()
@@ -132,7 +132,7 @@ func GetProposedBlocks(db *pg.DB, w http.ResponseWriter, r *http.Request) error 
 		from, _ = strconv.Atoi(r.URL.Query()["from"][0])
 	} else {
 		// Query the lastest block height
-		var blockInfo []dbtypes.BlockInfo
+		var blockInfo []schema.BlockInfo
 		_ = db.Model(&blockInfo).
 			Column("height").
 			Order("id DESC").
@@ -144,7 +144,7 @@ func GetProposedBlocks(db *pg.DB, w http.ResponseWriter, r *http.Request) error 
 	}
 
 	// query blocks
-	blockInfos := make([]*dbtypes.BlockInfo, 0)
+	blockInfos := make([]*schema.BlockInfo, 0)
 	_ = db.Model(&blockInfos).
 		Where("height < ? AND proposer = ?", from, address).
 		Limit(limit).
@@ -163,13 +163,13 @@ func GetProposedBlocks(db *pg.DB, w http.ResponseWriter, r *http.Request) error 
 
 	resultBlocksByOperatorAddress := make([]*models.ResultBlocksByOperatorAddress, 0)
 	for _, blockInfo := range blockInfos {
-		var validatorInfo dbtypes.ValidatorInfo
+		var validatorInfo schema.ValidatorInfo
 		_ = db.Model(&validatorInfo).
 			Where("proposer = ?", blockInfo.Proposer).
 			Select()
 
 		// query a number of txs
-		var transactionInfos []dbtypes.TransactionInfo
+		var transactionInfos []schema.TransactionInfo
 		_ = db.Model(&transactionInfos).
 			Column("tx_hash").
 			Where("height = ?", blockInfo.Height).
