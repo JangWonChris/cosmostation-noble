@@ -60,27 +60,60 @@ func (db *Database) QueryValidatorInfoByProposer(proposer string) (schema.Valida
 }
 
 // QueryValidatorPowerEvents queries validator's power events by limit/offset pagination
-func (db *Database) QueryValidatorPowerEvents(validatorID int, limit int, offset int) ([]schema.ValidatorSetInfo, error) {
+func (db *Database) QueryValidatorPowerEvents(validatorID int, limit int, before int, after int, offset int) ([]schema.ValidatorSetInfo, error) {
 	validatorSetInfo := make([]schema.ValidatorSetInfo, 0)
-	_ = db.Model(&validatorSetInfo).
-		Where("id_validator = ?", validatorID).
-		Limit(limit).
-		Offset(offset).
-		Order("id DESC").
-		Select()
+
+	switch {
+	case before > 0:
+		_ = db.Model(&validatorSetInfo).
+			Where("id_validator = ? AND height < ?", validatorID, before).
+			Limit(limit).
+			Order("id DESC").
+			Select()
+	case after > 0:
+		_ = db.Model(&validatorSetInfo).
+			Where("id_validator = ? AND height > ? ", validatorID, after).
+			Limit(limit).
+			Order("id DESC").
+			Select()
+
+	case offset >= 0:
+		_ = db.Model(&validatorSetInfo).
+			Where("id_validator = ?", validatorID).
+			Limit(limit).
+			Offset(offset).
+			Order("id DESC").
+			Select()
+	}
 
 	return validatorSetInfo, nil
 }
 
 // QueryBlocksByProposer queries blocks by proposer
-func (db *Database) QueryBlocksByProposer(address string, limit int, offset int) ([]schema.BlockInfo, error) {
+func (db *Database) QueryBlocksByProposer(address string, limit int, before int, after int, offset int) ([]schema.BlockInfo, error) {
 	blocks := make([]schema.BlockInfo, 0)
-	_ = db.Model(&blocks).
-		Where("proposer = ?", address).
-		Limit(limit).
-		Offset(offset).
-		Order("height DESC").
-		Select()
+
+	switch {
+	case before > 0:
+		_ = db.Model(&blocks).
+			Where("proposer = ? AND height < ?", address, before).
+			Limit(limit).
+			Order("height DESC").
+			Select()
+	case after > 0:
+		_ = db.Model(&blocks).
+			Where("proposer = ? AND height < ?", address, after).
+			Limit(limit).
+			Order("height DESC").
+			Select()
+	case offset >= 0:
+		_ = db.Model(&blocks).
+			Where("proposer = ?", address).
+			Limit(limit).
+			Offset(offset).
+			Order("height DESC").
+			Select()
+	}
 
 	return blocks, nil
 }

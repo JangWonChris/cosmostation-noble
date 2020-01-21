@@ -22,13 +22,14 @@ type WrapError struct {
 const (
 	InternalServer ErrorCode = 101
 
-	DuplicateAccount ErrorCode = 201
-	InvalidFormat    ErrorCode = 202
-	NotExist         ErrorCode = 203
-	FailedConversion ErrorCode = 204
+	DuplicateAccount  ErrorCode = 201
+	InvalidFormat     ErrorCode = 202
+	NotExist          ErrorCode = 203
+	FailedConversion  ErrorCode = 204
+	NotExistValidator ErrorCode = 205
 
-	OverMaxLimit ErrorCode = 301
-	FailedUnmarshalJSON ErrorCode = 302
+	OverMaxLimit                      ErrorCode = 301
+	FailedUnmarshalJSON               ErrorCode = 302
 	FailedMarshalBinaryLengthPrefixed ErrorCode = 303
 )
 
@@ -43,6 +44,8 @@ func ErrorCodeToErrorMsg(code ErrorCode) ErrorMsg {
 		return "Invalid format"
 	case NotExist:
 		return "NotExist"
+	case NotExistValidator:
+		return "NotExistValidator"
 	case FailedConversion:
 		return "FailedConversion"
 	case OverMaxLimit:
@@ -92,6 +95,14 @@ func ErrNotExist(w http.ResponseWriter, statusCode int) {
 	PrintException(w, statusCode, wrapError)
 }
 
+func ErrNotExistValidator(w http.ResponseWriter, statusCode int) {
+	wrapError := WrapError{
+		ErrorCode: NotExistValidator,
+		ErrorMsg:  ErrorCodeToErrorMsg(NotExistValidator),
+	}
+	PrintException(w, statusCode, wrapError)
+}
+
 func ErrFailedConversion(w http.ResponseWriter, statusCode int) {
 	wrapError := WrapError{
 		ErrorCode: FailedConversion,
@@ -123,6 +134,7 @@ func ErrFailedMarshalBinaryLengthPrefixed(w http.ResponseWriter, statusCode int)
 	}
 	PrintException(w, statusCode, wrapError)
 }
+
 /*
 	----------------------------------------------- PrintException
 */

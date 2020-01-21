@@ -112,12 +112,25 @@ func GetProposedBlocks(db *db.Database, w http.ResponseWriter, r *http.Request) 
 
 	address = validatorInfo.Proposer
 
-	// Default limit and max is 100 and offset is 0 (latest blocks)
-	limit := int(100)
+	limit := int(100) // default limit is 100
+	before := int(0)
+	after := int(0)
 	offset := int(0)
 
 	if len(r.URL.Query()["limit"]) > 0 {
 		limit, _ = strconv.Atoi(r.URL.Query()["limit"][0])
+	}
+
+	if len(r.URL.Query()["before"]) > 0 {
+		before, _ = strconv.Atoi(r.URL.Query()["before"][0])
+	}
+
+	if len(r.URL.Query()["after"]) > 0 {
+		after, _ = strconv.Atoi(r.URL.Query()["after"][0])
+	}
+
+	if len(r.URL.Query()["offset"]) > 0 {
+		offset, _ = strconv.Atoi(r.URL.Query()["offset"][0])
 	}
 
 	if limit > 100 {
@@ -125,12 +138,18 @@ func GetProposedBlocks(db *db.Database, w http.ResponseWriter, r *http.Request) 
 		return nil
 	}
 
-	if len(r.URL.Query()["offset"]) > 0 {
-		offset, _ = strconv.Atoi(r.URL.Query()["offset"][0])
+	// Query blocks proposed by proposer
+	blocks := make([]schema.BlockInfo, 0)
+
+	switch {
+	case before > 0:
+		blocks, _ = db.QueryBlocksByProposer(address, limit, before, after, offset)
+	case after > 0:
+		blocks, _ = db.QueryBlocksByProposer(address, limit, before, after, offset)
+	case offset > 0:
+		blocks, _ = db.QueryBlocksByProposer(address, limit, before, after, offset)
 	}
 
-	// Query blocks proposed by proposer
-	blocks, _ := db.QueryBlocksByProposer(address, limit, offset)
 	if len(blocks) <= 0 {
 		return json.NewEncoder(w).Encode(blocks)
 	}
@@ -145,7 +164,6 @@ func GetProposedBlocks(db *db.Database, w http.ResponseWriter, r *http.Request) 
 		// query a number of txs
 		txInfos, _ := db.QueryTransactions(block.Height)
 
-		// append transactions
 		var txData models.TxData
 		if len(txInfos) > 0 {
 			for _, txInfo := range txInfos {
