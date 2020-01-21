@@ -337,7 +337,7 @@ func GetValidatorEvents(db *db.Database, w http.ResponseWriter, r *http.Request)
 		events, _ = db.QueryValidatorPowerEvents(validatorID, limit, before, after, offset)
 	case after > 0:
 		events, _ = db.QueryValidatorPowerEvents(validatorID, limit, before, after, offset)
-	case offset > 0:
+	case offset >= 0:
 		events, _ = db.QueryValidatorPowerEvents(validatorID, limit, before, after, offset)
 	}
 

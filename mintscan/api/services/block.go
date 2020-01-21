@@ -146,7 +146,7 @@ func GetProposedBlocks(db *db.Database, w http.ResponseWriter, r *http.Request) 
 		blocks, _ = db.QueryBlocksByProposer(address, limit, before, after, offset)
 	case after > 0:
 		blocks, _ = db.QueryBlocksByProposer(address, limit, before, after, offset)
-	case offset > 0:
+	case offset >= 0:
 		blocks, _ = db.QueryBlocksByProposer(address, limit, before, after, offset)
 	}
 
