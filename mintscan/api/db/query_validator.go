@@ -5,27 +5,6 @@ import (
 	"github.com/go-pg/pg"
 )
 
-// QueryLatestBlockHeight queries the latest block height in database
-func (db *Database) QueryLatestBlockHeight() (int, error) {
-	var block schema.BlockInfo
-	err := db.Model(&block).
-		Order("height DESC").
-		Limit(1).
-		Select()
-
-	// return 0 when there is no row in result set
-	if err == pg.ErrNoRows {
-		return 0, err
-	}
-
-	// return -1 for any type of errors
-	if err != nil {
-		return -1, err
-	}
-
-	return int(block.Height), nil
-}
-
 // QueryValidatorID queries validator index id
 // reference chain exporter project on how validator power event data is stored
 func (db *Database) QueryValidatorID(address string) (int, error) {
@@ -74,7 +53,7 @@ func (db *Database) QueryValidatorPowerEvents(validatorID int, limit int, before
 		_ = db.Model(&validatorSetInfo).
 			Where("id_validator = ? AND height > ? ", validatorID, after).
 			Limit(limit).
-			Order("id DESC").
+			Order("id ASC").
 			Select()
 
 	case offset >= 0:
@@ -89,52 +68,22 @@ func (db *Database) QueryValidatorPowerEvents(validatorID int, limit int, before
 	return validatorSetInfo, nil
 }
 
-// QueryBlocksByProposer queries blocks by proposer
-func (db *Database) QueryBlocksByProposer(address string, limit int, before int, after int, offset int) ([]schema.BlockInfo, error) {
-	blocks := make([]schema.BlockInfo, 0)
-
-	switch {
-	case before > 0:
-		_ = db.Model(&blocks).
-			Where("proposer = ? AND height < ?", address, before).
-			Limit(limit).
-			Order("height DESC").
-			Select()
-	case after > 0:
-		_ = db.Model(&blocks).
-			Where("proposer = ? AND height < ?", address, after).
-			Limit(limit).
-			Order("height DESC").
-			Select()
-	case offset >= 0:
-		_ = db.Model(&blocks).
-			Where("proposer = ?", address).
-			Limit(limit).
-			Offset(offset).
-			Order("height DESC").
-			Select()
-	}
-
-	return blocks, nil
-}
-
-// QueryTotalBlocksByProposer queries total number of blocks proposed by a proposer
-func (db *Database) QueryTotalBlocksByProposer(address string) (int, error) {
-	var blockInfo schema.BlockInfo
-	totalNum, _ := db.Model(&blockInfo).
-		Where("proposer = ?", address).
+// QueryUnjailedValidatorsNum queries how many validators are not jailed
+func (db *Database) QueryUnjailedValidatorsNum() int {
+	var validatorInfo schema.ValidatorInfo
+	num, _ := db.Model(&validatorInfo).
+		Where("status = ?", 2).
 		Count()
 
-	return totalNum, nil
+	return num
 }
 
-// QueryTransactions queries transactions
-func (db *Database) QueryTransactions(height int64) ([]schema.TransactionInfo, error) {
-	var txInfos []schema.TransactionInfo
-	_ = db.Model(&txInfos).
-		Column("tx_hash").
-		Where("height = ?", height).
-		Select()
+// QueryJailedValidatorsNum queries how many validators are not either unbonding or unbonded
+func (db *Database) QueryJailedValidatorsNum() int {
+	var validatorInfo schema.ValidatorInfo
+	num, _ := db.Model(&validatorInfo).
+		Where("status = ? OR status = ?", 0, 1).
+		Count()
 
-	return txInfos, nil
+	return num
 }

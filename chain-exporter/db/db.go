@@ -49,6 +49,10 @@ func (db *Database) CreateSchema() error {
 		if err != nil {
 			return err
 		}
+		_, err = db.Model(schema.ValidatorInfo{}).Exec(`CREATE INDEX validator_set_info_height_idx ON validator_set_infos USING btree(height);`)
+		if err != nil {
+			return err
+		}
 		_, err = db.Model(schema.MissDetailInfo{}).Exec(`CREATE INDEX miss_detail_info_height_idx ON miss_detail_infos USING btree(height);`)
 		if err != nil {
 			return err

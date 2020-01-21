@@ -9,10 +9,8 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/db"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/schema"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/utils"
 
-	"github.com/rs/zerolog/log"
 	"github.com/tendermint/tendermint/rpc/client"
 	resty "gopkg.in/resty.v1"
 )
@@ -44,10 +42,8 @@ func GetStatus(config *config.Config, db *db.Database, rpcClient *client.HTTP, w
 	err := json.Unmarshal(models.ReadRespWithHeight(resp).Result, &pool)
 	if err != nil {
 		fmt.Printf("staking/pool unmarshal pool error - %v\n", err)
-		log.Info().Str(models.Service, models.LogStatus).Str(models.Method, "GetStatus").Err(err).Msg("unmarshal pool error")
 	}
 
-	// Query total supply
 	totalSupplyResp, _ := resty.R().Get(config.Node.LCDURL + "/supply/total")
 
 	var coin []models.Coin
@@ -60,42 +56,20 @@ func GetStatus(config *config.Config, db *db.Database, rpcClient *client.HTTP, w
 	bondedTokens, _ := strconv.ParseFloat(pool.BondedTokens, 64)
 	totalSupplyTokens, _ := strconv.ParseFloat(coin[0].Amount, 64)
 
-	// a number of unjailed validators
-	var unjailedValidators schema.ValidatorInfo
-	unJailedNum, _ := db.Model(&unjailedValidators).
-		Where("status = ?", 2).
-		Count()
-
-	// a number of jailed validators
-	var jailedValidators schema.ValidatorInfo
-	jailedNum, _ := db.Model(&jailedValidators).
-		Where("status = ? OR status = ?", 0, 1).
-		Count()
-
-	// total txs num
-	var blockInfo schema.BlockInfo
-	_ = db.Model(&blockInfo).
-		Column("total_txs").
-		Order("height DESC").
-		Limit(1).
-		Select()
+	// Query both unjailed and jailed number of validators, total number of transactions
+	unJailedNum := db.QueryUnjailedValidatorsNum()
+	jailedNum := db.QueryJailedValidatorsNum()
+	totalTxsNum := db.QueryTotalTxsNum()
 
 	// query status
 	status, _ := rpcClient.Status()
 
-	// query the lastly saved block time
-	var lastBlockTime []schema.BlockInfo
-	_ = db.Model(&lastBlockTime).
-		Column("time").
-		Order("height DESC").
-		Limit(2).
-		Select()
+	// query the latest two blocks and calculate block time
+	latestTwoBlocks := db.QueryLastestTwoBlocks()
+	lastBlocktime := latestTwoBlocks[0].Time.UTC()
+	secondLastBlocktime := latestTwoBlocks[1].Time.UTC()
 
-	// latest block time and its previous block time
-	lastBlocktime := lastBlockTime[0].Time.UTC()
-	secondLastBlocktime := lastBlockTime[1].Time.UTC()
-
-	// * 실질적으로 status.SyncInfo.LatestBlockTime.UTC()로 비교를 해야 되지만 현재로써는 마지막, 두번째마지막으로 비교
+	// <Note>: status.SyncInfo.LatestBlockTime.UTC()로 비교를 해야 되지만 현재로써는 마지막, 두번째마지막으로 비교
 	// Get the block time that is taken from the previous block
 	diff := lastBlocktime.Sub(secondLastBlocktime)
 
@@ -103,7 +77,7 @@ func GetStatus(config *config.Config, db *db.Database, rpcClient *client.HTTP, w
 		ChainID:                status.NodeInfo.Network,
 		BlockHeight:            status.SyncInfo.LatestBlockHeight,
 		BlockTime:              diff.Seconds(),
-		TotalTxsNum:            blockInfo.TotalTxs,
+		TotalTxsNum:            totalTxsNum,
 		TotalValidatorNum:      unJailedNum + jailedNum,
 		TotalSupplyTokens:      totalSupplyTokens,
 		TotalCirculatingTokens: bondedTokens + notBondedTokens,
