@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -17,13 +16,11 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/db"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/schema"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/utils"
 
 	"github.com/tendermint/tendermint/rpc/client"
 
 	"github.com/gorilla/mux"
-	"github.com/rs/zerolog/log"
 	resty "gopkg.in/resty.v1"
 )
 
@@ -32,7 +29,7 @@ func GetBalance(codec *codec.Codec, config *config.Config, db *db.Database, rpcC
 	vars := mux.Vars(r)
 	accAddress := vars["accAddress"]
 
-	if !strings.Contains(accAddress, sdk.GetConfig().GetBech32AccountAddrPrefix()) || len(accAddress) != 45 {
+	if !utils.VerifyAddress(accAddress) {
 		errors.ErrNotExist(w, http.StatusNotFound)
 		return nil
 	}
@@ -42,7 +39,7 @@ func GetBalance(codec *codec.Codec, config *config.Config, db *db.Database, rpcC
 	var balances []models.Coin
 	err := json.Unmarshal(models.ReadRespWithHeight(resp).Result, &balances)
 	if err != nil {
-		log.Info().Str(models.Service, models.LogAccount).Str(models.Method, "GetBalance").Err(err).Msg("unmarshal balances error")
+		fmt.Printf("failed to unmarshal balances: %t\n", err)
 	}
 
 	result := make([]models.Coin, 0)
@@ -64,7 +61,7 @@ func GetDelegationsRewards(codec *codec.Codec, config *config.Config, db *db.Dat
 	vars := mux.Vars(r)
 	accAddress := vars["accAddress"]
 
-	if !strings.Contains(accAddress, sdk.GetConfig().GetBech32AccountAddrPrefix()) || len(accAddress) != 45 {
+	if !utils.VerifyAddress(accAddress) {
 		errors.ErrNotExist(w, http.StatusNotFound)
 		return nil
 	}
@@ -74,10 +71,11 @@ func GetDelegationsRewards(codec *codec.Codec, config *config.Config, db *db.Dat
 	var resultRewards models.ResultRewards
 	err := json.Unmarshal(models.ReadRespWithHeight(resp).Result, &resultRewards)
 	if err != nil {
-		log.Info().Str(models.Service, models.LogAccount).Str(models.Method, "GetDelegationsRewards").Err(err).Msg("unmarshal resultRewards error")
+		fmt.Printf("failed to unmarshal resultRewards: %t\n", err)
 	}
 
-	resultDelegatorRewards := make([]models.Rewards, 0)
+	result := make([]models.Rewards, 0)
+
 	for _, reward := range resultRewards.Rewards {
 		coins := make([]models.Coin, 0)
 
@@ -102,10 +100,10 @@ func GetDelegationsRewards(codec *codec.Codec, config *config.Config, db *db.Dat
 			Reward:           coins,
 		}
 
-		resultDelegatorRewards = append(resultDelegatorRewards, *tempReward)
+		result = append(result, *tempReward)
 	}
 
-	utils.Respond(w, resultDelegatorRewards)
+	utils.Respond(w, result)
 	return nil
 }
 
@@ -114,41 +112,35 @@ func GetDelegations(codec *codec.Codec, config *config.Config, db *db.Database, 
 	vars := mux.Vars(r)
 	accAddress := vars["accAddress"]
 
-	if !strings.Contains(accAddress, sdk.GetConfig().GetBech32AccountAddrPrefix()) || len(accAddress) != 45 {
+	if !utils.VerifyAddress(accAddress) {
 		errors.ErrNotExist(w, http.StatusNotFound)
 		return nil
 	}
 
-	// query delegations and each delegator's rewards
+	// Query delegations and each delegator's rewards
 	resp, _ := resty.R().Get(config.Node.LCDURL + "/staking/delegators/" + accAddress + "/delegations")
 
 	delegations := make([]models.Delegations, 0)
 	err := json.Unmarshal(models.ReadRespWithHeight(resp).Result, &delegations)
 	if err != nil {
-		log.Info().Str(models.Service, models.LogAccount).Str(models.Method, "GetDelegations").Err(err).Msg("unmarshal delegations error")
+		fmt.Printf("failed to unmarshal delegations: %t\n", err)
 	}
 
 	resultDelegations := make([]models.ResultDelegations, 0)
+
 	if len(delegations) > 0 {
 		for _, delegation := range delegations {
-			var validatorInfo schema.ValidatorInfo
-			_ = db.Model(&validatorInfo).
-				Column("moniker"). // query validator's moniker
-				Where("operator_address = ?", delegation.ValidatorAddress).
-				Limit(1).
-				Select()
-
-			// query rewards
 			rewardsResp, _ := resty.R().Get(config.Node.LCDURL + "/distribution/delegators/" + accAddress + "/rewards/" + delegation.ValidatorAddress)
 
 			var rewards []models.Coin
 			err = json.Unmarshal(models.ReadRespWithHeight(rewardsResp).Result, &rewards)
 			if err != nil {
-				log.Info().Str(models.Service, models.LogAccount).Str(models.Method, "GetDelegations").Err(err).Msg("unmarshal rewards error")
+				fmt.Printf("failed to unmarshal rewards: %t\n", err)
 			}
 
-			// if the fee of delegator's validator is 100%, then reward is null
 			resultRewards := make([]models.Coin, 0)
+
+			// Exception: reward is null when the fee of delegator's validator is 100%
 			if len(rewards) > 0 {
 				for _, reward := range rewards {
 					tempReward := &models.Coin{
@@ -165,16 +157,15 @@ func GetDelegations(codec *codec.Codec, config *config.Config, db *db.Database, 
 				resultRewards = append(resultRewards, *tempReward)
 			}
 
-			// query information of the validator
 			validatorResp, _ := resty.R().Get(config.Node.LCDURL + "/staking/validators/" + delegation.ValidatorAddress)
 
 			var validator models.Validator
 			err = json.Unmarshal(models.ReadRespWithHeight(validatorResp).Result, &validator)
 			if err != nil {
-				log.Info().Str(models.Service, models.LogAccount).Str(models.Method, "GetDelegations").Err(err).Msg("unmarshal validator error")
+				fmt.Printf("failed to unmarshal validator: %t\n", err)
 			}
 
-			// validator's token divide by delegator_shares equals amount of uatom
+			// Calculate the amount of uatom, which should divide validator's token divide delegator_shares
 			tokens, _ := strconv.ParseFloat(validator.Tokens, 64)
 			delegatorShares, _ := strconv.ParseFloat(validator.DelegatorShares, 64)
 			uatom := tokens / delegatorShares
@@ -184,7 +175,7 @@ func GetDelegations(codec *codec.Codec, config *config.Config, db *db.Database, 
 			tempResultDelegations := &models.ResultDelegations{
 				DelegatorAddress: delegation.DelegatorAddress,
 				ValidatorAddress: delegation.ValidatorAddress,
-				Moniker:          validatorInfo.Moniker,
+				Moniker:          validator.Description.Moniker,
 				Shares:           delegation.Shares,
 				Balance:          delegation.Balance,
 				Amount:           amount,
@@ -203,17 +194,17 @@ func GetCommission(codec *codec.Codec, config *config.Config, db *db.Database, r
 	vars := mux.Vars(r)
 	accAddress := vars["accAddress"]
 
-	if !strings.Contains(accAddress, sdk.GetConfig().GetBech32AccountAddrPrefix()) || len(accAddress) != 45 {
+	if !utils.VerifyAddress(accAddress) {
 		errors.ErrNotExist(w, http.StatusNotFound)
 		return nil
 	}
 
-	valAddress := utils.ValAddressFromAccAddress(accAddress)
+	operAddr := utils.ValAddressFromAccAddress(accAddress)
 
 	commission := make([]models.Coin, 0)
-	if valAddress != "" {
+	if operAddr != "" {
 		ctx := context.NewCLIContext().WithCodec(codec).WithClient(rpcClient)
-		valAddr, _ := sdk.ValAddressFromBech32(valAddress)
+		valAddr, _ := sdk.ValAddressFromBech32(operAddr)
 		result, _ := common.QueryValidatorCommission(ctx, distr.QuerierRoute, valAddr)
 
 		var valCom distr.ValidatorAccumulatedCommission
@@ -237,38 +228,33 @@ func GetUnbondingDelegations(codec *codec.Codec, config *config.Config, db *db.D
 	vars := mux.Vars(r)
 	accAddress := vars["accAddress"]
 
-	if !strings.Contains(accAddress, sdk.GetConfig().GetBech32AccountAddrPrefix()) || len(accAddress) != 45 {
+	if !utils.VerifyAddress(accAddress) {
 		errors.ErrNotExist(w, http.StatusNotFound)
 		return nil
 	}
 
-	// query unbonding delegations
+	// Query unbonding delegations
 	unbondingDelegationsResp, _ := resty.R().Get(config.Node.LCDURL + "/staking/delegators/" + accAddress + "/unbonding_delegations")
 
 	unbondingDelegations := make([]models.UnbondingDelegations, 0)
 	err := json.Unmarshal(models.ReadRespWithHeight(unbondingDelegationsResp).Result, &unbondingDelegations)
 	if err != nil {
-		log.Info().Str(models.Service, models.LogAccount).Str(models.Method, "GetUnbondingDelegations").Err(err).Msg("unmarshal unbondingDelegations error")
+		fmt.Printf("failed to unmarshal unbondingDelegations: %t\n", err)
 	}
 
-	resultUnbondingDelegations := make([]models.UnbondingDelegations, 0)
+	result := make([]models.UnbondingDelegations, 0)
 	for _, unbondingDelegation := range unbondingDelegations {
-		var validatorInfo schema.ValidatorInfo
-		_ = db.Model(&validatorInfo).
-			Column("moniker").
-			Where("operator_address = ?", unbondingDelegation.ValidatorAddress).
-			Limit(1).
-			Select()
+		validator, _ := db.QueryValidatorByOperAddr(unbondingDelegation.ValidatorAddress)
 
 		tempUnbondingDelegations := &models.UnbondingDelegations{
 			DelegatorAddress: unbondingDelegation.DelegatorAddress,
 			ValidatorAddress: unbondingDelegation.ValidatorAddress,
-			Moniker:          validatorInfo.Moniker,
+			Moniker:          validator.Moniker,
 			Entries:          unbondingDelegation.Entries,
 		}
-		resultUnbondingDelegations = append(resultUnbondingDelegations, *tempUnbondingDelegations)
+		result = append(result, *tempUnbondingDelegations)
 	}
 
-	utils.Respond(w, resultUnbondingDelegations)
+	utils.Respond(w, result)
 	return nil
 }

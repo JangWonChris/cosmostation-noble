@@ -2,54 +2,41 @@ package services
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/db"
 	errors "github.com/cosmostation/cosmostation-cosmos/mintscan/api/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/schema"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/utils"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/gorilla/mux"
-	"github.com/tendermint/tendermint/libs/bech32"
 	resty "gopkg.in/resty.v1"
-
-	"github.com/rs/zerolog/log"
 )
 
 // GetProposals returns all existing proposals
 func GetProposals(db *db.Database, config *config.Config, w http.ResponseWriter, r *http.Request) error {
-	proposalInfo := make([]*schema.ProposalInfo, 0)
-	_ = db.Model(&proposalInfo).Select()
+	// Query proposals
+	proposals := db.QueryProposals()
 
-	// check if any proposal exists
-	if len(proposalInfo) <= 0 {
-		return json.NewEncoder(w).Encode(proposalInfo)
+	if len(proposals) <= 0 {
+		return json.NewEncoder(w).Encode(proposals)
 	}
 
-	resultProposal := make([]*models.ResultProposal, 0)
+	result := make([]*models.ResultProposal, 0)
 
-	for _, proposal := range proposalInfo {
-		// convert to validator operator address
-		_, decoded, _ := bech32.DecodeAndConvert(proposal.Proposer)
-		cosmosOperAddress, _ := bech32.ConvertAndEncode(sdk.Bech32PrefixValAddr, decoded)
-
-		// check if the address matches any moniker in our database
-		var validatorInfo schema.ValidatorInfo
-		_ = db.Model(&validatorInfo).
-			Column("moniker").
-			Where("operator_address = ?", cosmosOperAddress).
-			Limit(1).
-			Select()
+	for _, proposal := range proposals {
+		// Check if the address matches any moniker in our database
+		operAddr := utils.ValAddressFromAccAddress(proposal.Proposer)
+		validator, _ := db.QueryValidatorByOperAddr(operAddr)
 
 		// insert proposal data
 		tempProposal := &models.ResultProposal{
 			ProposalID:           proposal.ID,
 			TxHash:               proposal.TxHash,
 			Proposer:             proposal.Proposer,
-			Moniker:              validatorInfo.Moniker,
+			Moniker:              validator.Moniker,
 			Title:                proposal.Title,
 			Description:          proposal.Description,
 			ProposalType:         proposal.ProposalType,
@@ -67,10 +54,10 @@ func GetProposals(db *db.Database, config *config.Config, w http.ResponseWriter,
 			VotingStartTime:      proposal.VotingStartTime,
 			VotingEndTime:        proposal.VotingEndTime,
 		}
-		resultProposal = append(resultProposal, tempProposal)
+		result = append(result, tempProposal)
 	}
 
-	utils.Respond(w, resultProposal)
+	utils.Respond(w, result)
 	return nil
 }
 
@@ -79,52 +66,41 @@ func GetProposal(db *db.Database, config *config.Config, w http.ResponseWriter, 
 	vars := mux.Vars(r)
 	proposalID := vars["proposalId"]
 
-	// query particular proposal
-	var proposalInfo schema.ProposalInfo
-	err := db.Model(&proposalInfo).
-		Where("id = ?", proposalID).
-		Select()
-	if err != nil {
+	// Query particular proposal
+	proposal := db.QueryProposal(proposalID)
+	if proposal.ID == 0 {
 		errors.ErrNotExist(w, http.StatusNotFound)
 		return nil
 	}
 
-	// convert to validator operator address
-	_, decoded, _ := bech32.DecodeAndConvert(proposalInfo.Proposer)
-	cosmosOperAddress, _ := bech32.ConvertAndEncode(sdk.Bech32PrefixValAddr, decoded)
+	// Check if the address matches any moniker in our database
+	operAddr := utils.ValAddressFromAccAddress(proposal.Proposer)
+	validator, _ := db.QueryValidatorByOperAddr(operAddr)
 
-	// check if the address matches any moniker in our DB
-	var validatorInfo schema.ValidatorInfo
-	_ = db.Model(&validatorInfo).
-		Column("moniker").
-		Where("operator_address = ?", cosmosOperAddress).
-		Limit(1).
-		Select()
-
-	resultProposal := &models.ResultProposal{
-		ProposalID:           proposalInfo.ID,
-		TxHash:               proposalInfo.TxHash,
-		Proposer:             proposalInfo.Proposer,
-		Moniker:              validatorInfo.Moniker,
-		Title:                proposalInfo.Title,
-		Description:          proposalInfo.Description,
-		ProposalType:         proposalInfo.ProposalType,
-		ProposalStatus:       proposalInfo.ProposalStatus,
-		Yes:                  proposalInfo.Yes,
-		Abstain:              proposalInfo.Abstain,
-		No:                   proposalInfo.No,
-		NoWithVeto:           proposalInfo.NoWithVeto,
-		InitialDepositAmount: proposalInfo.InitialDepositAmount,
-		InitialDepositDenom:  proposalInfo.InitialDepositDenom,
-		TotalDepositAmount:   proposalInfo.TotalDepositAmount,
-		TotalDepositDenom:    proposalInfo.TotalDepositDenom,
-		SubmitTime:           proposalInfo.SubmitTime,
-		DepositEndtime:       proposalInfo.DepositEndtime,
-		VotingStartTime:      proposalInfo.VotingStartTime,
-		VotingEndTime:        proposalInfo.VotingEndTime,
+	result := &models.ResultProposal{
+		ProposalID:           proposal.ID,
+		TxHash:               proposal.TxHash,
+		Proposer:             proposal.Proposer,
+		Moniker:              validator.Moniker,
+		Title:                proposal.Title,
+		Description:          proposal.Description,
+		ProposalType:         proposal.ProposalType,
+		ProposalStatus:       proposal.ProposalStatus,
+		Yes:                  proposal.Yes,
+		Abstain:              proposal.Abstain,
+		No:                   proposal.No,
+		NoWithVeto:           proposal.NoWithVeto,
+		InitialDepositAmount: proposal.InitialDepositAmount,
+		InitialDepositDenom:  proposal.InitialDepositDenom,
+		TotalDepositAmount:   proposal.TotalDepositAmount,
+		TotalDepositDenom:    proposal.TotalDepositDenom,
+		SubmitTime:           proposal.SubmitTime,
+		DepositEndtime:       proposal.DepositEndtime,
+		VotingStartTime:      proposal.VotingStartTime,
+		VotingEndTime:        proposal.VotingEndTime,
 	}
 
-	utils.Respond(w, resultProposal)
+	utils.Respond(w, result)
 	return nil
 }
 
@@ -133,48 +109,27 @@ func GetVotes(db *db.Database, config *config.Config, w http.ResponseWriter, r *
 	vars := mux.Vars(r)
 	proposalID := vars["proposalId"]
 
-	// check if proposal id exists
-	var proposalInfo schema.ProposalInfo
-	err := db.Model(&proposalInfo).
-		Where("id = ?", proposalID).
-		Select()
-	if err != nil {
+	// Check if the proposal exists
+	exists := db.QueryExistsProposal(proposalID)
+	if !exists {
 		errors.ErrNotExist(w, http.StatusNotFound)
 		return nil
 	}
 
-	// query all votes
-	voteInfo := make([]*schema.VoteInfo, 0)
-	_ = db.Model(&voteInfo).
-		Where("proposal_id = ?", proposalID).
-		Order("id DESC").
-		Select()
+	// Query all votes
+	votes := db.QueryVotes(proposalID)
 
-	// check if votes exists
-	if len(voteInfo) <= 0 {
-		return json.NewEncoder(w).Encode(&models.ResultVote{
+	if len(votes) <= 0 {
+		utils.Respond(w, &models.ResultVote{
 			Tally: &models.ResultTally{},
 			Votes: []*models.Votes{},
 		})
+		return nil
 	}
 
-	// query count for respective votes
-	yesCnt, _ := db.Model(&voteInfo).
-		Where("proposal_id = ? AND option = ?", proposalID, "Yes").
-		Count()
-	abstainCnt, _ := db.Model(&voteInfo).
-		Where("proposal_id = ? AND option = ?", proposalID, "Abstain").
-		Count()
-	noCnt, _ := db.Model(&voteInfo).
-		Where("proposal_id = ? AND option = ?", proposalID, "No").
-		Count()
-	noWithVetoCnt, _ := db.Model(&voteInfo).
-		Where("proposal_id = ? AND option = ?", proposalID, "NoWithVeto").
-		Count()
+	resultVotes := make([]*models.Votes, 0)
 
-	// votes
-	votes := make([]*models.Votes, 0)
-	for _, vote := range voteInfo {
+	for _, vote := range votes {
 		moniker, _ := db.ConvertCosmosAddressToMoniker(vote.Voter)
 
 		tempVoteInfo := &models.Votes{
@@ -184,35 +139,38 @@ func GetVotes(db *db.Database, config *config.Config, w http.ResponseWriter, r *
 			TxHash:  vote.TxHash,
 			Time:    vote.Time,
 		}
-		votes = append(votes, tempVoteInfo)
+		resultVotes = append(resultVotes, tempVoteInfo)
 	}
 
-	// query tally information
+	// Query tally information
 	resp, err := resty.R().Get(config.Node.LCDURL + "/gov/proposals/" + proposalID + "/tally")
 
 	var tally models.Tally
 	err = json.Unmarshal(models.ReadRespWithHeight(resp).Result, &tally)
 	if err != nil {
-		log.Info().Str(models.Service, models.LogGovernance).Str(models.Method, "GetVotes").Err(err).Msg("unmarshal tally error")
+		fmt.Printf("failed to unmarshal tally: %t", err)
 	}
 
-	tempResultTally := &models.ResultTally{
+	// Query vote options for the proposal
+	yes, no, noWithVeto, abstain := db.QueryVoteOptions(proposalID)
+
+	resultTally := &models.ResultTally{
 		YesAmount:        tally.Yes,
 		NoAmount:         tally.No,
 		AbstainAmount:    tally.Abstain,
 		NoWithVetoAmount: tally.NoWithVeto,
-		YesNum:           yesCnt,
-		AbstainNum:       abstainCnt,
-		NoNum:            noCnt,
-		NoWithVetoNum:    noWithVetoCnt,
+		YesNum:           yes,
+		AbstainNum:       abstain,
+		NoNum:            no,
+		NoWithVetoNum:    noWithVeto,
 	}
 
-	resultVote := &models.ResultVote{
-		Tally: tempResultTally,
-		Votes: votes,
+	result := &models.ResultVote{
+		Tally: resultTally,
+		Votes: resultVotes,
 	}
 
-	utils.Respond(w, resultVote)
+	utils.Respond(w, result)
 	return nil
 }
 
@@ -221,31 +179,24 @@ func GetDeposits(db *db.Database, w http.ResponseWriter, r *http.Request) error 
 	vars := mux.Vars(r)
 	proposalID := vars["proposalId"]
 
-	// check if proposal id exists
-	var proposalInfo schema.ProposalInfo
-	err := db.Model(&proposalInfo).
-		Where("id = ?", proposalID).
-		Select()
-	if err != nil {
+	// Check if the proposal exists
+	exists := db.QueryExistsProposal(proposalID)
+	if !exists {
 		errors.ErrNotExist(w, http.StatusNotFound)
 		return nil
 	}
 
-	resultDepositInfo := make([]*models.ResultDeposit, 0)
+	result := make([]*models.ResultDeposit, 0)
 
-	// query all deposit info
-	depositInfo := make([]*schema.DepositInfo, 0)
-	_ = db.Model(&depositInfo).
-		Where("proposal_id = ?", proposalID).
-		Order("id DESC").
-		Select()
+	// Query all deposits
+	deposits := db.QueryDeposits(proposalID)
 
-	// check if the deposit exists
-	if len(depositInfo) <= 0 {
-		return json.NewEncoder(w).Encode(resultDepositInfo)
+	if len(deposits) <= 0 {
+		utils.Respond(w, result)
+		return nil
 	}
 
-	for _, deposit := range depositInfo {
+	for _, deposit := range deposits {
 		moniker, _ := db.ConvertCosmosAddressToMoniker(deposit.Depositor)
 
 		tempResultDeposit := &models.ResultDeposit{
@@ -257,9 +208,9 @@ func GetDeposits(db *db.Database, w http.ResponseWriter, r *http.Request) error 
 			TxHash:        deposit.TxHash,
 			Time:          deposit.Time,
 		}
-		resultDepositInfo = append(resultDepositInfo, tempResultDeposit)
+		result = append(result, tempResultDeposit)
 	}
 
-	utils.Respond(w, resultDepositInfo)
+	utils.Respond(w, result)
 	return nil
 }

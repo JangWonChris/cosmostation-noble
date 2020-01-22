@@ -41,7 +41,7 @@ func GetStatus(config *config.Config, db *db.Database, rpcClient *client.HTTP, w
 	var pool models.Pool
 	err := json.Unmarshal(models.ReadRespWithHeight(resp).Result, &pool)
 	if err != nil {
-		fmt.Printf("staking/pool unmarshal pool error - %v\n", err)
+		fmt.Printf("failed to unmarshal pool: %t\n", err)
 	}
 
 	totalSupplyResp, _ := resty.R().Get(config.Node.LCDURL + "/supply/total")
@@ -49,7 +49,7 @@ func GetStatus(config *config.Config, db *db.Database, rpcClient *client.HTTP, w
 	var coin []models.Coin
 	err = json.Unmarshal(models.ReadRespWithHeight(totalSupplyResp).Result, &coin)
 	if err != nil {
-		fmt.Printf("supply/total unmarshal supply total error - %v\n", err)
+		fmt.Printf("failed to unmarshal coin: %t\n", err)
 	}
 
 	notBondedTokens, _ := strconv.ParseFloat(pool.NotBondedTokens, 64)
@@ -73,7 +73,7 @@ func GetStatus(config *config.Config, db *db.Database, rpcClient *client.HTTP, w
 	// Get the block time that is taken from the previous block
 	diff := lastBlocktime.Sub(secondLastBlocktime)
 
-	resultStatus := &models.ResultStatus{
+	result := &models.ResultStatus{
 		ChainID:                status.NodeInfo.Network,
 		BlockHeight:            status.SyncInfo.LatestBlockHeight,
 		BlockTime:              diff.Seconds(),
@@ -88,6 +88,6 @@ func GetStatus(config *config.Config, db *db.Database, rpcClient *client.HTTP, w
 		Time:                   status.SyncInfo.LatestBlockTime,
 	}
 
-	utils.Respond(w, resultStatus)
+	utils.Respond(w, result)
 	return nil
 }

@@ -28,6 +28,17 @@ func (db *Database) QueryValidatorID(address string) (int, error) {
 	return validatorSetInfo.IDValidator, nil
 }
 
+// QueryValidatorByOperAddr queries validators
+func (db *Database) QueryValidatorByOperAddr(operAddr string) (schema.ValidatorInfo, error) {
+	var validatorInfo schema.ValidatorInfo
+	_ = db.Model(&validatorInfo).
+		Where("operator_address = ?", operAddr).
+		Limit(1).
+		Select()
+
+	return validatorInfo, nil
+}
+
 // QueryValidators queries validators
 func (db *Database) QueryValidators() ([]schema.ValidatorInfo, error) {
 	validatorInfo := make([]schema.ValidatorInfo, 0)
@@ -60,8 +71,8 @@ func (db *Database) QueryInActiveValidators() ([]schema.ValidatorInfo, error) {
 	return validatorInfo, nil
 }
 
-// QueryValidatorInfoByProposer queries validator information by proposer address format
-func (db *Database) QueryValidatorInfoByProposer(proposer string) (schema.ValidatorInfo, error) {
+// QueryValidatorByProposer queries validator information by proposer address format
+func (db *Database) QueryValidatorByProposer(proposer string) (schema.ValidatorInfo, error) {
 	var validatorInfo schema.ValidatorInfo
 	_ = db.Model(&validatorInfo).
 		Where("proposer = ?", proposer).

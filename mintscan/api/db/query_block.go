@@ -5,6 +5,18 @@ import (
 	"github.com/go-pg/pg"
 )
 
+// QueryBlocks queries blocks with height and limit
+func (db *Database) QueryBlocks(height int, limit int) ([]schema.BlockInfo, error) {
+	var blocks []schema.BlockInfo
+	_ = db.Model(&blocks).
+		Where("height > ?", height).
+		Limit(limit).
+		Order("id ASC").
+		Select()
+
+	return blocks, nil
+}
+
 // QueryLatestBlockHeight queries the latest block height in database
 func (db *Database) QueryLatestBlockHeight() (int, error) {
 	var block schema.BlockInfo

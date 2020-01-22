@@ -34,67 +34,48 @@ func GetBlocks(db *db.Database, w http.ResponseWriter, r *http.Request) error {
 	if len(r.URL.Query()["afterBlock"]) > 0 {
 		afterBlock, _ = strconv.Atoi(r.URL.Query()["afterBlock"][0])
 	} else {
-		// Query the lastest block height
-		var blockInfo []schema.BlockInfo
-		_ = db.Model(&blockInfo).
-			Column("height").
-			Order("id DESC").
-			Limit(1).
-			Select()
-		if len(blockInfo) > 0 {
-			afterBlock = int(blockInfo[0].Height) - limit // // afterBlock should be latestHeight saved in DB minus limit
+		latestBlockHeight, _ := db.QueryLatestBlockHeight()
+		if latestBlockHeight >= 0 {
+			afterBlock = latestBlockHeight - limit // afterBlock should be latestHeight saved in DB minus limit
 		}
 	}
 
-	// query a number of blocks in an ascending order
-	var blockInfos []schema.BlockInfo
-	_ = db.Model(&blockInfos).
-		Where("height > ?", afterBlock).
-		Limit(limit).
-		Order("id ASC").
-		Select()
+	// Query blocks in an ascending order
+	blocks, _ := db.QueryBlocks(afterBlock, limit)
 
-	// check if blocks exists
-	if len(blockInfos) <= 0 {
+	if len(blocks) <= 0 {
 		errors.ErrNotExist(w, http.StatusNotFound)
 		return nil
 	}
 
-	resultBlock := make([]*models.ResultBlock, 0)
-	for _, blockInfo := range blockInfos {
-		// query validator information using proposer address
-		var validatorInfo schema.ValidatorInfo
-		_ = db.Model(&validatorInfo).
-			Where("proposer = ?", blockInfo.Proposer).
-			Select()
+	result := make([]*models.ResultBlock, 0)
+
+	for _, block := range blocks {
+		validator, _ := db.QueryValidatorByProposer(block.Proposer)
 
 		// query transactions in the block
-		var transactionInfos []schema.TransactionInfo
-		_ = db.Model(&transactionInfos).
-			Where("height = ?", blockInfo.Height).
-			Select()
+		txInfos, _ := db.QueryTransactions(block.Height)
 
-		// append transactions
 		var txData models.TxData
-		for _, transactionInfo := range transactionInfos {
-			txData.Txs = append(txData.Txs, transactionInfo.TxHash)
+		for _, txInfo := range txInfos {
+			txData.Txs = append(txData.Txs, txInfo.TxHash)
 		}
 
 		tempBlockInfo := &models.ResultBlock{
-			Height:          blockInfo.Height,
-			Proposer:        blockInfo.Proposer,
-			OperatorAddress: validatorInfo.OperatorAddress,
-			Moniker:         validatorInfo.Moniker,
-			BlockHash:       blockInfo.BlockHash,
-			Identity:        validatorInfo.Identity,
-			NumTxs:          blockInfo.NumTxs,
+			Height:          block.Height,
+			Proposer:        block.Proposer,
+			OperatorAddress: validator.OperatorAddress,
+			Moniker:         validator.Moniker,
+			BlockHash:       block.BlockHash,
+			Identity:        validator.Identity,
+			NumTxs:          block.NumTxs,
 			TxData:          txData,
-			Time:            blockInfo.Time,
+			Time:            block.Time,
 		}
-		resultBlock = append(resultBlock, tempBlockInfo)
+		result = append(result, tempBlockInfo)
 	}
 
-	utils.Respond(w, resultBlock)
+	utils.Respond(w, result)
 	return nil
 }
 
@@ -157,9 +138,10 @@ func GetProposedBlocks(db *db.Database, w http.ResponseWriter, r *http.Request) 
 	// Query total number of proposed blocks by a proposer
 	totalNumProposerBlocks, _ := db.QueryTotalBlocksByProposer(address)
 
-	resultBlocksByOperatorAddress := make([]*models.ResultBlocksByOperatorAddress, 0)
+	result := make([]*models.ResultBlocksByOperatorAddress, 0)
+
 	for i, block := range blocks {
-		validatorInfo, _ := db.QueryValidatorInfoByProposer(block.Proposer)
+		validatorInfo, _ := db.QueryValidatorByProposer(block.Proposer)
 
 		// query a number of txs
 		txInfos, _ := db.QueryTransactions(block.Height)
@@ -184,9 +166,9 @@ func GetProposedBlocks(db *db.Database, w http.ResponseWriter, r *http.Request) 
 			TxData:                 txData,
 			Time:                   block.Time,
 		}
-		resultBlocksByOperatorAddress = append(resultBlocksByOperatorAddress, tempResultBlocksByOperatorAddress)
+		result = append(result, tempResultBlocksByOperatorAddress)
 	}
 
-	utils.Respond(w, resultBlocksByOperatorAddress)
+	utils.Respond(w, result)
 	return nil
 }

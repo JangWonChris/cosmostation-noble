@@ -2,6 +2,7 @@ package services
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -18,14 +19,17 @@ func GetMintingInflation(config *config.Config, db *db.Database, w http.Response
 	resp, _ := resty.R().Get(config.Node.LCDURL + "/minting/inflation")
 
 	var tempInflation string
-	_ = json.Unmarshal(models.ReadRespWithHeight(resp).Result, &tempInflation)
-
-	inflation, _ := strconv.ParseFloat(tempInflation, 64)
-
-	resultInflation := &models.ResultInflation{
-		Inflation: inflation,
+	err := json.Unmarshal(models.ReadRespWithHeight(resp).Result, &tempInflation)
+	if err != nil {
+		fmt.Printf("failed to unmarshal tempInflation: %t\n", err)
 	}
 
-	u.Respond(w, resultInflation)
+	inflationRate, _ := strconv.ParseFloat(tempInflation, 64)
+
+	result := &models.ResultInflation{
+		Inflation: inflationRate,
+	}
+
+	u.Respond(w, result)
 	return nil
 }
