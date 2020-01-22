@@ -28,6 +28,38 @@ func (db *Database) QueryValidatorID(address string) (int, error) {
 	return validatorSetInfo.IDValidator, nil
 }
 
+// QueryValidators queries validators
+func (db *Database) QueryValidators() ([]schema.ValidatorInfo, error) {
+	validatorInfo := make([]schema.ValidatorInfo, 0)
+	_ = db.Model(&validatorInfo).
+		Order("id ASC").
+		Select()
+
+	return validatorInfo, nil
+}
+
+// QueryActiveValidators queries bonded validators
+func (db *Database) QueryActiveValidators() ([]schema.ValidatorInfo, error) {
+	validatorInfo := make([]schema.ValidatorInfo, 0)
+	_ = db.Model(&validatorInfo).
+		Where("status = ?", 2).
+		Order("id ASC").
+		Select()
+
+	return validatorInfo, nil
+}
+
+// QueryInActiveValidators queries either unbonding or unbonded validators
+func (db *Database) QueryInActiveValidators() ([]schema.ValidatorInfo, error) {
+	validatorInfo := make([]schema.ValidatorInfo, 0)
+	_ = db.Model(&validatorInfo).
+		Where("status = ? OR status = ?", 0, 1).
+		Order("id ASC").
+		Select()
+
+	return validatorInfo, nil
+}
+
 // QueryValidatorInfoByProposer queries validator information by proposer address format
 func (db *Database) QueryValidatorInfoByProposer(proposer string) (schema.ValidatorInfo, error) {
 	var validatorInfo schema.ValidatorInfo
@@ -86,4 +118,14 @@ func (db *Database) QueryJailedValidatorsNum() int {
 		Count()
 
 	return num
+}
+
+// QueryValidatorBondedInfo queries a validator's bonded height
+func (db *Database) QueryValidatorBondedInfo(address string) schema.ValidatorSetInfo {
+	var validatorSetInfo schema.ValidatorSetInfo
+	_ = db.Model(&validatorSetInfo).
+		Where("proposer = ? AND event_type = ?", address, "create_validator").
+		Select()
+
+	return validatorSetInfo
 }

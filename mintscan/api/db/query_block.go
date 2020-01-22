@@ -69,10 +69,43 @@ func (db *Database) QueryTotalBlocksByProposer(address string) (int, error) {
 func (db *Database) QueryLastestTwoBlocks() []schema.BlockInfo {
 	var blocks []schema.BlockInfo
 	_ = db.Model(&blocks).
-		Column("time").
 		Order("height DESC").
 		Limit(2).
 		Select()
 
 	return blocks
+}
+
+// QueryMissingBlocksInDetail queries how many missing blocks a validator misses in detail
+func (db *Database) QueryMissingBlocksInDetail(address string, latestHeight int, count int) ([]schema.MissDetailInfo, error) {
+	var missDetailInfo []schema.MissDetailInfo
+	_ = db.Model(&missDetailInfo).
+		Where("address = ? AND height BETWEEN ? AND ?", address, latestHeight-count, latestHeight).
+		Limit(count).
+		Order("height DESC").
+		Select()
+
+	return missDetailInfo, nil
+}
+
+// QueryMissingBlocks queries a range of missing blocks a validator misses
+func (db *Database) QueryMissingBlocks(address string, limit int) ([]schema.MissInfo, error) {
+	var missInfo []schema.MissInfo
+	_ = db.Model(&missInfo).
+		Where("address = ?", address).
+		Limit(limit).
+		Order("start_height DESC").
+		Select()
+
+	return missInfo, nil
+}
+
+// QueryMissingBlocksCount queries how many missing blocks a validator misses in detail and return total number
+func (db *Database) QueryMissingBlocksCount(address string, latestHeight int, count int) (int, error) {
+	var missDetailInfo []schema.MissDetailInfo
+	missingBlocksCount, _ := db.Model(&missDetailInfo).
+		Where("address = ? AND height BETWEEN ? AND ?", address, latestHeight-count, latestHeight).
+		Count()
+
+	return missingBlocksCount, nil
 }
