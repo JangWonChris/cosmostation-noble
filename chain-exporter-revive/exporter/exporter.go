@@ -20,7 +20,7 @@ type Exporter struct {
 // NewExporter returns Exporter
 func NewExporter() Exporter {
 	cfg := config.ParseConfig()
-	client := client.NewClient(cfg.Node.RPCNode, cfg.Node.LCDEndpoint)
+	client, _ := client.NewClient(cfg.Node.RPCNode, cfg.Node.LCDEndpoint)
 	db := db.Connect(cfg.DB)
 
 	// Ping database to verify connection is succeeded
@@ -30,7 +30,7 @@ func NewExporter() Exporter {
 	}
 
 	// Create database tables
-	db.CreateTables() // TODO: handle index already exists error
+	db.CreateTables()
 
 	return Exporter{client, db}
 }

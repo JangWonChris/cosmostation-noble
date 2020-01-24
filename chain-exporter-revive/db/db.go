@@ -37,7 +37,7 @@ func (db *Database) Ping() error {
 
 // CreateTables creates database tables using object relational mapping (ORM)
 func (db *Database) CreateTables() error {
-	for _, model := range []interface{}{(*schema.BlockInfo)(nil), (*schema.TransactionInfo)(nil)} {
+	for _, model := range []interface{}{(*schema.BlockInfoCosmoshub3)(nil), (*schema.TransactionIndex)(nil)} {
 		// Disable pluralization
 		orm.SetTableNameInflector(func(s string) string {
 			return s
@@ -56,15 +56,15 @@ func (db *Database) CreateTables() error {
 	// RunInTransaction creates indexes to reduce the cost of lookup queries in case of server traffic jams.
 	// If function returns an error transaction is rollbacked, otherwise transaction is committed.
 	err := db.RunInTransaction(func(tx *pg.Tx) error {
-		_, err := db.Model(schema.BlockInfo{}).Exec(`CREATE INDEX block_info_height_idx ON block_info USING btree(height);`)
+		_, err := db.Model(schema.BlockInfoCosmoshub3{}).Exec(`CREATE INDEX block_info_cosmoshub3_height_idx ON block_info_cosmoshub3 USING btree(height);`)
 		if err != nil {
 			return err
 		}
-		_, err = db.Model(schema.TransactionInfo{}).Exec(`CREATE INDEX transaction_info_height_idx ON transaction_info USING btree(height);`)
+		_, err = db.Model(schema.TransactionIndex{}).Exec(`CREATE INDEX transaction_index_height_idx ON transaction_index USING btree(height);`)
 		if err != nil {
 			return err
 		}
-		_, err = db.Model(schema.TransactionInfo{}).Exec(`CREATE INDEX transaction_info_tx_hash_idx ON transaction_info USING btree(tx_hash);`)
+		_, err = db.Model(schema.TransactionIndex{}).Exec(`CREATE INDEX transaction_index_tx_hash_idx ON transaction_index USING btree(tx_hash);`)
 		if err != nil {
 			return err
 		}

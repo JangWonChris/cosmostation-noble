@@ -2,6 +2,7 @@ active: "dev"
 
 mainnet:
   node: 
+    chain_id: "cosmoshub-3"
     rpc_node: "http://13.124.168.183:26657"
     lcd_endpoint: "https://lcd-cosmos-app.cosmostation.io"
   database:

@@ -16,6 +16,7 @@ type Config struct {
 
 // NodeConfig defines endpoints for both RPC node and LCD REST API server
 type NodeConfig struct {
+	ChainID     string `yaml:"chain_id"`
 	RPCNode     string `yaml:"rpc_node"`
 	LCDEndpoint string `yaml:"lcd_endpoint"`
 }
@@ -49,6 +50,7 @@ func ParseConfig() Config {
 	switch viper.GetString("active") {
 	case "mainnet":
 		cfg.Node = NodeConfig{
+			ChainID:     viper.GetString("mainnet.node.chain_id"),
 			RPCNode:     viper.GetString("mainnet.node.rpc_node"),
 			LCDEndpoint: viper.GetString("mainnet.node.lcd_endpoint"),
 		}
@@ -61,6 +63,7 @@ func ParseConfig() Config {
 		}
 	case "dev":
 		cfg.Node = NodeConfig{
+			ChainID:     viper.GetString("dev.node.chain_id"),
 			RPCNode:     viper.GetString("dev.node.rpc_node"),
 			LCDEndpoint: viper.GetString("dev.node.lcd_endpoint"),
 		}

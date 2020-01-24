@@ -8,7 +8,7 @@ import (
 
 // QueryLatestBlockHeight queries latest block height in database
 func (db *Database) QueryLatestBlockHeight() (int64, error) {
-	var block schema.BlockInfo
+	var block schema.BlockInfoCosmoshub3
 	err := db.Model(&block).
 		Order("height DESC").
 		Limit(1).

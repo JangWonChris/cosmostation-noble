@@ -2,8 +2,8 @@ package schema
 
 import "time"
 
-// BlockInfo represents the information a block contains
-type BlockInfo struct {
+// BlockInfoCosmoshub3 represents the information a block contains
+type BlockInfoCosmoshub3 struct {
 	ID           int32     `json:"id" sql:",pk"`
 	Height       int64     `json:"height" sql:",notnull"`
 	Proposer     string    `json:"proposer" sql:",notnull"`
