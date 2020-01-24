@@ -335,7 +335,7 @@ func GetRedelegations(config *config.Config, db *db.Database, w http.ResponseWri
 		endpoint += fmt.Sprintf("validator_to=%s&", r.URL.Query()["validator_to"][0])
 	}
 
-	resp, _ := resty.R().Get(config.Node.LCDURL + endpoint)
+	resp, _ := resty.R().Get(config.Node.LCDEndpoint + endpoint)
 
 	var redelegations []models.Redelegations
 	err := json.Unmarshal(models.ReadRespWithHeight(resp).Result, &redelegations)
@@ -361,7 +361,7 @@ func GetValidatorDelegations(codec *codec.Codec, config *config.Config, db *db.D
 	}
 
 	// Query all delegations of the validator
-	resp, _ := resty.R().Get(config.Node.LCDURL + "/staking/validators/" + validator.OperatorAddress + "/delegations")
+	resp, _ := resty.R().Get(config.Node.LCDEndpoint + "/staking/validators/" + validator.OperatorAddress + "/delegations")
 
 	var delegations []*models.ValidatorDelegations
 	err := json.Unmarshal(models.ReadRespWithHeight(resp).Result, &delegations)

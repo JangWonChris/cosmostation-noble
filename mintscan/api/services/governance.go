@@ -143,7 +143,7 @@ func GetVotes(db *db.Database, config *config.Config, w http.ResponseWriter, r *
 	}
 
 	// Query tally information
-	resp, err := resty.R().Get(config.Node.LCDURL + "/gov/proposals/" + proposalID + "/tally")
+	resp, err := resty.R().Get(config.Node.LCDEndpoint + "/gov/proposals/" + proposalID + "/tally")
 
 	var tally models.Tally
 	err = json.Unmarshal(models.ReadRespWithHeight(resp).Result, &tally)

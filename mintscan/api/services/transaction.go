@@ -96,7 +96,7 @@ func GetTx(codec *codec.Codec, config *config.Config, db *db.Database, rpcClient
 		errors.ErrInvalidFormat(w, http.StatusBadRequest)
 	}
 
-	resp, _ := resty.R().Get(config.Node.LCDURL + "/txs/" + txHexStr)
+	resp, _ := resty.R().Get(config.Node.LCDEndpoint + "/txs/" + txHexStr)
 
 	var generalTx models.GeneralTx
 	err := json.Unmarshal(resp.Body(), &generalTx)

@@ -16,7 +16,7 @@ import (
 
 // GetMintingInflation returns minting inflation rate
 func GetMintingInflation(config *config.Config, db *db.Database, w http.ResponseWriter, r *http.Request) error {
-	resp, _ := resty.R().Get(config.Node.LCDURL + "/minting/inflation")
+	resp, _ := resty.R().Get(config.Node.LCDEndpoint + "/minting/inflation")
 
 	var tempInflation string
 	err := json.Unmarshal(models.ReadRespWithHeight(resp).Result, &tempInflation)

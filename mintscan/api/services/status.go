@@ -36,7 +36,7 @@ import (
 
 // GetStatus returns ResultStatus, which includes current network status
 func GetStatus(config *config.Config, db *db.Database, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
-	resp, _ := resty.R().Get(config.Node.LCDURL + "/staking/pool")
+	resp, _ := resty.R().Get(config.Node.LCDEndpoint + "/staking/pool")
 
 	var pool models.Pool
 	err := json.Unmarshal(models.ReadRespWithHeight(resp).Result, &pool)
@@ -44,7 +44,7 @@ func GetStatus(config *config.Config, db *db.Database, rpcClient *client.HTTP, w
 		fmt.Printf("failed to unmarshal pool: %t\n", err)
 	}
 
-	totalSupplyResp, _ := resty.R().Get(config.Node.LCDURL + "/supply/total")
+	totalSupplyResp, _ := resty.R().Get(config.Node.LCDEndpoint + "/supply/total")
 
 	var coin []models.Coin
 	err = json.Unmarshal(models.ReadRespWithHeight(totalSupplyResp).Result, &coin)
@@ -68,6 +68,8 @@ func GetStatus(config *config.Config, db *db.Database, rpcClient *client.HTTP, w
 	latestTwoBlocks := db.QueryLastestTwoBlocks()
 	lastBlocktime := latestTwoBlocks[0].Time.UTC()
 	secondLastBlocktime := latestTwoBlocks[1].Time.UTC()
+
+	fmt.Println("5")
 
 	// <Note>: status.SyncInfo.LatestBlockTime.UTC()로 비교를 해야 되지만 현재로써는 마지막, 두번째마지막으로 비교
 	// Get the block time that is taken from the previous block

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
@@ -30,16 +29,12 @@ type App struct {
 
 // NewApp initializes the app with predefined configuration
 func NewApp(config *config.Config) *App {
-	// sets timeout for request.
-	resty.SetTimeout(5 * time.Second)
-	resty.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true}) // local test
-
 	app := &App{
 		ceCodec.Codec,
 		config,
 		db.Connect(config),
 		setRouter(),
-		client.NewHTTP(config.Node.GaiadURL, "/websocket"), // Tendermint RPC client
+		client.NewHTTP(config.Node.RPCNode, "/websocket"), // Tendermint RPC client
 	}
 
 	controllers.AccountController(app.codec, app.config, app.db, app.router, app.rpcClient)
@@ -51,6 +46,8 @@ func NewApp(config *config.Config) *App {
 	controllers.ValidatorController(app.codec, app.config, app.db, app.router, app.rpcClient)
 	controllers.StatusController(app.codec, app.config, app.db, app.router, app.rpcClient)
 	controllers.StatsController(app.codec, app.config, app.db, app.router, app.rpcClient)
+
+	resty.SetTimeout(5 * time.Second) // sets timeout for request.
 
 	return app
 }

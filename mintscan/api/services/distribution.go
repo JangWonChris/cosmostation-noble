@@ -28,7 +28,7 @@ func GetDelegatorWithdrawAddress(config *config.Config, db *db.Database, rpcClie
 	}
 
 	// Query delegator's withdraw address
-	resp, _ := resty.R().Get(config.Node.LCDURL + "/distribution/delegators/" + delegatorAddr + "/withdraw_address")
+	resp, _ := resty.R().Get(config.Node.LCDEndpoint + "/distribution/delegators/" + delegatorAddr + "/withdraw_address")
 
 	var address string
 	err := json.Unmarshal(models.ReadRespWithHeight(resp).Result, &address)
@@ -60,7 +60,7 @@ func GetDelegatorRewards(config *config.Config, db *db.Database, rpcClient *clie
 	}
 
 	// Query a delegation reward
-	resp, _ := resty.R().Get(config.Node.LCDURL + "/distribution/delegators/" + delegatorAddr + "/rewards/" + validatorAddr)
+	resp, _ := resty.R().Get(config.Node.LCDEndpoint + "/distribution/delegators/" + delegatorAddr + "/rewards/" + validatorAddr)
 
 	coin := make([]models.Coin, 0)
 	err := json.Unmarshal(models.ReadRespWithHeight(resp).Result, &coin)
@@ -74,7 +74,7 @@ func GetDelegatorRewards(config *config.Config, db *db.Database, rpcClient *clie
 
 // GetCommunityPool returns current community pool
 func GetCommunityPool(config *config.Config, db *db.Database, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
-	resp, _ := resty.R().Get(config.Node.LCDURL + "/distribution/community_pool")
+	resp, _ := resty.R().Get(config.Node.LCDEndpoint + "/distribution/community_pool")
 
 	var coin []models.Coin
 	err := json.Unmarshal(models.ReadRespWithHeight(resp).Result, &coin)

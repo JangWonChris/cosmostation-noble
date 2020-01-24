@@ -34,7 +34,7 @@ func GetBalance(codec *codec.Codec, config *config.Config, db *db.Database, rpcC
 		return nil
 	}
 
-	resp, _ := resty.R().Get(config.Node.LCDURL + "/bank/balances/" + accAddress)
+	resp, _ := resty.R().Get(config.Node.LCDEndpoint + "/bank/balances/" + accAddress)
 
 	var balances []models.Coin
 	err := json.Unmarshal(models.ReadRespWithHeight(resp).Result, &balances)
@@ -66,7 +66,7 @@ func GetDelegationsRewards(codec *codec.Codec, config *config.Config, db *db.Dat
 		return nil
 	}
 
-	resp, _ := resty.R().Get(config.Node.LCDURL + "/distribution/delegators/" + accAddress + "/rewards")
+	resp, _ := resty.R().Get(config.Node.LCDEndpoint + "/distribution/delegators/" + accAddress + "/rewards")
 
 	var resultRewards models.ResultRewards
 	err := json.Unmarshal(models.ReadRespWithHeight(resp).Result, &resultRewards)
@@ -118,7 +118,7 @@ func GetDelegations(codec *codec.Codec, config *config.Config, db *db.Database, 
 	}
 
 	// Query delegations and each delegator's rewards
-	resp, _ := resty.R().Get(config.Node.LCDURL + "/staking/delegators/" + accAddress + "/delegations")
+	resp, _ := resty.R().Get(config.Node.LCDEndpoint + "/staking/delegators/" + accAddress + "/delegations")
 
 	delegations := make([]models.Delegations, 0)
 	err := json.Unmarshal(models.ReadRespWithHeight(resp).Result, &delegations)
@@ -130,7 +130,7 @@ func GetDelegations(codec *codec.Codec, config *config.Config, db *db.Database, 
 
 	if len(delegations) > 0 {
 		for _, delegation := range delegations {
-			rewardsResp, _ := resty.R().Get(config.Node.LCDURL + "/distribution/delegators/" + accAddress + "/rewards/" + delegation.ValidatorAddress)
+			rewardsResp, _ := resty.R().Get(config.Node.LCDEndpoint + "/distribution/delegators/" + accAddress + "/rewards/" + delegation.ValidatorAddress)
 
 			var rewards []models.Coin
 			err = json.Unmarshal(models.ReadRespWithHeight(rewardsResp).Result, &rewards)
@@ -157,7 +157,7 @@ func GetDelegations(codec *codec.Codec, config *config.Config, db *db.Database, 
 				resultRewards = append(resultRewards, *tempReward)
 			}
 
-			validatorResp, _ := resty.R().Get(config.Node.LCDURL + "/staking/validators/" + delegation.ValidatorAddress)
+			validatorResp, _ := resty.R().Get(config.Node.LCDEndpoint + "/staking/validators/" + delegation.ValidatorAddress)
 
 			var validator models.Validator
 			err = json.Unmarshal(models.ReadRespWithHeight(validatorResp).Result, &validator)
@@ -234,7 +234,7 @@ func GetUnbondingDelegations(codec *codec.Codec, config *config.Config, db *db.D
 	}
 
 	// Query unbonding delegations
-	unbondingDelegationsResp, _ := resty.R().Get(config.Node.LCDURL + "/staking/delegators/" + accAddress + "/unbonding_delegations")
+	unbondingDelegationsResp, _ := resty.R().Get(config.Node.LCDEndpoint + "/staking/delegators/" + accAddress + "/unbonding_delegations")
 
 	unbondingDelegations := make([]models.UnbondingDelegations, 0)
 	err := json.Unmarshal(models.ReadRespWithHeight(unbondingDelegationsResp).Result, &unbondingDelegations)
