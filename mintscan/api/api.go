@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/pkg/errors"
+
 	ceCodec "github.com/cosmostation/cosmostation-cosmos/mintscan/api/codec"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/controllers"
@@ -30,11 +32,17 @@ type App struct {
 // NewApp initializes the app with predefined configuration
 func NewApp(config *config.Config) *App {
 	app := &App{
-		ceCodec.Codec,
-		config,
-		db.Connect(config),
-		setRouter(),
-		client.NewHTTP(config.Node.RPCNode, "/websocket"), // Tendermint RPC client
+		codec:     ceCodec.Codec,
+		config:    config,
+		db:        db.Connect(config),
+		router:    setRouter(),
+		rpcClient: client.NewHTTP(config.Node.RPCNode, "/websocket"), // Tendermint RPC client
+	}
+
+	// Ping database to verify connection is succeeded
+	err := app.db.Ping()
+	if err != nil {
+		log.Fatal(errors.Wrap(err, "failed to ping database."))
 	}
 
 	controllers.AccountController(app.codec, app.config, app.db, app.router, app.rpcClient)

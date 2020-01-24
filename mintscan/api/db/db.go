@@ -12,7 +12,6 @@ type Database struct {
 }
 
 // Connect opens a database connections with the given database connection info from config.
-// It returns a database connection handle or an error if the connection fails.
 func Connect(cfg *config.Config) *Database {
 	db := pg.Connect(&pg.Options{
 		Addr:     cfg.DB.Host + ":" + cfg.DB.Port,
@@ -22,4 +21,14 @@ func Connect(cfg *config.Config) *Database {
 	})
 
 	return &Database{db}
+}
+
+// Ping returns a database connection handle or an error if the connection fails.
+func (db *Database) Ping() error {
+	_, err := db.Exec("SELECT 1")
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
