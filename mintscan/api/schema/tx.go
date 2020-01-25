@@ -1,6 +1,6 @@
 package schema
 
-// TransactionInfo is a struct for database table
+// TransactionInfo has tx information
 type TransactionInfo struct {
 	ID         int64  `json:"id" sql:",pk"`
 	Height     int64  `json:"height"`

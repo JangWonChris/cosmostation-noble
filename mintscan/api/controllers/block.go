@@ -12,7 +12,7 @@ import (
 	"github.com/tendermint/tendermint/rpc/client"
 )
 
-// Passes requests to its respective service
+// BlockController passes requests to its respective service
 func BlockController(codec *codec.Codec, config *config.Config, db *db.Database, r *mux.Router, rpcClient *client.HTTP) {
 	r.HandleFunc("/blocks", func(w http.ResponseWriter, r *http.Request) {
 		services.GetBlocks(db, w, r)

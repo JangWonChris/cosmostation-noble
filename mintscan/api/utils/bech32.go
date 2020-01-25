@@ -37,7 +37,7 @@ func VerifyAddress(address string) bool {
 		return false
 	}
 
-	if !strings.Contains(address, sdk.Bech32PrefixAccAddr) { // check prefix
+	if !strings.Contains(address, sdk.GetConfig().GetBech32AccountAddrPrefix()) { // check prefix
 		return false
 	}
 	return true
@@ -45,7 +45,7 @@ func VerifyAddress(address string) bool {
 
 // VerifyValAddress verifies validator operator address format
 func VerifyValAddress(address string) bool {
-	if !strings.Contains(address, sdk.Bech32PrefixValAddr) { // check prefix
+	if !strings.Contains(address, sdk.GetConfig().GetBech32ValidatorAddrPrefix()) { // check prefix
 		return false
 	}
 	return true

@@ -13,8 +13,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// Passes requests to its respective service
-func GovernanceController(codec *codec.Codec, config *config.Config, db *db.Database, r *mux.Router, rpcClient *client.HTTP) {
+// GovController passes requests to its respective service
+func GovController(codec *codec.Codec, config *config.Config, db *db.Database, r *mux.Router, rpcClient *client.HTTP) {
 	r.HandleFunc("/gov/proposals", func(w http.ResponseWriter, r *http.Request) {
 		services.GetProposals(db, config, w, r)
 	})

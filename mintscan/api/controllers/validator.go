@@ -14,7 +14,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 )
 
-// Passes requests to its respective service
+// ValidatorController passes requests to its respective service
 func ValidatorController(codec *codec.Codec, config *config.Config, db *db.Database, r *mux.Router, rpcClient *client.HTTP) {
 	r.HandleFunc("/staking/validators", func(w http.ResponseWriter, r *http.Request) {
 		services.GetValidators(db, rpcClient, w, r)

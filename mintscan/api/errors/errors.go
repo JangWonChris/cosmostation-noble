@@ -6,19 +6,16 @@ import (
 	"net/http"
 )
 
-// ErrorCode type
+// Error code and msg
 type ErrorCode uint32
-
-// ErrorMsg type
 type ErrorMsg string
 
-// Parses the error into an object-like struct for exporting
+// WrapError parses the error into an object-like struct for exporting
 type WrapError struct {
 	ErrorCode ErrorCode `json:"error_code"`
 	ErrorMsg  ErrorMsg  `json:"error_msg"`
 }
 
-// Error code numbers
 const (
 	InternalServer ErrorCode = 101
 

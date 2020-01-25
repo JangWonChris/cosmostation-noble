@@ -12,7 +12,7 @@ import (
 	"github.com/tendermint/tendermint/rpc/client"
 )
 
-// Passes requests to its respective service
+// MintingController passes requests to its respective service
 func MintingController(codec *codec.Codec, config *config.Config, db *db.Database, r *mux.Router, rpcClient *client.HTTP) {
 	r.HandleFunc("/minting/inflation", func(w http.ResponseWriter, r *http.Request) {
 		services.GetMintingInflation(config, db, w, r)

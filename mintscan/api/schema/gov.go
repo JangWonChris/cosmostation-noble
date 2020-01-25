@@ -2,7 +2,7 @@ package schema
 
 import "time"
 
-// ProposalInfo is a struct for database table
+// ProposalInfo has proposal information
 type ProposalInfo struct {
 	ID                   int64     `json:"proposal_id" sql:",pk"`
 	TxHash               string    `json:"tx_hash"`
@@ -26,7 +26,7 @@ type ProposalInfo struct {
 	Alerted              bool      `sql:"default:false,notnull" json:"alerted"`
 }
 
-// VoteInfo is a struct for database table
+// VoteInfo has vote information
 type VoteInfo struct {
 	ID         int64     `json:"id" sql:",pk"`
 	Height     int64     `json:"height"`
@@ -39,7 +39,7 @@ type VoteInfo struct {
 	Time       time.Time `json:"time"`
 }
 
-// DepositInfo is a struct for database table
+// DepositInfo has deposit information
 type DepositInfo struct {
 	ID         int64     `json:"id" sql:",pk"`
 	Height     int64     `json:"height"`

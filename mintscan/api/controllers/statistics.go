@@ -12,7 +12,7 @@ import (
 	"github.com/tendermint/tendermint/rpc/client"
 )
 
-// Passes requests to its respective service
+// StatsController passes requests to its respective service
 func StatsController(codec *codec.Codec, config *config.Config, db *db.Database, r *mux.Router, rpcClient *client.HTTP) {
 	r.HandleFunc("/stats/market", func(w http.ResponseWriter, r *http.Request) {
 		services.GetMarketStats(config, db, rpcClient, w, r)

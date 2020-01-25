@@ -2,7 +2,7 @@ package schema
 
 import "time"
 
-// ValidatorInfo is a struct for database table
+// ValidatorInfo has validator information
 type ValidatorInfo struct {
 	ID                   int64     `sql:",pk"`
 	Rank                 int       `json:"rank"`
@@ -28,7 +28,7 @@ type ValidatorInfo struct {
 	KeybaseURL           string    `json:"keybase_url"`
 }
 
-// ValidatorSetInfo is a struct for database table
+// ValidatorSetInfo has validator's power event history information
 type ValidatorSetInfo struct {
 	ID                   int64     `sql:",pk"`
 	IDValidator          int       `json:"id_validator" sql:"default:0"`
@@ -44,7 +44,7 @@ type ValidatorSetInfo struct {
 	Time                 time.Time `json:"time" sql:"default:null"`
 }
 
-// MissInfo is a struct for database table
+// MissInfo has validator's range of missing blocks information
 type MissInfo struct {
 	ID           int64     `json:"id" sql:",pk"`
 	Address      string    `json:"address"`
@@ -56,7 +56,7 @@ type MissInfo struct {
 	Alerted      bool      `json:"alerted" sql:",default:false,notnull"`
 }
 
-// MissDetailInfo is a struct for database table
+// MissDetailInfo has validator's missing blocks information in detail
 type MissDetailInfo struct {
 	ID       int64     `json:"id" sql:",pk"`
 	Address  string    `json:"address"`
@@ -66,7 +66,7 @@ type MissDetailInfo struct {
 	Alerted  bool      `json:"alerted" sql:",default:false,notnull"`
 }
 
-// EvidenceInfo is a struct for database table
+// EvidenceInfo has evidence of slashing information
 type EvidenceInfo struct {
 	ID      int64     `json:"id" sql:",pk"`
 	Address string    `json:"address"`

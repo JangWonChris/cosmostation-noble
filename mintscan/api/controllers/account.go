@@ -12,7 +12,7 @@ import (
 	"github.com/tendermint/tendermint/rpc/client"
 )
 
-// Passes requests to its respective service
+// AccountController passes requests to its respective service
 func AccountController(codec *codec.Codec, config *config.Config, db *db.Database, r *mux.Router, rpcClient *client.HTTP) {
 	r.HandleFunc("/account/balance/{accAddress}", func(w http.ResponseWriter, r *http.Request) {
 		services.GetBalance(codec, config, db, rpcClient, w, r)

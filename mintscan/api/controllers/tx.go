@@ -13,8 +13,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// Passes requests to its respective service
-func TransactionController(codec *codec.Codec, config *config.Config, db *db.Database, r *mux.Router, rpcClient *client.HTTP) {
+// TxController passes requests to its respective service
+func TxController(codec *codec.Codec, config *config.Config, db *db.Database, r *mux.Router, rpcClient *client.HTTP) {
 	r.HandleFunc("/txs", func(w http.ResponseWriter, r *http.Request) {
 		services.GetTxs(codec, db, rpcClient, w, r)
 	})

@@ -13,7 +13,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// Passes requests to its respective service
+// DistributionController passes requests to its respective service
 func DistributionController(codec *codec.Codec, config *config.Config, db *db.Database, r *mux.Router, rpcClient *client.HTTP) {
 	r.HandleFunc("/distribution/delegators/{delegatorAddr}/withdraw_address", func(w http.ResponseWriter, r *http.Request) {
 		services.GetDelegatorWithdrawAddress(config, db, rpcClient, w, r)
