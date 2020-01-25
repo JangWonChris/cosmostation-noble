@@ -18,7 +18,7 @@ import (
 
 // SaveBondedValidators saves bonded validators information in database
 func SaveBondedValidators(db *db.Database, config *config.Config) {
-	resp, _ := resty.R().Get(config.Node.LCDURL + "/staking/validators?status=bonded")
+	resp, _ := resty.R().Get(config.Node.LCDEndpoint + "/staking/validators?status=bonded")
 
 	var bondedValidators []*types.Validator
 	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &bondedValidators)
@@ -72,7 +72,7 @@ func SaveBondedValidators(db *db.Database, config *config.Config) {
 
 // SaveUnbondingAndUnBondedValidators saves unbonding and unbonded validators information in database
 func SaveUnbondingAndUnBondedValidators(db *db.Database, config *config.Config) {
-	resp, _ := resty.R().Get(config.Node.LCDURL + "/staking/validators?status=unbonding")
+	resp, _ := resty.R().Get(config.Node.LCDEndpoint + "/staking/validators?status=unbonding")
 
 	var unbondingValidators []*types.Validator
 	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &unbondingValidators)
@@ -119,13 +119,9 @@ func SaveUnbondingAndUnBondedValidators(db *db.Database, config *config.Config) 
 		saveUnbondedValidators(db, config)
 	}
 
-	// ranking
-	var rankInfo schema.ValidatorInfo
-	_ = db.Model(&rankInfo).
-		Where("status = ?", 2).
-		Order("rank DESC").
-		Limit(1).
-		Select()
+	// first rank
+	status := 2
+	rankInfo, _ := db.QueryFirstRankValidatorByStatus(status)
 
 	for i, validatorInfo := range validatorInfo {
 		validatorInfo.Rank = (rankInfo.Rank + 1 + i)
@@ -145,7 +141,7 @@ func SaveUnbondingAndUnBondedValidators(db *db.Database, config *config.Config) 
 
 // saveUnbondedValidators saves unbonded validators information in database
 func saveUnbondedValidators(db *db.Database, config *config.Config) {
-	resp, _ := resty.R().Get(config.Node.LCDURL + "/staking/validators?status=unbonded")
+	resp, _ := resty.R().Get(config.Node.LCDEndpoint + "/staking/validators?status=unbonded")
 
 	var unbondedValidators []*types.Validator
 	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &unbondedValidators)
@@ -189,13 +185,9 @@ func saveUnbondedValidators(db *db.Database, config *config.Config) {
 		}
 	}
 
-	// last rank number
-	var rankInfo schema.ValidatorInfo
-	_ = db.Model(&rankInfo).
-		Where("status = ?", 1).
-		Order("rank DESC").
-		Limit(1).
-		Select()
+	// first rank
+	status := 1
+	rankInfo, _ := db.QueryFirstRankValidatorByStatus(status)
 
 	for i, validatorInfo := range validatorInfo {
 		validatorInfo.Rank = (rankInfo.Rank + 1 + i)

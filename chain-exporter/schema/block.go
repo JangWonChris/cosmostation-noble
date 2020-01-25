@@ -2,7 +2,7 @@ package schema
 
 import "time"
 
-// BlockInfo is a struct for database table
+// BlockInfo has block information
 type BlockInfo struct {
 	ID        int64     `json:"id" sql:",pk"`
 	BlockHash string    `json:"block_hash" sql:",unique"`

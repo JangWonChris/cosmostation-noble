@@ -110,6 +110,18 @@ func (db *Database) QueryAlarmTokens(address string) ([]string, error) {
 	return result, nil
 }
 
+// QueryFirstRankValidatorByStatus queries highest rank of a validator by status
+func (db *Database) QueryFirstRankValidatorByStatus(status int) (schema.ValidatorInfo, error) {
+	var rankInfo schema.ValidatorInfo
+	_ = db.Model(&rankInfo).
+		Where("status = ?", status).
+		Order("rank DESC").
+		Limit(1).
+		Select()
+
+	return rankInfo, nil
+}
+
 // QueryExistProposal queries to find out if the same proposal is already saved
 func (db *Database) QueryExistProposal(proposalID int64) (bool, error) {
 	var proposalInfo schema.ProposalInfo

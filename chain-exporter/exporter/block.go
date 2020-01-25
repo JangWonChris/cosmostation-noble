@@ -5,11 +5,11 @@ import (
 )
 
 // getBlockInfo provides block information
-func (ces *ChainExporterService) getBlockInfo(height int64) ([]*schema.BlockInfo, error) {
+func (ce *ChainExporter) getBlockInfo(height int64) ([]*schema.BlockInfo, error) {
 	blockInfo := make([]*schema.BlockInfo, 0)
 
 	// query current block
-	block, err := ces.rpcClient.Block(&height)
+	block, err := ce.rpcClient.Block(&height)
 	if err != nil {
 		return nil, err
 	}

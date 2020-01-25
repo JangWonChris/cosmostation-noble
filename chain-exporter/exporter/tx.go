@@ -21,7 +21,7 @@ import (
 )
 
 // getTransactionInfo provides information about each transaction in every block
-func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.TransactionInfo, []*schema.VoteInfo,
+func (ce ChainExporter) getTransactionInfo(height int64) ([]*schema.TransactionInfo, []*schema.VoteInfo,
 	[]*schema.DepositInfo, []*schema.ProposalInfo, []*schema.ValidatorSetInfo, error) {
 
 	transactionInfo := make([]*schema.TransactionInfo, 0)
@@ -31,7 +31,7 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 	validatorSetInfo := make([]*schema.ValidatorSetInfo, 0)
 
 	// query current block
-	block, err := ces.rpcClient.Block(&height)
+	block, err := ce.rpcClient.Block(&height)
 	if err != nil {
 		return nil, nil, nil, nil, nil, err
 	}
@@ -40,11 +40,11 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 		for _, tmTx := range block.Block.Data.Txs {
 			// use tx codec to unmarshal binary length prefix
 			var sdkTx sdk.Tx
-			_ = ces.codec.UnmarshalBinaryLengthPrefixed([]byte(tmTx), &sdkTx)
+			_ = ce.codec.UnmarshalBinaryLengthPrefixed([]byte(tmTx), &sdkTx)
 
 			txHash := fmt.Sprintf("%X", tmTx.Hash())
 
-			tx, err := ces.Tx(txHash)
+			tx, err := ce.Tx(txHash)
 			if err != nil {
 				fmt.Printf("failed to get tx %s: %s", txHash, err)
 				continue
@@ -52,14 +52,14 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 
 			// Save txInfo in PostgreSQL database
 			var tempTxInfo schema.TransactionInfo
-			tempTxInfo, err = ces.SetTx(tx, txHash)
+			tempTxInfo, err = ce.SetTx(tx, txHash)
 			if err != nil {
 				fmt.Printf("failed to persist transaction %s: %s", txHash, err)
 			}
 			transactionInfo = append(transactionInfo, &tempTxInfo)
 
 			var generalTx types.GeneralTx
-			resp, _ := resty.R().Get(ces.config.Node.LCDURL + "/txs/" + txHash)
+			resp, _ := resty.R().Get(ce.config.Node.LCDEndpoint + "/txs/" + txHash)
 			err = json.Unmarshal(resp.Body(), &generalTx)
 			if err != nil {
 				fmt.Printf("unmarshal generalTx error - %v\n", err)
@@ -71,14 +71,14 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 					switch generalTx.Tx.Value.Msg[j].Type {
 					case "cosmos-sdk/MsgSend":
 						var msgSend types.MsgSend
-						err = ces.codec.UnmarshalJSON(generalTx.Tx.Value.Msg[j].Value, &msgSend)
+						err = ce.codec.UnmarshalJSON(generalTx.Tx.Value.Msg[j].Value, &msgSend)
 						if err != nil {
 							fmt.Printf("failed to JSON encode msgSend: %s", err)
 						}
 
 						// switch param in config.yaml
 						// this param is to start or stop sending push notifications in case of syncing from the scratch
-						if ces.config.Alarm.Switch {
+						if ce.config.Alarm.Switch {
 							var amount string
 							var denom string
 
@@ -100,7 +100,7 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 
 							fromAcctStatus := nof.VerifyAccount(msgSend.FromAddress)
 							if fromAcctStatus {
-								tokens, _ := ces.db.QueryAlarmTokens(msgSend.FromAddress)
+								tokens, _ := ce.db.QueryAlarmTokens(msgSend.FromAddress)
 								if len(tokens) > 0 {
 									nof.PushNotification(pnp, tokens, types.FROM)
 								}
@@ -108,7 +108,7 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 
 							toAcctStatus := nof.VerifyAccount(msgSend.ToAddress)
 							if toAcctStatus {
-								tokens, _ := ces.db.QueryAlarmTokens(msgSend.ToAddress)
+								tokens, _ := ce.db.QueryAlarmTokens(msgSend.ToAddress)
 								if len(tokens) > 0 {
 									nof.PushNotification(pnp, tokens, types.TO)
 								}
@@ -117,7 +117,7 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 
 					case "cosmos-sdk/MsgMultiSend":
 						var multiSendTx types.MsgMultiSend
-						err = ces.codec.UnmarshalJSON(generalTx.Tx.Value.Msg[j].Value, &multiSendTx)
+						err = ce.codec.UnmarshalJSON(generalTx.Tx.Value.Msg[j].Value, &multiSendTx)
 						if err != nil {
 							fmt.Printf("failed to JSON encode multiSendTx: %s", err)
 						}
@@ -126,7 +126,7 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 
 						// switch param in config.yaml
 						// this param is to start or stop sending push notifications in case of syncing from the scratch
-						if ces.config.Alarm.Switch {
+						if ce.config.Alarm.Switch {
 							for _, input := range multiSendTx.Inputs {
 								var amount string
 								var denom string
@@ -145,7 +145,7 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 
 								fromAcctStatus := nof.VerifyAccount(input.Address.String())
 								if fromAcctStatus {
-									tokens, _ := ces.db.QueryAlarmTokens(input.Address.String())
+									tokens, _ := ce.db.QueryAlarmTokens(input.Address.String())
 									if len(tokens) > 0 {
 										nof.PushNotification(pnp, tokens, types.FROM)
 									}
@@ -171,7 +171,7 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 
 								toAcctStatus := nof.VerifyAccount(output.Address.String())
 								if toAcctStatus {
-									tokens, _ := ces.db.QueryAlarmTokens(output.Address.String())
+									tokens, _ := ce.db.QueryAlarmTokens(output.Address.String())
 									if len(tokens) > 0 {
 										nof.PushNotification(pnp, tokens, types.TO)
 									}
@@ -188,7 +188,7 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 						*/
 
 						// query the highest height of id_validator
-						highestIDValidatorNum, _ := ces.db.QueryHighestValidatorID()
+						highestIDValidatorNum, _ := ce.db.QueryHighestValidatorID()
 
 						height, _ := strconv.ParseInt(generalTx.Height, 10, 64)
 						newVotingPowerAmount, _ := strconv.ParseFloat(msgCreateValidator.Value.Amount.String(), 64) // parseFloat from sdk.Dec.String()
@@ -212,10 +212,10 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 						_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &msgDelegate)
 
 						// query validator information fro validator_infos table
-						validatorInfo, _ := ces.db.QueryValidator(msgDelegate.ValidatorAddress)
+						validatorInfo, _ := ce.db.QueryValidator(msgDelegate.ValidatorAddress)
 
 						// query to get id_validator of lastly inserted data
-						idValidatorSetInfo, _ := ces.db.QueryValidatorID(validatorInfo.Proposer)
+						idValidatorSetInfo, _ := ce.db.QueryValidatorID(validatorInfo.Proposer)
 
 						height, _ := strconv.ParseInt(generalTx.Height, 10, 64)
 						newVotingPowerAmount, _ := strconv.ParseFloat(msgDelegate.Amount.Amount.String(), 64) // parseFloat from sdk.Dec.String()
@@ -223,7 +223,7 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 
 						// current voting power of a validator
 						var votingPower float64
-						validators, _ := ces.rpcClient.Validators(&height)
+						validators, _ := ce.rpcClient.Validators(&height)
 						for _, validator := range validators.Validators {
 							if validator.Address.String() == validatorInfo.Proposer {
 								votingPower = float64(validator.VotingPower)
@@ -255,10 +255,10 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 						_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &msgUndelegate)
 
 						// query validator info
-						validatorInfo, _ := ces.db.QueryValidator(msgUndelegate.ValidatorAddress)
+						validatorInfo, _ := ce.db.QueryValidator(msgUndelegate.ValidatorAddress)
 
 						// query to get id_validator of lastly inserted data
-						idValidatorSetInfo, _ := ces.db.QueryValidatorID(validatorInfo.Proposer)
+						idValidatorSetInfo, _ := ce.db.QueryValidatorID(validatorInfo.Proposer)
 
 						height, _ := strconv.ParseInt(generalTx.Height, 10, 64)
 						newVotingPowerAmount, _ := strconv.ParseFloat(msgUndelegate.Amount.Amount.String(), 64) // parseFloat from sdk.Dec.String()
@@ -266,7 +266,7 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 
 						// current voting power of a validator
 						var votingPower float64
-						validators, _ := ces.rpcClient.Validators(&height)
+						validators, _ := ce.rpcClient.Validators(&height)
 						for _, validator := range validators.Validators {
 							if validator.Address.String() == validatorInfo.Proposer {
 								votingPower = float64(validator.VotingPower)
@@ -300,12 +300,12 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 						_ = json.Unmarshal(generalTx.Tx.Value.Msg[j].Value, &msgBeginRedelegate)
 
 						// query validator_dst_address info
-						validatorDstInfo, _ := ces.db.QueryValidator(msgBeginRedelegate.ValidatorDstAddress)
-						dstValidatorSetInfo, _ := ces.db.QueryValidatorID(validatorDstInfo.Proposer)
+						validatorDstInfo, _ := ce.db.QueryValidator(msgBeginRedelegate.ValidatorDstAddress)
+						dstValidatorSetInfo, _ := ce.db.QueryValidatorID(validatorDstInfo.Proposer)
 
 						// query validator_src_address info
-						validatorSrcInfo, _ := ces.db.QueryValidator(msgBeginRedelegate.ValidatorSrcAddress)
-						srcValidatorSetInfo, _ := ces.db.QueryValidatorID(validatorSrcInfo.Proposer)
+						validatorSrcInfo, _ := ce.db.QueryValidator(msgBeginRedelegate.ValidatorSrcAddress)
+						srcValidatorSetInfo, _ := ce.db.QueryValidatorID(validatorSrcInfo.Proposer)
 
 						height, _ := strconv.ParseInt(generalTx.Height, 10, 64)
 						newVotingPowerAmount, _ := strconv.ParseFloat(msgBeginRedelegate.Amount.Amount.String(), 64)
@@ -313,7 +313,7 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 
 						// current destination validator's voting power
 						var dstValidatorVotingPower float64
-						validators, _ := ces.rpcClient.Validators(&height)
+						validators, _ := ce.rpcClient.Validators(&height)
 						for _, validator := range validators.Validators {
 							if validator.Address.String() == validatorDstInfo.Proposer {
 								dstValidatorVotingPower = float64(validator.VotingPower)
@@ -322,7 +322,7 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 
 						// current source validator's voting power
 						var srcValidatorVotingPower float64
-						validators, _ = ces.rpcClient.Validators(&height)
+						validators, _ = ce.rpcClient.Validators(&height)
 						for _, validator := range validators.Validators {
 							if validator.Address.String() == validatorSrcInfo.Proposer {
 								srcValidatorVotingPower = float64(validator.VotingPower)
@@ -467,8 +467,8 @@ func (ces ChainExporterService) getTransactionInfo(height int64) ([]*schema.Tran
 // Tx queries for a transaction from the REST client and decodes it into a sdk.Tx
 // if the transaction exists. An error is returned if the tx doesn't exist or
 // decoding fails.
-func (ces ChainExporterService) Tx(hash string) (sdk.TxResponse, error) {
-	resp, err := http.Get(fmt.Sprintf("%s/txs/%s", ces.config.Node.LCDURL, hash))
+func (ce ChainExporter) Tx(hash string) (sdk.TxResponse, error) {
+	resp, err := http.Get(fmt.Sprintf("%s/txs/%s", ce.config.Node.LCDEndpoint, hash))
 	if err != nil {
 		return sdk.TxResponse{}, err
 	}
@@ -482,7 +482,7 @@ func (ces ChainExporterService) Tx(hash string) (sdk.TxResponse, error) {
 
 	var tx sdk.TxResponse
 
-	if err := ces.codec.UnmarshalJSON(bz, &tx); err != nil {
+	if err := ce.codec.UnmarshalJSON(bz, &tx); err != nil {
 		return sdk.TxResponse{}, err
 	}
 
@@ -491,7 +491,7 @@ func (ces ChainExporterService) Tx(hash string) (sdk.TxResponse, error) {
 
 // SetTx stores a transaction and returns the resulting record ID. An error is
 // returned if the operation fails.
-func (ces ChainExporterService) SetTx(tx sdk.TxResponse, txHash string) (schema.TransactionInfo, error) {
+func (ces ChainExporter) SetTx(tx sdk.TxResponse, txHash string) (schema.TransactionInfo, error) {
 	stdTx, ok := tx.Tx.(auth.StdTx)
 	if !ok {
 		return schema.TransactionInfo{}, fmt.Errorf("unsupported tx type: %T", tx.Tx)

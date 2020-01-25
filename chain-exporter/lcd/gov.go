@@ -16,7 +16,7 @@ import (
 
 // SaveProposals saves governance proposals in database
 func SaveProposals(db *db.Database, config *config.Config) {
-	resp, err := resty.R().Get(config.Node.LCDURL + "/gov/proposals")
+	resp, err := resty.R().Get(config.Node.LCDEndpoint + "/gov/proposals")
 	if err != nil {
 		fmt.Printf("failed to request /gov/proposals: %v \n", err)
 	}
@@ -40,7 +40,7 @@ func SaveProposals(db *db.Database, config *config.Config) {
 				totalDepositDenom = proposal.TotalDeposit[0].Denom
 			}
 
-			tallyResp, _ := resty.R().Get(config.Node.LCDURL + "/gov/proposals/" + proposal.ID + "/tally")
+			tallyResp, _ := resty.R().Get(config.Node.LCDEndpoint + "/gov/proposals/" + proposal.ID + "/tally")
 
 			var tally types.Tally
 			err = json.Unmarshal(types.ReadRespWithHeight(tallyResp).Result, &tally)

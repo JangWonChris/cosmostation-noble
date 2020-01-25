@@ -9,7 +9,7 @@ import (
 type Uptime struct {
 	Address      string `json:"address"`
 	MissedBlocks int    `json:"missed_blocks"`
-	OverBlocks   int64  `json:"over_blocks"`
+	OverBlocks   int    `json:"over_blocks"`
 }
 
 // Validator is a struct for REST API

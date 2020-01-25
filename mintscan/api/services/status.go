@@ -61,15 +61,13 @@ func GetStatus(config *config.Config, db *db.Database, rpcClient *client.HTTP, w
 	jailedNum := db.QueryJailedValidatorsNum()
 	totalTxsNum := db.QueryTotalTxsNum()
 
-	// query status
+	// Query status
 	status, _ := rpcClient.Status()
 
-	// query the latest two blocks and calculate block time
+	// Query the latest two blocks and calculate block time
 	latestTwoBlocks := db.QueryLastestTwoBlocks()
 	lastBlocktime := latestTwoBlocks[0].Time.UTC()
 	secondLastBlocktime := latestTwoBlocks[1].Time.UTC()
-
-	fmt.Println("5")
 
 	// <Note>: status.SyncInfo.LatestBlockTime.UTC()로 비교를 해야 되지만 현재로써는 마지막, 두번째마지막으로 비교
 	// Get the block time that is taken from the previous block

@@ -63,6 +63,7 @@ func GetDelegatorRewards(config *config.Config, db *db.Database, rpcClient *clie
 	resp, _ := resty.R().Get(config.Node.LCDEndpoint + "/distribution/delegators/" + delegatorAddr + "/rewards/" + validatorAddr)
 
 	coin := make([]models.Coin, 0)
+
 	err := json.Unmarshal(models.ReadRespWithHeight(resp).Result, &coin)
 	if err != nil {
 		fmt.Printf("failed to unmarshal coin: %t\n", err)

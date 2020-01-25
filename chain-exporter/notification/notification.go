@@ -69,7 +69,7 @@ func (nof *Notification) PushNotification(pnp *types.PushNotificationPayload, to
 	_, err := resty.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(pnsp).
-		Post(nof.cfg.Alarm.PushServerURL)
+		Post(nof.cfg.Alarm.PushServerEndpoint)
 	if err != nil {
 		fmt.Printf("failed to push notification %s: ", err)
 	}

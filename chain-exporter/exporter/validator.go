@@ -14,23 +14,23 @@ import (
 )
 
 // getValidatorSetInfo provides validator set information in every block
-func (ces ChainExporterService) getValidatorSetInfo(height int64) ([]*schema.ValidatorSetInfo, []*schema.MissInfo, []*schema.MissInfo, []*schema.MissDetailInfo, error) {
+func (ce ChainExporter) getValidatorSetInfo(height int64) ([]*schema.ValidatorSetInfo, []*schema.MissInfo, []*schema.MissInfo, []*schema.MissDetailInfo, error) {
 	nextHeight := height + 1
 
 	// Query current block
-	block, err := ces.rpcClient.Block(&height)
+	block, err := ce.rpcClient.Block(&height)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
 
 	// Query the next block to access precommits
-	nextBlock, err := ces.rpcClient.Block(&nextHeight)
+	nextBlock, err := ce.rpcClient.Block(&nextHeight)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
 
 	// Query validator set for the block height
-	validators, err := ces.rpcClient.Validators(&height)
+	validators, err := ce.rpcClient.Validators(&height)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -88,7 +88,7 @@ func (ces ChainExporterService) getValidatorSetInfo(height int64) ([]*schema.Val
 
 			// Query to check if a validator missed previous block
 			var prevMissInfo schema.MissInfo
-			_ = ces.db.Model(&prevMissInfo).
+			_ = ce.db.Model(&prevMissInfo).
 				Where("end_height = ? AND address = ?", endHeight-int64(1), validator.Address.String()).
 				Order("end_height DESC").
 				Select()
@@ -123,17 +123,17 @@ func (ces ChainExporterService) getValidatorSetInfo(height int64) ([]*schema.Val
 }
 
 // getEvidenceInfo provides evidence (slashing) information
-func (ces ChainExporterService) getEvidenceInfo(height int64) ([]*schema.EvidenceInfo, error) {
+func (ce ChainExporter) getEvidenceInfo(height int64) ([]*schema.EvidenceInfo, error) {
 	nextHeight := height + 1
 
 	// Query current block
-	block, err := ces.rpcClient.Block(&height)
+	block, err := ce.rpcClient.Block(&height)
 	if err != nil {
 		return nil, err
 	}
 
 	// Query the next block to access precommits
-	nextBlock, err := ces.rpcClient.Block(&nextHeight)
+	nextBlock, err := ce.rpcClient.Block(&nextHeight)
 	if err != nil {
 		return nil, err
 	}
@@ -158,15 +158,15 @@ func (ces ChainExporterService) getEvidenceInfo(height int64) ([]*schema.Evidenc
 }
 
 // SaveValidatorKeyBase saves keybase urls for every validator
-func (ces ChainExporterService) SaveValidatorKeyBase() error {
+func (ce ChainExporter) SaveValidatorKeyBase() error {
 	validatorsInfo := make([]*schema.ValidatorInfo, 0)
 
 	// query validators info
-	validators, _ := ces.db.QueryValidators()
+	validators, _ := ce.db.QueryValidators()
 
 	for _, validator := range validators {
 		if validator.Identity != "" {
-			resp, err := resty.R().Get(ces.config.KeybaseURL + validator.Identity)
+			resp, err := resty.R().Get(ce.config.KeybaseURL + validator.Identity)
 			if err != nil {
 				fmt.Printf("failed to request KeyBase: %v \n", err)
 			}
@@ -194,7 +194,7 @@ func (ces ChainExporterService) SaveValidatorKeyBase() error {
 
 	if len(validatorsInfo) > 0 {
 		for _, validator := range validatorsInfo {
-			result, err := ces.db.UpdateKeyBase(validator.ID, validator.KeybaseURL)
+			result, err := ce.db.UpdateKeyBase(validator.ID, validator.KeybaseURL)
 			if !result {
 				log.Printf("failed to update KeyBase URL: %v \n", err)
 			}

@@ -19,7 +19,6 @@ func GetBlocks(db *db.Database, w http.ResponseWriter, r *http.Request) error {
 	limit := int(100)
 	afterBlock := int(1)
 
-	// check limit param
 	if len(r.URL.Query()["limit"]) > 0 {
 		limit, _ = strconv.Atoi(r.URL.Query()["limit"][0])
 	}
@@ -30,7 +29,6 @@ func GetBlocks(db *db.Database, w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}
 
-	// check afterBlock param
 	if len(r.URL.Query()["afterBlock"]) > 0 {
 		afterBlock, _ = strconv.Atoi(r.URL.Query()["afterBlock"][0])
 	} else {
@@ -84,7 +82,7 @@ func GetProposedBlocks(db *db.Database, w http.ResponseWriter, r *http.Request) 
 	vars := mux.Vars(r)
 	address := vars["address"]
 
-	// check if the input validator address exists
+	// Check if the input validator address exists
 	validatorInfo, _ := db.ConvertToProposer(address)
 	if validatorInfo.Proposer == "" {
 		errors.ErrNotExist(w, http.StatusNotFound)
@@ -143,7 +141,7 @@ func GetProposedBlocks(db *db.Database, w http.ResponseWriter, r *http.Request) 
 	for i, block := range blocks {
 		validatorInfo, _ := db.QueryValidatorByProposer(block.Proposer)
 
-		// query a number of txs
+		// Query a number of txs
 		txInfos, _ := db.QueryTransactions(block.Height)
 
 		var txData models.TxData
