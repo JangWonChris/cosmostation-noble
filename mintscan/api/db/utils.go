@@ -16,7 +16,7 @@ func (db *Database) ConvertCosmosAddressToMoniker(cosmosAddr string) (string, er
 	if err != nil {
 		return "", err
 	}
-	cosmosOperAddress, err := bech32.ConvertAndEncode(sdk.Bech32PrefixValAddr, decoded)
+	valAddr, err := bech32.ConvertAndEncode(sdk.Bech32PrefixValAddr, decoded)
 	if err != nil {
 		return "", err
 	}
@@ -25,7 +25,7 @@ func (db *Database) ConvertCosmosAddressToMoniker(cosmosAddr string) (string, er
 	var validatorInfo schema.ValidatorInfo
 	err = db.Model(&validatorInfo).
 		Column("moniker").
-		Where("operator_address = ?", cosmosOperAddress).
+		Where("operator_address = ?", valAddr).
 		Limit(1).
 		Select()
 	if err != nil {
@@ -38,22 +38,21 @@ func (db *Database) ConvertCosmosAddressToMoniker(cosmosAddr string) (string, er
 // ConvertToProposer converts any type of input address to proposer address
 func (db *Database) ConvertToProposer(address string) (schema.ValidatorInfo, error) {
 	var validatorInfo schema.ValidatorInfo
+
 	switch {
-	case strings.HasPrefix(address, sdk.Bech32PrefixAccAddr):
-		_, decoded, _ := bech32.DecodeAndConvert(address)
-		cosmosOperAddress, _ := bech32.ConvertAndEncode(sdk.Bech32PrefixValAddr, decoded)
+	case strings.HasPrefix(address, sdk.GetConfig().GetBech32ValidatorPubPrefix()): // cosmosvaloperpub
 		_ = db.Model(&validatorInfo).
-			Where("operator_address = ?", cosmosOperAddress).
+			Where("consensus_pubkey = ?", address).
 			Limit(1).
 			Select()
-	case strings.HasPrefix(address, sdk.Bech32PrefixValAddr):
+	case strings.HasPrefix(address, sdk.GetConfig().GetBech32ValidatorAddrPrefix()): // cosmosvaloper
 		_ = db.Model(&validatorInfo).
 			Where("operator_address = ?", address).
 			Limit(1).
 			Select()
-	case strings.HasPrefix(address, sdk.Bech32PrefixValPub):
+	case strings.HasPrefix(address, sdk.GetConfig().GetBech32AccountAddrPrefix()): //cosmos
 		_ = db.Model(&validatorInfo).
-			Where("consensus_pubkey = ?", address).
+			Where("address = ?", address).
 			Limit(1).
 			Select()
 	case len(address) == 40:
@@ -68,5 +67,6 @@ func (db *Database) ConvertToProposer(address string) (schema.ValidatorInfo, err
 			Limit(1).
 			Select()
 	}
+
 	return validatorInfo, nil
 }

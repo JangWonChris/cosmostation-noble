@@ -280,9 +280,12 @@ func GetValidatorEvents(db *db.Database, w http.ResponseWriter, r *http.Request)
 		return nil
 	}
 
+	// Edge case
+	// Some validators existed in cosmoshub-1 or cosmoshub-2 but not in cosmoshub-3 won't have any power event history
+	// Return empty array for client to handle this
 	validatorID, _ := db.QueryValidatorID(address)
 	if validatorID == 0 {
-		errors.ErrNotExistValidator(w, http.StatusNotFound)
+		utils.Respond(w, []models.ResultVotingPowerHistory{})
 		return nil
 	}
 
