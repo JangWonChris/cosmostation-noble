@@ -310,6 +310,7 @@ func GetValidatorEvents(db *db.Database, w http.ResponseWriter, r *http.Request)
 		tempResultValidatorSet := &models.ResultVotingPowerHistory{
 			ID:             i + 1,
 			Height:         event.Height,
+			EndHeight:      1,
 			EventType:      event.EventType,
 			VotingPower:    event.VotingPower * 1000000,
 			NewVotingPower: event.NewVotingPowerAmount * 1000000,

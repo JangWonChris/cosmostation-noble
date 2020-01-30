@@ -92,13 +92,12 @@ func (db *Database) QueryValidatorPowerEvents(validatorID int, limit int, before
 			Limit(limit).
 			Order("id DESC").
 			Select()
-	case after > 0:
+	case after >= 0:
 		_ = db.Model(&validatorSetInfo).
 			Where("id_validator = ? AND height > ? ", validatorID, after).
 			Limit(limit).
 			Order("id ASC").
 			Select()
-
 	case offset >= 0:
 		_ = db.Model(&validatorSetInfo).
 			Where("id_validator = ?", validatorID).
