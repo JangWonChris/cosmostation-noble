@@ -214,6 +214,13 @@ type ResultVotingPowerHistory struct {
 	Timestamp      time.Time `json:"timestamp"`
 }
 
+// ResultVotingPowerHistoryCount wraps count for validator's power event history
+type ResultVotingPowerHistoryCount struct {
+	Moniker         string `json:"moniker"`
+	OperatorAddress string `json:"operator_address"`
+	Count           int    `json:"count"`
+}
+
 // ResultValidatorDelegations is a struct for validator delegations result response
 type ResultValidatorDelegations struct {
 	TotalDelegatorNum     int                     `json:"total_delegator_num"`

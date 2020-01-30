@@ -110,6 +110,16 @@ func (db *Database) QueryValidatorPowerEvents(validatorID int, limit int, before
 	return validatorSetInfo, nil
 }
 
+// CountValidatorPowerEvents counts validator's power event history transactions
+func (db *Database) CountValidatorPowerEvents(proposer string) int {
+	var validatorSetInfo schema.ValidatorSetInfo
+	num, _ := db.Model(&validatorSetInfo).
+		Where("proposer = ?", proposer).
+		Count()
+
+	return num
+}
+
 // QueryUnjailedValidatorsNum queries how many validators are not jailed
 func (db *Database) QueryUnjailedValidatorsNum() int {
 	var validatorInfo schema.ValidatorInfo

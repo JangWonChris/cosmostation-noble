@@ -310,7 +310,6 @@ func GetValidatorEvents(db *db.Database, w http.ResponseWriter, r *http.Request)
 		tempResultValidatorSet := &models.ResultVotingPowerHistory{
 			ID:             i + 1,
 			Height:         event.Height,
-			EndHeight:      1,
 			EventType:      event.EventType,
 			VotingPower:    event.VotingPower * 1000000,
 			NewVotingPower: event.NewVotingPowerAmount * 1000000,
@@ -318,6 +317,32 @@ func GetValidatorEvents(db *db.Database, w http.ResponseWriter, r *http.Request)
 			Timestamp:      event.Time,
 		}
 		result = append(result, tempResultValidatorSet)
+	}
+
+	utils.Respond(w, result)
+	return nil
+}
+
+// GetValidatorEventsTotalCount receives validator address and total count of power event history
+func GetValidatorEventsTotalCount(db *db.Database, w http.ResponseWriter, r *http.Request) error {
+	vars := mux.Vars(r)
+	address := vars["address"]
+
+	// Check if the address is validator
+	validatorInfo, _ := db.ConvertToProposer(address)
+	if validatorInfo.Proposer == "" {
+		errors.ErrNotExist(w, http.StatusNotFound)
+		return nil
+	}
+
+	address = validatorInfo.Proposer
+
+	count := db.CountValidatorPowerEvents(address)
+
+	result := &models.ResultVotingPowerHistoryCount{
+		Moniker:         validatorInfo.Moniker,
+		OperatorAddress: validatorInfo.OperatorAddress,
+		Count:           count,
 	}
 
 	utils.Respond(w, result)

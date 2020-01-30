@@ -31,6 +31,9 @@ func ValidatorController(codec *codec.Codec, config *config.Config, db *db.Datab
 	r.HandleFunc("/staking/validator/events/{address}", func(w http.ResponseWriter, r *http.Request) {
 		services.GetValidatorEvents(db, w, r)
 	})
+	r.HandleFunc("/staking/validator/events/{address}/count", func(w http.ResponseWriter, r *http.Request) {
+		services.GetValidatorEventsTotalCount(db, w, r)
+	})
 	r.HandleFunc("/staking/redelegations", func(w http.ResponseWriter, r *http.Request) {
 		services.GetRedelegations(config, db, w, r)
 	})
