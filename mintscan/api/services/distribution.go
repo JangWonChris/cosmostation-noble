@@ -2,41 +2,38 @@ package services
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
-	"strings"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/go-pg/pg"
 	"github.com/gorilla/mux"
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/config"
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/db"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models/types"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/utils"
 
-	"github.com/rs/zerolog/log"
 	"github.com/tendermint/tendermint/rpc/client"
 	resty "gopkg.in/resty.v1"
 )
 
 // GetDelegatorWithdrawAddress returns delegator's reward withdraw address
-func GetDelegatorWithdrawAddress(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
+func GetDelegatorWithdrawAddress(config *config.Config, db *db.Database, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	delegatorAddr := vars["delegatorAddr"]
 
-	if !strings.Contains(delegatorAddr, sdk.Bech32PrefixAccAddr) || len(delegatorAddr) != 45 {
+	if !utils.VerifyAddress(delegatorAddr) {
 		errors.ErrNotExist(w, http.StatusNotFound)
 		return nil
 	}
 
-	// delegator's withdraw_address
-	resp, _ := resty.R().Get(config.Node.LCDURL + "/distribution/delegators/" + delegatorAddr + "/withdraw_address")
+	// Query delegator's withdraw address
+	resp, _ := resty.R().Get(config.Node.LCDEndpoint + "/distribution/delegators/" + delegatorAddr + "/withdraw_address")
 
 	var address string
-	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &address)
+	err := json.Unmarshal(models.ReadRespWithHeight(resp).Result, &address)
 	if err != nil {
-		log.Info().Str(models.Service, models.LogDistribution).Str(models.Method, "GetDelegatorWithdrawAddress").Err(err).Msg("unmarshal address error")
+		fmt.Printf("failed to unmarshal address: %t\n", err)
 	}
 
 	result := make(map[string]string)
@@ -47,24 +44,29 @@ func GetDelegatorWithdrawAddress(config *config.Config, db *pg.DB, rpcClient *cl
 }
 
 // GetDelegatorRewards returns a withdrawn delegation rewards
-func GetDelegatorRewards(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
+func GetDelegatorRewards(config *config.Config, db *db.Database, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
 	delegatorAddr := vars["delegatorAddr"]
 	validatorAddr := vars["validatorAddr"]
 
-	if !strings.Contains(delegatorAddr, sdk.Bech32PrefixAccAddr) || !strings.Contains(validatorAddr, sdk.Bech32PrefixValAddr) {
+	if !utils.VerifyAddress(delegatorAddr) {
 		errors.ErrNotExist(w, http.StatusNotFound)
 		return nil
 	}
 
-	// query a delegation reward
-	resp, _ := resty.R().Get(config.Node.LCDURL + "/distribution/delegators/" + delegatorAddr + "/rewards/" + validatorAddr)
+	if !utils.VerifyValAddress(delegatorAddr) {
+		errors.ErrNotExist(w, http.StatusNotFound)
+		return nil
+	}
+
+	// Query a delegation reward
+	resp, _ := resty.R().Get(config.Node.LCDEndpoint + "/distribution/delegators/" + delegatorAddr + "/rewards/" + validatorAddr)
 
 	coin := make([]models.Coin, 0)
 
-	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &coin)
+	err := json.Unmarshal(models.ReadRespWithHeight(resp).Result, &coin)
 	if err != nil {
-		log.Info().Str(models.Service, models.LogDistribution).Str(models.Method, "GetDelegatorRewards").Err(err).Msg("unmarshal coin error")
+		fmt.Printf("failed to unmarshal coin: %t\n", err)
 	}
 
 	utils.Respond(w, coin)
@@ -72,13 +74,13 @@ func GetDelegatorRewards(config *config.Config, db *pg.DB, rpcClient *client.HTT
 }
 
 // GetCommunityPool returns current community pool
-func GetCommunityPool(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
-	resp, _ := resty.R().Get(config.Node.LCDURL + "/distribution/community_pool")
+func GetCommunityPool(config *config.Config, db *db.Database, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
+	resp, _ := resty.R().Get(config.Node.LCDEndpoint + "/distribution/community_pool")
 
 	var coin []models.Coin
-	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &coin)
+	err := json.Unmarshal(models.ReadRespWithHeight(resp).Result, &coin)
 	if err != nil {
-		log.Info().Str(models.Service, models.LogDistribution).Str(models.Method, "GetCommunityPool").Err(err).Msg("unmarshal coin error")
+		fmt.Printf("failed to unmarshal coin: %t\n", err)
 	}
 
 	utils.Respond(w, coin)

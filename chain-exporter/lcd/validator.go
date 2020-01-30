@@ -3,27 +3,27 @@ package lcd
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"sort"
 	"strconv"
 
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/db"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/utils"
 
-	"github.com/go-pg/pg"
-	"github.com/rs/zerolog/log"
 	resty "gopkg.in/resty.v1"
 )
 
 // SaveBondedValidators saves bonded validators information in database
-func SaveBondedValidators(db *pg.DB, config *config.Config) {
-	resp, _ := resty.R().Get(config.Node.LCDURL + "/staking/validators?status=bonded")
+func SaveBondedValidators(db *db.Database, config *config.Config) {
+	resp, _ := resty.R().Get(config.Node.LCDEndpoint + "/staking/validators?status=bonded")
 
 	var bondedValidators []*types.Validator
 	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &bondedValidators)
 	if err != nil {
-		log.Info().Str(types.Service, types.LogValidator).Str(types.Method, "SaveBondedValidators").Err(err).Msg("unmarshal bondedValidators error")
+		fmt.Printf("failed to request /staking/validators?status=bonded: %v \n", err)
 	}
 
 	// sort out bondedValidators by highest tokens
@@ -35,6 +35,7 @@ func SaveBondedValidators(db *pg.DB, config *config.Config) {
 
 	// bondedValidator information for our database table
 	validatorInfo := make([]*schema.ValidatorInfo, 0)
+
 	for i, bondedValidator := range bondedValidators {
 		tempValidatorInfo := &schema.ValidatorInfo{
 			Rank:                 i + 1,
@@ -61,43 +62,22 @@ func SaveBondedValidators(db *pg.DB, config *config.Config) {
 		validatorInfo = append(validatorInfo, tempValidatorInfo)
 	}
 
-	// save and update validatorInfo
 	if len(validatorInfo) > 0 {
-		_, err = db.Model(&validatorInfo).
-			OnConflict("(operator_address) DO UPDATE").
-			Set("rank = EXCLUDED.rank").
-			Set("consensus_pubkey = EXCLUDED.consensus_pubkey").
-			Set("proposer = EXCLUDED.proposer").
-			Set("jailed = EXCLUDED.jailed").
-			Set("status = EXCLUDED.status").
-			Set("tokens = EXCLUDED.tokens").
-			Set("delegator_shares = EXCLUDED.delegator_shares").
-			Set("moniker = EXCLUDED.moniker").
-			Set("identity = EXCLUDED.identity").
-			Set("website = EXCLUDED.website").
-			Set("details = EXCLUDED.details").
-			Set("unbonding_height = EXCLUDED.unbonding_height").
-			Set("unbonding_time = EXCLUDED.unbonding_time").
-			Set("commission_rate = EXCLUDED.commission_rate").
-			Set("commission_max_rate = EXCLUDED.commission_max_rate").
-			Set("commission_change_rate = EXCLUDED.commission_change_rate").
-			Set("update_time = EXCLUDED.update_time").
-			Set("min_self_delegation = EXCLUDED.min_self_delegation").
-			Insert()
-		if err != nil {
-			fmt.Printf("error - sync validators: %v\n", err)
+		result, err := db.InsertOrUpdateValidators(validatorInfo)
+		if !result {
+			log.Printf("failed to insert or update bonded validators: %t", err)
 		}
 	}
 }
 
 // SaveUnbondingAndUnBondedValidators saves unbonding and unbonded validators information in database
-func SaveUnbondingAndUnBondedValidators(db *pg.DB, config *config.Config) {
-	resp, _ := resty.R().Get(config.Node.LCDURL + "/staking/validators?status=unbonding")
+func SaveUnbondingAndUnBondedValidators(db *db.Database, config *config.Config) {
+	resp, _ := resty.R().Get(config.Node.LCDEndpoint + "/staking/validators?status=unbonding")
 
 	var unbondingValidators []*types.Validator
 	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &unbondingValidators)
 	if err != nil {
-		log.Info().Str(types.Service, types.LogValidator).Str(types.Method, "SaveUnbondingAndUnBondedValidators").Err(err).Msg("unmarshal unbondingValidators error")
+		fmt.Printf("failed to request /staking/validators?status=unbonding: %v \n", err)
 	}
 
 	// sort out bondedValidators by highest tokens
@@ -139,13 +119,9 @@ func SaveUnbondingAndUnBondedValidators(db *pg.DB, config *config.Config) {
 		saveUnbondedValidators(db, config)
 	}
 
-	// ranking
-	var rankInfo schema.ValidatorInfo
-	_ = db.Model(&rankInfo).
-		Where("status = ?", 2).
-		Order("rank DESC").
-		Limit(1).
-		Select()
+	// first rank
+	status := 2
+	rankInfo, _ := db.QueryFirstRankValidatorByStatus(status)
 
 	for i, validatorInfo := range validatorInfo {
 		validatorInfo.Rank = (rankInfo.Rank + 1 + i)
@@ -153,45 +129,24 @@ func SaveUnbondingAndUnBondedValidators(db *pg.DB, config *config.Config) {
 
 	// save and update validatorInfo
 	if len(validatorInfo) > 0 {
-		_, err := db.Model(&validatorInfo).
-			OnConflict("(operator_address) DO UPDATE").
-			Set("rank = EXCLUDED.rank").
-			Set("consensus_pubkey = EXCLUDED.consensus_pubkey").
-			Set("proposer = EXCLUDED.proposer").
-			Set("jailed = EXCLUDED.jailed").
-			Set("status = EXCLUDED.status").
-			Set("tokens = EXCLUDED.tokens").
-			Set("delegator_shares = EXCLUDED.delegator_shares").
-			Set("moniker = EXCLUDED.moniker").
-			Set("identity = EXCLUDED.identity").
-			Set("website = EXCLUDED.website").
-			Set("details = EXCLUDED.details").
-			Set("unbonding_height = EXCLUDED.unbonding_height").
-			Set("unbonding_time = EXCLUDED.unbonding_time").
-			Set("commission_rate = EXCLUDED.commission_rate").
-			Set("commission_max_rate = EXCLUDED.commission_max_rate").
-			Set("commission_change_rate = EXCLUDED.commission_change_rate").
-			Set("update_time = EXCLUDED.update_time").
-			Set("min_self_delegation = EXCLUDED.min_self_delegation").
-			Insert()
+		result, err := db.InsertOrUpdateValidators(validatorInfo)
+		if !result {
+			log.Printf("failed to insert or update unbonding validators: %t", err)
+		}
 
 		// save unbonded validators after succesfully saved unbonding validators
 		saveUnbondedValidators(db, config)
-
-		if err != nil {
-			fmt.Printf("error - save and update validatorinfo: %v\n", err)
-		}
 	}
 }
 
 // saveUnbondedValidators saves unbonded validators information in database
-func saveUnbondedValidators(db *pg.DB, config *config.Config) {
-	resp, _ := resty.R().Get(config.Node.LCDURL + "/staking/validators?status=unbonded")
+func saveUnbondedValidators(db *db.Database, config *config.Config) {
+	resp, _ := resty.R().Get(config.Node.LCDEndpoint + "/staking/validators?status=unbonded")
 
 	var unbondedValidators []*types.Validator
 	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &unbondedValidators)
 	if err != nil {
-		log.Info().Str(types.Service, types.LogValidator).Str(types.Method, "saveUnbondedValidators").Err(err).Msg("unmarshal unbondedValidators error")
+		fmt.Printf("failed to request /staking/validators?status=unbonded: %v \n", err)
 	}
 
 	// sort out bondedValidators by highest tokens
@@ -230,13 +185,9 @@ func saveUnbondedValidators(db *pg.DB, config *config.Config) {
 		}
 	}
 
-	// last rank number
-	var rankInfo schema.ValidatorInfo
-	_ = db.Model(&rankInfo).
-		Where("status = ?", 1).
-		Order("rank DESC").
-		Limit(1).
-		Select()
+	// first rank
+	status := 1
+	rankInfo, _ := db.QueryFirstRankValidatorByStatus(status)
 
 	for i, validatorInfo := range validatorInfo {
 		validatorInfo.Rank = (rankInfo.Rank + 1 + i)
@@ -244,29 +195,9 @@ func saveUnbondedValidators(db *pg.DB, config *config.Config) {
 
 	// save and update validatorInfo
 	if len(validatorInfo) > 0 {
-		_, err := db.Model(&validatorInfo).
-			OnConflict("(operator_address) DO UPDATE").
-			Set("rank = EXCLUDED.rank").
-			Set("consensus_pubkey = EXCLUDED.consensus_pubkey").
-			Set("proposer = EXCLUDED.proposer").
-			Set("jailed = EXCLUDED.jailed").
-			Set("status = EXCLUDED.status").
-			Set("tokens = EXCLUDED.tokens").
-			Set("delegator_shares = EXCLUDED.delegator_shares").
-			Set("moniker = EXCLUDED.moniker").
-			Set("identity = EXCLUDED.identity").
-			Set("website = EXCLUDED.website").
-			Set("details = EXCLUDED.details").
-			Set("unbonding_height = EXCLUDED.unbonding_height").
-			Set("unbonding_time = EXCLUDED.unbonding_time").
-			Set("commission_rate = EXCLUDED.commission_rate").
-			Set("commission_max_rate = EXCLUDED.commission_max_rate").
-			Set("commission_change_rate = EXCLUDED.commission_change_rate").
-			Set("update_time = EXCLUDED.update_time").
-			Set("min_self_delegation = EXCLUDED.min_self_delegation").
-			Insert()
-		if err != nil {
-			fmt.Printf("error - save and update validatorinfo: %v\n", err)
+		result, err := db.InsertOrUpdateValidators(validatorInfo)
+		if !result {
+			log.Printf("failed to insert or update unbonded validators: %t", err)
 		}
 	}
 }

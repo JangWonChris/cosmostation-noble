@@ -10,6 +10,6 @@ func main() {
 	config := config.NewConfig()
 
 	// Start exporting data from blockchain
-	exporter := exporter.NewChainExporterService(config)
+	exporter := exporter.NewChainExporter(config)
 	exporter.OnStart()
 }

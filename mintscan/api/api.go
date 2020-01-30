@@ -1,19 +1,19 @@
 package api
 
 import (
-	"crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
 	"time"
 
+	"github.com/pkg/errors"
+
+	ceCodec "github.com/cosmostation/cosmostation-cosmos/mintscan/api/codec"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/config"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/controllers"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/databases"
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/db"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-	gaiaApp "github.com/cosmos/gaia/app"
-	"github.com/go-pg/pg"
 	"github.com/gorilla/mux"
 	"github.com/tendermint/tendermint/rpc/client"
 
@@ -24,47 +24,48 @@ import (
 type App struct {
 	codec     *codec.Codec
 	config    *config.Config
-	db        *pg.DB
+	db        *db.Database
 	router    *mux.Router
 	rpcClient *client.HTTP
 }
 
 // NewApp initializes the app with predefined configuration
-func (a *App) NewApp(config *config.Config) {
-	// configuration
-	a.config = config
+func NewApp(config *config.Config) *App {
+	app := &App{
+		codec:     ceCodec.Codec,
+		config:    config,
+		db:        db.Connect(config),
+		router:    setRouter(),
+		rpcClient: client.NewHTTP(config.Node.RPCNode, "/websocket"), // Tendermint RPC client
+	}
 
-	// connect to Tendermint RPC client through websocket
-	a.rpcClient = client.NewHTTP(a.config.Node.GaiadURL, "/websocket")
+	// Ping database to verify connection is succeeded
+	err := app.db.Ping()
+	if err != nil {
+		log.Fatal(errors.Wrap(err, "failed to ping database."))
+	}
 
-	// connect to PostgreSQL
-	a.db = databases.ConnectDatabase(config)
+	controllers.AccountController(app.codec, app.config, app.db, app.router, app.rpcClient)
+	controllers.BlockController(app.codec, app.config, app.db, app.router, app.rpcClient)
+	controllers.DistributionController(app.codec, app.config, app.db, app.router, app.rpcClient)
+	controllers.GovController(app.codec, app.config, app.db, app.router, app.rpcClient)
+	controllers.MintingController(app.codec, app.config, app.db, app.router, app.rpcClient)
+	controllers.TxController(app.codec, app.config, app.db, app.router, app.rpcClient)
+	controllers.ValidatorController(app.codec, app.config, app.db, app.router, app.rpcClient)
+	controllers.StatusController(app.codec, app.config, app.db, app.router, app.rpcClient)
+	controllers.StatsController(app.codec, app.config, app.db, app.router, app.rpcClient)
 
-	// register Cosmos SDK codecs
-	a.codec = gaiaApp.MakeCodec()
+	resty.SetTimeout(5 * time.Second) // sets timeout for request.
 
-	// register routers
-	a.setRouters()
-
-	// sets timeout for request.
-	resty.SetTimeout(5 * time.Second)
-	resty.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true}) // local test
+	return app
 }
 
-// Sets the all required routers
-func (a *App) setRouters() {
-	a.router = mux.NewRouter()
-	a.router = a.router.PathPrefix("/v1").Subrouter()
+// setRouter sets the all required routers
+func setRouter() *mux.Router {
+	r := mux.NewRouter()
+	r = r.PathPrefix("/v1").Subrouter()
 
-	controllers.AccountController(a.codec, a.config, a.db, a.router, a.rpcClient)
-	controllers.BlockController(a.codec, a.config, a.db, a.router, a.rpcClient)
-	controllers.DistributionController(a.codec, a.config, a.db, a.router, a.rpcClient)
-	controllers.GovernanceController(a.codec, a.config, a.db, a.router, a.rpcClient)
-	controllers.MintingController(a.codec, a.config, a.db, a.router, a.rpcClient)
-	controllers.TransactionController(a.codec, a.config, a.db, a.router, a.rpcClient)
-	controllers.ValidatorController(a.codec, a.config, a.db, a.router, a.rpcClient)
-	controllers.StatusController(a.codec, a.config, a.db, a.router, a.rpcClient)
-	controllers.StatsController(a.codec, a.config, a.db, a.router, a.rpcClient)
+	return r
 }
 
 // Run the app

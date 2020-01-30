@@ -2,61 +2,68 @@ package exporter
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
+	"log"
 	"time"
+
+	"github.com/pkg/errors"
 
 	ceCodec "github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/databases"
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/db"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/lcd"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 
-	"github.com/go-pg/pg"
 	"github.com/tendermint/tendermint/rpc/client"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	resty "gopkg.in/resty.v1"
 )
 
-// ChainExporterService wraps below params
-type ChainExporterService struct {
+// ChainExporter implemnts a wrapper around configuration for this project
+type ChainExporter struct {
 	codec     *codec.Codec
 	config    *config.Config
-	db        *pg.DB
+	db        *db.Database
 	wsCtx     context.Context
 	wsOut     <-chan ctypes.ResultEvent
 	rpcClient *client.HTTP
 }
 
-// NewChainExporterService initializes the required config
-func NewChainExporterService(config *config.Config) *ChainExporterService {
-	ces := &ChainExporterService{
+// NewChainExporter initializes the required config
+func NewChainExporter(config *config.Config) *ChainExporter {
+	ce := &ChainExporter{
 		codec:     ceCodec.Codec, // register Cosmos SDK codecs
 		config:    config,
-		db:        databases.ConnectDatabase(config), // connect to PostgreSQL
+		db:        db.Connect(config), // connect to PostgreSQL
 		wsCtx:     context.Background(),
-		rpcClient: client.NewHTTP(config.Node.GaiadURL, "/websocket"), // connect to Tendermint RPC client
+		rpcClient: client.NewHTTP(config.Node.RPCNode, "/websocket"), // connect to Tendermint RPC client
 	}
 
-	databases.CreateSchema(ces.db)
+	// Ping database to verify connection is succeeded
+	err := ce.db.Ping()
+	if err != nil {
+		log.Fatal(errors.Wrap(err, "failed to ping database."))
+	}
 
-	resty.SetTimeout(5 * time.Second)
-	resty.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
+	// Setup database tables
+	ce.db.CreateSchema()
 
-	return ces
+	resty.SetTimeout(5 * time.Second) // sets timeout for request.
+
+	return ce
 }
 
 // OnStart is an override method for BaseService, which starts a service
-func (ces ChainExporterService) OnStart() error {
-	ces.rpcClient.OnStart()
+func (ce ChainExporter) OnStart() error {
+	ce.rpcClient.OnStart()
 
 	// Store data initially
-	lcd.SaveBondedValidators(ces.db, ces.config)
-	lcd.SaveUnbondingAndUnBondedValidators(ces.db, ces.config)
-	lcd.SaveProposals(ces.db, ces.config)
+	lcd.SaveBondedValidators(ce.db, ce.config)
+	lcd.SaveUnbondingAndUnBondedValidators(ce.db, ce.config)
+	lcd.SaveProposals(ce.db, ce.config)
 
 	c1 := make(chan string)
 	c2 := make(chan string)
@@ -64,7 +71,7 @@ func (ces ChainExporterService) OnStart() error {
 	go func() {
 		for {
 			fmt.Println("start - sync blockchain")
-			err := ces.sync()
+			err := ce.sync()
 			if err != nil {
 				fmt.Printf("error - sync blockchain: %v\n", err)
 			}
@@ -91,27 +98,27 @@ func (ces ChainExporterService) OnStart() error {
 		select {
 		case msg1 := <-c1:
 			fmt.Println("start - ", msg1)
-			lcd.SaveBondedValidators(ces.db, ces.config)
-			lcd.SaveUnbondingAndUnBondedValidators(ces.db, ces.config)
-			lcd.SaveProposals(ces.db, ces.config)
+			lcd.SaveBondedValidators(ce.db, ce.config)
+			lcd.SaveUnbondingAndUnBondedValidators(ce.db, ce.config)
+			lcd.SaveProposals(ce.db, ce.config)
 			fmt.Println("finish - ", msg1)
 		case msg2 := <-c2:
 			fmt.Println("start - ", msg2)
-			ces.SaveValidatorKeyBase()
+			ce.SaveValidatorKeyBase()
 			fmt.Println("finish - ", msg2)
 		}
 	}
 }
 
 // OnStop is an override method for BaseService, which stops a service
-func (ces ChainExporterService) OnStop() {
-	ces.rpcClient.OnStop()
+func (ce ChainExporter) OnStop() {
+	ce.rpcClient.OnStop()
 }
 
 // sync synchronizes the block data from connected full node
-func (ces ChainExporterService) sync() error {
+func (ce ChainExporter) sync() error {
 	var blocks []schema.BlockInfo
-	err := ces.db.Model(&blocks).
+	err := ce.db.Model(&blocks).
 		Order("height DESC").
 		Limit(1).
 		Select()
@@ -125,7 +132,7 @@ func (ces ChainExporterService) sync() error {
 	}
 
 	// query current height
-	status, err := ces.rpcClient.Status()
+	status, err := ce.rpcClient.Status()
 	if err != nil {
 		return err
 	}
@@ -137,7 +144,7 @@ func (ces ChainExporterService) sync() error {
 
 	// ingest all blocks up to the best height
 	for i := currentHeight + 1; i <= maxHeight; i++ {
-		err = ces.process(i)
+		err = ce.process(i)
 		if err != nil {
 			return err
 		}
@@ -148,29 +155,29 @@ func (ces ChainExporterService) sync() error {
 
 // sync queries the block at the given height-1 from the node and ingests its metadata (blockinfo,evidence)
 // into the database. It also queries the next block to access the commits and stores the missed signatures.
-func (ces ChainExporterService) process(height int64) error {
-	blockInfo, err := ces.getBlockInfo(height)
+func (ce ChainExporter) process(height int64) error {
+	blockInfo, err := ce.getBlockInfo(height)
 	if err != nil {
 		return err
 	}
 
-	evidenceInfo, err := ces.getEvidenceInfo(height)
+	evidenceInfo, err := ce.getEvidenceInfo(height)
 	if err != nil {
 		return err
 	}
 
-	genesisValsInfo, missInfo, accumMissInfo, missDetailInfo, err := ces.getValidatorSetInfo(height)
+	genesisValsInfo, missInfo, accumMissInfo, missDetailInfo, err := ce.getValidatorSetInfo(height)
 	if err != nil {
 		return err
 	}
 
-	transactionInfo, voteInfo, depositInfo, proposalInfo, validatorSetInfo, err := ces.getTransactionInfo(height)
+	transactionInfo, voteInfo, depositInfo, proposalInfo, validatorSetInfo, err := ce.getTransactionInfo(height)
 	if err != nil {
 		return err
 	}
 
 	// Insert data into database
-	err = databases.SaveExportedData(ces.db, blockInfo, evidenceInfo, genesisValsInfo, missInfo, accumMissInfo,
+	err = ce.db.InsertExportedData(blockInfo, evidenceInfo, genesisValsInfo, missInfo, accumMissInfo,
 		missDetailInfo, transactionInfo, voteInfo, depositInfo, proposalInfo, validatorSetInfo)
 
 	if err != nil {

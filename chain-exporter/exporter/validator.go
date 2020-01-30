@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
@@ -13,23 +14,23 @@ import (
 )
 
 // getValidatorSetInfo provides validator set information in every block
-func (ces ChainExporterService) getValidatorSetInfo(height int64) ([]*schema.ValidatorSetInfo, []*schema.MissInfo, []*schema.MissInfo, []*schema.MissDetailInfo, error) {
+func (ce ChainExporter) getValidatorSetInfo(height int64) ([]*schema.ValidatorSetInfo, []*schema.MissInfo, []*schema.MissInfo, []*schema.MissDetailInfo, error) {
 	nextHeight := height + 1
 
 	// Query current block
-	block, err := ces.rpcClient.Block(&height)
+	block, err := ce.rpcClient.Block(&height)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
 
 	// Query the next block to access precommits
-	nextBlock, err := ces.rpcClient.Block(&nextHeight)
+	nextBlock, err := ce.rpcClient.Block(&nextHeight)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
 
 	// Query validator set for the block height
-	validators, err := ces.rpcClient.Validators(&height)
+	validators, err := ce.rpcClient.Validators(&height)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -87,7 +88,7 @@ func (ces ChainExporterService) getValidatorSetInfo(height int64) ([]*schema.Val
 
 			// Query to check if a validator missed previous block
 			var prevMissInfo schema.MissInfo
-			_ = ces.db.Model(&prevMissInfo).
+			_ = ce.db.Model(&prevMissInfo).
 				Where("end_height = ? AND address = ?", endHeight-int64(1), validator.Address.String()).
 				Order("end_height DESC").
 				Select()
@@ -122,17 +123,17 @@ func (ces ChainExporterService) getValidatorSetInfo(height int64) ([]*schema.Val
 }
 
 // getEvidenceInfo provides evidence (slashing) information
-func (ces ChainExporterService) getEvidenceInfo(height int64) ([]*schema.EvidenceInfo, error) {
+func (ce ChainExporter) getEvidenceInfo(height int64) ([]*schema.EvidenceInfo, error) {
 	nextHeight := height + 1
 
 	// Query current block
-	block, err := ces.rpcClient.Block(&height)
+	block, err := ce.rpcClient.Block(&height)
 	if err != nil {
 		return nil, err
 	}
 
 	// Query the next block to access precommits
-	nextBlock, err := ces.rpcClient.Block(&nextHeight)
+	nextBlock, err := ce.rpcClient.Block(&nextHeight)
 	if err != nil {
 		return nil, err
 	}
@@ -157,30 +158,25 @@ func (ces ChainExporterService) getEvidenceInfo(height int64) ([]*schema.Evidenc
 }
 
 // SaveValidatorKeyBase saves keybase urls for every validator
-func (ces ChainExporterService) SaveValidatorKeyBase() error {
-	var validatorInfo []schema.ValidatorInfo
-	err := ces.db.Model(&validatorInfo).
-		Column("id", "identity", "moniker").
-		Select()
-	if err != nil {
-		return err
-	}
+func (ce ChainExporter) SaveValidatorKeyBase() error {
+	validatorsInfo := make([]*schema.ValidatorInfo, 0)
 
-	validatorInfoUpdate := make([]*schema.ValidatorInfo, 0)
-	for _, validator := range validatorInfo {
+	// query validators info
+	validators, _ := ce.db.QueryValidators()
+
+	for _, validator := range validators {
 		if validator.Identity != "" {
-			resp, err := resty.R().Get(ces.config.KeybaseURL + validator.Identity)
+			resp, err := resty.R().Get(ce.config.KeybaseURL + validator.Identity)
 			if err != nil {
-				fmt.Printf("KeyBase request error - %v\n", err)
+				fmt.Printf("failed to request KeyBase: %v \n", err)
 			}
 
 			var keyBases types.KeyBase
 			err = json.Unmarshal(resp.Body(), &keyBases)
 			if err != nil {
-				fmt.Printf("KeyBase unmarshal error - %v\n", err)
+				fmt.Printf("failed to unmarshal KeyBase: %v \n", err)
 			}
 
-			// get keybase urls
 			var keybaseURL string
 			if len(keyBases.Them) > 0 {
 				for _, keybase := range keyBases.Them {
@@ -192,19 +188,15 @@ func (ces ChainExporterService) SaveValidatorKeyBase() error {
 				ID:         validator.ID,
 				KeybaseURL: keybaseURL,
 			}
-			validatorInfoUpdate = append(validatorInfoUpdate, tempValidatorInfo)
+			validatorsInfo = append(validatorsInfo, tempValidatorInfo)
 		}
 	}
 
-	if len(validatorInfoUpdate) > 0 {
-		var tempValidatorInfo schema.ValidatorInfo
-		for i := 0; i < len(validatorInfoUpdate); i++ {
-			_, err = ces.db.Model(&tempValidatorInfo).
-				Set("keybase_url = ?", validatorInfoUpdate[i].KeybaseURL).
-				Where("id = ?", validatorInfoUpdate[i].ID).
-				Update()
-			if err != nil {
-				return err
+	if len(validatorsInfo) > 0 {
+		for _, validator := range validatorsInfo {
+			result, err := ce.db.UpdateKeyBase(validator.ID, validator.KeybaseURL)
+			if !result {
+				log.Printf("failed to update KeyBase URL: %v \n", err)
 			}
 		}
 	}

@@ -2,42 +2,40 @@ package services
 
 import (
 	"encoding/json"
+	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/config"
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/db"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models/types"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/utils"
 
-	"github.com/go-pg/pg"
-	"github.com/rs/zerolog/log"
 	"github.com/tendermint/tendermint/rpc/client"
 	resty "gopkg.in/resty.v1"
 )
 
-// GetMarketStats returns marketInfo
-func GetMarketStats(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
-	limit := 24
+// GetMarketStats returns market statistics
+func GetMarketStats(config *config.Config, db *db.Database, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
+	resp, _ := resty.R().Get(config.Market.CoinGecko.Endpoint)
 
-	// query current price
-	resp, _ := resty.R().Get(config.Market.CoinGecko.URL)
-
-	var coinGeckoMarket types.CoinGeckoMarket
+	var coinGeckoMarket models.CoinGeckoMarket
 	err := json.Unmarshal(resp.Body(), &coinGeckoMarket)
 	if err != nil {
-		log.Info().Str(models.Service, models.LogStatistics).Str(models.Method, "GetMarketStats").Err(err).Msg("unmarshal coinGeckoMarket error")
+		fmt.Printf("failed to unmarshal coingecko market data: %t\n", err)
 	}
 
-	// query price chart
-	var statsCoingeckoMarket1H []types.StatsCoingeckoMarket1H
-	_ = db.Model(&statsCoingeckoMarket1H).
-		Order("id DESC").
-		Limit(limit).
-		Select()
+	// Query every price of an hour for 24 hours
+	limit := 24
+	prices, _ := db.QueryOneDayPrices(limit)
+
+	if len(prices) <= 0 {
+		log.Fatal("failed to query prices")
+	}
 
 	priceStats := make([]*models.PriceStats, 0)
 
-	for _, market := range statsCoingeckoMarket1H {
+	for _, market := range prices {
 		tempPriceStats := &models.PriceStats{
 			Price: market.Price,
 			Time:  market.Time,
@@ -47,15 +45,15 @@ func GetMarketStats(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w 
 
 	resultMarket := &models.ResultMarket{
 		Price:             coinGeckoMarket.MarketData.CurrentPrice.Usd,
-		Currency:          statsCoingeckoMarket1H[0].Currency,
-		MarketCapRank:     statsCoingeckoMarket1H[0].MarketCapRank,
-		PercentChange1H:   statsCoingeckoMarket1H[0].PercentChange1H,
-		PercentChange24H:  statsCoingeckoMarket1H[0].PercentChange24H,
-		PercentChange7D:   statsCoingeckoMarket1H[0].PercentChange7D,
-		PercentChange30D:  statsCoingeckoMarket1H[0].PercentChange30D,
-		TotalVolume:       statsCoingeckoMarket1H[0].TotalVolume,
-		CirculatingSupply: statsCoingeckoMarket1H[0].CirculatingSupply,
-		LastUpdated:       statsCoingeckoMarket1H[0].LastUpdated,
+		Currency:          prices[0].Currency,
+		MarketCapRank:     prices[0].MarketCapRank,
+		PercentChange1H:   prices[0].PercentChange1H,
+		PercentChange24H:  prices[0].PercentChange24H,
+		PercentChange7D:   prices[0].PercentChange7D,
+		PercentChange30D:  prices[0].PercentChange30D,
+		TotalVolume:       prices[0].TotalVolume,
+		CirculatingSupply: prices[0].CirculatingSupply,
+		LastUpdated:       prices[0].LastUpdated,
 		PriceStats:        priceStats,
 	}
 
@@ -63,64 +61,62 @@ func GetMarketStats(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w 
 	return nil
 }
 
-// GetNetworkStats returns network stats
-func GetNetworkStats(config *config.Config, db *pg.DB, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
+// GetNetworkStats returns network statistics
+func GetNetworkStats(config *config.Config, db *db.Database, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	var limit int
 
-	var statsNetwork types.StatsNetwork1H
+	var statsNetwork models.StatsNetwork1H
 	cntStats, _ := db.Model(&statsNetwork).Count()
 
 	switch {
 	case cntStats == 1:
-		return json.NewEncoder(w).Encode(&types.StatsNetwork1H{})
+		return json.NewEncoder(w).Encode(&models.StatsNetwork1H{})
 	case cntStats <= 24:
 		limit = cntStats
 	default:
 		limit = 24
 	}
 
-	// query bonded tokens chart
-	var statsNetwork1H []types.StatsNetwork1H
-	err := db.Model(&statsNetwork1H).
-		Order("id DESC").
-		Limit(limit).
-		Select()
+	// Query 24 network stats
+	network1HStats, err := db.QueryNetworkStats(limit)
 	if err != nil {
-		return json.NewEncoder(w).Encode(&types.StatsNetwork1H{})
+		utils.Respond(w, models.StatsNetwork1H{})
+		return nil
 	}
+
+	if len(network1HStats) <= 0 {
+		log.Fatal("failed to query network stats")
+	}
+
+	// Query bonded tokens percentage change for 24 hours
+	network24HStats, err := db.QueryBondedRateIn24H()
+	if err != nil {
+		utils.Respond(w, models.StatsNetwork1H{})
+		return nil
+	}
+
+	if len(network24HStats) <= 0 {
+		log.Fatal("failed to query bonded tokens stats")
+	}
+
+	// Calculate change rate of bonded tokens in 24hours
+	// (LatestBondedTokens - SecondLatestBondedTokens) / SecondLatestBondedTokens
+	diff := network24HStats[0].BondedTokens - network24HStats[1].BondedTokens
+	changeRateIn24H := diff / network24HStats[1].BondedTokens
 
 	bondedTokensStats := make([]*models.BondedTokensStats, 0)
-	if len(statsNetwork1H) > 0 {
-		for _, networkStat := range statsNetwork1H {
-			tempBondedTokensStats := &models.BondedTokensStats{
-				BondedTokens: networkStat.BondedTokens,
-				BondedRatio:  networkStat.BondedRatio,
-				LastUpdated:  networkStat.Time,
-			}
-			bondedTokensStats = append(bondedTokensStats, tempBondedTokensStats)
+
+	for _, network1HStat := range network1HStats {
+		tempBondedTokensStats := &models.BondedTokensStats{
+			BondedTokens: network1HStat.BondedTokens,
+			BondedRatio:  network1HStat.BondedRatio,
+			LastUpdated:  network1HStat.Time,
 		}
-	}
-
-	// bonded tokens percentage change in 24 hours
-	var statsNetwork24H []types.StatsNetwork24H
-	_ = db.Model(&statsNetwork24H).
-		Order("id DESC").
-		Limit(2).
-		Select()
-
-	// bonded tokens rate change in last 24 hours
-	percentChange24H := float64(0)
-
-	// TODO: cosmoshub-3 업그레이드 후 네트워크 데이터가 아예 없을경우, 1개일 경우 예외처리 하기
-	if len(statsNetwork24H) > 0 {
-		latestBondedTokens := statsNetwork24H[0].BondedTokens
-		before24HBondedTokens := statsNetwork24H[1].BondedTokens
-		diff := latestBondedTokens - before24HBondedTokens
-		percentChange24H = diff / before24HBondedTokens
+		bondedTokensStats = append(bondedTokensStats, tempBondedTokensStats)
 	}
 
 	resultNetworkInfo := &models.NetworkInfo{
-		BondendTokensPercentChange24H: percentChange24H,
+		BondendTokensPercentChange24H: changeRateIn24H,
 		BondedTokensStats:             bondedTokensStats,
 	}
 

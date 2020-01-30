@@ -13,12 +13,9 @@ import (
 
 // AccountController passes requests to its respective service
 func AccountController(r *mux.Router, c *client.HTTP, db *pg.DB) {
-	r.HandleFunc("/account/register", func(w http.ResponseWriter, r *http.Request) {
-		services.Register(db, w, r)
-	}).Methods("POST")
 	r.HandleFunc("/account/update", func(w http.ResponseWriter, r *http.Request) {
-		services.Update(db, w, r)
-	}).Methods("PUT")
+		services.RegisterOrUpdate(db, w, r)
+	}).Methods("POST")
 	r.HandleFunc("/account/delete", func(w http.ResponseWriter, r *http.Request) {
 		services.Delete(db, w, r)
 	}).Methods("DELETE")

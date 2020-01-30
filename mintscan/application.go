@@ -10,7 +10,6 @@ func main() {
 	config := config.NewConfig()
 
 	// starting the server
-	app := &app.App{}
-	app.NewApp(config)
-	app.Run(":" + config.Web.Port)
+	a := app.NewApp(config)
+	a.Run(":" + config.Web.Port)
 }
