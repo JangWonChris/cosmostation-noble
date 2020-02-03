@@ -30,6 +30,9 @@ func AccountController(codec *codec.Codec, config *config.Config, db *db.Databas
 		services.GetUnbondingDelegations(codec, config, db, rpcClient, w, r)
 	}).Methods("GET")
 	r.HandleFunc("/account/txs/{accAddress}", func(w http.ResponseWriter, r *http.Request) {
-		services.GetAccountTxs(codec, config, db, rpcClient, w, r)
+		services.GetTxsByAccount(codec, config, db, rpcClient, w, r)
+	}).Methods("GET")
+	r.HandleFunc("/account/txs/{accAddress}/{operAddress}", func(w http.ResponseWriter, r *http.Request) {
+		services.GetTxsBetweenAccountAndValidator(codec, config, db, rpcClient, w, r)
 	}).Methods("GET")
 }

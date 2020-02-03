@@ -4,8 +4,8 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/schema"
 )
 
-// Query param that is used when querying transactions that are made by an account
 const (
+	// Params that are used when querying transactions that are made by an account
 	QueryTxsParamFromAddress      = "messages->0->'value'->>'from_address' = "
 	QueryTxsParamToAddress        = "messages->0->'value'->>'to_address' = "
 	QueryTxsParamInputsAddress    = "messages->0->'value'->'inputs'->0->>'address' = "
@@ -15,7 +15,12 @@ const (
 	QueryTxsParamProposer         = "messages->0->'value'->>'proposer' = "
 	QueryTxsParamDepositer        = "messages->0->'value'->>'depositor' = "
 	QueryTxsParamVoter            = "messages->0->'value'->>'voter' = "
-	QueryTxsParamValidatorAddress = "messages->0->>'type' = 'cosmos-sdk/MsgWithdrawValidatorCommission' AND messages->0->'value'->>'validator_address' = "
+
+	// Params that are used for validators
+	QueryTxsParamValidatorAddress    = "messages->0->'value'->>'validator_address' = "
+	QueryTxsParamValidatorDstAddress = "messages->0->'value'->>'validator_dst_address' = "
+	QueryTxsParamValidatorSrcAddress = "messages->0->'value'->>'validator_src_address' = "
+	QueryTxsParamValidatorCommission = "messages->0->>'type' = 'cosmos-sdk/MsgWithdrawValidatorCommission'"
 )
 
 // QueryTxsByAddr queries transactions that are made by an account
@@ -33,7 +38,7 @@ func (db *Database) QueryTxsByAddr(address string, operAddr string, limit int, o
 		QueryTxsParamProposer + "'" + address + "'" + " OR " +
 		QueryTxsParamDepositer + "'" + address + "'" + " OR " +
 		QueryTxsParamVoter + "'" + address + "'" + " OR " +
-		QueryTxsParamValidatorAddress + "'" + operAddr + "'" + ")"
+		QueryTxsParamValidatorCommission + " AND " + QueryTxsParamValidatorAddress + "'" + operAddr + "'" + ")"
 
 	switch {
 	case before > 0:
@@ -58,6 +63,40 @@ func (db *Database) QueryTxsByAddr(address string, operAddr string, limit int, o
 			Order("id DESC").
 			Select()
 	}
+
+	return txs, nil
+}
+
+// QuerySendTxsByAddr queries Send / MultiSend transactions that are made by an account
+func (db *Database) QuerySendTxsByAddr(address string, operAddr string, limit int, offset int, before int, after int) ([]schema.TransactionInfo, error) {
+	var txs []schema.TransactionInfo
+
+	params := QueryTxsParamFromAddress + "'" + address + "'" + " OR " +
+		QueryTxsParamToAddress + "'" + address + "'" + " OR " +
+		QueryTxsParamInputsAddress + "'" + address + "'" + " OR " +
+		QueryTxsParamOutpusAddress + "'" + address + "'"
+
+	_ = db.Model(&txs).
+		Where(params).
+		Order("id DESC").
+		Select()
+
+	return txs, nil
+}
+
+// QueryTxsBetweenAccountAndValidator queries transactions that are made between an account and his delegated validator
+func (db *Database) QueryTxsBetweenAccountAndValidator(address string, operAddr string) ([]schema.TransactionInfo, error) {
+	var txs []schema.TransactionInfo
+
+	params := "(" + QueryTxsParamValidatorAddress + "'" + operAddr + "'" + " OR " +
+		QueryTxsParamValidatorDstAddress + "'" + operAddr + "'" + " OR " +
+		QueryTxsParamValidatorSrcAddress + "'" + operAddr + "')" + " AND " +
+		"(" + QueryTxsParamDelegatorAddress + "'" + address + "'" + ")"
+
+	_ = db.Model(&txs).
+		Where(params).
+		Order("id DESC").
+		Select()
 
 	return txs, nil
 }

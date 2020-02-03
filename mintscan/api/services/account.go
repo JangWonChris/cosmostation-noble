@@ -260,12 +260,12 @@ func GetUnbondingDelegations(codec *codec.Codec, config *config.Config, db *db.D
 	return nil
 }
 
-// GetAccountTxs returns transactions that are made by an account
-func GetAccountTxs(codec *codec.Codec, config *config.Config, db *db.Database, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
+// GetTxsByAccount returns transactions that are made by an account
+func GetTxsByAccount(codec *codec.Codec, config *config.Config, db *db.Database, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
-	address := vars["accAddress"]
+	accAddr := vars["accAddress"]
 
-	if !utils.VerifyAddress(address) {
+	if !utils.VerifyAddress(accAddr) {
 		errors.ErrNotExist(w, http.StatusNotFound)
 		return nil
 	}
@@ -299,16 +299,16 @@ func GetAccountTxs(codec *codec.Codec, config *config.Config, db *db.Database, r
 	txs := make([]schema.TransactionInfo, 0)
 
 	// Query MsgWithdrawValidatorCommission txs in case an address is attached to validator node
-	operAddr := utils.ValAddressFromAccAddress(address)
+	operAddr := utils.ValAddressFromAccAddress(accAddr)
 
 	// Query results of different types of tx messages
 	switch {
 	case before > 0:
-		txs, _ = db.QueryTxsByAddr(address, operAddr, limit, offset, before, after)
+		txs, _ = db.QueryTxsByAddr(accAddr, operAddr, limit, offset, before, after)
 	case after > 0:
-		txs, _ = db.QueryTxsByAddr(address, operAddr, limit, offset, before, after)
+		txs, _ = db.QueryTxsByAddr(accAddr, operAddr, limit, offset, before, after)
 	case offset >= 0:
-		txs, _ = db.QueryTxsByAddr(address, operAddr, limit, offset, before, after)
+		txs, _ = db.QueryTxsByAddr(accAddr, operAddr, limit, offset, before, after)
 	}
 
 	result := make([]*models.ResultTxs, 0)
@@ -339,3 +339,52 @@ func GetAccountTxs(codec *codec.Codec, config *config.Config, db *db.Database, r
 	utils.Respond(w, result)
 	return nil
 }
+
+// GetTxsBetweenAccountAndValidator returns transactions that are made between an account and his delegated validator
+func GetTxsBetweenAccountAndValidator(codec *codec.Codec, config *config.Config, db *db.Database, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
+	vars := mux.Vars(r)
+	accAddr := vars["accAddress"]
+	operAddr := vars["operAddress"]
+
+	if !utils.VerifyAddress(accAddr) {
+		errors.ErrNotExist(w, http.StatusNotFound)
+		return nil
+	}
+
+	if !utils.VerifyValAddress(operAddr) {
+		errors.ErrNotExistValidator(w, http.StatusNotFound)
+		return nil
+	}
+
+	txs, _ := db.QueryTxsBetweenAccountAndValidator(accAddr, operAddr)
+
+	result := make([]*models.ResultTxs, 0)
+
+	for i, tx := range txs {
+		msgs := make([]models.Message, 0)
+		_ = json.Unmarshal([]byte(tx.Messages), &msgs)
+
+		var fee models.Fee
+		_ = json.Unmarshal([]byte(tx.Fee), &fee)
+
+		var logs []models.Log
+		_ = json.Unmarshal([]byte(tx.Logs), &logs)
+
+		tempTxs := &models.ResultTxs{
+			ID:       i + 1,
+			Height:   tx.Height,
+			TxHash:   tx.TxHash,
+			Messages: msgs,
+			Fee:      fee,
+			Logs:     logs,
+			Time:     tx.Time,
+		}
+
+		result = append(result, tempTxs)
+	}
+
+	utils.Respond(w, result)
+	return nil
+}
+
+// Send, MultiSend만 - DB 쿼리 완료 QuerySendTxsByAddr
