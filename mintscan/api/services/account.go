@@ -16,6 +16,7 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/db"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/models"
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/schema"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/api/utils"
 
 	"github.com/tendermint/tendermint/rpc/client"
@@ -253,6 +254,86 @@ func GetUnbondingDelegations(codec *codec.Codec, config *config.Config, db *db.D
 			Entries:          unbondingDelegation.Entries,
 		}
 		result = append(result, *tempUnbondingDelegations)
+	}
+
+	utils.Respond(w, result)
+	return nil
+}
+
+// GetAccountTxs returns transactions that are made by an account
+func GetAccountTxs(codec *codec.Codec, config *config.Config, db *db.Database, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
+	vars := mux.Vars(r)
+	address := vars["accAddress"]
+
+	if !utils.VerifyAddress(address) {
+		errors.ErrNotExist(w, http.StatusNotFound)
+		return nil
+	}
+
+	limit := int(50) // default limit is 50
+	before := int(0)
+	after := int(-1) // set -1 on purpose
+	offset := int(0)
+
+	if len(r.URL.Query()["limit"]) > 0 {
+		limit, _ = strconv.Atoi(r.URL.Query()["limit"][0])
+	}
+
+	if len(r.URL.Query()["before"]) > 0 {
+		before, _ = strconv.Atoi(r.URL.Query()["before"][0])
+	}
+
+	if len(r.URL.Query()["after"]) > 0 {
+		after, _ = strconv.Atoi(r.URL.Query()["after"][0])
+	}
+
+	if len(r.URL.Query()["offset"]) > 0 {
+		offset, _ = strconv.Atoi(r.URL.Query()["offset"][0])
+	}
+
+	if limit > 50 {
+		errors.ErrOverMaxLimit(w, http.StatusRequestedRangeNotSatisfiable)
+		return nil
+	}
+
+	txs := make([]schema.TransactionInfo, 0)
+
+	// Query MsgWithdrawValidatorCommission txs in case an address is attached to validator node
+	operAddr := utils.ValAddressFromAccAddress(address)
+
+	// Query results of different types of tx messages
+	switch {
+	case before > 0:
+		txs, _ = db.QueryTxsByAddr(address, operAddr, limit, offset, before, after)
+	case after > 0:
+		txs, _ = db.QueryTxsByAddr(address, operAddr, limit, offset, before, after)
+	case offset >= 0:
+		txs, _ = db.QueryTxsByAddr(address, operAddr, limit, offset, before, after)
+	}
+
+	result := make([]*models.ResultTxs, 0)
+
+	for i, tx := range txs {
+		msgs := make([]models.Message, 0)
+		_ = json.Unmarshal([]byte(tx.Messages), &msgs)
+
+		var fee models.Fee
+		_ = json.Unmarshal([]byte(tx.Fee), &fee)
+
+		var logs []models.Log
+		_ = json.Unmarshal([]byte(tx.Logs), &logs)
+
+		tempTxs := &models.ResultTxs{
+			ID:       i + 1,
+			Height:   tx.Height,
+			TxHash:   tx.TxHash,
+			Messages: msgs,
+			Fee:      fee,
+			Logs:     logs,
+			Time:     tx.Time,
+		}
+
+		result = append(result, tempTxs)
 	}
 
 	utils.Respond(w, result)

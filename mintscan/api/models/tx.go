@@ -11,19 +11,6 @@ type TxData struct {
 	Txs []string `json:"txs"`
 }
 
-// type GeneralTx struct {
-// 	Height    json.RawMessage `json:"height"`
-// 	TxHash    json.RawMessage `json:"txhash"`
-//  Data   	  json.RawMessage `json:"data"`
-// 	RawLog    json.RawMessage `json:"raw_log"`
-// 	Logs      json.RawMessage `json:"logs"`
-// 	GasWanted json.RawMessage `json:"gas_wanted"`
-// 	GasUsed   json.RawMessage `json:"gas_used"`
-// 	Tags      json.RawMessage `json:"tags"`
-// 	Tx        json.RawMessage `json:"tx"`
-// 	Timestamp json.RawMessage `json:"timestamp"`
-// }
-
 // GeneralTx is a struct for general tx
 type GeneralTx struct {
 	Height string `json:"height"`
@@ -133,4 +120,36 @@ type DepositMsgValueTx struct {
 		Denom  string `json:"denom"`
 		Amount string `json:"amount"`
 	} `json:"amount"`
+}
+
+/*
+	Transaction Message Params
+*/
+
+type Message struct {
+	Type  string          `json:"type"`
+	Value json.RawMessage `json:"value"`
+}
+
+type Fee struct {
+	Gas    string `json:"gas"`
+	Amount []struct {
+		Amount string `json:"amount"`
+		Denom  string `json:"denom"`
+	}
+}
+
+type Event struct {
+	Type       string `json:"type"`
+	Attributes []struct {
+		Key   string `json:"key"`
+		Value string `json:"value"`
+	} `json:"attributes"`
+}
+
+type Log struct {
+	MsgIndex int     `json:"msg_index"`
+	Success  bool    `json:"success"`
+	Log      string  `json:"log"`
+	Events   []Event `json:"events"`
 }

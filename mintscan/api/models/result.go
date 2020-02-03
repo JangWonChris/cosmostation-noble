@@ -271,3 +271,14 @@ type ResultMarket struct {
 	LastUpdated       time.Time     `json:"last_updated"`
 	PriceStats        []*PriceStats `json:"price_stats"`
 }
+
+// ResultTxs is a struct for txs result response
+type ResultTxs struct {
+	ID       int       `json:"id"`
+	Height   int64     `json:"height"`
+	TxHash   string    `json:"tx_hash"`
+	Messages []Message `json:"messages"`
+	Fee      Fee       `json:"fee"`
+	Logs     []Log     `json:"logs"`
+	Time     string    `json:"time"`
+}
