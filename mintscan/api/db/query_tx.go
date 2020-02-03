@@ -67,8 +67,8 @@ func (db *Database) QueryTxsByAddr(address string, operAddr string, limit int, o
 	return txs, nil
 }
 
-// QuerySendTxsByAddr queries Send / MultiSend transactions that are made by an account
-func (db *Database) QuerySendTxsByAddr(address string, operAddr string, limit int, offset int, before int, after int) ([]schema.TransactionInfo, error) {
+// QueryTransferTxsByAddr queries Send / MultiSend transactions that are made by an account
+func (db *Database) QueryTransferTxsByAddr(address string) ([]schema.TransactionInfo, error) {
 	var txs []schema.TransactionInfo
 
 	params := QueryTxsParamFromAddress + "'" + address + "'" + " OR " +

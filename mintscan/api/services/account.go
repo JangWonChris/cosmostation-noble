@@ -340,6 +340,47 @@ func GetTxsByAccount(codec *codec.Codec, config *config.Config, db *db.Database,
 	return nil
 }
 
+// GetTransferTxsByAccount queries MsgSend and MsgMultiSend transactions that are made by an account
+func GetTransferTxsByAccount(codec *codec.Codec, config *config.Config, db *db.Database, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
+	vars := mux.Vars(r)
+	accAddr := vars["accAddress"]
+
+	if !utils.VerifyAddress(accAddr) {
+		errors.ErrNotExist(w, http.StatusNotFound)
+		return nil
+	}
+
+	txs, _ := db.QueryTransferTxsByAddr(accAddr)
+
+	result := make([]*models.ResultTxs, 0)
+
+	for i, tx := range txs {
+		msgs := make([]models.Message, 0)
+		_ = json.Unmarshal([]byte(tx.Messages), &msgs)
+
+		var fee models.Fee
+		_ = json.Unmarshal([]byte(tx.Fee), &fee)
+
+		var logs []models.Log
+		_ = json.Unmarshal([]byte(tx.Logs), &logs)
+
+		tempTxs := &models.ResultTxs{
+			ID:       i + 1,
+			Height:   tx.Height,
+			TxHash:   tx.TxHash,
+			Messages: msgs,
+			Fee:      fee,
+			Logs:     logs,
+			Time:     tx.Time,
+		}
+
+		result = append(result, tempTxs)
+	}
+
+	utils.Respond(w, result)
+	return nil
+}
+
 // GetTxsBetweenAccountAndValidator returns transactions that are made between an account and his delegated validator
 func GetTxsBetweenAccountAndValidator(codec *codec.Codec, config *config.Config, db *db.Database, rpcClient *client.HTTP, w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)
@@ -386,5 +427,3 @@ func GetTxsBetweenAccountAndValidator(codec *codec.Codec, config *config.Config,
 	utils.Respond(w, result)
 	return nil
 }
-
-// Send, MultiSend만 - DB 쿼리 완료 QuerySendTxsByAddr
