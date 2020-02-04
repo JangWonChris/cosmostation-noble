@@ -350,7 +350,18 @@ func GetTransferTxsByAccount(codec *codec.Codec, config *config.Config, db *db.D
 		return nil
 	}
 
-	txs, _ := db.QueryTransferTxsByAddr(accAddr)
+	limit := int(100) // default limit is 100
+
+	if len(r.URL.Query()["limit"]) > 0 {
+		limit, _ = strconv.Atoi(r.URL.Query()["limit"][0])
+	}
+
+	if limit > 100 {
+		errors.ErrOverMaxLimit(w, http.StatusRequestedRangeNotSatisfiable)
+		return nil
+	}
+
+	txs, _ := db.QueryTransferTxsByAddr(accAddr, limit)
 
 	result := make([]*models.ResultTxs, 0)
 
@@ -397,7 +408,18 @@ func GetTxsBetweenAccountAndValidator(codec *codec.Codec, config *config.Config,
 		return nil
 	}
 
-	txs, _ := db.QueryTxsBetweenAccountAndValidator(accAddr, operAddr)
+	limit := int(100) // default limit is 100
+
+	if len(r.URL.Query()["limit"]) > 0 {
+		limit, _ = strconv.Atoi(r.URL.Query()["limit"][0])
+	}
+
+	if limit > 100 {
+		errors.ErrOverMaxLimit(w, http.StatusRequestedRangeNotSatisfiable)
+		return nil
+	}
+
+	txs, _ := db.QueryTxsBetweenAccountAndValidator(accAddr, operAddr, limit)
 
 	result := make([]*models.ResultTxs, 0)
 

@@ -32,7 +32,7 @@ func AccountController(codec *codec.Codec, config *config.Config, db *db.Databas
 	r.HandleFunc("/account/txs/{accAddress}", func(w http.ResponseWriter, r *http.Request) {
 		services.GetTxsByAccount(codec, config, db, rpcClient, w, r)
 	}).Methods("GET")
-	r.HandleFunc("/account/txs/transfer/{accAddress}", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/account/transfer_txs/{accAddress}", func(w http.ResponseWriter, r *http.Request) {
 		services.GetTransferTxsByAccount(codec, config, db, rpcClient, w, r)
 	}).Methods("GET")
 	r.HandleFunc("/account/txs/{accAddress}/{operAddress}", func(w http.ResponseWriter, r *http.Request) {
