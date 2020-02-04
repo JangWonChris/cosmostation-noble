@@ -84,3 +84,9 @@ ENV_PROD = prod
 NETWORK_COSMOS = cosmos
 NETWORK_KAVA = kava
 ```
+
+### 서비스 로그 확인 방법
+
+```shell
+journalctl -u <service-name> -f
+```
