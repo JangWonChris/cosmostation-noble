@@ -69,8 +69,8 @@ type (
 	}
 )
 
-// NewConfig configures configuration
-func NewConfig() *Config {
+// ParseConfig configures configuration
+func ParseConfig() *Config {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")

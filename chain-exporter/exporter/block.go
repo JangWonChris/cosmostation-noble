@@ -4,17 +4,17 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 )
 
-// getBlockInfo provides block information
-func (ce *ChainExporter) getBlockInfo(height int64) ([]*schema.BlockInfo, error) {
-	blockInfo := make([]*schema.BlockInfo, 0)
+// getBlock provides block information
+func (ex *Exporter) getBlock(height int64) ([]*schema.Block, error) {
+	Block := make([]*schema.Block, 0)
 
 	// query current block
-	block, err := ce.rpcClient.Block(&height)
+	block, err := ex.client.Block(height)
 	if err != nil {
 		return nil, err
 	}
 
-	tempBlockInfo := &schema.BlockInfo{
+	tempBlock := &schema.Block{
 		BlockHash: block.BlockMeta.BlockID.Hash.String(),
 		Proposer:  block.Block.ProposerAddress.String(),
 		Height:    block.Block.Height,
@@ -23,7 +23,7 @@ func (ce *ChainExporter) getBlockInfo(height int64) ([]*schema.BlockInfo, error)
 		Time:      block.BlockMeta.Header.Time,
 	}
 
-	blockInfo = append(blockInfo, tempBlockInfo)
+	Block = append(Block, tempBlock)
 
-	return blockInfo, nil
+	return Block, nil
 }

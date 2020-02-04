@@ -14,12 +14,12 @@ type Database struct {
 }
 
 // Connect opens a database connections with the given database connection info from config.
-func Connect(Config *config.Config) *Database {
+func Connect(cfg *config.DBConfig) *Database {
 	db := pg.Connect(&pg.Options{
-		Addr:     Config.DB.Host,
-		User:     Config.DB.User,
-		Password: Config.DB.Password,
-		Database: Config.DB.Table,
+		Addr:     cfg.Host,
+		User:     cfg.User,
+		Password: cfg.Password,
+		Database: cfg.Table,
 	})
 	return &Database{db}
 }
@@ -34,9 +34,9 @@ func (db *Database) Ping() error {
 	return nil
 }
 
-// CreateSchema creates database tables using object relational mapper (ORM)
-func (db *Database) CreateSchema() error {
-	for _, model := range []interface{}{(*schema.BlockInfo)(nil), (*schema.EvidenceInfo)(nil), (*schema.MissInfo)(nil),
+// CreateTables creates database tables using object relational mapper (ORM)
+func (db *Database) CreateTables() error {
+	for _, model := range []interface{}{(*schema.Block)(nil), (*schema.EvidenceInfo)(nil), (*schema.MissInfo)(nil),
 		(*schema.MissDetailInfo)(nil), (*schema.ProposalInfo)(nil), (*schema.ValidatorSetInfo)(nil), (*schema.ValidatorInfo)(nil),
 		(*schema.TransactionInfo)(nil), (*schema.VoteInfo)(nil), (*schema.DepositInfo)(nil)} {
 		err := db.CreateTable(model, &orm.CreateTableOptions{
@@ -52,7 +52,7 @@ func (db *Database) CreateSchema() error {
 	// if function returns an error transaction is rollbacked, otherwise transaction is committed.
 	err := db.RunInTransaction(func(tx *pg.Tx) error {
 		// Create indexes to reduce the cost of lookup queries in case of server traffic jams (B-Tree Index)
-		_, err := db.Model(schema.BlockInfo{}).Exec(`CREATE INDEX block_info_height_idx ON block_infos USING btree(height);`)
+		_, err := db.Model(schema.Block{}).Exec(`CREATE INDEX block_info_height_idx ON block_infos USING btree(height);`)
 		if err != nil {
 			return err
 		}
@@ -73,6 +73,10 @@ func (db *Database) CreateSchema() error {
 			return err
 		}
 		_, err = db.Model(schema.TransactionInfo{}).Exec(`CREATE INDEX transaction_info_height_idx ON transaction_infos USING btree(height);`)
+		if err != nil {
+			return err
+		}
+		_, err = db.Model(schema.TransactionInfo{}).Exec(`CREATE INDEX transaction_info_tx_hash_idx ON transaction_infos USING btree(tx_hash);`)
 		if err != nil {
 			return err
 		}

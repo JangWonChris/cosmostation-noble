@@ -1,13 +1,13 @@
 package exporter
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"time"
 
 	"github.com/pkg/errors"
 
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/client"
 	ceCodec "github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/db"
@@ -16,54 +16,51 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 
-	"github.com/tendermint/tendermint/rpc/client"
-	ctypes "github.com/tendermint/tendermint/rpc/core/types"
-
 	resty "gopkg.in/resty.v1"
 )
 
-// ChainExporter implemnts a wrapper around configuration for this project
-type ChainExporter struct {
-	codec     *codec.Codec
-	config    *config.Config
-	db        *db.Database
-	wsCtx     context.Context
-	wsOut     <-chan ctypes.ResultEvent
-	rpcClient *client.HTTP
+// Exporter implemnts a wrapper around configuration for this project
+type Exporter struct {
+	cfg    *config.Config
+	cdc    *codec.Codec
+	client client.Client
+	db     *db.Database
 }
 
-// NewChainExporter initializes the required config
-func NewChainExporter(config *config.Config) *ChainExporter {
-	ce := &ChainExporter{
-		codec:     ceCodec.Codec, // register Cosmos SDK codecs
-		config:    config,
-		db:        db.Connect(config), // connect to PostgreSQL
-		wsCtx:     context.Background(),
-		rpcClient: client.NewHTTP(config.Node.RPCNode, "/websocket"), // connect to Tendermint RPC client
+// NewExporter initializes the required config
+func NewExporter() Exporter {
+	cfg := config.ParseConfig()
+
+	client, err := client.NewClient(cfg.Node.RPCNode, "/websocket")
+	if err != nil {
+		log.Fatal(errors.Wrap(err, "failed to connect client."))
 	}
 
+	// Connect to database
+	db := db.Connect(&cfg.DB)
+
 	// Ping database to verify connection is succeeded
-	err := ce.db.Ping()
+	err = db.Ping()
 	if err != nil {
 		log.Fatal(errors.Wrap(err, "failed to ping database."))
 	}
 
 	// Setup database tables
-	ce.db.CreateSchema()
+	db.CreateTables()
 
-	resty.SetTimeout(5 * time.Second) // sets timeout for request.
+	// Set timeout for request
+	resty.SetTimeout(5 * time.Second)
 
-	return ce
+	return Exporter{cfg, ceCodec.Codec, client, db}
 }
 
-// OnStart is an override method for BaseService, which starts a service
-func (ce ChainExporter) OnStart() error {
-	ce.rpcClient.OnStart()
-
+// Start creates database tables and indexes using Postgres ORM library go-pg and
+// starts syncing blockchain.
+func (ex Exporter) Start() error {
 	// Store data initially
-	lcd.SaveBondedValidators(ce.db, ce.config)
-	lcd.SaveUnbondingAndUnBondedValidators(ce.db, ce.config)
-	lcd.SaveProposals(ce.db, ce.config)
+	lcd.SaveBondedValidators(ex.db, ex.cfg)
+	lcd.SaveUnbondingAndUnBondedValidators(ex.db, ex.cfg)
+	lcd.SaveProposals(ex.db, ex.cfg)
 
 	c1 := make(chan string)
 	c2 := make(chan string)
@@ -71,7 +68,7 @@ func (ce ChainExporter) OnStart() error {
 	go func() {
 		for {
 			fmt.Println("start - sync blockchain")
-			err := ce.sync()
+			err := ex.sync()
 			if err != nil {
 				fmt.Printf("error - sync blockchain: %v\n", err)
 			}
@@ -98,27 +95,22 @@ func (ce ChainExporter) OnStart() error {
 		select {
 		case msg1 := <-c1:
 			fmt.Println("start - ", msg1)
-			lcd.SaveBondedValidators(ce.db, ce.config)
-			lcd.SaveUnbondingAndUnBondedValidators(ce.db, ce.config)
-			lcd.SaveProposals(ce.db, ce.config)
+			lcd.SaveBondedValidators(ex.db, ex.cfg)
+			lcd.SaveUnbondingAndUnBondedValidators(ex.db, ex.cfg)
+			lcd.SaveProposals(ex.db, ex.cfg)
 			fmt.Println("finish - ", msg1)
 		case msg2 := <-c2:
 			fmt.Println("start - ", msg2)
-			ce.SaveValidatorKeyBase()
+			ex.SaveValidatorKeyBase()
 			fmt.Println("finish - ", msg2)
 		}
 	}
 }
 
-// OnStop is an override method for BaseService, which stops a service
-func (ce ChainExporter) OnStop() {
-	ce.rpcClient.OnStop()
-}
-
 // sync synchronizes the block data from connected full node
-func (ce ChainExporter) sync() error {
-	var blocks []schema.BlockInfo
-	err := ce.db.Model(&blocks).
+func (ex Exporter) sync() error {
+	var blocks []schema.Block
+	err := ex.db.Model(&blocks).
 		Order("height DESC").
 		Limit(1).
 		Select()
@@ -132,7 +124,7 @@ func (ce ChainExporter) sync() error {
 	}
 
 	// query current height
-	status, err := ce.rpcClient.Status()
+	status, err := ex.client.Status()
 	if err != nil {
 		return err
 	}
@@ -144,7 +136,7 @@ func (ce ChainExporter) sync() error {
 
 	// ingest all blocks up to the best height
 	for i := currentHeight + 1; i <= maxHeight; i++ {
-		err = ce.process(i)
+		err = ex.process(i)
 		if err != nil {
 			return err
 		}
@@ -153,31 +145,31 @@ func (ce ChainExporter) sync() error {
 	return nil
 }
 
-// sync queries the block at the given height-1 from the node and ingests its metadata (blockinfo,evidence)
+// sync queries the block at the given height-1 from the node and ingests its metadata (Block,evidence)
 // into the database. It also queries the next block to access the commits and stores the missed signatures.
-func (ce ChainExporter) process(height int64) error {
-	blockInfo, err := ce.getBlockInfo(height)
+func (ex Exporter) process(height int64) error {
+	Block, err := ex.getBlock(height)
 	if err != nil {
 		return err
 	}
 
-	evidenceInfo, err := ce.getEvidenceInfo(height)
+	evidenceInfo, err := ex.getEvidenceInfo(height)
 	if err != nil {
 		return err
 	}
 
-	genesisValsInfo, missInfo, accumMissInfo, missDetailInfo, err := ce.getValidatorSetInfo(height)
+	genesisValsInfo, missInfo, accumMissInfo, missDetailInfo, err := ex.getValidatorSetInfo(height)
 	if err != nil {
 		return err
 	}
 
-	transactionInfo, voteInfo, depositInfo, proposalInfo, validatorSetInfo, err := ce.getTransactionInfo(height)
+	transactionInfo, voteInfo, depositInfo, proposalInfo, validatorSetInfo, err := ex.getTransactionInfo(height)
 	if err != nil {
 		return err
 	}
 
 	// Insert data into database
-	err = ce.db.InsertExportedData(blockInfo, evidenceInfo, genesisValsInfo, missInfo, accumMissInfo,
+	err = ex.db.InsertExportedData(Block, evidenceInfo, genesisValsInfo, missInfo, accumMissInfo,
 		missDetailInfo, transactionInfo, voteInfo, depositInfo, proposalInfo, validatorSetInfo)
 
 	if err != nil {
