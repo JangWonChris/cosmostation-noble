@@ -256,7 +256,7 @@ func GetValidatorEvents(db *db.Database, w http.ResponseWriter, r *http.Request)
 
 	limit := int(50) // default limit is 50
 	before := int(0)
-	after := int(0)
+	after := int(-1) // set -1 on purpose
 	offset := int(0)
 
 	if len(r.URL.Query()["limit"]) > 0 {
@@ -317,6 +317,32 @@ func GetValidatorEvents(db *db.Database, w http.ResponseWriter, r *http.Request)
 			Timestamp:      event.Time,
 		}
 		result = append(result, tempResultValidatorSet)
+	}
+
+	utils.Respond(w, result)
+	return nil
+}
+
+// GetValidatorEventsTotalCount receives validator address and total count of power event history
+func GetValidatorEventsTotalCount(db *db.Database, w http.ResponseWriter, r *http.Request) error {
+	vars := mux.Vars(r)
+	address := vars["address"]
+
+	// Check if the address is validator
+	validatorInfo, _ := db.ConvertToProposer(address)
+	if validatorInfo.Proposer == "" {
+		errors.ErrNotExist(w, http.StatusNotFound)
+		return nil
+	}
+
+	address = validatorInfo.Proposer
+
+	count := db.CountValidatorPowerEvents(address)
+
+	result := &models.ResultVotingPowerHistoryCount{
+		Moniker:         validatorInfo.Moniker,
+		OperatorAddress: validatorInfo.OperatorAddress,
+		Count:           count,
 	}
 
 	utils.Respond(w, result)

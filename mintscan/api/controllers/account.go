@@ -29,4 +29,13 @@ func AccountController(codec *codec.Codec, config *config.Config, db *db.Databas
 	r.HandleFunc("/account/unbonding-delegations/{accAddress}", func(w http.ResponseWriter, r *http.Request) {
 		services.GetUnbondingDelegations(codec, config, db, rpcClient, w, r)
 	}).Methods("GET")
+	r.HandleFunc("/account/txs/{accAddress}", func(w http.ResponseWriter, r *http.Request) {
+		services.GetTxsByAccount(codec, config, db, rpcClient, w, r)
+	}).Methods("GET")
+	r.HandleFunc("/account/txs/transfer/{accAddress}", func(w http.ResponseWriter, r *http.Request) {
+		services.GetTransferTxsByAccount(codec, config, db, rpcClient, w, r)
+	}).Methods("GET")
+	r.HandleFunc("/account/txs/{accAddress}/{operAddress}", func(w http.ResponseWriter, r *http.Request) {
+		services.GetTxsBetweenAccountAndValidator(codec, config, db, rpcClient, w, r)
+	}).Methods("GET")
 }

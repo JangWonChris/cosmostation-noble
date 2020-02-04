@@ -214,6 +214,13 @@ type ResultVotingPowerHistory struct {
 	Timestamp      time.Time `json:"timestamp"`
 }
 
+// ResultVotingPowerHistoryCount wraps count for validator's power event history
+type ResultVotingPowerHistoryCount struct {
+	Moniker         string `json:"moniker"`
+	OperatorAddress string `json:"operator_address"`
+	Count           int    `json:"count"`
+}
+
 // ResultValidatorDelegations is a struct for validator delegations result response
 type ResultValidatorDelegations struct {
 	TotalDelegatorNum     int                     `json:"total_delegator_num"`
@@ -263,4 +270,15 @@ type ResultMarket struct {
 	CirculatingSupply float64       `json:"circulating_supply"`
 	LastUpdated       time.Time     `json:"last_updated"`
 	PriceStats        []*PriceStats `json:"price_stats"`
+}
+
+// ResultTxs is a struct for txs result response
+type ResultTxs struct {
+	ID       int       `json:"id"`
+	Height   int64     `json:"height"`
+	TxHash   string    `json:"tx_hash"`
+	Messages []Message `json:"messages"`
+	Fee      Fee       `json:"fee"`
+	Logs     []Log     `json:"logs"`
+	Time     string    `json:"time"`
 }

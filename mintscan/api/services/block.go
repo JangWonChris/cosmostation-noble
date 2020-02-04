@@ -93,7 +93,7 @@ func GetProposedBlocks(db *db.Database, w http.ResponseWriter, r *http.Request) 
 
 	limit := int(100) // default limit is 100
 	before := int(0)
-	after := int(0)
+	after := int(-1) // set -1 on purpose
 	offset := int(0)
 
 	if len(r.URL.Query()["limit"]) > 0 {

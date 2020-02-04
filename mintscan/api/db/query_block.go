@@ -49,7 +49,7 @@ func (db *Database) QueryBlocksByProposer(address string, limit int, before int,
 			Limit(limit).
 			Order("height DESC").
 			Select()
-	case after > 0:
+	case after >= 0:
 		_ = db.Model(&blocks).
 			Where("proposer = ? AND height < ?", address, after).
 			Limit(limit).

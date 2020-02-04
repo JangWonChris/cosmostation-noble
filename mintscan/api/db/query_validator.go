@@ -92,13 +92,12 @@ func (db *Database) QueryValidatorPowerEvents(validatorID int, limit int, before
 			Limit(limit).
 			Order("id DESC").
 			Select()
-	case after > 0:
+	case after >= 0:
 		_ = db.Model(&validatorSetInfo).
-			Where("id_validator = ? AND height > ? ", validatorID, after).
+			Where("id_validator = ? AND height > ?", validatorID, after).
 			Limit(limit).
 			Order("id ASC").
 			Select()
-
 	case offset >= 0:
 		_ = db.Model(&validatorSetInfo).
 			Where("id_validator = ?", validatorID).
@@ -109,6 +108,16 @@ func (db *Database) QueryValidatorPowerEvents(validatorID int, limit int, before
 	}
 
 	return validatorSetInfo, nil
+}
+
+// CountValidatorPowerEvents counts validator's power event history transactions
+func (db *Database) CountValidatorPowerEvents(proposer string) int {
+	var validatorSetInfo schema.ValidatorSetInfo
+	num, _ := db.Model(&validatorSetInfo).
+		Where("proposer = ?", proposer).
+		Count()
+
+	return num
 }
 
 // QueryUnjailedValidatorsNum queries how many validators are not jailed
