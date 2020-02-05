@@ -45,13 +45,13 @@ func (db *Database) InsertOrUpdateValidators(data []*schema.ValidatorInfo) (bool
 
 // InsertExportedData saves exported blockchain data
 // if function returns an error transaction is rollbacked, otherwise transaction is committed.
-func (db *Database) InsertExportedData(Block []*schema.Block, evidenceInfo []*schema.EvidenceInfo, genesisValidatorsInfo []*schema.ValidatorSetInfo,
+func (db *Database) InsertExportedData(block []*schema.BlockInfo, evidenceInfo []*schema.EvidenceInfo, genesisValidatorsInfo []*schema.ValidatorSetInfo,
 	missInfo []*schema.MissInfo, accumMissInfo []*schema.MissInfo, missDetailInfo []*schema.MissDetailInfo, transactionInfo []*schema.TransactionInfo,
 	voteInfo []*schema.VoteInfo, depositInfo []*schema.DepositInfo, proposalInfo []*schema.ProposalInfo, validatorSetInfo []*schema.ValidatorSetInfo) error {
 
 	err := db.RunInTransaction(func(tx *pg.Tx) error {
-		if len(Block) > 0 {
-			err := tx.Insert(&Block)
+		if len(block) > 0 {
+			err := tx.Insert(&block)
 			if err != nil {
 				return err
 			}
@@ -115,7 +115,7 @@ func (db *Database) InsertExportedData(Block []*schema.Block, evidenceInfo []*sc
 					Set("end_height = ?", accumMissInfo[i].EndHeight).
 					Set("missing_count = ?", accumMissInfo[i].MissingCount).
 					Set("start_time = ?", accumMissInfo[i].StartTime).
-					Set("end_time = ?", Block[0].Time).
+					Set("end_time = ?", block[0].Time).
 					Where("end_height = ? AND address = ?", accumMissInfo[i].EndHeight-int64(1), accumMissInfo[i].Address).
 					Update()
 				if err != nil {

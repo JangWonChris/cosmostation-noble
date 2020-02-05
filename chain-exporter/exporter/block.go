@@ -5,8 +5,8 @@ import (
 )
 
 // getBlock provides block information
-func (ex *Exporter) getBlock(height int64) ([]*schema.Block, error) {
-	Block := make([]*schema.Block, 0)
+func (ex *Exporter) getBlock(height int64) ([]*schema.BlockInfo, error) {
+	blockInfo := make([]*schema.BlockInfo, 0)
 
 	// query current block
 	block, err := ex.client.Block(height)
@@ -14,7 +14,7 @@ func (ex *Exporter) getBlock(height int64) ([]*schema.Block, error) {
 		return nil, err
 	}
 
-	tempBlock := &schema.Block{
+	tempBlock := &schema.BlockInfo{
 		BlockHash: block.BlockMeta.BlockID.Hash.String(),
 		Proposer:  block.Block.ProposerAddress.String(),
 		Height:    block.Block.Height,
@@ -23,7 +23,7 @@ func (ex *Exporter) getBlock(height int64) ([]*schema.Block, error) {
 		Time:      block.BlockMeta.Header.Time,
 	}
 
-	Block = append(Block, tempBlock)
+	blockInfo = append(blockInfo, tempBlock)
 
-	return Block, nil
+	return blockInfo, nil
 }

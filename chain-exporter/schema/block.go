@@ -2,8 +2,10 @@ package schema
 
 import "time"
 
-// Block has block information
-type Block struct {
+// TODO: BlockCosmoshub3, TransactionCosmoshub3, Transaction Index
+
+// Blockinfo has block information
+type BlockInfo struct {
 	ID            int64     `json:"id" sql:",pk"`
 	Height        int64     `json:"height"`
 	BlockHash     string    `json:"block_hash" sql:",unique"`

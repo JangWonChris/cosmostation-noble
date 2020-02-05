@@ -109,7 +109,7 @@ func (ex Exporter) Start() error {
 
 // sync synchronizes the block data from connected full node
 func (ex Exporter) sync() error {
-	var blocks []schema.Block
+	var blocks []schema.BlockInfo
 	err := ex.db.Model(&blocks).
 		Order("height DESC").
 		Limit(1).
