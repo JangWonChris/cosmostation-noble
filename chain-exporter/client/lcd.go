@@ -1,24 +1,128 @@
-package lcd
+package client
 
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"sort"
 	"strconv"
 
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/db"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/utils"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	resty "gopkg.in/resty.v1"
 )
 
+// Tx queries for a transaction from the REST client and decodes it into a sdk.Tx
+// if the transaction exists. An error is returned if the tx doesn't exist or
+// decoding fails.
+func (c Client) Tx(hash string) (sdk.TxResponse, error) {
+	resp, err := http.Get(fmt.Sprintf("%s/txs/%s", c.clientNode, hash))
+	if err != nil {
+		return sdk.TxResponse{}, err
+	}
+
+	defer resp.Body.Close()
+
+	bz, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return sdk.TxResponse{}, err
+	}
+
+	var tx sdk.TxResponse
+
+	if err := c.cdc.UnmarshalJSON(bz, &tx); err != nil {
+		return sdk.TxResponse{}, err
+	}
+
+	return tx, nil
+}
+
+// SaveProposals saves governance proposals in database
+func (c Client) SaveProposals() {
+	resp, err := resty.R().Get(c.clientNode + "/gov/proposals")
+	if err != nil {
+		fmt.Printf("failed to request /gov/proposals: %v \n", err)
+	}
+
+	proposals := make([]*types.Proposal, 0)
+	err = json.Unmarshal(types.ReadRespWithHeight(resp).Result, &proposals)
+	if err != nil {
+		fmt.Printf("failed to unmarshal Proposal: %v \n", err)
+	}
+
+	// proposal information for our database table
+	result := make([]*schema.Proposal, 0)
+
+	if len(proposals) > 0 {
+		for _, proposal := range proposals {
+			proposalID, _ := strconv.ParseInt(proposal.ID, 10, 64)
+
+			var totalDepositAmount string
+			var totalDepositDenom string
+			if proposal.TotalDeposit != nil {
+				totalDepositAmount = proposal.TotalDeposit[0].Amount
+				totalDepositDenom = proposal.TotalDeposit[0].Denom
+			}
+
+			tallyResp, _ := resty.R().Get(c.clientNode + "/gov/proposals/" + proposal.ID + "/tally")
+
+			var tally types.Tally
+			err = json.Unmarshal(types.ReadRespWithHeight(tallyResp).Result, &tally)
+			if err != nil {
+				fmt.Printf("failed to unmarshal Tally: %v \n", err)
+			}
+
+			tempProposal := &schema.Proposal{
+				ID:                 proposalID,
+				Title:              proposal.Content.Value.Title,
+				Description:        proposal.Content.Value.Description,
+				ProposalType:       proposal.Content.Type,
+				ProposalStatus:     proposal.ProposalStatus,
+				Yes:                tally.Yes,
+				Abstain:            tally.Abstain,
+				No:                 tally.No,
+				NoWithVeto:         tally.NoWithVeto,
+				SubmitTime:         proposal.SubmitTime,
+				DepositEndtime:     proposal.DepositEndTime,
+				TotalDepositAmount: totalDepositAmount,
+				TotalDepositDenom:  totalDepositDenom,
+				VotingStartTime:    proposal.VotingStartTime,
+				VotingEndTime:      proposal.VotingEndTime,
+				Alerted:            false,
+			}
+
+			result = append(result, tempProposal)
+		}
+	}
+
+	if len(result) > 0 {
+		for _, proposal := range result {
+			exist, _ := c.db.ExistProposal(proposal.ID)
+
+			if exist {
+				result, _ := c.db.UpdateProposal(proposal)
+				if !result {
+					log.Printf("failed to update Proposal ID: %d", proposal.ID)
+				}
+			} else {
+				result, _ := c.db.InsertProposal(proposal)
+				if !result {
+					log.Printf("failed to save Proposal ID: %d", proposal.ID)
+				}
+			}
+		}
+	}
+}
+
 // SaveBondedValidators saves bonded validators information in database
-func SaveBondedValidators(db *db.Database, config *config.Config) {
-	resp, _ := resty.R().Get(config.Node.LCDEndpoint + "/staking/validators?status=bonded")
+func (c Client) SaveBondedValidators() {
+	resp, _ := resty.R().Get(c.clientNode + "/staking/validators?status=bonded")
 
 	var bondedValidators []*types.Validator
 	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &bondedValidators)
@@ -34,10 +138,10 @@ func SaveBondedValidators(db *db.Database, config *config.Config) {
 	})
 
 	// bondedValidator information for our database table
-	validatorInfo := make([]*schema.ValidatorInfo, 0)
+	validator := make([]*schema.Validator, 0)
 
 	for i, bondedValidator := range bondedValidators {
-		tempValidatorInfo := &schema.ValidatorInfo{
+		tempValidator := &schema.Validator{
 			Rank:                 i + 1,
 			OperatorAddress:      bondedValidator.OperatorAddress,
 			Address:              utils.AccAddressFromOperatorAddress(bondedValidator.OperatorAddress),
@@ -59,11 +163,11 @@ func SaveBondedValidators(db *db.Database, config *config.Config) {
 			MinSelfDelegation:    bondedValidator.MinSelfDelegation,
 			UpdateTime:           bondedValidator.Commission.UpdateTime,
 		}
-		validatorInfo = append(validatorInfo, tempValidatorInfo)
+		validator = append(validator, tempValidator)
 	}
 
-	if len(validatorInfo) > 0 {
-		result, err := db.InsertOrUpdateValidators(validatorInfo)
+	if len(validator) > 0 {
+		result, err := c.db.InsertOrUpdateValidators(validator)
 		if !result {
 			log.Printf("failed to insert or update bonded validators: %t", err)
 		}
@@ -71,8 +175,8 @@ func SaveBondedValidators(db *db.Database, config *config.Config) {
 }
 
 // SaveUnbondingAndUnBondedValidators saves unbonding and unbonded validators information in database
-func SaveUnbondingAndUnBondedValidators(db *db.Database, config *config.Config) {
-	resp, _ := resty.R().Get(config.Node.LCDEndpoint + "/staking/validators?status=unbonding")
+func (c Client) SaveUnbondingAndUnBondedValidators() {
+	resp, _ := resty.R().Get(c.clientNode + "/staking/validators?status=unbonding")
 
 	var unbondingValidators []*types.Validator
 	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &unbondingValidators)
@@ -88,10 +192,10 @@ func SaveUnbondingAndUnBondedValidators(db *db.Database, config *config.Config) 
 	})
 
 	// validators information for our database table
-	validatorInfo := make([]*schema.ValidatorInfo, 0)
+	validator := make([]*schema.Validator, 0)
 	if len(unbondingValidators) > 0 {
 		for _, unbondingValidator := range unbondingValidators {
-			tempValidatorInfo := &schema.ValidatorInfo{
+			tempValidator := &schema.Validator{
 				OperatorAddress:      unbondingValidator.OperatorAddress,
 				Address:              utils.AccAddressFromOperatorAddress(unbondingValidator.OperatorAddress),
 				ConsensusPubkey:      unbondingValidator.ConsensusPubkey,
@@ -112,36 +216,36 @@ func SaveUnbondingAndUnBondedValidators(db *db.Database, config *config.Config) 
 				MinSelfDelegation:    unbondingValidator.MinSelfDelegation,
 				UpdateTime:           unbondingValidator.Commission.UpdateTime,
 			}
-			validatorInfo = append(validatorInfo, tempValidatorInfo)
+			validator = append(validator, tempValidator)
 		}
 	} else {
 		// save unbonded validators after succesfully saved unbonding validators
-		saveUnbondedValidators(db, config)
+		c.saveUnbondedValidators()
 	}
 
 	// first rank
 	status := 2
-	rankInfo, _ := db.QueryFirstRankValidatorByStatus(status)
+	rank, _ := c.db.QueryFirstRankValidatorByStatus(status)
 
-	for i, validatorInfo := range validatorInfo {
-		validatorInfo.Rank = (rankInfo.Rank + 1 + i)
+	for i, validator := range validator {
+		validator.Rank = (rank.Rank + 1 + i)
 	}
 
 	// save and update validatorInfo
-	if len(validatorInfo) > 0 {
-		result, err := db.InsertOrUpdateValidators(validatorInfo)
+	if len(validator) > 0 {
+		result, err := c.db.InsertOrUpdateValidators(validator)
 		if !result {
 			log.Printf("failed to insert or update unbonding validators: %t", err)
 		}
 
 		// save unbonded validators after succesfully saved unbonding validators
-		saveUnbondedValidators(db, config)
+		c.saveUnbondedValidators()
 	}
 }
 
 // saveUnbondedValidators saves unbonded validators information in database
-func saveUnbondedValidators(db *db.Database, config *config.Config) {
-	resp, _ := resty.R().Get(config.Node.LCDEndpoint + "/staking/validators?status=unbonded")
+func (c Client) saveUnbondedValidators() {
+	resp, _ := resty.R().Get(c.clientNode + "/staking/validators?status=unbonded")
 
 	var unbondedValidators []*types.Validator
 	err := json.Unmarshal(types.ReadRespWithHeight(resp).Result, &unbondedValidators)
@@ -157,10 +261,10 @@ func saveUnbondedValidators(db *db.Database, config *config.Config) {
 	})
 
 	// validators information for our database table
-	validatorInfo := make([]*schema.ValidatorInfo, 0)
+	validator := make([]*schema.Validator, 0)
 	if len(unbondedValidators) > 0 {
 		for _, unbondedValidator := range unbondedValidators {
-			tempValidatorInfo := &schema.ValidatorInfo{
+			tempValidator := &schema.Validator{
 				OperatorAddress:      unbondedValidator.OperatorAddress,
 				Address:              utils.AccAddressFromOperatorAddress(unbondedValidator.OperatorAddress),
 				ConsensusPubkey:      unbondedValidator.ConsensusPubkey,
@@ -181,21 +285,21 @@ func saveUnbondedValidators(db *db.Database, config *config.Config) {
 				MinSelfDelegation:    unbondedValidator.MinSelfDelegation,
 				UpdateTime:           unbondedValidator.Commission.UpdateTime,
 			}
-			validatorInfo = append(validatorInfo, tempValidatorInfo)
+			validator = append(validator, tempValidator)
 		}
 	}
 
 	// first rank
 	status := 1
-	rankInfo, _ := db.QueryFirstRankValidatorByStatus(status)
+	rank, _ := c.db.QueryFirstRankValidatorByStatus(status)
 
-	for i, validatorInfo := range validatorInfo {
-		validatorInfo.Rank = (rankInfo.Rank + 1 + i)
+	for i, validator := range validator {
+		validator.Rank = (rank.Rank + 1 + i)
 	}
 
-	// save and update validatorInfo
-	if len(validatorInfo) > 0 {
-		result, err := db.InsertOrUpdateValidators(validatorInfo)
+	// save and update validator
+	if len(validator) > 0 {
+		result, err := c.db.InsertOrUpdateValidators(validator)
 		if !result {
 			log.Printf("failed to insert or update unbonded validators: %t", err)
 		}

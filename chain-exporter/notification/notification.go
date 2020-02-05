@@ -17,10 +17,11 @@ type Notification struct {
 }
 
 func New() Notification {
-	config := config.NewConfig()
+	cfg := config.ParseConfig()
+
 	return Notification{
-		cfg: config,
-		db:  db.Connect(config),
+		cfg: cfg,
+		db:  db.Connect(&cfg.DB),
 	}
 }
 

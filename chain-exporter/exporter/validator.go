@@ -10,52 +10,19 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 
+	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
+
 	resty "gopkg.in/resty.v1"
 )
 
-// getValidatorSetInfo provides validator set information in every block
-func (ce ChainExporter) getValidatorSetInfo(height int64) ([]*schema.ValidatorSetInfo, []*schema.MissInfo, []*schema.MissInfo, []*schema.MissDetailInfo, error) {
-	nextHeight := height + 1
-
-	// Query current block
-	block, err := ce.rpcClient.Block(&height)
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-
-	// Query the next block to access precommits
-	nextBlock, err := ce.rpcClient.Block(&nextHeight)
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-
-	// Query validator set for the block height
-	validators, err := ce.rpcClient.Validators(&height)
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-
-	/*
-		DO NOT SORT validator set. This causes miss_infos incorrect data
-	*/
-
-	// Sort bondedValidators by highest tokens
-	// sort.Slice(validators.Validators[:], func(i, j int) bool {
-	// 	tempToken1 := validators.Validators[i].VotingPower
-	// 	tempToken2 := validators.Validators[j].VotingPower
-	// 	return tempToken1 > tempToken2
-	// })
-
-	genesisValidatorsInfo := make([]*schema.ValidatorSetInfo, 0)
-	missInfo := make([]*schema.MissInfo, 0)
-	accumMissInfo := make([]*schema.MissInfo, 0)
-	missDetailInfo := make([]*schema.MissDetailInfo, 0)
+// getGenesisValidatorSet returns validator set in genesis
+func (ex *Exporter) getGenesisValidatorSet(block *tmctypes.ResultBlock, vals *tmctypes.ResultValidators) ([]*schema.PowerEventHistory, error) {
+	genesisValsSet := make([]*schema.PowerEventHistory, 0)
 
 	// Get validator set for the height
-	for i, validator := range validators.Validators {
-		// insert genesis validators as an event_type of create_validator at height 1
-		if validators.BlockHeight == 1 {
-			tempValidatorSetInfo := &schema.ValidatorSetInfo{
+	for i, validator := range vals.Validators {
+		if vals.BlockHeight == 1 {
+			tempValsSet := &schema.PowerEventHistory{
 				IDValidator:          i + 1,
 				Height:               block.Block.Height,
 				Proposer:             validator.Address.String(),
@@ -65,108 +32,106 @@ func (ce ChainExporter) getValidatorSetInfo(height int64) ([]*schema.ValidatorSe
 				EventType:            types.EventTypeMsgCreateValidator,
 				Time:                 block.BlockMeta.Header.Time,
 			}
-			genesisValidatorsInfo = append(genesisValidatorsInfo, tempValidatorSetInfo)
+			genesisValsSet = append(genesisValsSet, tempValsSet)
 		}
+	}
 
+	return genesisValsSet, nil
+}
+
+// getPowerEventHistory provides validator set information in every block
+func (ex *Exporter) getPowerEventHistory(prevBlock *tmctypes.ResultBlock, block *tmctypes.ResultBlock, vals *tmctypes.ResultValidators) ([]*schema.Miss, []*schema.Miss, []*schema.MissDetail, error) {
+
+	miss := make([]*schema.Miss, 0)
+	accumMiss := make([]*schema.Miss, 0)
+	missDetail := make([]*schema.MissDetail, 0)
+
+	// Get validator set for the height
+	for i, validator := range vals.Validators {
 		// MissDetailInfo saves every missing information of validators
 		// MissInfo saves ranges of missing information of validators
 		// check if a validator misses previous block
-		if nextBlock.Block.LastCommit.Precommits[i] == nil {
-			tempMissDetailInfo := &schema.MissDetailInfo{
-				Height:   block.BlockMeta.Header.Height,
+		if block.Block.LastCommit.Precommits[i] == nil {
+			tempMissDetail := &schema.MissDetail{
+				Height:   prevBlock.BlockMeta.Header.Height,
 				Address:  validator.Address.String(),
-				Proposer: block.BlockMeta.Header.ProposerAddress.String(),
+				Proposer: prevBlock.BlockMeta.Header.ProposerAddress.String(),
 				Alerted:  false,
-				Time:     block.BlockMeta.Header.Time,
+				Time:     prevBlock.BlockMeta.Header.Time,
 			}
-			missDetailInfo = append(missDetailInfo, tempMissDetailInfo)
+			missDetail = append(missDetail, tempMissDetail)
 
 			// Initial variables
-			startHeight := block.BlockMeta.Header.Height
-			endHeight := block.BlockMeta.Header.Height
+			startHeight := prevBlock.BlockMeta.Header.Height
+			endHeight := prevBlock.BlockMeta.Header.Height
 			missingCount := int64(1)
 
 			// Query to check if a validator missed previous block
-			var prevMissInfo schema.MissInfo
-			_ = ce.db.Model(&prevMissInfo).
+			var prevMiss schema.Miss
+			_ = ex.db.Model(&prevMiss).
 				Where("end_height = ? AND address = ?", endHeight-int64(1), validator.Address.String()).
 				Order("end_height DESC").
 				Select()
 
-			if prevMissInfo.Address == "" {
-				tempMissInfo := &schema.MissInfo{
+			if prevMiss.Address == "" {
+				tempMiss := &schema.Miss{
 					Address:      validator.Address.String(),
 					StartHeight:  startHeight,
 					EndHeight:    endHeight,
 					MissingCount: missingCount,
-					StartTime:    block.BlockMeta.Header.Time,
-					EndTime:      block.BlockMeta.Header.Time,
+					StartTime:    prevBlock.BlockMeta.Header.Time,
+					EndTime:      prevBlock.BlockMeta.Header.Time,
 					Alerted:      false,
 				}
-				missInfo = append(missInfo, tempMissInfo)
+				miss = append(miss, tempMiss)
 			} else {
-				tempMissInfo := &schema.MissInfo{
-					Address:      prevMissInfo.Address,
-					StartHeight:  prevMissInfo.StartHeight,
-					EndHeight:    prevMissInfo.EndHeight + int64(1),
-					MissingCount: prevMissInfo.MissingCount + int64(1),
-					StartTime:    prevMissInfo.StartTime,
-					EndTime:      block.BlockMeta.Header.Time,
+				tempMiss := &schema.Miss{
+					Address:      prevMiss.Address,
+					StartHeight:  prevMiss.StartHeight,
+					EndHeight:    prevMiss.EndHeight + int64(1),
+					MissingCount: prevMiss.MissingCount + int64(1),
+					StartTime:    prevMiss.StartTime,
+					EndTime:      prevBlock.BlockMeta.Header.Time,
 					Alerted:      false,
 				}
-				accumMissInfo = append(accumMissInfo, tempMissInfo)
+				accumMiss = append(accumMiss, tempMiss)
 			}
 			continue
 		}
 	}
-	return genesisValidatorsInfo, missInfo, accumMissInfo, missDetailInfo, nil
+	return miss, accumMiss, missDetail, nil
 }
 
-// getEvidenceInfo provides evidence (slashing) information
-func (ce ChainExporter) getEvidenceInfo(height int64) ([]*schema.EvidenceInfo, error) {
-	nextHeight := height + 1
-
-	// Query current block
-	block, err := ce.rpcClient.Block(&height)
-	if err != nil {
-		return nil, err
-	}
-
-	// Query the next block to access precommits
-	nextBlock, err := ce.rpcClient.Block(&nextHeight)
-	if err != nil {
-		return nil, err
-	}
-
-	// cosmoshub-2
-	// 848187 = 1C4DB67E79B5BB30663B04245E064E6180EC6EA304EE83A7A879B04544A2EAD0
+// getEvidence provides evidence (slashing) information
+func (ex *Exporter) getEvidence(block *tmctypes.ResultBlock, nextBlock *tmctypes.ResultBlock) ([]*schema.Evidence, error) {
+	// In cosmoshub2: 848187 = 1C4DB67E79B5BB30663B04245E064E6180EC6EA304EE83A7A879B04544A2EAD0
 	// in evidence, there is only DuplicateVoteEvidence. There is no downtime evidence.
-	evidenceInfo := make([]*schema.EvidenceInfo, 0)
+	evidence := make([]*schema.Evidence, 0)
 	if nextBlock.Block.Evidence.Evidence != nil {
-		for _, evidence := range nextBlock.Block.Evidence.Evidence {
-			tempEvidenceInfo := &schema.EvidenceInfo{
-				Proposer: strings.ToUpper(string(hex.EncodeToString(evidence.Address()))),
-				Height:   evidence.Height(),
+		for _, evi := range nextBlock.Block.Evidence.Evidence {
+			tempEvidence := &schema.Evidence{
+				Proposer: strings.ToUpper(string(hex.EncodeToString(evi.Address()))),
+				Height:   evi.Height(),
 				Hash:     nextBlock.BlockMeta.Header.EvidenceHash.String(),
 				Time:     block.BlockMeta.Header.Time,
 			}
-			evidenceInfo = append(evidenceInfo, tempEvidenceInfo)
+			evidence = append(evidence, tempEvidence)
 		}
 	}
 
-	return evidenceInfo, nil
+	return evidence, nil
 }
 
 // SaveValidatorKeyBase saves keybase urls for every validator
-func (ce ChainExporter) SaveValidatorKeyBase() error {
-	validatorsInfo := make([]*schema.ValidatorInfo, 0)
+func (ex *Exporter) SaveValidatorKeyBase() error {
+	resultValidators := make([]*schema.Validator, 0)
 
-	// query validators info
-	validators, _ := ce.db.QueryValidators()
+	// query validators
+	validators, _ := ex.db.QueryValidators()
 
 	for _, validator := range validators {
 		if validator.Identity != "" {
-			resp, err := resty.R().Get(ce.config.KeybaseURL + validator.Identity)
+			resp, err := resty.R().Get(ex.cfg.KeybaseURL + validator.Identity)
 			if err != nil {
 				fmt.Printf("failed to request KeyBase: %v \n", err)
 			}
@@ -184,17 +149,17 @@ func (ce ChainExporter) SaveValidatorKeyBase() error {
 				}
 			}
 
-			tempValidatorInfo := &schema.ValidatorInfo{
+			tempValidator := &schema.Validator{
 				ID:         validator.ID,
 				KeybaseURL: keybaseURL,
 			}
-			validatorsInfo = append(validatorsInfo, tempValidatorInfo)
+			resultValidators = append(resultValidators, tempValidator)
 		}
 	}
 
-	if len(validatorsInfo) > 0 {
-		for _, validator := range validatorsInfo {
-			result, err := ce.db.UpdateKeyBase(validator.ID, validator.KeybaseURL)
+	if len(resultValidators) > 0 {
+		for _, validator := range resultValidators {
+			result, err := ex.db.UpdateKeyBase(validator.ID, validator.KeybaseURL)
 			if !result {
 				log.Printf("failed to update KeyBase URL: %v \n", err)
 			}

@@ -68,7 +68,7 @@ func (db *Database) QueryTxsByAddr(address string, operAddr string, limit int, o
 }
 
 // QueryTransferTxsByAddr queries Send / MultiSend transactions that are made by an account
-func (db *Database) QueryTransferTxsByAddr(address string) ([]schema.TransactionInfo, error) {
+func (db *Database) QueryTransferTxsByAddr(address string, limit int) ([]schema.TransactionInfo, error) {
 	var txs []schema.TransactionInfo
 
 	params := QueryTxsParamFromAddress + "'" + address + "'" + " OR " +
@@ -79,13 +79,14 @@ func (db *Database) QueryTransferTxsByAddr(address string) ([]schema.Transaction
 	_ = db.Model(&txs).
 		Where(params).
 		Order("id DESC").
+		Limit(limit).
 		Select()
 
 	return txs, nil
 }
 
 // QueryTxsBetweenAccountAndValidator queries transactions that are made between an account and his delegated validator
-func (db *Database) QueryTxsBetweenAccountAndValidator(address string, operAddr string) ([]schema.TransactionInfo, error) {
+func (db *Database) QueryTxsBetweenAccountAndValidator(address string, operAddr string, limit int) ([]schema.TransactionInfo, error) {
 	var txs []schema.TransactionInfo
 
 	params := "(" + QueryTxsParamValidatorAddress + "'" + operAddr + "'" + " OR " +
@@ -96,6 +97,7 @@ func (db *Database) QueryTxsBetweenAccountAndValidator(address string, operAddr 
 	_ = db.Model(&txs).
 		Where(params).
 		Order("id DESC").
+		Limit(limit).
 		Select()
 
 	return txs, nil

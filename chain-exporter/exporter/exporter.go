@@ -1,69 +1,59 @@
 package exporter
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"time"
 
 	"github.com/pkg/errors"
 
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/client"
 	ceCodec "github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/db"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/lcd"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-
-	"github.com/tendermint/tendermint/rpc/client"
-	ctypes "github.com/tendermint/tendermint/rpc/core/types"
-
-	resty "gopkg.in/resty.v1"
 )
 
-// ChainExporter implemnts a wrapper around configuration for this project
-type ChainExporter struct {
-	codec     *codec.Codec
-	config    *config.Config
-	db        *db.Database
-	wsCtx     context.Context
-	wsOut     <-chan ctypes.ResultEvent
-	rpcClient *client.HTTP
+// Exporter implemnts a wrapper around configuration for this project
+type Exporter struct {
+	cfg    *config.Config
+	cdc    *codec.Codec
+	client client.Client
+	db     *db.Database
 }
 
-// NewChainExporter initializes the required config
-func NewChainExporter(config *config.Config) *ChainExporter {
-	ce := &ChainExporter{
-		codec:     ceCodec.Codec, // register Cosmos SDK codecs
-		config:    config,
-		db:        db.Connect(config), // connect to PostgreSQL
-		wsCtx:     context.Background(),
-		rpcClient: client.NewHTTP(config.Node.RPCNode, "/websocket"), // connect to Tendermint RPC client
+// NewExporter initializes the required config
+func NewExporter() Exporter {
+	cfg := config.ParseConfig()
+
+	client, err := client.NewClient(cfg.Node.RPCNode, cfg.Node.LCDEndpoint)
+	if err != nil {
+		log.Fatal(errors.Wrap(err, "failed to connect client."))
 	}
 
+	// Connect to database
+	db := db.Connect(&cfg.DB)
+
 	// Ping database to verify connection is succeeded
-	err := ce.db.Ping()
+	err = db.Ping()
 	if err != nil {
 		log.Fatal(errors.Wrap(err, "failed to ping database."))
 	}
 
 	// Setup database tables
-	ce.db.CreateSchema()
+	db.CreateTables()
 
-	resty.SetTimeout(5 * time.Second) // sets timeout for request.
-
-	return ce
+	return Exporter{cfg, ceCodec.Codec, client, db}
 }
 
-// OnStart is an override method for BaseService, which starts a service
-func (ce ChainExporter) OnStart() error {
-	ce.rpcClient.OnStart()
-
+// Start creates database tables and indexes using Postgres ORM library go-pg and
+// starts syncing blockchain.
+func (ex *Exporter) Start() error {
 	// Store data initially
-	lcd.SaveBondedValidators(ce.db, ce.config)
-	lcd.SaveUnbondingAndUnBondedValidators(ce.db, ce.config)
-	lcd.SaveProposals(ce.db, ce.config)
+	ex.client.SaveBondedValidators()
+	ex.client.SaveUnbondingAndUnBondedValidators()
+	ex.client.SaveProposals()
 
 	c1 := make(chan string)
 	c2 := make(chan string)
@@ -71,7 +61,7 @@ func (ce ChainExporter) OnStart() error {
 	go func() {
 		for {
 			fmt.Println("start - sync blockchain")
-			err := ce.sync()
+			err := ex.sync()
 			if err != nil {
 				fmt.Printf("error - sync blockchain: %v\n", err)
 			}
@@ -98,90 +88,115 @@ func (ce ChainExporter) OnStart() error {
 		select {
 		case msg1 := <-c1:
 			fmt.Println("start - ", msg1)
-			lcd.SaveBondedValidators(ce.db, ce.config)
-			lcd.SaveUnbondingAndUnBondedValidators(ce.db, ce.config)
-			lcd.SaveProposals(ce.db, ce.config)
+			ex.client.SaveBondedValidators()
+			ex.client.SaveUnbondingAndUnBondedValidators()
+			ex.client.SaveProposals()
 			fmt.Println("finish - ", msg1)
 		case msg2 := <-c2:
 			fmt.Println("start - ", msg2)
-			ce.SaveValidatorKeyBase()
+			ex.SaveValidatorKeyBase()
 			fmt.Println("finish - ", msg2)
 		}
 	}
 }
 
-// OnStop is an override method for BaseService, which stops a service
-func (ce ChainExporter) OnStop() {
-	ce.rpcClient.OnStop()
-}
-
-// sync synchronizes the block data from connected full node
-func (ce ChainExporter) sync() error {
-	var blocks []schema.BlockInfo
-	err := ce.db.Model(&blocks).
-		Order("height DESC").
-		Limit(1).
-		Select()
-	if err != nil {
-		return err
+// sync compares block height between the height saved in your database and
+// latest block height on the active chain and calls process to start ingesting blocks.
+func (ex *Exporter) sync() error {
+	// Query latest block height that is saved in your database
+	// Synchronizing blocks from the scratch will return 0 and will ingest accordingly.
+	dbHeight, err := ex.db.QueryLatestBlockHeight()
+	if dbHeight == -1 {
+		log.Fatal(errors.Wrap(err, "failed to query the latest block height from database."))
 	}
 
-	currentHeight := int64(1)
-	if len(blocks) > 0 {
-		currentHeight = blocks[0].Height
+	// Query latest block height on the active network
+	latestBlockHeight, err := ex.client.LatestBlockHeight()
+	if latestBlockHeight == -1 {
+		log.Fatal(errors.Wrap(err, "failed to query the latest block height on the active network."))
 	}
 
-	// query current height
-	status, err := ce.rpcClient.Status()
-	if err != nil {
-		return err
-	}
-	maxHeight := status.SyncInfo.LatestBlockHeight
-
-	if currentHeight == 1 {
-		currentHeight = 0
+	// skip the first block since it has no pre-commits
+	if dbHeight == 0 {
+		dbHeight = 1
 	}
 
-	// ingest all blocks up to the best height
-	for i := currentHeight + 1; i <= maxHeight; i++ {
-		err = ce.process(i)
+	// Ingest all blocks up to the best height
+	for i := dbHeight + 1; i <= latestBlockHeight; i++ {
+		err = ex.process(i)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("synced block %d/%d \n", i, maxHeight)
+		fmt.Printf("synced block %d/%d \n", i, latestBlockHeight)
 	}
+
 	return nil
 }
 
-// sync queries the block at the given height-1 from the node and ingests its metadata (blockinfo,evidence)
+// sync queries the block at the given height-1 from the node and ingests its metadata (Block,evidence)
 // into the database. It also queries the next block to access the commits and stores the missed signatures.
-func (ce ChainExporter) process(height int64) error {
-	blockInfo, err := ce.getBlockInfo(height)
+func (ex Exporter) process(height int64) error {
+	block, err := ex.client.Block(height)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to query block using rpc client: %t", err)
 	}
 
-	evidenceInfo, err := ce.getEvidenceInfo(height)
+	nextBlock, err := ex.client.Block(height + 1)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to query block using rpc client: %t", err)
 	}
 
-	genesisValsInfo, missInfo, accumMissInfo, missDetailInfo, err := ce.getValidatorSetInfo(height)
+	prevBlock, err := ex.client.Block(block.Block.LastCommit.Height())
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to query block using rpc client: %t", err)
 	}
 
-	transactionInfo, voteInfo, depositInfo, proposalInfo, validatorSetInfo, err := ce.getTransactionInfo(height)
+	vals, err := ex.client.Validators(block.Block.LastCommit.Height())
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to query validators using rpc client: %t", err)
+	}
+
+	txs, err := ex.client.Txs(block)
+	if err != nil {
+		return fmt.Errorf("failed to get transactions for block: %t", err)
+	}
+
+	resultBlock, err := ex.getBlock(block)
+	if err != nil {
+		return fmt.Errorf("failed to get block: %t", err)
+	}
+
+	resultEvidence, err := ex.getEvidence(block, nextBlock)
+	if err != nil {
+		return fmt.Errorf("failed to get evidence: %t", err)
+	}
+
+	resultGenesisValSet, err := ex.getGenesisValidatorSet(block, vals)
+	if err != nil {
+		return fmt.Errorf("failed to get genesis validator set: %t", err)
+	}
+
+	resultTxs, err := ex.getTxs(txs)
+	if err != nil {
+		return fmt.Errorf("failed to get txs: %t", err)
+	}
+
+	resultMissingBlocks, resultAccumMissingBlocks, resultMisssingBlocksDetail, err := ex.getPowerEventHistory(prevBlock, block, vals)
+	if err != nil {
+		return fmt.Errorf("failed to get missing blocks: %t", err)
+	}
+
+	resultVote, resultDeposit, resultProposal, resultValidatorSet, err := ex.getTransactions(block)
+	if err != nil {
+		return fmt.Errorf("failed to get transactions: %t", err)
 	}
 
 	// Insert data into database
-	err = ce.db.InsertExportedData(blockInfo, evidenceInfo, genesisValsInfo, missInfo, accumMissInfo,
-		missDetailInfo, transactionInfo, voteInfo, depositInfo, proposalInfo, validatorSetInfo)
+	err = ex.db.InsertExportedData(resultBlock, resultEvidence, resultGenesisValSet, resultMissingBlocks, resultAccumMissingBlocks,
+		resultMisssingBlocksDetail, resultTxs, resultVote, resultDeposit, resultProposal, resultValidatorSet)
 
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to insert exported data: %t", err)
 	}
 
 	return nil
