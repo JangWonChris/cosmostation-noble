@@ -1,4 +1,4 @@
-active: "dev"
+active: "mainnet"
 
 mainnet:
   node: 
