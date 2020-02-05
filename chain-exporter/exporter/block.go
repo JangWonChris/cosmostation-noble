@@ -2,28 +2,26 @@ package exporter
 
 import (
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
+
+	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
 // getBlock provides block information
-func (ex *Exporter) getBlock(height int64) ([]*schema.BlockInfo, error) {
-	blockInfo := make([]*schema.BlockInfo, 0)
+func (ex *Exporter) getBlock(block *tmctypes.ResultBlock) ([]*schema.BlockCosmoshub3, error) {
+	resultBlock := make([]*schema.BlockCosmoshub3, 0)
 
-	// query current block
-	block, err := ex.client.Block(height)
-	if err != nil {
-		return nil, err
+	tempBlock := &schema.BlockCosmoshub3{
+		Height:        block.Block.Height,
+		Proposer:      block.Block.ProposerAddress.String(),
+		BlockHash:     block.BlockMeta.BlockID.Hash.String(),
+		ParentHash:    block.BlockMeta.Header.LastBlockID.Hash.String(),
+		NumPrecommits: int64(len(block.Block.LastCommit.Precommits)),
+		NumTxs:        block.Block.NumTxs,
+		TotalTxs:      block.Block.TotalTxs,
+		Timestamp:     block.Block.Time,
 	}
 
-	tempBlock := &schema.BlockInfo{
-		BlockHash: block.BlockMeta.BlockID.Hash.String(),
-		Proposer:  block.Block.ProposerAddress.String(),
-		Height:    block.Block.Height,
-		TotalTxs:  block.Block.TotalTxs,
-		NumTxs:    block.Block.NumTxs,
-		Time:      block.BlockMeta.Header.Time,
-	}
+	resultBlock = append(resultBlock, tempBlock)
 
-	blockInfo = append(blockInfo, tempBlock)
-
-	return blockInfo, nil
+	return resultBlock, nil
 }

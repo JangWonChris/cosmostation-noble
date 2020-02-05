@@ -11,15 +11,15 @@ import (
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
-// LatestHeight returns the latest block height on the active chain. An error
-// is returned if the query fails.
-func (c Client) LatestHeight() (int64, error) {
+// LatestBlockHeight returns the latest block height on the active chain
+func (c Client) LatestBlockHeight() (int64, error) {
 	status, err := c.rpcClient.Status()
 	if err != nil {
 		return -1, err
 	}
 
 	height := status.SyncInfo.LatestBlockHeight
+
 	return height, nil
 }
 

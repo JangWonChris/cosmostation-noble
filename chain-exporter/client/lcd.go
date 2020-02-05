@@ -9,7 +9,6 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/db"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/utils"
@@ -58,7 +57,8 @@ func (c Client) SaveProposals() {
 	}
 
 	// proposal information for our database table
-	proposalInfo := make([]*schema.ProposalInfo, 0)
+	result := make([]*schema.Proposal, 0)
+
 	if len(proposals) > 0 {
 		for _, proposal := range proposals {
 			proposalID, _ := strconv.ParseInt(proposal.ID, 10, 64)
@@ -78,7 +78,7 @@ func (c Client) SaveProposals() {
 				fmt.Printf("failed to unmarshal Tally: %v \n", err)
 			}
 
-			tempProposalInfo := &schema.ProposalInfo{
+			tempProposal := &schema.Proposal{
 				ID:                 proposalID,
 				Title:              proposal.Content.Value.Title,
 				Description:        proposal.Content.Value.Description,
@@ -96,21 +96,22 @@ func (c Client) SaveProposals() {
 				VotingEndTime:      proposal.VotingEndTime,
 				Alerted:            false,
 			}
-			proposalInfo = append(proposalInfo, tempProposalInfo)
+
+			result = append(result, tempProposal)
 		}
 	}
 
-	if len(proposalInfo) > 0 {
-		for _, proposal := range proposalInfo {
-			exist, _ := db.QueryExistProposal(proposal.ID)
+	if len(result) > 0 {
+		for _, proposal := range result {
+			exist, _ := c.db.ExistProposal(proposal.ID)
 
 			if exist {
-				result, _ := db.UpdateProposal(proposal)
+				result, _ := c.db.UpdateProposal(proposal)
 				if !result {
 					log.Printf("failed to update Proposal ID: %d", proposal.ID)
 				}
 			} else {
-				result, _ := db.InsertProposal(proposal)
+				result, _ := c.db.InsertProposal(proposal)
 				if !result {
 					log.Printf("failed to save Proposal ID: %d", proposal.ID)
 				}
@@ -137,10 +138,10 @@ func (c Client) SaveBondedValidators() {
 	})
 
 	// bondedValidator information for our database table
-	validatorInfo := make([]*schema.ValidatorInfo, 0)
+	validator := make([]*schema.Validator, 0)
 
 	for i, bondedValidator := range bondedValidators {
-		tempValidatorInfo := &schema.ValidatorInfo{
+		tempValidator := &schema.Validator{
 			Rank:                 i + 1,
 			OperatorAddress:      bondedValidator.OperatorAddress,
 			Address:              utils.AccAddressFromOperatorAddress(bondedValidator.OperatorAddress),
@@ -162,11 +163,11 @@ func (c Client) SaveBondedValidators() {
 			MinSelfDelegation:    bondedValidator.MinSelfDelegation,
 			UpdateTime:           bondedValidator.Commission.UpdateTime,
 		}
-		validatorInfo = append(validatorInfo, tempValidatorInfo)
+		validator = append(validator, tempValidator)
 	}
 
-	if len(validatorInfo) > 0 {
-		result, err := db.InsertOrUpdateValidators(validatorInfo)
+	if len(validator) > 0 {
+		result, err := c.db.InsertOrUpdateValidators(validator)
 		if !result {
 			log.Printf("failed to insert or update bonded validators: %t", err)
 		}
@@ -191,10 +192,10 @@ func (c Client) SaveUnbondingAndUnBondedValidators() {
 	})
 
 	// validators information for our database table
-	validatorInfo := make([]*schema.ValidatorInfo, 0)
+	validator := make([]*schema.Validator, 0)
 	if len(unbondingValidators) > 0 {
 		for _, unbondingValidator := range unbondingValidators {
-			tempValidatorInfo := &schema.ValidatorInfo{
+			tempValidator := &schema.Validator{
 				OperatorAddress:      unbondingValidator.OperatorAddress,
 				Address:              utils.AccAddressFromOperatorAddress(unbondingValidator.OperatorAddress),
 				ConsensusPubkey:      unbondingValidator.ConsensusPubkey,
@@ -215,30 +216,30 @@ func (c Client) SaveUnbondingAndUnBondedValidators() {
 				MinSelfDelegation:    unbondingValidator.MinSelfDelegation,
 				UpdateTime:           unbondingValidator.Commission.UpdateTime,
 			}
-			validatorInfo = append(validatorInfo, tempValidatorInfo)
+			validator = append(validator, tempValidator)
 		}
 	} else {
 		// save unbonded validators after succesfully saved unbonding validators
-		c.saveUnbondedValidators(db)
+		c.saveUnbondedValidators()
 	}
 
 	// first rank
 	status := 2
-	rankInfo, _ := db.QueryFirstRankValidatorByStatus(status)
+	rank, _ := c.db.QueryFirstRankValidatorByStatus(status)
 
-	for i, validatorInfo := range validatorInfo {
-		validatorInfo.Rank = (rankInfo.Rank + 1 + i)
+	for i, validator := range validator {
+		validator.Rank = (rank.Rank + 1 + i)
 	}
 
 	// save and update validatorInfo
-	if len(validatorInfo) > 0 {
-		result, err := db.InsertOrUpdateValidators(validatorInfo)
+	if len(validator) > 0 {
+		result, err := c.db.InsertOrUpdateValidators(validator)
 		if !result {
 			log.Printf("failed to insert or update unbonding validators: %t", err)
 		}
 
 		// save unbonded validators after succesfully saved unbonding validators
-		c.saveUnbondedValidators(db)
+		c.saveUnbondedValidators()
 	}
 }
 
@@ -260,10 +261,10 @@ func (c Client) saveUnbondedValidators() {
 	})
 
 	// validators information for our database table
-	validatorInfo := make([]*schema.ValidatorInfo, 0)
+	validator := make([]*schema.Validator, 0)
 	if len(unbondedValidators) > 0 {
 		for _, unbondedValidator := range unbondedValidators {
-			tempValidatorInfo := &schema.ValidatorInfo{
+			tempValidator := &schema.Validator{
 				OperatorAddress:      unbondedValidator.OperatorAddress,
 				Address:              utils.AccAddressFromOperatorAddress(unbondedValidator.OperatorAddress),
 				ConsensusPubkey:      unbondedValidator.ConsensusPubkey,
@@ -284,21 +285,21 @@ func (c Client) saveUnbondedValidators() {
 				MinSelfDelegation:    unbondedValidator.MinSelfDelegation,
 				UpdateTime:           unbondedValidator.Commission.UpdateTime,
 			}
-			validatorInfo = append(validatorInfo, tempValidatorInfo)
+			validator = append(validator, tempValidator)
 		}
 	}
 
 	// first rank
 	status := 1
-	rankInfo, _ := db.QueryFirstRankValidatorByStatus(status)
+	rank, _ := c.db.QueryFirstRankValidatorByStatus(status)
 
-	for i, validatorInfo := range validatorInfo {
-		validatorInfo.Rank = (rankInfo.Rank + 1 + i)
+	for i, validator := range validator {
+		validator.Rank = (rank.Rank + 1 + i)
 	}
 
-	// save and update validatorInfo
-	if len(validatorInfo) > 0 {
-		result, err := db.InsertOrUpdateValidators(validatorInfo)
+	// save and update validator
+	if len(validator) > 0 {
+		result, err := c.db.InsertOrUpdateValidators(validator)
 		if !result {
 			log.Printf("failed to insert or update unbonded validators: %t", err)
 		}

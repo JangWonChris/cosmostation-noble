@@ -6,7 +6,7 @@ import (
 )
 
 // InsertProposal saves on-chain proposals getting from /gov/proposals REST API
-func (db *Database) InsertProposal(data *schema.ProposalInfo) (bool, error) {
+func (db *Database) InsertProposal(data *schema.Proposal) (bool, error) {
 	err := db.Insert(data)
 	if err != nil {
 		return false, nil
@@ -15,7 +15,7 @@ func (db *Database) InsertProposal(data *schema.ProposalInfo) (bool, error) {
 }
 
 // InsertOrUpdateValidators updates the given validator set
-func (db *Database) InsertOrUpdateValidators(data []*schema.ValidatorInfo) (bool, error) {
+func (db *Database) InsertOrUpdateValidators(data []*schema.Validator) (bool, error) {
 	_, err := db.Model(&data).
 		OnConflict("(operator_address) DO UPDATE").
 		Set("rank = EXCLUDED.rank").
@@ -45,9 +45,9 @@ func (db *Database) InsertOrUpdateValidators(data []*schema.ValidatorInfo) (bool
 
 // InsertExportedData saves exported blockchain data
 // if function returns an error transaction is rollbacked, otherwise transaction is committed.
-func (db *Database) InsertExportedData(block []*schema.BlockInfo, evidenceInfo []*schema.EvidenceInfo, genesisValidatorsInfo []*schema.ValidatorSetInfo,
-	missInfo []*schema.MissInfo, accumMissInfo []*schema.MissInfo, missDetailInfo []*schema.MissDetailInfo, transactionInfo []*schema.TransactionInfo,
-	voteInfo []*schema.VoteInfo, depositInfo []*schema.DepositInfo, proposalInfo []*schema.ProposalInfo, validatorSetInfo []*schema.ValidatorSetInfo) error {
+func (db *Database) InsertExportedData(block []*schema.BlockCosmoshub3, evidence []*schema.Evidence, genesisValSet []*schema.PowerEventHistory,
+	missingBlocks []*schema.Miss, accumMissingBlocks []*schema.Miss, missingBlocksDetail []*schema.MissDetail, txs []*schema.TxCosmoshub3,
+	votes []*schema.Vote, deposits []*schema.Deposit, proposals []*schema.Proposal, powerEventHistory []*schema.PowerEventHistory) error {
 
 	err := db.RunInTransaction(func(tx *pg.Tx) error {
 		if len(block) > 0 {
@@ -57,66 +57,66 @@ func (db *Database) InsertExportedData(block []*schema.BlockInfo, evidenceInfo [
 			}
 		}
 
-		if len(genesisValidatorsInfo) > 0 {
-			err := tx.Insert(&genesisValidatorsInfo)
+		if len(evidence) > 0 {
+			err := tx.Insert(&evidence)
 			if err != nil {
 				return err
 			}
 		}
 
-		if len(validatorSetInfo) > 0 {
-			err := tx.Insert(&validatorSetInfo)
+		if len(genesisValSet) > 0 {
+			err := tx.Insert(&genesisValSet)
 			if err != nil {
 				return err
 			}
 		}
 
-		if len(evidenceInfo) > 0 {
-			err := tx.Insert(&evidenceInfo)
+		if len(powerEventHistory) > 0 {
+			err := tx.Insert(&powerEventHistory)
 			if err != nil {
 				return err
 			}
 		}
 
-		if len(missInfo) > 0 {
-			err := tx.Insert(&missInfo)
+		if len(missingBlocks) > 0 {
+			err := tx.Insert(&missingBlocks)
 			if err != nil {
 				return err
 			}
 		}
 
-		if len(missDetailInfo) > 0 {
-			err := tx.Insert(&missDetailInfo)
+		if len(missingBlocksDetail) > 0 {
+			err := tx.Insert(&missingBlocksDetail)
 			if err != nil {
 				return err
 			}
 		}
 
-		if len(transactionInfo) > 0 {
-			err := tx.Insert(&transactionInfo)
+		if len(txs) > 0 {
+			err := tx.Insert(&txs)
 			if err != nil {
 				return err
 			}
 		}
 
-		if len(depositInfo) > 0 {
-			err := tx.Insert(&depositInfo)
+		if len(deposits) > 0 {
+			err := tx.Insert(&deposits)
 			if err != nil {
 				return err
 			}
 		}
 
-		var tempMissInfo schema.MissInfo
-		if len(accumMissInfo) > 0 {
-			for i := 0; i < len(accumMissInfo); i++ {
-				_, err := tx.Model(&tempMissInfo).
-					Set("address = ?", accumMissInfo[i].Address).
-					Set("start_height = ?", accumMissInfo[i].StartHeight).
-					Set("end_height = ?", accumMissInfo[i].EndHeight).
-					Set("missing_count = ?", accumMissInfo[i].MissingCount).
-					Set("start_time = ?", accumMissInfo[i].StartTime).
-					Set("end_time = ?", block[0].Time).
-					Where("end_height = ? AND address = ?", accumMissInfo[i].EndHeight-int64(1), accumMissInfo[i].Address).
+		var tempMiss schema.Miss
+		if len(accumMissingBlocks) > 0 {
+			for i := 0; i < len(accumMissingBlocks); i++ {
+				_, err := tx.Model(&tempMiss).
+					Set("address = ?", accumMissingBlocks[i].Address).
+					Set("start_height = ?", accumMissingBlocks[i].StartHeight).
+					Set("end_height = ?", accumMissingBlocks[i].EndHeight).
+					Set("missing_count = ?", accumMissingBlocks[i].MissingCount).
+					Set("start_time = ?", accumMissingBlocks[i].StartTime).
+					Set("end_time = ?", block[0].Timestamp).
+					Where("end_height = ? AND address = ?", accumMissingBlocks[i].EndHeight-int64(1), accumMissingBlocks[i].Address).
 					Update()
 				if err != nil {
 					return err
@@ -124,28 +124,28 @@ func (db *Database) InsertExportedData(block []*schema.BlockInfo, evidenceInfo [
 			}
 		}
 
-		if len(voteInfo) > 0 {
-			var tempVoteInfo schema.VoteInfo
-			for i := 0; i < len(voteInfo); i++ {
+		if len(votes) > 0 {
+			var tempVotes schema.Vote
+			for _, vote := range votes {
 				// Check if a validator already voted
-				count, _ := tx.Model(&tempVoteInfo).
-					Where("proposal_id = ? AND voter = ?", voteInfo[i].ProposalID, voteInfo[i].Voter).
+				count, _ := tx.Model(&tempVotes).
+					Where("proposal_id = ? AND voter = ?", vote.ProposalID, vote.Voter).
 					Count()
 				if count > 0 {
-					_, err := tx.Model(&tempVoteInfo).
-						Set("height = ?", voteInfo[i].Height).
-						Set("option = ?", voteInfo[i].Option).
-						Set("tx_hash = ?", voteInfo[i].TxHash).
-						Set("gas_wanted = ?", voteInfo[i].GasWanted).
-						Set("gas_used = ?", voteInfo[i].GasUsed).
-						Set("time = ?", voteInfo[i].Time).
-						Where("proposal_id = ? AND voter = ?", voteInfo[i].ProposalID, voteInfo[i].Voter).
+					_, err := tx.Model(&tempVotes).
+						Set("height = ?", vote.Height).
+						Set("option = ?", vote.Option).
+						Set("tx_hash = ?", vote.TxHash).
+						Set("gas_wanted = ?", vote.GasWanted).
+						Set("gas_used = ?", vote.GasUsed).
+						Set("time = ?", vote.Time).
+						Where("proposal_id = ? AND voter = ?", vote.ProposalID, vote.Voter).
 						Update()
 					if err != nil {
 						return err
 					}
 				} else {
-					err := tx.Insert(&voteInfo)
+					err := tx.Insert(&votes)
 					if err != nil {
 						return err
 					}
@@ -153,28 +153,28 @@ func (db *Database) InsertExportedData(block []*schema.BlockInfo, evidenceInfo [
 			}
 		}
 
-		if len(proposalInfo) > 0 {
-			var tempProposalInfo schema.ProposalInfo
-			for i := 0; i < len(proposalInfo); i++ {
+		if len(proposals) > 0 {
+			var tempProposal schema.Proposal
+			for i := 0; i < len(proposals); i++ {
 				// check if a validator already voted
-				count, _ := tx.Model(&tempProposalInfo).
-					Where("id = ?", proposalInfo[i].ID).
+				count, _ := tx.Model(&tempProposal).
+					Where("id = ?", proposals[i].ID).
 					Count()
 
 				if count > 0 {
-					// save and update proposalInfo
-					_, err := tx.Model(&tempProposalInfo).
-						Set("tx_hash = ?", proposalInfo[i].TxHash).
-						Set("proposer = ?", proposalInfo[i].Proposer).
-						Set("initial_deposit_amount = ?", proposalInfo[i].InitialDepositAmount).
-						Set("initial_deposit_denom = ?", proposalInfo[i].InitialDepositDenom).
-						Where("id = ?", proposalInfo[i].ID).
+					// save and update proposal
+					_, err := tx.Model(&tempProposal).
+						Set("tx_hash = ?", proposals[i].TxHash).
+						Set("proposer = ?", proposals[i].Proposer).
+						Set("initial_deposit_amount = ?", proposals[i].InitialDepositAmount).
+						Set("initial_deposit_denom = ?", proposals[i].InitialDepositDenom).
+						Where("id = ?", proposals[i].ID).
 						Update()
 					if err != nil {
 						return err
 					}
 				} else {
-					err := tx.Insert(&proposalInfo)
+					err := tx.Insert(&proposals)
 					if err != nil {
 						return err
 					}

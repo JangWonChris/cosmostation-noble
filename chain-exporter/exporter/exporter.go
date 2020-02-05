@@ -11,12 +11,8 @@ import (
 	ceCodec "github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/db"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/lcd"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-
-	resty "gopkg.in/resty.v1"
 )
 
 // Exporter implemnts a wrapper around configuration for this project
@@ -31,7 +27,7 @@ type Exporter struct {
 func NewExporter() Exporter {
 	cfg := config.ParseConfig()
 
-	client, err := client.NewClient(cfg.Node.RPCNode, "/websocket")
+	client, err := client.NewClient(cfg.Node.RPCNode, cfg.Node.LCDEndpoint)
 	if err != nil {
 		log.Fatal(errors.Wrap(err, "failed to connect client."))
 	}
@@ -48,19 +44,16 @@ func NewExporter() Exporter {
 	// Setup database tables
 	db.CreateTables()
 
-	// Set timeout for request
-	resty.SetTimeout(5 * time.Second)
-
 	return Exporter{cfg, ceCodec.Codec, client, db}
 }
 
 // Start creates database tables and indexes using Postgres ORM library go-pg and
 // starts syncing blockchain.
-func (ex Exporter) Start() error {
+func (ex *Exporter) Start() error {
 	// Store data initially
-	lcd.SaveBondedValidators(ex.db, ex.cfg)
-	lcd.SaveUnbondingAndUnBondedValidators(ex.db, ex.cfg)
-	lcd.SaveProposals(ex.db, ex.cfg)
+	ex.client.SaveBondedValidators()
+	ex.client.SaveUnbondingAndUnBondedValidators()
+	ex.client.SaveProposals()
 
 	c1 := make(chan string)
 	c2 := make(chan string)
@@ -95,9 +88,9 @@ func (ex Exporter) Start() error {
 		select {
 		case msg1 := <-c1:
 			fmt.Println("start - ", msg1)
-			lcd.SaveBondedValidators(ex.db, ex.cfg)
-			lcd.SaveUnbondingAndUnBondedValidators(ex.db, ex.cfg)
-			lcd.SaveProposals(ex.db, ex.cfg)
+			ex.client.SaveBondedValidators()
+			ex.client.SaveUnbondingAndUnBondedValidators()
+			ex.client.SaveProposals()
 			fmt.Println("finish - ", msg1)
 		case msg2 := <-c2:
 			fmt.Println("start - ", msg2)
@@ -107,73 +100,103 @@ func (ex Exporter) Start() error {
 	}
 }
 
-// sync synchronizes the block data from connected full node
-func (ex Exporter) sync() error {
-	var blocks []schema.BlockInfo
-	err := ex.db.Model(&blocks).
-		Order("height DESC").
-		Limit(1).
-		Select()
-	if err != nil {
-		return err
+// sync compares block height between the height saved in your database and
+// latest block height on the active chain and calls process to start ingesting blocks.
+func (ex *Exporter) sync() error {
+	// Query latest block height that is saved in your database
+	// Synchronizing blocks from the scratch will return 0 and will ingest accordingly.
+	dbHeight, err := ex.db.QueryLatestBlockHeight()
+	if dbHeight == -1 {
+		log.Fatal(errors.Wrap(err, "failed to query the latest block height from database."))
 	}
 
-	currentHeight := int64(1)
-	if len(blocks) > 0 {
-		currentHeight = blocks[0].Height
+	// Query latest block height on the active network
+	latestBlockHeight, err := ex.client.LatestBlockHeight()
+	if latestBlockHeight == -1 {
+		log.Fatal(errors.Wrap(err, "failed to query the latest block height on the active network."))
 	}
 
-	// query current height
-	status, err := ex.client.Status()
-	if err != nil {
-		return err
-	}
-	maxHeight := status.SyncInfo.LatestBlockHeight
-
-	if currentHeight == 1 {
-		currentHeight = 0
+	// skip the first block since it has no pre-commits
+	if dbHeight == 0 {
+		dbHeight = 1
 	}
 
-	// ingest all blocks up to the best height
-	for i := currentHeight + 1; i <= maxHeight; i++ {
+	// Ingest all blocks up to the best height
+	for i := dbHeight + 1; i <= latestBlockHeight; i++ {
 		err = ex.process(i)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("synced block %d/%d \n", i, maxHeight)
+		fmt.Printf("synced block %d/%d \n", i, latestBlockHeight)
 	}
+
 	return nil
 }
 
 // sync queries the block at the given height-1 from the node and ingests its metadata (Block,evidence)
 // into the database. It also queries the next block to access the commits and stores the missed signatures.
 func (ex Exporter) process(height int64) error {
-	Block, err := ex.getBlock(height)
+	block, err := ex.client.Block(height)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to query block using rpc client: %t", err)
 	}
 
-	evidenceInfo, err := ex.getEvidenceInfo(height)
+	nextBlock, err := ex.client.Block(height + 1)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to query block using rpc client: %t", err)
 	}
 
-	genesisValsInfo, missInfo, accumMissInfo, missDetailInfo, err := ex.getValidatorSetInfo(height)
+	prevBlock, err := ex.client.Block(block.Block.LastCommit.Height())
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to query block using rpc client: %t", err)
 	}
 
-	transactionInfo, voteInfo, depositInfo, proposalInfo, validatorSetInfo, err := ex.getTransactionInfo(height)
+	vals, err := ex.client.Validators(block.Block.LastCommit.Height())
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to query validators using rpc client: %t", err)
+	}
+
+	txs, err := ex.client.Txs(block)
+	if err != nil {
+		return fmt.Errorf("failed to get transactions for block: %t", err)
+	}
+
+	resultBlock, err := ex.getBlock(block)
+	if err != nil {
+		return fmt.Errorf("failed to get block: %t", err)
+	}
+
+	resultEvidence, err := ex.getEvidence(block, nextBlock)
+	if err != nil {
+		return fmt.Errorf("failed to get evidence: %t", err)
+	}
+
+	resultGenesisValSet, err := ex.getGenesisValidatorSet(block, vals)
+	if err != nil {
+		return fmt.Errorf("failed to get genesis validator set: %t", err)
+	}
+
+	resultTxs, err := ex.getTxs(txs)
+	if err != nil {
+		return fmt.Errorf("failed to get txs: %t", err)
+	}
+
+	resultMissingBlocks, resultAccumMissingBlocks, resultMisssingBlocksDetail, err := ex.getPowerEventHistory(prevBlock, block, vals)
+	if err != nil {
+		return fmt.Errorf("failed to get missing blocks: %t", err)
+	}
+
+	resultVote, resultDeposit, resultProposal, resultValidatorSet, err := ex.getTransactions(block)
+	if err != nil {
+		return fmt.Errorf("failed to get transactions: %t", err)
 	}
 
 	// Insert data into database
-	err = ex.db.InsertExportedData(Block, evidenceInfo, genesisValsInfo, missInfo, accumMissInfo,
-		missDetailInfo, transactionInfo, voteInfo, depositInfo, proposalInfo, validatorSetInfo)
+	err = ex.db.InsertExportedData(resultBlock, resultEvidence, resultGenesisValSet, resultMissingBlocks, resultAccumMissingBlocks,
+		resultMisssingBlocksDetail, resultTxs, resultVote, resultDeposit, resultProposal, resultValidatorSet)
 
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to insert exported data: %t", err)
 	}
 
 	return nil

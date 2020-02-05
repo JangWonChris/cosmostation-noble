@@ -4,12 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"strconv"
-
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
 
 	ceCodec "github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/notification"
@@ -17,52 +12,33 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/utils"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
+
+	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
+
 	resty "gopkg.in/resty.v1"
 )
 
-// getTransactionInfo provides information about each transaction in every block
-func (ex Exporter) getTransactionInfo(height int64) ([]*schema.TransactionInfo, []*schema.VoteInfo,
-	[]*schema.DepositInfo, []*schema.ProposalInfo, []*schema.ValidatorSetInfo, error) {
-
-	transactionInfo := make([]*schema.TransactionInfo, 0)
-	voteInfo := make([]*schema.VoteInfo, 0)
-	depositInfo := make([]*schema.DepositInfo, 0)
-	proposalInfo := make([]*schema.ProposalInfo, 0)
-	validatorSetInfo := make([]*schema.ValidatorSetInfo, 0)
-
-	// query current block
-	block, err := ex.client.Block(height)
-	if err != nil {
-		return nil, nil, nil, nil, nil, err
-	}
+// getTransactions returns transactions in a block
+func (ex *Exporter) getTransactions(block *tmctypes.ResultBlock) ([]*schema.Vote, []*schema.Deposit, []*schema.Proposal, []*schema.PowerEventHistory, error) {
+	vote := make([]*schema.Vote, 0)
+	deposit := make([]*schema.Deposit, 0)
+	proposal := make([]*schema.Proposal, 0)
+	powerEventHistory := make([]*schema.PowerEventHistory, 0)
 
 	if len(block.Block.Data.Txs) > 0 {
 		for _, tmTx := range block.Block.Data.Txs {
-			// use tx codec to unmarshal binary length prefix
 			var sdkTx sdk.Tx
-			_ = ex.cdc.UnmarshalBinaryLengthPrefixed([]byte(tmTx), &sdkTx)
+			_ = ex.cdc.UnmarshalBinaryLengthPrefixed([]byte(tmTx), &sdkTx) // use tx codec to unmarshal binary length prefix
 
 			txHash := fmt.Sprintf("%X", tmTx.Hash())
 
-			tx, err := ex.Tx(txHash)
-			if err != nil {
-				fmt.Printf("failed to get tx %s: %s", txHash, err)
-				continue
-			}
-
-			// Save txInfo in PostgreSQL database
-			var tempTxInfo schema.TransactionInfo
-			tempTxInfo, err = ex.SetTx(tx, txHash)
-			if err != nil {
-				fmt.Printf("failed to persist transaction %s: %s", txHash, err)
-			}
-			transactionInfo = append(transactionInfo, &tempTxInfo)
-
 			var generalTx types.GeneralTx
 			resp, _ := resty.R().Get(ex.cfg.Node.LCDEndpoint + "/txs/" + txHash)
-			err = json.Unmarshal(resp.Body(), &generalTx)
+			err := json.Unmarshal(resp.Body(), &generalTx)
 			if err != nil {
-				fmt.Printf("unmarshal generalTx error - %v\n", err)
+				fmt.Printf("failed to unmarshal generalTx error: %t\n", err)
 			}
 
 			// check log to see if tx is success
@@ -73,7 +49,7 @@ func (ex Exporter) getTransactionInfo(height int64) ([]*schema.TransactionInfo, 
 						var msgSend types.MsgSend
 						err = ex.cdc.UnmarshalJSON(generalTx.Tx.Value.Msg[j].Value, &msgSend)
 						if err != nil {
-							fmt.Printf("failed to JSON encode msgSend: %s", err)
+							fmt.Printf("failed to unmarshal msgSend: %t\n", err)
 						}
 
 						// switch param in config.yaml
@@ -119,7 +95,7 @@ func (ex Exporter) getTransactionInfo(height int64) ([]*schema.TransactionInfo, 
 						var multiSendTx types.MsgMultiSend
 						err = ex.cdc.UnmarshalJSON(generalTx.Tx.Value.Msg[j].Value, &multiSendTx)
 						if err != nil {
-							fmt.Printf("failed to JSON encode multiSendTx: %s", err)
+							fmt.Printf("failed to unmarshal multiSendTx: %t\n", err)
 						}
 
 						nof := notification.New()
@@ -194,7 +170,7 @@ func (ex Exporter) getTransactionInfo(height int64) ([]*schema.TransactionInfo, 
 						newVotingPowerAmount, _ := strconv.ParseFloat(msgCreateValidator.Value.Amount.String(), 64) // parseFloat from sdk.Dec.String()
 						newVotingPowerAmount = float64(newVotingPowerAmount) / 1000000
 
-						tempValidatorSetInfo := &schema.ValidatorSetInfo{
+						tempPowerEventHistory := &schema.PowerEventHistory{
 							IDValidator:          highestIDValidatorNum + 1,
 							Height:               height,
 							Proposer:             utils.ConsAddrFromConsPubkey(msgCreateValidator.Pubkey), // new validator's proposer address needs to be converted
@@ -205,7 +181,7 @@ func (ex Exporter) getTransactionInfo(height int64) ([]*schema.TransactionInfo, 
 							TxHash:               generalTx.TxHash,
 							Time:                 block.BlockMeta.Header.Time,
 						}
-						validatorSetInfo = append(validatorSetInfo, tempValidatorSetInfo)
+						powerEventHistory = append(powerEventHistory, tempPowerEventHistory)
 
 					case "cosmos-sdk/MsgDelegate":
 						var msgDelegate types.MsgDelegate
@@ -215,7 +191,7 @@ func (ex Exporter) getTransactionInfo(height int64) ([]*schema.TransactionInfo, 
 						validatorInfo, _ := ex.db.QueryValidator(msgDelegate.ValidatorAddress)
 
 						// query to get id_validator of lastly inserted data
-						idValidatorSetInfo, _ := ex.db.QueryValidatorID(validatorInfo.Proposer)
+						validatorID, _ := ex.db.QueryValidatorID(validatorInfo.Proposer)
 
 						height, _ := strconv.ParseInt(generalTx.Height, 10, 64)
 						newVotingPowerAmount, _ := strconv.ParseFloat(msgDelegate.Amount.Amount.String(), 64) // parseFloat from sdk.Dec.String()
@@ -235,8 +211,8 @@ func (ex Exporter) getTransactionInfo(height int64) ([]*schema.TransactionInfo, 
 										동일한 블록에서 서로 다른 주소에서 동일한 검증인에게 위임한 트랜잭션이 있을 경우 현재 VotingPower는 같다.
 						*/
 
-						tempValidatorSetInfo := &schema.ValidatorSetInfo{
-							IDValidator:          idValidatorSetInfo.IDValidator,
+						tempPowerEventHistory := &schema.PowerEventHistory{
+							IDValidator:          validatorID.IDValidator,
 							Height:               height,
 							Moniker:              validatorInfo.Moniker,
 							OperatorAddress:      validatorInfo.OperatorAddress,
@@ -248,7 +224,7 @@ func (ex Exporter) getTransactionInfo(height int64) ([]*schema.TransactionInfo, 
 							TxHash:               generalTx.TxHash,
 							Time:                 block.BlockMeta.Header.Time,
 						}
-						validatorSetInfo = append(validatorSetInfo, tempValidatorSetInfo)
+						powerEventHistory = append(powerEventHistory, tempPowerEventHistory)
 
 					case "cosmos-sdk/MsgUndelegate":
 						var msgUndelegate types.MsgUndelegate
@@ -258,7 +234,7 @@ func (ex Exporter) getTransactionInfo(height int64) ([]*schema.TransactionInfo, 
 						validatorInfo, _ := ex.db.QueryValidator(msgUndelegate.ValidatorAddress)
 
 						// query to get id_validator of lastly inserted data
-						idValidatorSetInfo, _ := ex.db.QueryValidatorID(validatorInfo.Proposer)
+						validatorID, _ := ex.db.QueryValidatorID(validatorInfo.Proposer)
 
 						height, _ := strconv.ParseInt(generalTx.Height, 10, 64)
 						newVotingPowerAmount, _ := strconv.ParseFloat(msgUndelegate.Amount.Amount.String(), 64) // parseFloat from sdk.Dec.String()
@@ -274,8 +250,8 @@ func (ex Exporter) getTransactionInfo(height int64) ([]*schema.TransactionInfo, 
 						}
 
 						// substract the undelegated amount from the validator
-						tempValidatorSetInfo := &schema.ValidatorSetInfo{
-							IDValidator:          idValidatorSetInfo.IDValidator,
+						tempPowerEventHistory := &schema.PowerEventHistory{
+							IDValidator:          validatorID.IDValidator,
 							Height:               height,
 							Moniker:              validatorInfo.Moniker,
 							OperatorAddress:      validatorInfo.OperatorAddress,
@@ -287,7 +263,7 @@ func (ex Exporter) getTransactionInfo(height int64) ([]*schema.TransactionInfo, 
 							TxHash:               generalTx.TxHash,
 							Time:                 block.BlockMeta.Header.Time,
 						}
-						validatorSetInfo = append(validatorSetInfo, tempValidatorSetInfo)
+						powerEventHistory = append(powerEventHistory, tempPowerEventHistory)
 
 					case "cosmos-sdk/MsgBeginRedelegate":
 						/*
@@ -301,11 +277,11 @@ func (ex Exporter) getTransactionInfo(height int64) ([]*schema.TransactionInfo, 
 
 						// query validator_dst_address info
 						validatorDstInfo, _ := ex.db.QueryValidator(msgBeginRedelegate.ValidatorDstAddress)
-						dstValidatorSetInfo, _ := ex.db.QueryValidatorID(validatorDstInfo.Proposer)
+						dstpowerEventHistory, _ := ex.db.QueryValidatorID(validatorDstInfo.Proposer)
 
 						// query validator_src_address info
 						validatorSrcInfo, _ := ex.db.QueryValidator(msgBeginRedelegate.ValidatorSrcAddress)
-						srcValidatorSetInfo, _ := ex.db.QueryValidatorID(validatorSrcInfo.Proposer)
+						srcpowerEventHistory, _ := ex.db.QueryValidatorID(validatorSrcInfo.Proposer)
 
 						height, _ := strconv.ParseInt(generalTx.Height, 10, 64)
 						newVotingPowerAmount, _ := strconv.ParseFloat(msgBeginRedelegate.Amount.Amount.String(), 64)
@@ -330,8 +306,8 @@ func (ex Exporter) getTransactionInfo(height int64) ([]*schema.TransactionInfo, 
 						}
 
 						// add the redelegated amount to validator_dst_address
-						tempDstValidatorSetInfo := &schema.ValidatorSetInfo{
-							IDValidator:          dstValidatorSetInfo.IDValidator,
+						tempDstpowerEventHistory := &schema.PowerEventHistory{
+							IDValidator:          dstpowerEventHistory.IDValidator,
 							Height:               height,
 							Moniker:              validatorDstInfo.Moniker,
 							OperatorAddress:      validatorDstInfo.OperatorAddress,
@@ -343,11 +319,11 @@ func (ex Exporter) getTransactionInfo(height int64) ([]*schema.TransactionInfo, 
 							TxHash:               generalTx.TxHash,
 							Time:                 block.BlockMeta.Header.Time,
 						}
-						validatorSetInfo = append(validatorSetInfo, tempDstValidatorSetInfo)
+						powerEventHistory = append(powerEventHistory, tempDstpowerEventHistory)
 
 						// substract the redelegated amount from validator_src_address
-						tempSrcValidatorSetInfo := &schema.ValidatorSetInfo{
-							IDValidator:          srcValidatorSetInfo.IDValidator,
+						tempSrcpowerEventHistory := &schema.PowerEventHistory{
+							IDValidator:          srcpowerEventHistory.IDValidator,
 							Height:               height,
 							Moniker:              validatorSrcInfo.Moniker,
 							OperatorAddress:      validatorSrcInfo.OperatorAddress,
@@ -359,7 +335,7 @@ func (ex Exporter) getTransactionInfo(height int64) ([]*schema.TransactionInfo, 
 							TxHash:               generalTx.TxHash,
 							Time:                 block.BlockMeta.Header.Time,
 						}
-						validatorSetInfo = append(validatorSetInfo, tempSrcValidatorSetInfo)
+						powerEventHistory = append(powerEventHistory, tempSrcpowerEventHistory)
 
 					case "cosmos-sdk/MsgSubmitProposal":
 						var msgSubmitProposal types.MsgSubmitProposal
@@ -383,20 +359,20 @@ func (ex Exporter) getTransactionInfo(height int64) ([]*schema.TransactionInfo, 
 							initialDepositDenom = msgSubmitProposal.InitialDeposit[0].Denom
 						}
 
-						tempProposalInfo := &schema.ProposalInfo{
+						tempProposal := &schema.Proposal{
 							ID:                   proposalID,
 							TxHash:               generalTx.TxHash,
 							Proposer:             msgSubmitProposal.Proposer,
 							InitialDepositAmount: initialDepositAmount,
 							InitialDepositDenom:  initialDepositDenom,
 						}
-						proposalInfo = append(proposalInfo, tempProposalInfo)
+						proposal = append(proposal, tempProposal)
 
 						height, _ := strconv.ParseInt(generalTx.Height, 10, 64)
 						gasWanted, _ := strconv.ParseInt(generalTx.GasWanted, 10, 64)
 						gasUsed, _ := strconv.ParseInt(generalTx.GasUsed, 10, 64)
 
-						tempDepositInfo := &schema.DepositInfo{
+						tempDeposit := &schema.Deposit{
 							Height:     height,
 							ProposalID: proposalID,
 							Depositor:  msgSubmitProposal.Proposer,
@@ -407,7 +383,7 @@ func (ex Exporter) getTransactionInfo(height int64) ([]*schema.TransactionInfo, 
 							GasUsed:    gasUsed,
 							Time:       block.BlockMeta.Header.Time,
 						}
-						depositInfo = append(depositInfo, tempDepositInfo)
+						deposit = append(deposit, tempDeposit)
 
 					case "cosmos-sdk/MsgVote":
 						var msgVote types.MsgVote
@@ -418,7 +394,7 @@ func (ex Exporter) getTransactionInfo(height int64) ([]*schema.TransactionInfo, 
 						gasWanted, _ := strconv.ParseInt(generalTx.GasWanted, 10, 64)
 						gasUsed, _ := strconv.ParseInt(generalTx.GasUsed, 10, 64)
 
-						tempVoteInfo := &schema.VoteInfo{
+						tempVote := &schema.Vote{
 							Height:     height,
 							ProposalID: proposalID,
 							Voter:      msgVote.Voter,
@@ -428,7 +404,7 @@ func (ex Exporter) getTransactionInfo(height int64) ([]*schema.TransactionInfo, 
 							GasUsed:    gasUsed,
 							Time:       block.BlockMeta.Header.Time,
 						}
-						voteInfo = append(voteInfo, tempVoteInfo)
+						vote = append(vote, tempVote)
 
 					case "cosmos-sdk/MsgDeposit":
 						var msgDeposit types.MsgDeposit
@@ -440,7 +416,7 @@ func (ex Exporter) getTransactionInfo(height int64) ([]*schema.TransactionInfo, 
 						gasWanted, _ := strconv.ParseInt(generalTx.GasWanted, 10, 64)
 						gasUsed, _ := strconv.ParseInt(generalTx.GasUsed, 10, 64)
 
-						tempDepositInfo := &schema.DepositInfo{
+						tempDeposit := &schema.Deposit{
 							Height:     height,
 							ProposalID: proposalID,
 							Depositor:  msgDeposit.Depositor,
@@ -451,7 +427,7 @@ func (ex Exporter) getTransactionInfo(height int64) ([]*schema.TransactionInfo, 
 							GasUsed:    gasUsed,
 							Time:       block.BlockMeta.Header.Time,
 						}
-						depositInfo = append(depositInfo, tempDepositInfo)
+						deposit = append(deposit, tempDeposit)
 
 					default:
 						continue
@@ -461,93 +437,77 @@ func (ex Exporter) getTransactionInfo(height int64) ([]*schema.TransactionInfo, 
 		}
 	}
 
-	return transactionInfo, voteInfo, depositInfo, proposalInfo, validatorSetInfo, nil
+	return vote, deposit, proposal, powerEventHistory, nil
 }
 
-// Tx queries for a transaction from the REST client and decodes it into a sdk.Tx
-// if the transaction exists. An error is returned if the tx doesn't exist or
-// decoding fails.
-func (ex Exporter) Tx(hash string) (sdk.TxResponse, error) {
-	resp, err := http.Get(fmt.Sprintf("%s/txs/%s", ex.cfg.Node.LCDEndpoint, hash))
-	if err != nil {
-		return sdk.TxResponse{}, err
-	}
+// getTxs returns transactions information in a block
+func (ex *Exporter) getTxs(txResp []sdk.TxResponse) ([]*schema.TxCosmoshub3, error) {
+	txs := make([]*schema.TxCosmoshub3, 0)
 
-	defer resp.Body.Close()
+	if len(txResp) > 0 {
+		for _, tx := range txResp {
+			stdTx, ok := tx.Tx.(auth.StdTx)
+			if !ok {
+				return txs, fmt.Errorf("unsupported tx type: %T", tx.Tx)
+			}
 
-	bz, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return sdk.TxResponse{}, err
-	}
+			msgsBz, err := ceCodec.Codec.MarshalJSON(stdTx.GetMsgs())
+			if err != nil {
+				return txs, fmt.Errorf("failed to unmarshal tx messages: %t", err)
+			}
 
-	var tx sdk.TxResponse
+			feeBz, err := ceCodec.Codec.MarshalJSON(stdTx.Fee)
+			if err != nil {
+				return txs, fmt.Errorf("failed to unmarshal tx fee: %t", err)
+			}
 
-	if err := ex.cdc.UnmarshalJSON(bz, &tx); err != nil {
-		return sdk.TxResponse{}, err
-	}
+			// convert Tendermint signatures into a more human-readable format
+			sigs := make([]types.Signature, len(stdTx.GetSignatures()), len(stdTx.GetSignatures()))
+			for i, sig := range stdTx.GetSignatures() {
+				consPubKey, err := sdk.Bech32ifyConsPub(sig.PubKey) // nolint: typecheck
+				if err != nil {
+					return txs, fmt.Errorf("failed to convert validator public key %t\n: %t", sig.PubKey, err)
+				}
 
-	return tx, nil
-}
+				sigs[i] = types.Signature{
+					Address:   sig.Address().String(),
+					Signature: base64.StdEncoding.EncodeToString(sig.Signature),
+					Pubkey:    consPubKey,
+				}
+			}
 
-// SetTx stores a transaction and returns the resulting record ID. An error is
-// returned if the operation fails.
-func (ex Exporter) SetTx(tx sdk.TxResponse, txHash string) (schema.TransactionInfo, error) {
-	stdTx, ok := tx.Tx.(auth.StdTx)
-	if !ok {
-		return schema.TransactionInfo{}, fmt.Errorf("unsupported tx type: %T", tx.Tx)
-	}
+			sigsBz, err := ceCodec.Codec.MarshalJSON(sigs)
+			if err != nil {
+				return txs, fmt.Errorf("failed to unmarshal tx signatures: %t", err)
+			}
 
-	msgsBz, err := ceCodec.Codec.MarshalJSON(stdTx.GetMsgs())
-	if err != nil {
-		return schema.TransactionInfo{}, fmt.Errorf("failed to JSON encode tx messages: %s", err)
-	}
+			eventsBz, err := ceCodec.Codec.MarshalJSON(tx.Events)
+			if err != nil {
+				return txs, fmt.Errorf("failed to unmarshal tx events: %t", err)
+			}
 
-	feeBz, err := ceCodec.Codec.MarshalJSON(stdTx.Fee)
-	if err != nil {
-		return schema.TransactionInfo{}, fmt.Errorf("failed to JSON encode tx fee: %s", err)
-	}
+			logsBz, err := ceCodec.Codec.MarshalJSON(tx.Logs)
+			if err != nil {
+				return txs, fmt.Errorf("failed to unmarshal tx logs: %t", err)
+			}
 
-	// convert Tendermint signatures into a more human-readable format
-	sigs := make([]types.Signature, len(stdTx.GetSignatures()), len(stdTx.GetSignatures()))
-	for i, sig := range stdTx.GetSignatures() {
-		consPubKey, err := sdk.Bech32ifyConsPub(sig.PubKey) // nolint: typecheck
-		if err != nil {
-			return schema.TransactionInfo{}, fmt.Errorf("failed to convert validator public key %s: %t", sig.PubKey, err)
+			tempTx := &schema.TxCosmoshub3{
+				Height:     tx.Height,
+				TxHash:     tx.TxHash,
+				GasWanted:  tx.GasWanted,
+				GasUsed:    tx.GasUsed,
+				Messages:   string(msgsBz),
+				Fee:        string(feeBz),
+				Signatures: string(sigsBz),
+				Logs:       string(logsBz),
+				Events:     string(eventsBz),
+				Memo:       stdTx.GetMemo(),
+				Time:       tx.Timestamp,
+			}
+
+			txs = append(txs, tempTx)
 		}
-
-		sigs[i] = types.Signature{
-			Address:   sig.Address().String(),
-			Signature: base64.StdEncoding.EncodeToString(sig.Signature),
-			Pubkey:    consPubKey,
-		}
 	}
 
-	sigsBz, err := ceCodec.Codec.MarshalJSON(sigs)
-	if err != nil {
-		return schema.TransactionInfo{}, fmt.Errorf("failed to JSON encode tx signatures: %s", err)
-	}
-
-	eventsBz, err := ceCodec.Codec.MarshalJSON(tx.Events)
-	if err != nil {
-		return schema.TransactionInfo{}, fmt.Errorf("failed to JSON encode tx events: %s", err)
-	}
-
-	logsBz, err := ceCodec.Codec.MarshalJSON(tx.Logs)
-	if err != nil {
-		return schema.TransactionInfo{}, fmt.Errorf("failed to JSON encode tx logs: %s", err)
-	}
-
-	return schema.TransactionInfo{
-		Height:     tx.Height,
-		TxHash:     txHash,
-		GasWanted:  tx.GasWanted,
-		GasUsed:    tx.GasUsed,
-		Messages:   string(msgsBz),
-		Fee:        string(feeBz),
-		Signatures: string(sigsBz),
-		Logs:       string(logsBz),
-		Events:     string(eventsBz),
-		Memo:       stdTx.GetMemo(),
-		Time:       tx.Timestamp,
-	}, err
+	return txs, nil
 }

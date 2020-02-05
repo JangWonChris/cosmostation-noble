@@ -5,9 +5,9 @@ import (
 )
 
 // UpdateProposal updates the given proposal
-func (db *Database) UpdateProposal(data *schema.ProposalInfo) (bool, error) {
-	var proposalInfo schema.ProposalInfo
-	_, err := db.Model(&proposalInfo).
+func (db *Database) UpdateProposal(data *schema.Proposal) (bool, error) {
+	var proposal schema.Proposal
+	_, err := db.Model(&proposal).
 		Set("title = ?", data.Title).
 		Set("description = ?", data.Description).
 		Set("proposal_type = ?", data.ProposalType).
@@ -32,8 +32,8 @@ func (db *Database) UpdateProposal(data *schema.ProposalInfo) (bool, error) {
 
 // UpdateKeyBase updates the given validator info
 func (db *Database) UpdateKeyBase(id int64, url string) (bool, error) {
-	var validatorInfo schema.ValidatorInfo
-	_, err := db.Model(&validatorInfo).
+	var validator schema.Validator
+	_, err := db.Model(&validator).
 		Set("keybase_url = ?", url).
 		Where("id = ?", id).
 		Update()

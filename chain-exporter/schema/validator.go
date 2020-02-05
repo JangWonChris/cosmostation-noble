@@ -2,8 +2,8 @@ package schema
 
 import "time"
 
-// ValidatorInfo has validator information
-type ValidatorInfo struct {
+// Validator has validator information
+type Validator struct {
 	ID                   int64     `sql:",pk"`
 	Rank                 int       `json:"rank"`
 	Address              string    `json:"address"`
@@ -28,8 +28,8 @@ type ValidatorInfo struct {
 	KeybaseURL           string    `json:"keybase_url"`
 }
 
-// ValidatorSetInfo has validator's power event history information
-type ValidatorSetInfo struct {
+// PowerEventHistory has validator's power event history information
+type PowerEventHistory struct {
 	ID                   int64     `sql:",pk"`
 	IDValidator          int       `json:"id_validator" sql:"default:0"`
 	Height               int64     `json:"height"`
@@ -44,8 +44,8 @@ type ValidatorSetInfo struct {
 	Time                 time.Time `json:"time" sql:"default:null"`
 }
 
-// MissInfo has validator's range of missing blocks information
-type MissInfo struct {
+// Miss has validator's range of missing blocks information
+type Miss struct {
 	ID           int64     `json:"id" sql:",pk"`
 	Address      string    `json:"address"`
 	StartHeight  int64     `json:"start_height"`
@@ -56,8 +56,8 @@ type MissInfo struct {
 	Alerted      bool      `json:"alerted" sql:",default:false,notnull"`
 }
 
-// MissDetailInfo has validator's missing blocks information
-type MissDetailInfo struct {
+// MissDetail has validator's missing blocks information
+type MissDetail struct {
 	ID       int64     `json:"id" sql:",pk"`
 	Address  string    `json:"address"`
 	Height   int64     `json:"height"`
@@ -66,8 +66,8 @@ type MissDetailInfo struct {
 	Alerted  bool      `json:"alerted" sql:",default:false,notnull"`
 }
 
-// EvidenceInfo has evidence of slashing information
-type EvidenceInfo struct {
+// Evidence has evidence of slashing information
+type Evidence struct {
 	ID       int64     `json:"id" sql:",pk"`
 	Proposer string    `json:"proposer"`
 	Height   int64     `json:"height"`

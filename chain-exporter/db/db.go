@@ -36,9 +36,15 @@ func (db *Database) Ping() error {
 
 // CreateTables creates database tables using object relational mapper (ORM)
 func (db *Database) CreateTables() error {
-	for _, model := range []interface{}{(*schema.BlockInfo)(nil), (*schema.EvidenceInfo)(nil), (*schema.MissInfo)(nil),
-		(*schema.MissDetailInfo)(nil), (*schema.ProposalInfo)(nil), (*schema.ValidatorSetInfo)(nil), (*schema.ValidatorInfo)(nil),
-		(*schema.TransactionInfo)(nil), (*schema.VoteInfo)(nil), (*schema.DepositInfo)(nil)} {
+	for _, model := range []interface{}{(*schema.BlockCosmoshub3)(nil), (*schema.Evidence)(nil), (*schema.Miss)(nil),
+		(*schema.MissDetail)(nil), (*schema.Proposal)(nil), (*schema.PowerEventHistory)(nil), (*schema.Validator)(nil),
+		(*schema.TxCosmoshub3)(nil), (*schema.TxIndex)(nil), (*schema.Vote)(nil), (*schema.Deposit)(nil)} {
+
+		// Disable pluralization
+		orm.SetTableNameInflector(func(s string) string {
+			return s
+		})
+
 		err := db.CreateTable(model, &orm.CreateTableOptions{
 			IfNotExists: true,
 			Varchar:     20000, // replaces PostgreSQL data type `text` to `varchar(n)`
@@ -52,31 +58,31 @@ func (db *Database) CreateTables() error {
 	// if function returns an error transaction is rollbacked, otherwise transaction is committed.
 	err := db.RunInTransaction(func(tx *pg.Tx) error {
 		// Create indexes to reduce the cost of lookup queries in case of server traffic jams (B-Tree Index)
-		_, err := db.Model(schema.BlockInfo{}).Exec(`CREATE INDEX block_info_height_idx ON block_infos USING btree(height);`)
+		_, err := db.Model(schema.BlockCosmoshub3{}).Exec(`CREATE INDEX block_cosmoshub3_height_idx ON block_cosmoshub3 USING btree(height);`)
 		if err != nil {
 			return err
 		}
-		_, err = db.Model(schema.ValidatorInfo{}).Exec(`CREATE INDEX validator_info_rank_idx ON validator_infos USING btree(rank);`)
+		_, err = db.Model(schema.Validator{}).Exec(`CREATE INDEX validator_rank_idx ON validator USING btree(rank);`)
 		if err != nil {
 			return err
 		}
-		_, err = db.Model(schema.ValidatorInfo{}).Exec(`CREATE INDEX validator_set_info_height_idx ON validator_set_infos USING btree(height);`)
+		_, err = db.Model(schema.PowerEventHistory{}).Exec(`CREATE INDEX power_event_history_height_idx ON power_event_history USING btree(height);`)
 		if err != nil {
 			return err
 		}
-		_, err = db.Model(schema.MissDetailInfo{}).Exec(`CREATE INDEX miss_detail_info_height_idx ON miss_detail_infos USING btree(height);`)
+		_, err = db.Model(schema.MissDetail{}).Exec(`CREATE INDEX miss_detail_info_height_idx ON miss_detail USING btree(height);`)
 		if err != nil {
 			return err
 		}
-		_, err = db.Model(schema.MissInfo{}).Exec(`CREATE INDEX miss_info_start_height_idx ON miss_infos USING btree(start_height);`)
+		_, err = db.Model(schema.Miss{}).Exec(`CREATE INDEX miss_info_start_height_idx ON miss USING btree(start_height);`)
 		if err != nil {
 			return err
 		}
-		_, err = db.Model(schema.TransactionInfo{}).Exec(`CREATE INDEX transaction_info_height_idx ON transaction_infos USING btree(height);`)
+		_, err = db.Model(schema.TxCosmoshub3{}).Exec(`CREATE INDEX transaction_info_height_idx ON transaction_cosmoshub3 USING btree(height);`)
 		if err != nil {
 			return err
 		}
-		_, err = db.Model(schema.TransactionInfo{}).Exec(`CREATE INDEX transaction_info_tx_hash_idx ON transaction_infos USING btree(tx_hash);`)
+		_, err = db.Model(schema.TxCosmoshub3{}).Exec(`CREATE INDEX transaction_info_tx_hash_idx ON transaction_cosmoshub3 USING btree(tx_hash);`)
 		if err != nil {
 			return err
 		}
