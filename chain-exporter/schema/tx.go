@@ -1,14 +1,12 @@
 package schema
 
-import "time"
-
 // TxIndex indexes all txs that occurred in Cosmos Network
 type TxIndex struct {
-	ID        int32     `json:"id" sql:",pk"`
-	Height    int64     `json:"height" sql:",notnull"`
-	ChainID   string    `json:"chain_id" sql:",notnull"`
-	TxHash    string    `json:"tx_hash" sql:",notnull,unique"`
-	Timestamp time.Time `json:"timestamp" sql:"default:now()"`
+	ID        int32  `json:"id" sql:",pk"`
+	Height    int64  `json:"height" sql:",notnull"`
+	ChainID   string `json:"chain_id" sql:",notnull"`
+	TxHash    string `json:"tx_hash" sql:",notnull,unique"`
+	Timestamp string `json:"timestamp" sql:"default:now()"`
 }
 
 // TxCosmoshub3 has tx information
@@ -24,5 +22,5 @@ type TxCosmoshub3 struct {
 	Memo       string `json:"memo"`
 	Logs       string `json:"logs" sql:"type:jsonb, default: '[]'::jsonb"`
 	Events     string `json:"events" sql:"type:jsonb, default: '[]'::jsonb"`
-	Time       string `json:"time"` // format that TxResponse returns
+	Timestamp  string `json:"timestamp" sql:"default:now()"` // format that TxResponse returns
 }

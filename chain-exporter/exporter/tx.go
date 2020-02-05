@@ -179,7 +179,7 @@ func (ex *Exporter) getTransactions(block *tmctypes.ResultBlock) ([]*schema.Vote
 							NewVotingPowerDenom:  msgCreateValidator.Value.Denom,
 							EventType:            types.EventTypeMsgCreateValidator,
 							TxHash:               generalTx.TxHash,
-							Time:                 block.BlockMeta.Header.Time,
+							Timestamp:            block.BlockMeta.Header.Time,
 						}
 						powerEventHistory = append(powerEventHistory, tempPowerEventHistory)
 
@@ -222,7 +222,7 @@ func (ex *Exporter) getTransactions(block *tmctypes.ResultBlock) ([]*schema.Vote
 							NewVotingPowerAmount: newVotingPowerAmount,
 							NewVotingPowerDenom:  msgDelegate.Amount.Denom,
 							TxHash:               generalTx.TxHash,
-							Time:                 block.BlockMeta.Header.Time,
+							Timestamp:            block.BlockMeta.Header.Time,
 						}
 						powerEventHistory = append(powerEventHistory, tempPowerEventHistory)
 
@@ -261,7 +261,7 @@ func (ex *Exporter) getTransactions(block *tmctypes.ResultBlock) ([]*schema.Vote
 							NewVotingPowerAmount: newVotingPowerAmount,
 							NewVotingPowerDenom:  msgUndelegate.Amount.Denom,
 							TxHash:               generalTx.TxHash,
-							Time:                 block.BlockMeta.Header.Time,
+							Timestamp:            block.BlockMeta.Header.Time,
 						}
 						powerEventHistory = append(powerEventHistory, tempPowerEventHistory)
 
@@ -317,7 +317,7 @@ func (ex *Exporter) getTransactions(block *tmctypes.ResultBlock) ([]*schema.Vote
 							NewVotingPowerAmount: newVotingPowerAmount,
 							NewVotingPowerDenom:  msgBeginRedelegate.Amount.Denom,
 							TxHash:               generalTx.TxHash,
-							Time:                 block.BlockMeta.Header.Time,
+							Timestamp:            block.BlockMeta.Header.Time,
 						}
 						powerEventHistory = append(powerEventHistory, tempDstpowerEventHistory)
 
@@ -333,7 +333,7 @@ func (ex *Exporter) getTransactions(block *tmctypes.ResultBlock) ([]*schema.Vote
 							NewVotingPowerAmount: -newVotingPowerAmount,
 							NewVotingPowerDenom:  msgBeginRedelegate.Amount.Denom,
 							TxHash:               generalTx.TxHash,
-							Time:                 block.BlockMeta.Header.Time,
+							Timestamp:            block.BlockMeta.Header.Time,
 						}
 						powerEventHistory = append(powerEventHistory, tempSrcpowerEventHistory)
 
@@ -381,7 +381,7 @@ func (ex *Exporter) getTransactions(block *tmctypes.ResultBlock) ([]*schema.Vote
 							TxHash:     generalTx.TxHash,
 							GasWanted:  gasWanted,
 							GasUsed:    gasUsed,
-							Time:       block.BlockMeta.Header.Time,
+							Timestamp:  block.BlockMeta.Header.Time,
 						}
 						deposit = append(deposit, tempDeposit)
 
@@ -402,7 +402,7 @@ func (ex *Exporter) getTransactions(block *tmctypes.ResultBlock) ([]*schema.Vote
 							TxHash:     generalTx.TxHash,
 							GasWanted:  gasWanted,
 							GasUsed:    gasUsed,
-							Time:       block.BlockMeta.Header.Time,
+							Timestamp:  block.BlockMeta.Header.Time,
 						}
 						vote = append(vote, tempVote)
 
@@ -425,7 +425,7 @@ func (ex *Exporter) getTransactions(block *tmctypes.ResultBlock) ([]*schema.Vote
 							TxHash:     generalTx.TxHash,
 							GasWanted:  gasWanted,
 							GasUsed:    gasUsed,
-							Time:       block.BlockMeta.Header.Time,
+							Timestamp:  block.BlockMeta.Header.Time,
 						}
 						deposit = append(deposit, tempDeposit)
 
@@ -502,7 +502,7 @@ func (ex *Exporter) getTxs(txResp []sdk.TxResponse) ([]*schema.TxCosmoshub3, err
 				Logs:       string(logsBz),
 				Events:     string(eventsBz),
 				Memo:       stdTx.GetMemo(),
-				Time:       tx.Timestamp,
+				Timestamp:  tx.Timestamp,
 			}
 
 			txs = append(txs, tempTx)
@@ -510,4 +510,22 @@ func (ex *Exporter) getTxs(txResp []sdk.TxResponse) ([]*schema.TxCosmoshub3, err
 	}
 
 	return txs, nil
+}
+
+// getTxIndex
+func (ex *Exporter) getTxIndex(txResp []sdk.TxResponse) ([]*schema.TxIndex, error) {
+	txIndex := make([]*schema.TxIndex, 0)
+
+	for _, tx := range txResp {
+		tempTxIndex := &schema.TxIndex{
+			Height:    tx.Height,
+			ChainID:   "cosmoshub-3",
+			TxHash:    tx.TxHash,
+			Timestamp: tx.Timestamp,
+		}
+
+		txIndex = append(txIndex, tempTxIndex)
+	}
+
+	return txIndex, nil
 }

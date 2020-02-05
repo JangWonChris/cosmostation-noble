@@ -30,7 +30,7 @@ func (ex *Exporter) getGenesisValidatorSet(block *tmctypes.ResultBlock, vals *tm
 				NewVotingPowerAmount: float64(validator.VotingPower),
 				NewVotingPowerDenom:  types.Denom,
 				EventType:            types.EventTypeMsgCreateValidator,
-				Time:                 block.BlockMeta.Header.Time,
+				Timestamp:            block.BlockMeta.Header.Time,
 			}
 			genesisValsSet = append(genesisValsSet, tempValsSet)
 		}
@@ -53,11 +53,11 @@ func (ex *Exporter) getPowerEventHistory(prevBlock *tmctypes.ResultBlock, block 
 		// check if a validator misses previous block
 		if block.Block.LastCommit.Precommits[i] == nil {
 			tempMissDetail := &schema.MissDetail{
-				Height:   prevBlock.BlockMeta.Header.Height,
-				Address:  validator.Address.String(),
-				Proposer: prevBlock.BlockMeta.Header.ProposerAddress.String(),
-				Alerted:  false,
-				Time:     prevBlock.BlockMeta.Header.Time,
+				Height:    prevBlock.BlockMeta.Header.Height,
+				Address:   validator.Address.String(),
+				Proposer:  prevBlock.BlockMeta.Header.ProposerAddress.String(),
+				Alerted:   false,
+				Timestamp: prevBlock.BlockMeta.Header.Time,
 			}
 			missDetail = append(missDetail, tempMissDetail)
 
@@ -110,10 +110,10 @@ func (ex *Exporter) getEvidence(block *tmctypes.ResultBlock, nextBlock *tmctypes
 	if nextBlock.Block.Evidence.Evidence != nil {
 		for _, evi := range nextBlock.Block.Evidence.Evidence {
 			tempEvidence := &schema.Evidence{
-				Proposer: strings.ToUpper(string(hex.EncodeToString(evi.Address()))),
-				Height:   evi.Height(),
-				Hash:     nextBlock.BlockMeta.Header.EvidenceHash.String(),
-				Time:     block.BlockMeta.Header.Time,
+				Proposer:  strings.ToUpper(string(hex.EncodeToString(evi.Address()))),
+				Height:    evi.Height(),
+				Hash:      nextBlock.BlockMeta.Header.EvidenceHash.String(),
+				Timestamp: block.BlockMeta.Header.Time,
 			}
 			evidence = append(evidence, tempEvidence)
 		}

@@ -47,7 +47,7 @@ func (db *Database) InsertOrUpdateValidators(data []*schema.Validator) (bool, er
 // if function returns an error transaction is rollbacked, otherwise transaction is committed.
 func (db *Database) InsertExportedData(block []*schema.BlockCosmoshub3, evidence []*schema.Evidence, genesisValSet []*schema.PowerEventHistory,
 	missingBlocks []*schema.Miss, accumMissingBlocks []*schema.Miss, missingBlocksDetail []*schema.MissDetail, txs []*schema.TxCosmoshub3,
-	votes []*schema.Vote, deposits []*schema.Deposit, proposals []*schema.Proposal, powerEventHistory []*schema.PowerEventHistory) error {
+	txIndex []*schema.TxIndex, votes []*schema.Vote, deposits []*schema.Deposit, proposals []*schema.Proposal, powerEventHistory []*schema.PowerEventHistory) error {
 
 	err := db.RunInTransaction(func(tx *pg.Tx) error {
 		if len(block) > 0 {
@@ -99,6 +99,13 @@ func (db *Database) InsertExportedData(block []*schema.BlockCosmoshub3, evidence
 			}
 		}
 
+		if len(txIndex) > 0 {
+			err := tx.Insert(&txIndex)
+			if err != nil {
+				return err
+			}
+		}
+
 		if len(deposits) > 0 {
 			err := tx.Insert(&deposits)
 			if err != nil {
@@ -138,7 +145,7 @@ func (db *Database) InsertExportedData(block []*schema.BlockCosmoshub3, evidence
 						Set("tx_hash = ?", vote.TxHash).
 						Set("gas_wanted = ?", vote.GasWanted).
 						Set("gas_used = ?", vote.GasUsed).
-						Set("time = ?", vote.Time).
+						Set("timestamp = ?", vote.Timestamp).
 						Where("proposal_id = ? AND voter = ?", vote.ProposalID, vote.Voter).
 						Update()
 					if err != nil {
