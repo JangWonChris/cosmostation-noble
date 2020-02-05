@@ -181,6 +181,11 @@ func (ex Exporter) process(height int64) error {
 		return fmt.Errorf("failed to get txs: %t", err)
 	}
 
+	resultTxIndex, err := ex.getTxIndex(txs)
+	if err != nil {
+		return fmt.Errorf("failed to get txs: %t", err)
+	}
+
 	resultMissingBlocks, resultAccumMissingBlocks, resultMisssingBlocksDetail, err := ex.getPowerEventHistory(prevBlock, block, vals)
 	if err != nil {
 		return fmt.Errorf("failed to get missing blocks: %t", err)
@@ -193,7 +198,7 @@ func (ex Exporter) process(height int64) error {
 
 	// Insert data into database
 	err = ex.db.InsertExportedData(resultBlock, resultEvidence, resultGenesisValSet, resultMissingBlocks, resultAccumMissingBlocks,
-		resultMisssingBlocksDetail, resultTxs, resultVote, resultDeposit, resultProposal, resultValidatorSet)
+		resultMisssingBlocksDetail, resultTxs, resultTxIndex, resultVote, resultDeposit, resultProposal, resultValidatorSet)
 
 	if err != nil {
 		return fmt.Errorf("failed to insert exported data: %t", err)

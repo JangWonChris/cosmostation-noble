@@ -36,7 +36,7 @@ type Vote struct {
 	TxHash     string    `json:"tx_hash"`
 	GasWanted  int64     `json:"gas_wanted"`
 	GasUsed    int64     `json:"gas_used"`
-	Time       time.Time `json:"time"`
+	Timestamp  time.Time `json:"timestamp" sql:"default:now()"`
 }
 
 // Deposit has deposit information
@@ -50,5 +50,5 @@ type Deposit struct {
 	TxHash     string    `json:"tx_hash" sql:",unique"`
 	GasWanted  int64     `json:"gas_wanted"`
 	GasUsed    int64     `json:"gas_used"`
-	Time       time.Time `json:"time"`
+	Timestamp  time.Time `json:"timestamp" sql:"default:now()"`
 }

@@ -41,7 +41,7 @@ type PowerEventHistory struct {
 	NewVotingPowerAmount float64   `json:"new_voting_power_amount" sql:"new_voting_power_amount"`
 	NewVotingPowerDenom  string    `json:"new_voting_power_denom" sql:"new_voting_power_denom"`
 	TxHash               string    `json:"tx_hash" sql:"default:null"`
-	Time                 time.Time `json:"time" sql:"default:null"`
+	Timestamp            time.Time `json:"timestamp" sql:"default:now()"`
 }
 
 // Miss has validator's range of missing blocks information
@@ -58,19 +58,19 @@ type Miss struct {
 
 // MissDetail has validator's missing blocks information
 type MissDetail struct {
-	ID       int64     `json:"id" sql:",pk"`
-	Address  string    `json:"address"`
-	Height   int64     `json:"height"`
-	Proposer string    `json:"proposer_address"`
-	Time     time.Time `json:"start_time"`
-	Alerted  bool      `json:"alerted" sql:",default:false,notnull"`
+	ID        int64     `json:"id" sql:",pk"`
+	Address   string    `json:"address"`
+	Height    int64     `json:"height"`
+	Proposer  string    `json:"proposer_address"`
+	Timestamp time.Time `json:"start_time" sql:"default:now()"`
+	Alerted   bool      `json:"alerted" sql:",default:false,notnull"`
 }
 
 // Evidence has evidence of slashing information
 type Evidence struct {
-	ID       int64     `json:"id" sql:",pk"`
-	Proposer string    `json:"proposer"`
-	Height   int64     `json:"height"`
-	Hash     string    `json:"hash" sql:",unique"`
-	Time     time.Time `json:"time"`
+	ID        int64     `json:"id" sql:",pk"`
+	Proposer  string    `json:"proposer"`
+	Height    int64     `json:"height"`
+	Hash      string    `json:"hash" sql:",unique"`
+	Timestamp time.Time `json:"timestamp" sql:"default:now()"`
 }
