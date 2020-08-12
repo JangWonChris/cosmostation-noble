@@ -1,20 +1,21 @@
 package types
 
+// These are parameters that are used for sending push notification to notification server.
 var (
-	FROM = "from"
-	TO   = "to"
+	From = "from"
+	To   = "to"
 
-	SENT     = "sent"
-	RECEIVED = "received"
+	Sent     = "sent"
+	Received = "received"
 
-	PushNotificationSentTitle   = "Sent "
-	PushNotificationSentMessage = "You have just sent "
+	NotificationSentTitle   = "Sent "
+	NotificationSentMessage = "You have just sent "
 
-	PushNotificationReceivedTitle   = "Received "
-	PushNotificationReceivedMessage = "You have just received "
+	NotificationReceivedTitle   = "Received "
+	NotificationReceivedMessage = "You have just received "
 )
 
-type PushNotificationPayload struct {
+type NotificationPayload struct {
 	From   string `json:"from"`
 	To     string `json:"to"`
 	Txid   string `json:"txid"`
@@ -22,20 +23,41 @@ type PushNotificationPayload struct {
 	Denom  string `json:"denom"`
 }
 
-type PushNotificationServerPayload struct {
-	Notifications []PushNotifications `json:"notifications"`
+type NotificationServerPayload struct {
+	Notifications []Notification `json:"notifications"`
 }
 
-type PushNotifications struct {
-	Tokens   []string             `json:"tokens"`
-	Platform int8                 `json:"platform"`
-	Title    string               `json:"title"`
-	Message  string               `json:"message"`
-	Data     PushNotificationData `json:"data"`
+type Notification struct {
+	Tokens   []string         `json:"tokens"`
+	Platform int8             `json:"platform"`
+	Title    string           `json:"title"`
+	Message  string           `json:"message"`
+	Data     NotificationData `json:"data"`
 }
 
-type PushNotificationData struct {
+type NotificationData struct {
 	NotifyTo string `json:"notifyto"`
 	Txid     string `json:"txid"`
 	Type     string `json:"type"`
+}
+
+// NewNotificationPayload returns new NotificationPayload.
+func NewNotificationPayload(payload NotificationPayload) *NotificationPayload {
+	return &NotificationPayload{
+		From:   payload.From,
+		To:     payload.To,
+		Txid:   payload.Txid,
+		Amount: payload.Amount,
+		Denom:  payload.Denom,
+	}
+}
+
+// NewNotification returns new Notification.
+func NewNotification(tokens []string, platform int8, title string, message string, data NotificationData) Notification {
+	return Notification{tokens, platform, title, message, data}
+}
+
+// NewNotificationData returns new NotificationData.
+func NewNotificationData(notifyto string, txid string, notifyType string) NotificationData {
+	return NotificationData{notifyto, txid, notifyType}
 }

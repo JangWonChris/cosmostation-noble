@@ -2,7 +2,7 @@ package schema
 
 import "time"
 
-// Proposal has proposal information
+// Proposal has proposal information.
 type Proposal struct {
 	ID                   int64     `json:"proposal_id" sql:",pk"`
 	TxHash               string    `json:"tx_hash" sql:",unique"`
@@ -23,14 +23,27 @@ type Proposal struct {
 	DepositEndtime       time.Time `json:"deposit_end_time" sql:"deposit_end_time"`
 	VotingStartTime      time.Time `json:"voting_start_time"`
 	VotingEndTime        time.Time `json:"voting_end_time"`
-	Alerted              bool      `sql:"default:false,notnull" json:"alerted"`
 }
 
-// Vote has vote information
+// Deposit has deposit information.
+type Deposit struct {
+	ID         int64     `json:"id" sql:",pk"`
+	Height     int64     `json:"height"`
+	ProposalID uint64    `json:"proposal_id"`
+	Depositor  string    `json:"depositor"`
+	Amount     string    `json:"amount"`
+	Denom      string    `json:"denom"`
+	TxHash     string    `json:"tx_hash" sql:",unique"`
+	GasWanted  int64     `json:"gas_wanted"`
+	GasUsed    int64     `json:"gas_used"`
+	Timestamp  time.Time `json:"timestamp" sql:"default:now()"`
+}
+
+// Vote has vote information.
 type Vote struct {
 	ID         int64     `json:"id" sql:",pk"`
 	Height     int64     `json:"height"`
-	ProposalID int64     `json:"proposal_id"`
+	ProposalID uint64    `json:"proposal_id"`
 	Voter      string    `json:"voter"`
 	Option     string    `json:"option"`
 	TxHash     string    `json:"tx_hash"`
@@ -39,16 +52,55 @@ type Vote struct {
 	Timestamp  time.Time `json:"timestamp" sql:"default:now()"`
 }
 
-// Deposit has deposit information
-type Deposit struct {
-	ID         int64     `json:"id" sql:",pk"`
-	Height     int64     `json:"height"`
-	ProposalID int64     `json:"proposal_id"`
-	Depositor  string    `json:"depositor"`
-	Amount     string    `json:"amount"`
-	Denom      string    `json:"denom"`
-	TxHash     string    `json:"tx_hash" sql:",unique"`
-	GasWanted  int64     `json:"gas_wanted"`
-	GasUsed    int64     `json:"gas_used"`
-	Timestamp  time.Time `json:"timestamp" sql:"default:now()"`
+// NewProposal returns a new Proposal.
+func NewProposal(p Proposal) *Proposal {
+	return &Proposal{
+		TxHash:               p.TxHash,
+		Proposer:             p.Proposer,
+		Title:                p.Title,
+		Description:          p.Description,
+		ProposalType:         p.ProposalType,
+		ProposalStatus:       p.ProposalStatus,
+		Yes:                  p.Yes,
+		Abstain:              p.Abstain,
+		No:                   p.No,
+		NoWithVeto:           p.NoWithVeto,
+		InitialDepositAmount: p.InitialDepositAmount,
+		InitialDepositDenom:  p.InitialDepositDenom,
+		TotalDepositAmount:   p.TotalDepositAmount,
+		TotalDepositDenom:    p.TotalDepositDenom,
+		SubmitTime:           p.SubmitTime,
+		DepositEndtime:       p.DepositEndtime,
+		VotingStartTime:      p.VotingStartTime,
+		VotingEndTime:        p.VotingEndTime,
+	}
+}
+
+// NewDeposit returns a new Deposit.
+func NewDeposit(d Deposit) *Deposit {
+	return &Deposit{
+		Height:     d.Height,
+		ProposalID: d.ProposalID,
+		Depositor:  d.Depositor,
+		Amount:     d.Amount,
+		Denom:      d.Denom,
+		TxHash:     d.TxHash,
+		GasWanted:  d.GasWanted,
+		GasUsed:    d.GasUsed,
+		Timestamp:  d.Timestamp,
+	}
+}
+
+// NewVote returns a new Vote.
+func NewVote(v Vote) *Vote {
+	return &Vote{
+		Height:     v.Height,
+		ProposalID: v.ProposalID,
+		Voter:      v.Voter,
+		Option:     v.Option,
+		TxHash:     v.TxHash,
+		GasWanted:  v.GasWanted,
+		GasUsed:    v.GasUsed,
+		Timestamp:  v.Timestamp,
+	}
 }

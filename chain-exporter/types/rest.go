@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	resty "gopkg.in/resty.v1"
+	resty "github.com/go-resty/resty/v2"
 )
 
 // ResponseWithHeight is a wrapper for returned values from REST API calls
