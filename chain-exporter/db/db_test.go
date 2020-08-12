@@ -89,7 +89,7 @@ func TestCreate_Indexes(t *testing.T) {
 	err := db.Ping()
 	require.NoError(t, err)
 
-	testIndex := "CREATE INDEX accunt_account_address_idx ON account USING btree(account_address);"
+	testIndex := "CREATE INDEX account_account_address_idx ON account USING btree(account_address);"
 
 	_, err = db.Model(schema.Block{}).Exec(testIndex)
 	require.NoError(t, err)

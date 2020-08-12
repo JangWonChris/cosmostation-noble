@@ -14,8 +14,6 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	// types.SetAppConfig()
-
 	ex = NewExporter()
 
 	os.Exit(m.Run())

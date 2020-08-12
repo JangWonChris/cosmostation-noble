@@ -150,6 +150,7 @@ func (ex *Exporter) saveProposals() {
 	}
 
 	if len(proposals) <= 0 {
+		zap.S().Info("found empty proposals")
 		return
 	}
 

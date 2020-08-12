@@ -382,9 +382,6 @@ func (db *Database) InsertOrUpdateAccounts(accounts []schema.Account) error {
 	var account schema.Account
 	for _, acc := range accounts {
 		ok, _ := db.ExistAccount(acc.AccountAddress)
-		fmt.Println("AccountAddress: ", acc.AccountAddress)
-		fmt.Println("ok: ", ok)
-		fmt.Println("---")
 		if !ok {
 			err := db.Insert(&acc)
 			if err != nil {

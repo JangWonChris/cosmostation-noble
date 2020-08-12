@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Config wraps all configs that are used in this project
+// Config wraps all configs that are used in this project.
 type Config struct {
 	Node       Node     `mapstructure:"node"`
 	DB         Database `mapstructure:"database"`
@@ -15,13 +15,13 @@ type Config struct {
 	KeybaseURL string   `mapstructure:"keybase_url"`
 }
 
-// Node wraps both endpoints for Tendermint RPC Node and REST API Server
+// Node wraps both endpoints for Tendermint RPC Node and REST API Server.
 type Node struct {
 	RPCNode     string `mapstructure:"rpc_node"`
 	LCDEndpoint string `mapstructure:"lcd_endpoint"`
 }
 
-// Database wraps PostgreSQL database config
+// Database wraps PostgreSQL database config.
 type Database struct {
 	Host     string `mapstructure:"host"`
 	Port     string `mapstructure:"port"`
@@ -30,13 +30,14 @@ type Database struct {
 	Table    string `mapstructure:"table"`
 }
 
-// Alarm wraps push notification alarm config
+// Alarm wraps push notification alarm config.
 type Alarm struct {
 	PushServerEndpoint string `mapstructure:"push_server_endpoint"`
 	Switch             bool   `mapstructure:"switch"`
 }
 
-// ParseConfig configures configuration
+// ParseConfig attempts to read and parse config.yaml from the given path.
+// An error reading or parsing the config results in a panic.
 func ParseConfig() *Config {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
@@ -49,7 +50,7 @@ func ParseConfig() *Config {
 	}
 
 	if viper.GetString("network_type") == "" {
-		log.Fatal("define active param in your config file.")
+		log.Fatal("define network_type param in your config file.")
 	}
 
 	var config Config

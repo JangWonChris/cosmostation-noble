@@ -18,6 +18,14 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 )
 
+var (
+	// Version is a project's version string.
+	Version = "Development"
+
+	// Commit is commit hash of this project.
+	Commit = ""
+)
+
 // Exporter implemnts a wrapper around configuration for this project
 type Exporter struct {
 	config *config.Config
@@ -58,173 +66,11 @@ func NewExporter() *Exporter {
 	return &Exporter{cfg, ceCodec.Codec, client, db}
 }
 
-/*
-// Start creates database tables and indexes using Postgres ORM library go-pg and
-// starts syncing blockchain.
-func (ex *Exporter) Start() error {
-	// Store data initially
-	ex.client.SaveBondedValidators()
-	ex.client.SaveUnbondingAndUnBondedValidators()
-	ex.client.SaveProposals()
-
-	c1 := make(chan string)
-	c2 := make(chan string)
-
-	go func() {
-		for {
-			fmt.Println("start - sync blockchain")
-			err := ex.sync()
-			if err != nil {
-				fmt.Printf("error - sync blockchain: %v\n", err)
-			}
-			fmt.Println("finish - sync blockchain")
-			time.Sleep(time.Second)
-		}
-	}()
-
-	go func() {
-		for {
-			time.Sleep(7 * time.Second)
-			c1 <- "sync governance and validators via LCD"
-		}
-	}()
-
-	go func() {
-		for {
-			time.Sleep(20 * time.Minute)
-			c2 <- "parsing from keybase server using keybase identity"
-		}
-	}()
-
-	for {
-		select {
-		case msg1 := <-c1:
-			fmt.Println("start - ", msg1)
-			ex.client.SaveBondedValidators()
-			ex.client.SaveUnbondingAndUnBondedValidators()
-			ex.client.SaveProposals()
-			fmt.Println("finish - ", msg1)
-		case msg2 := <-c2:
-			fmt.Println("start - ", msg2)
-			ex.SaveValidatorKeyBase()
-			fmt.Println("finish - ", msg2)
-		}
-	}
-}
-
-// sync compares block height between the height saved in your database and
-// latest block height on the active chain and calls process to start ingesting blocks.
-func (ex *Exporter) sync() error {
-	// Query latest block height that is saved in your database
-	// Synchronizing blocks from the scratch will return 0 and will ingest accordingly.
-	dbHeight, err := ex.db.QueryLatestBlockHeight()
-	if dbHeight == -1 {
-		fmt.Println(errors.Wrap(err, "failed to query the latest block height from database."))
-	}
-
-	// Query latest block height on the active network
-	latestBlockHeight, err := ex.client.LatestBlockHeight()
-	if latestBlockHeight == -1 {
-		fmt.Println(errors.Wrap(err, "failed to query the latest block height on the active network."))
-	}
-
-	// skip the first block since it has no pre-commits
-	if dbHeight == 0 {
-		dbHeight = 1
-	}
-
-	// Ingest all blocks up to the best height
-	for i := dbHeight + 1; i <= latestBlockHeight; i++ {
-		err = ex.process(i)
-		if err != nil {
-			return err
-		}
-		fmt.Printf("synced block %d/%d \n", i, latestBlockHeight)
-	}
-
-	return nil
-}
-
-// sync queries the block at the given height-1 from the node and ingests its metadata (Block,evidence)
-// into the database. It also queries the next block to access the commits and stores the missed signatures.
-func (ex Exporter) process(height int64) error {
-	block, err := ex.client.Block(height)
-	if err != nil {
-		return fmt.Errorf("failed to query block using rpc client: %t", err)
-	}
-
-	nextBlock, err := ex.client.Block(height + 1)
-	if err != nil {
-		return fmt.Errorf("failed to query block using rpc client: %t", err)
-	}
-
-	prevBlock, err := ex.client.Block(block.Block.LastCommit.Height())
-	if err != nil {
-		return fmt.Errorf("failed to query block using rpc client: %t", err)
-	}
-
-	vals, err := ex.client.Validators(block.Block.LastCommit.Height())
-	if err != nil {
-		return fmt.Errorf("failed to query validators using rpc client: %t", err)
-	}
-
-	txs, err := ex.client.Txs(block)
-	if err != nil {
-		return fmt.Errorf("failed to get transactions for block: %t", err)
-	}
-
-	resultBlock, err := ex.getBlock(block)
-	if err != nil {
-		return fmt.Errorf("failed to get block: %t", err)
-	}
-
-	resultEvidence, err := ex.getEvidence(block, nextBlock)
-	if err != nil {
-		return fmt.Errorf("failed to get evidence: %t", err)
-	}
-
-	resultGenesisValSet, err := ex.getGenesisValidatorSet(block, vals)
-	if err != nil {
-		return fmt.Errorf("failed to get genesis validator set: %t", err)
-	}
-
-	resultTxs, err := ex.getTxs(txs)
-	if err != nil {
-		return fmt.Errorf("failed to get txs: %t", err)
-	}
-
-	resultTxIndex, err := ex.getTxIndex(txs)
-	if err != nil {
-		return fmt.Errorf("failed to get txs: %t", err)
-	}
-
-	resultMissingBlocks, resultAccumMissingBlocks, resultMisssingBlocksDetail, err := ex.getPowerEventHistory(prevBlock, block, vals)
-	if err != nil {
-		return fmt.Errorf("failed to get missing blocks: %t", err)
-	}
-
-	resultVote, resultDeposit, resultProposal, resultValidatorSet, err := ex.getTransactions(block)
-	if err != nil {
-		return fmt.Errorf("failed to get transactions: %t", err)
-	}
-
-	// Insert data into database
-	err = ex.db.InsertExportedData(resultBlock, resultEvidence, resultGenesisValSet, resultMissingBlocks, resultAccumMissingBlocks,
-		resultMisssingBlocksDetail, resultTxs, resultTxIndex, resultVote, resultDeposit, resultProposal, resultValidatorSet)
-
-	if err != nil {
-		return fmt.Errorf("failed to insert exported data: %t", err)
-	}
-
-	return nil
-}
-
-*/
-
-// MIGRATION
-
 // Start starts to synchronize blockchain data
 func (ex *Exporter) Start() {
+	zap.S().Info("Starting Chain Exporter...")
+	zap.S().Infof("Version: %s Commit: %s", Version, Commit)
+
 	// Store data initially
 	ex.saveValidators()
 	ex.saveProposals()
