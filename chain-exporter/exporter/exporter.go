@@ -159,12 +159,12 @@ func (ex *Exporter) process(height int64) error {
 	// Handle this to save first block information
 	// var resultGenesisAccounts []schema.Account
 	prevBlock := new(tmctypes.ResultBlock)
-	height = block.Block.LastCommit.Height()
-	if height == 0 {
+	prevBlockHeight := block.Block.LastCommit.Height()
+	if prevBlockHeight == 0 {
 		prevBlock = block
-		height = 1
+		prevBlockHeight = 1
 	} else {
-		prevBlock, err = ex.client.GetBlock(block.Block.LastCommit.Height())
+		prevBlock, err = ex.client.GetBlock(prevBlockHeight)
 		if err != nil {
 			return fmt.Errorf("failed to query previous block: %s", err)
 		}
@@ -183,7 +183,7 @@ func (ex *Exporter) process(height int64) error {
 	// }
 	// }
 
-	vals, err := ex.client.GetValidators(height, types.DefaultQueryValidatorsPage, types.DefaultQueryValidatorsPerPage)
+	vals, err := ex.client.GetValidators(prevBlockHeight, types.DefaultQueryValidatorsPage, types.DefaultQueryValidatorsPerPage)
 	if err != nil {
 		return fmt.Errorf("failed to query validators: %s", err)
 	}
@@ -203,10 +203,10 @@ func (ex *Exporter) process(height int64) error {
 		return fmt.Errorf("failed to get genesis validator set: %s", err)
 	}
 
-	resultAccounts, err := ex.getAccounts(block, txs)
-	if err != nil {
-		return fmt.Errorf("failed to get accounts: %s", err)
-	}
+	// resultAccounts, err := ex.getAccounts(block, txs)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to get accounts: %s", err)
+	// }
 
 	resultMissBlocks, resultAccumulatedMissBlocks, resultMissDetailBlocks, err := ex.getValidatorsUptime(prevBlock, block, vals)
 	if err != nil {
@@ -239,7 +239,8 @@ func (ex *Exporter) process(height int64) error {
 	}
 
 	err = ex.db.InsertExportedData(schema.ExportData{
-		ResultAccounts: resultAccounts,
+		// ResultAccounts: resultAccounts,
+		ResultAccounts: nil,
 		ResultBlock:    resultBlock,
 		// ResultGenesisAccounts:             resultGenesisAccounts,
 		ResultGenesisAccounts:             nil,
