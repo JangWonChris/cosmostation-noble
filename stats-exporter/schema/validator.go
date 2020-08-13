@@ -1,24 +1,11 @@
 package schema
 
-import (
-	"time"
-)
+import "time"
 
-// BlockInfo is a struct for database struct
-type BlockInfo struct {
-	ID        int64     `json:"id" sql:",pk"`
-	BlockHash string    `json:"block_hash"`
-	Height    int64     `json:"height"`
-	Proposer  string    `json:"proposer"`
-	TotalTxs  int64     `json:"total_txs" sql:"default:0"`
-	NumTxs    int64     `json:"num_txs" sql:"default:0"`
-	Time      time.Time `json:"time"`
-}
-
-// ValidatorInfo is a struct for database struct
-type ValidatorInfo struct {
+// Validator defines the structure for validator information.
+type Validator struct {
 	ID                   int64     `sql:",pk"`
-	Rank                 int64     `json:"rank"`
+	Rank                 int       `json:"rank"`
 	Address              string    `json:"address"`
 	OperatorAddress      string    `json:"operator_address" sql:",unique"`
 	ConsensusPubkey      string    `json:"consensus_pubkey"`
@@ -39,4 +26,31 @@ type ValidatorInfo struct {
 	UpdateTime           time.Time `json:"update_time" sql:"default:null"`
 	MinSelfDelegation    string    `json:"min_self_delegation"`
 	KeybaseURL           string    `json:"keybase_url"`
+}
+
+// NewValidator returns a new Validator.
+func NewValidator(val Validator) *Validator {
+	return &Validator{
+		Rank:                 val.Rank,
+		Address:              val.Address,
+		OperatorAddress:      val.OperatorAddress,
+		ConsensusPubkey:      val.ConsensusPubkey,
+		Proposer:             val.Proposer,
+		Jailed:               val.Jailed,
+		Status:               val.Status,
+		Tokens:               val.Tokens,
+		DelegatorShares:      val.DelegatorShares,
+		Moniker:              val.Moniker,
+		Identity:             val.Identity,
+		Website:              val.Website,
+		Details:              val.Details,
+		UnbondingHeight:      val.UnbondingHeight,
+		UnbondingTime:        val.UnbondingTime,
+		CommissionRate:       val.CommissionRate,
+		CommissionMaxRate:    val.CommissionMaxRate,
+		CommissionChangeRate: val.CommissionChangeRate,
+		UpdateTime:           val.UpdateTime,
+		MinSelfDelegation:    val.MinSelfDelegation,
+		KeybaseURL:           val.KeybaseURL,
+	}
 }
