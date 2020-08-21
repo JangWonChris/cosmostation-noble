@@ -1,15 +1,15 @@
-network_type: "dev"
+network_type: "testnet"
 
 mainnet:
   node: 
-    rpc_node: "http://13.124.168.183:26657"
-    lcd_endpoint: "https://lcd-cosmos.cosmostation.io"
+    rpc_node: "http://localhost:26657"
+    lcd_endpoint: "http://localhost:1317" 
   database:
-    host: "cosmostation.ci6bhjszmrb3.ap-northeast-2.rds.amazonaws.com"
+    host: ""
     port: "5432"
     user: "root"
-    password: "CosmosGo00!!"
-    table: "cosmoshub-3-1"
+    password: ""
+    table: "kava-3"
   web:
     port: 5000
   market:
@@ -20,14 +20,14 @@ mainnet:
 
 dev:
   node: 
-    rpc_node: "http://13.124.168.183:26657"
-    lcd_endpoint: "https://lcd-cosmos.cosmostation.io"
+    rpc_node: "http://localhost:26657"
+    lcd_endpoint: "http://localhost:1317" 
   database:
-    host: "cosmostation-dev.ci6bhjszmrb3.ap-northeast-2.rds.amazonaws.com"
+    host: ""
     port: "5432"
     user: "root"
-    password: "dnpfqldwhr00!!"
-    table: "cosmos-dev-mig"
+    password: ""
+    table: ""
   web:
     port: 5000
   market:
@@ -38,14 +38,14 @@ dev:
 
 testnet:
   node: 
-    rpc_node: "http://54.180.171.141:26657"
-    lcd_endpoint: "https://lcd-cosmos-testnet.cosmostation.io"
+    rpc_node: "http://localhost:26657"
+    lcd_endpoint: "http://localhost:1317" 
   database:
-    host: "cosmostation-dev.ci6bhjszmrb3.ap-northeast-2.rds.amazonaws.com"
+    host: ""
     port: "5432"
     user: "root"
-    password: "dnpfqldwhr00!!"
-    table: "cosmos-testnet"
+    password: ""
+    table: ""
   web:
     port: 5000
   market:
@@ -53,3 +53,4 @@ testnet:
     coinmarketcap_endpoint: "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest"
     coinmarketcap_coin_id: "4846"
     coinmarketcap_api_key: ""
+
