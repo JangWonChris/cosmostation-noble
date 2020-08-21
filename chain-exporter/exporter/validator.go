@@ -90,6 +90,7 @@ func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*
 			for _, val := range vals.Validators {
 				if val.Address.String() == valInfo.Proposer {
 					votingPower = float64(val.VotingPower)
+					break
 				}
 			}
 
@@ -133,6 +134,7 @@ func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*
 			for _, val := range vals.Validators {
 				if val.Address.String() == valInfo.Proposer {
 					votingPower = float64(val.VotingPower)
+					break
 				}
 			}
 
@@ -168,30 +170,29 @@ func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*
 			newVotingPowerAmount, _ := strconv.ParseFloat(msgBeginRedelegate.Amount.Amount.String(), 64)
 			newVotingPowerAmount = newVotingPowerAmount / 1000000
 
-			//TODO for loop 합치기
-			// Get current destination validator's voting power.
-			var dstValVotingPower float64
 			vals, err := ex.client.GetValidators(tx.Height, 1, 150)
 			if err != nil {
 				zap.S().Errorf("failed to get validators: %s", err)
 				return nil, err
 			}
+			// Get current destination validator's voting power.
+			var dstValVotingPower float64
+			var srcValVotingPower float64
+			var dstFlag bool
+			var srcFlag bool
 			for _, val := range vals.Validators {
+				zap.S().Info(val.Address.String())
 				if val.Address.String() == valDstInfo.Proposer {
 					dstValVotingPower = float64(val.VotingPower)
+					dstFlag = true
 				}
-			}
-
-			// Get current source validator's voting power.
-			var srcValVotingPower float64
-			vals, _ = ex.client.GetValidators(tx.Height, 1, 150)
-			if err != nil {
-				zap.S().Errorf("failed to get validators: %s", err)
-				return nil, err
-			}
-			for _, val := range vals.Validators {
 				if val.Address.String() == valSrcInfo.Proposer {
 					srcValVotingPower = float64(val.VotingPower)
+					srcFlag = true
+				}
+
+				if dstFlag && srcFlag {
+					break
 				}
 			}
 
