@@ -2,46 +2,51 @@ package exporter
 
 import (
 	"encoding/json"
-	"fmt"
-	"log"
 	"strconv"
-	"time"
-
-	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/schema"
-	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	resty "gopkg.in/resty.v1"
+	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/models"
+	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/schema"
+
+	"go.uber.org/zap"
 )
 
-// SaveNetworkStats1H saves network statistics every hour
-func (ses *StatsExporterService) SaveNetworkStats1H() {
-	// requests the current state of the staking pool
-	poolResp, _ := resty.R().Get(ses.config.Node.LCDURL + "/staking/pool")
-
-	var pool types.Pool
-	err := json.Unmarshal(types.ReadRespWithHeight(poolResp).Result, &pool)
+// SaveNetworkStats1H saves network statistics every hour.
+func (ex *Exporter) SaveNetworkStats1H() {
+	// Get the current state of the staking pool.
+	poolResp, err := ex.client.RequestAPIFromLCDWithRespHeight("/staking/pool")
 	if err != nil {
-		fmt.Printf("failed to unmarshal Pool: %v \n ", err)
+		zap.S().Errorf("failed to get the current state of the staking pool: %s", err)
+		return
 	}
 
-	// requests the current minting inflation value
-	inflationResp, _ := resty.R().Get(ses.config.Node.LCDURL + "/minting/inflation")
-
-	var inflation types.Inflation
-	err = json.Unmarshal(inflationResp.Body(), &inflation)
+	var pool models.Pool
+	err = json.Unmarshal(poolResp.Result, &pool)
 	if err != nil {
-		fmt.Printf("failed to unmarshal Inflation: %v \n ", err)
+		zap.S().Errorf("failed to unmarshal pool: %s", err)
+		return
 	}
 
-	// requests the current total supply
-	totalSupplyResp, _ := resty.R().Get(ses.config.Node.LCDURL + "/supply/total")
+	// Get the current minting inflation value.
+	inflation, err := ex.client.GetInflation()
+	if err != nil {
+		zap.S().Errorf("failed to get inflation value: %s", err)
+		return
+	}
+
+	// Get the current total supply.
+	totalSupplyResp, err := ex.client.RequestAPIFromLCDWithRespHeight("/supply/total")
+	if err != nil {
+		zap.S().Errorf("failed to get the current total supply: %s", err)
+		return
+	}
 
 	var coin []sdk.Coin
-	err = json.Unmarshal(types.ReadRespWithHeight(totalSupplyResp).Result, &coin)
+	err = json.Unmarshal(totalSupplyResp.Result, &coin)
 	if err != nil {
-		fmt.Printf("failed to unmarshal Coin: %v \n", err)
+		zap.S().Errorf("failed to unmarshal total supply: %s", err)
+		return
 	}
 
 	bondedTokens, _ := strconv.ParseFloat(pool.BondedTokens, 64)
@@ -49,61 +54,74 @@ func (ses *StatsExporterService) SaveNetworkStats1H() {
 	totalSupplyTokens, _ := strconv.ParseFloat(coin[0].Amount.String(), 64)
 	bondedRatio := bondedTokens / totalSupplyTokens * 100
 	inflationRatio, _ := strconv.ParseFloat(inflation.Result, 64)
+	totalTxsNum := ex.db.QueryTotalTransactionNum()
 
-	// query two latest block numbers to calculate the current block time
-	blockInfo, _ := ses.db.QueryLatestBlocks(2)
+	// Calculate the current block time.
+	latestTwoBlocks, err := ex.db.QueryLatestTwoBlocks()
+	if len(latestTwoBlocks) <= 1 {
+		zap.S().Errorf("failed to query latest two blocks", err)
+		return
+	}
 
-	lastBlocktime := blockInfo[0].Time.UTC()
-	secondLastBlocktime := blockInfo[1].Time.UTC()
+	lastBlocktime := latestTwoBlocks[0].Timestamp.UTC()
+	secondLastBlocktime := latestTwoBlocks[1].Timestamp.UTC()
 	blockTime := lastBlocktime.Sub(secondLastBlocktime)
 
-	status, _ := ses.rpcClient.Status()
-	block, _ := ses.rpcClient.Block(&status.SyncInfo.LatestBlockHeight)
-
-	networkStats := &schema.StatsNetwork1H{
+	network := &schema.StatsNetwork1H{
 		BlockTime:       blockTime.Seconds(),
 		TotalSupply:     totalSupplyTokens,
 		BondedTokens:    bondedTokens,
 		NotBondedTokens: notBondedTokens,
 		BondedRatio:     bondedRatio,
 		InflationRatio:  inflationRatio,
-		TotalTxsNum:     block.Block.TotalTxs,
-		Time:            time.Now(),
+		TotalTxsNum:     totalTxsNum,
 	}
 
-	result, _ := ses.db.InsertNetworkStats1H(*networkStats)
-	if result {
-		log.Println("succesfully saved NetworkStats 1H")
+	err = ex.db.InsertNetworkStats1H(network)
+	if err != nil {
+		zap.S().Errorf("failed to save network data: %s", err)
+		return
 	}
+
+	zap.S().Info("successfully saved NetworkStats1H")
+	return
 }
 
-// SaveNetworkStats24H saves network statistics 24 hours
-func (ses *StatsExporterService) SaveNetworkStats24H() {
-	// requests the current state of the staking pool
-	poolResp, _ := resty.R().Get(ses.config.Node.LCDURL + "/staking/pool")
-
-	var pool types.Pool
-	err := json.Unmarshal(types.ReadRespWithHeight(poolResp).Result, &pool)
+// SaveNetworkStats1D saves network statistics every day.
+func (ex *Exporter) SaveNetworkStats1D() {
+	// Get the current state of the staking pool.
+	poolResp, err := ex.client.RequestAPIFromLCDWithRespHeight("/staking/pool")
 	if err != nil {
-		fmt.Printf("failed to unmarshal Pool: %v \n ", err)
+		zap.S().Errorf("failed to get the current state of the staking pool: %s", err)
+		return
 	}
 
-	// requests the current minting inflation value
-	inflationResp, _ := resty.R().Get(ses.config.Node.LCDURL + "/minting/inflation")
-
-	var inflation types.Inflation
-	err = json.Unmarshal(inflationResp.Body(), &inflation)
+	var pool models.Pool
+	err = json.Unmarshal(poolResp.Result, &pool)
 	if err != nil {
-		fmt.Printf("failed to unmarshal Inflation: %v \n ", err)
+		zap.S().Errorf("failed to unmarshal pool", err)
+		return
 	}
 
-	// requests the current total supply
-	totalSupplyResp, _ := resty.R().Get(ses.config.Node.LCDURL + "/supply/total")
+	// Get the current minting inflation value
+	inflation, err := ex.client.GetInflation()
+	if err != nil {
+		zap.S().Errorf("failed to get inflation value", err)
+		return
+	}
+
+	// Get the current total supply
+	totalSupplyResp, err := ex.client.RequestAPIFromLCDWithRespHeight("/supply/total")
+	if err != nil {
+		zap.S().Errorf("failed to get the current total supply: %s", err)
+		return
+	}
 
 	var coin []sdk.Coin
-	err = json.Unmarshal(types.ReadRespWithHeight(totalSupplyResp).Result, &coin)
+	err = json.Unmarshal(totalSupplyResp.Result, &coin)
 	if err != nil {
-		fmt.Printf("failed to unmarshal Coin: %v \n", err)
+		zap.S().Errorf("failed to unmarshal total supply: %s", err)
+		return
 	}
 
 	bondedTokens, _ := strconv.ParseFloat(pool.BondedTokens, 64)
@@ -111,30 +129,35 @@ func (ses *StatsExporterService) SaveNetworkStats24H() {
 	totalSupplyTokens, _ := strconv.ParseFloat(coin[0].Amount.String(), 64)
 	bondedRatio := bondedTokens / totalSupplyTokens * 100
 	inflationRatio, _ := strconv.ParseFloat(inflation.Result, 64)
+	totalTxsNum := ex.db.QueryTotalTransactionNum()
 
-	// query two latest block numbers to calculate the current block time
-	blockInfo, _ := ses.db.QueryLatestBlocks(2)
+	// Query two latest block numbers to calculate the current block time
+	blocks, err := ex.db.QueryLatestTwoBlocks()
+	if err != nil {
+		zap.S().Errorf("failed to query latest two blocks: %s", err)
+		return
+	}
 
-	lastBlocktime := blockInfo[0].Time.UTC()
-	secondLastBlocktime := blockInfo[1].Time.UTC()
+	lastBlocktime := blocks[0].Timestamp.UTC()
+	secondLastBlocktime := blocks[1].Timestamp.UTC()
 	blockTime := lastBlocktime.Sub(secondLastBlocktime)
 
-	status, _ := ses.rpcClient.Status()
-	block, _ := ses.rpcClient.Block(&status.SyncInfo.LatestBlockHeight)
-
-	networkStats := &schema.StatsNetwork24H{
+	network := &schema.StatsNetwork1D{
 		BlockTime:       blockTime.Seconds(),
 		TotalSupply:     totalSupplyTokens,
 		BondedTokens:    bondedTokens,
 		NotBondedTokens: notBondedTokens,
 		BondedRatio:     bondedRatio,
 		InflationRatio:  inflationRatio,
-		TotalTxsNum:     block.Block.TotalTxs,
-		Time:            time.Now(),
+		TotalTxsNum:     totalTxsNum,
 	}
 
-	result, _ := ses.db.InsertNetworkStats24H(*networkStats)
-	if result {
-		log.Println("succesfully saved NetworkStats 24H")
+	err = ex.db.InsertNetworkStats1D(network)
+	if err != nil {
+		zap.S().Errorf("failed to save network data: %s", err)
+		return
 	}
+
+	zap.S().Info("successfully saved NetworkStats1D")
+	return
 }
