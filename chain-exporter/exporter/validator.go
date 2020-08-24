@@ -159,6 +159,10 @@ func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*
 
 			msgBeginRedelegate := stdTx.Msgs[0].(staking.MsgBeginRedelegate)
 
+			//TODO : use join or subquery instead of 2 queires
+			// example
+			// select * from power_event_history as p where p.proposer = (select proposer from validator where operator_address = 'cosmosvaloper1648ynlpdw7fqa2axt0w2yp3fk542junl7rsvq6') order by id desc limit 1
+			// select * from power_event_history p, validator v where p.proposer = v.proposer and v.operator_address = 'cosmosvaloper1648ynlpdw7fqa2axt0w2yp3fk542junl7rsvq6' order by p.id desc limit 1
 			// Query validator_dst_address information.
 			valDstInfo, _ := ex.db.QueryValidator(msgBeginRedelegate.ValidatorDstAddress.String())
 			dstpowerEventHistory, _ := ex.db.QueryValidatorID(valDstInfo.Proposer)
@@ -181,7 +185,6 @@ func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*
 			var dstFlag bool
 			var srcFlag bool
 			for _, val := range vals.Validators {
-				zap.S().Info(val.Address.String())
 				if val.Address.String() == valDstInfo.Proposer {
 					dstValVotingPower = float64(val.VotingPower)
 					dstFlag = true
