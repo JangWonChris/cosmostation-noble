@@ -73,7 +73,7 @@ func main() {
 	r.HandleFunc("/status", handler.GetStatus).Methods("GET")
 	r.HandleFunc("/txs", handler.GetTransactions).Methods("GET")
 	r.HandleFunc("/txs", handler.GetTransactionsList).Methods("POST")
-	r.HandleFunc("/tx/{hash}", handler.GetTransaction).Methods("GET")
+	r.HandleFunc("/tx", handler.GetTransaction).Methods("GET")
 	r.HandleFunc("/tx/broadcast/{signed_tx}", handler.BroadcastTx).Methods("GET")
 	r.HandleFunc("/staking/validators", handler.GetValidators).Methods("GET")
 	r.HandleFunc("/staking/validator/{address}", handler.GetValidator).Methods("GET")
@@ -87,8 +87,11 @@ func main() {
 	// deprecated
 	r.HandleFunc("/account/commission/{accAddr}", handler.GetValidatorCommission).Methods("GET")                      // /account/validator/commission/...
 	r.HandleFunc("/account/unbonding-delegations/{accAddr}", handler.GetDelegatorUnbondingDelegations).Methods("GET") // /acount/unbonding_delegations/...
-	r.HandleFunc("/staking/validator/misses/detail/{address}", handler.GetValidatorUptime).Methods("GET")             // /staking/validator/updatime/...
-	r.HandleFunc("/staking/validator/misses/{address}", handler.GetValidatorUptimeRange).Methods("GET")               // /staking/validator/uptime/range/...
+
+	r.HandleFunc("/tx/{hash}", handler.GetLegacyTransactionFromDB).Methods("GET")
+
+	r.HandleFunc("/staking/validator/misses/detail/{address}", handler.GetValidatorUptime).Methods("GET") // /staking/validator/updatime/...
+	r.HandleFunc("/staking/validator/misses/{address}", handler.GetValidatorUptimeRange).Methods("GET")   // /staking/validator/uptime/range/...
 
 	sm := &http.Server{
 		Addr:         ":" + config.Web.Port,

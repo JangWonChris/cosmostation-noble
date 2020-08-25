@@ -161,6 +161,41 @@ func GetTransaction(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
+// GetLegacyTransactionFromDB receives transaction hash and returns that transaction
+func GetLegacyTransactionFromDB(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	txHashStr := vars["hash"]
+	var err error
+
+	// Request param must have either transaction id or transaction hash.
+	if txHashStr == "" {
+		errors.ErrRequiredParam(rw, http.StatusBadRequest, "request must have either transaction id or hash")
+		return
+	}
+
+	if strings.Contains(txHashStr, "0x") {
+		txHashStr = txHashStr[2:]
+	}
+
+	if len(txHashStr) != 64 {
+		zap.L().Debug("tx hash length is invalid", zap.String("txHashStr", txHashStr))
+		errors.ErrInvalidFormat(rw, http.StatusBadRequest)
+		return
+	}
+
+	tx, err := s.db.QueryTransactionByTxHash(txHashStr)
+	if err != nil {
+		zap.L().Error("failed to get transaction by tx hash", zap.Error(err))
+		errors.ErrServerUnavailable(rw, http.StatusInternalServerError)
+		return
+	}
+
+	result, _ := model.ParseTransaction(tx)
+
+	model.Respond(rw, result)
+	return
+}
+
 // GetLegacyTransaction uses RPC API to parse transaction and return.
 // [NOT USED]
 func GetLegacyTransaction(rw http.ResponseWriter, r *http.Request) {
