@@ -73,7 +73,7 @@ func main() {
 	r.HandleFunc("/status", handler.GetStatus).Methods("GET")
 	r.HandleFunc("/txs", handler.GetTransactions).Methods("GET")
 	r.HandleFunc("/txs", handler.GetTransactionsList).Methods("POST")
-	r.HandleFunc("/tx", handler.GetTransaction).Methods("GET")
+	r.HandleFunc("/tx/{hash}", handler.GetTransaction).Methods("GET")
 	r.HandleFunc("/tx/broadcast/{signed_tx}", handler.BroadcastTx).Methods("GET")
 	r.HandleFunc("/staking/validators", handler.GetValidators).Methods("GET")
 	r.HandleFunc("/staking/validator/{address}", handler.GetValidator).Methods("GET")
