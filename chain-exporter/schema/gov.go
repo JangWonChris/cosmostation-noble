@@ -55,6 +55,7 @@ type Vote struct {
 // NewProposal returns a new Proposal.
 func NewProposal(p Proposal) *Proposal {
 	return &Proposal{
+		ID:                   p.ID,
 		TxHash:               p.TxHash,
 		Proposer:             p.Proposer,
 		Title:                p.Title,

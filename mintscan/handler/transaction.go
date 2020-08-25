@@ -99,13 +99,7 @@ func GetTransactionsList(rw http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	result, err := json.Marshal(txResp)
-	if err != nil {
-		zap.L().Error("failed to marshal tx list", zap.Error(err))
-		errors.ErrInternalServer(rw, http.StatusInternalServerError)
-	}
-
-	model.Respond(rw, result)
+	model.Respond(rw, txResp)
 	return
 }
 
@@ -133,6 +127,7 @@ func GetTransaction(rw http.ResponseWriter, r *http.Request) {
 
 		tx, err := s.db.QueryTransactionByID(txID)
 		if err != nil {
+			zap.L().Error("failed to get transaction by tx id", zap.Error(err))
 			errors.ErrServerUnavailable(rw, http.StatusInternalServerError)
 			return
 		}
@@ -155,6 +150,7 @@ func GetTransaction(rw http.ResponseWriter, r *http.Request) {
 
 	tx, err := s.db.QueryTransactionByTxHash(txHashStr)
 	if err != nil {
+		zap.L().Error("failed to get transaction by tx hash", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusInternalServerError)
 		return
 	}

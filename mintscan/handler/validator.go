@@ -113,7 +113,10 @@ func GetValidator(rw http.ResponseWriter, r *http.Request) {
 
 	var missBlockCount int
 	if val.Status == model.BondedValidatorStatus {
-		blocks, _ := s.db.QueryLastestTwoBlocks()
+		blocks, err := s.db.QueryLastestTwoBlocks()
+		if err != nil {
+			zap.L().Error("failed to get latest two blocks", zap.Error(err))
+		}
 		missBlockCount, _ = s.db.CountMissingBlocks(val.Proposer, int(blocks[1].Height), 99)
 	} else {
 		missBlockCount = model.MissingAllBlocks
