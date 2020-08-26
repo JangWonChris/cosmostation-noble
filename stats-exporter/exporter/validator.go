@@ -2,46 +2,42 @@ package exporter
 
 import (
 	"encoding/json"
-	"fmt"
 	"strconv"
 
-	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/codec"
 	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/models"
 	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/schema"
 	"go.uber.org/zap"
 )
 
-// SaveValidatorsStats1H saves validators statstics every hour
+// TODO: REST API 사용보다는 RPC로 해보는 건 어떤지. Delegations API 요청 시 800개가 넘는 Delegations 검증인들이 꾀나 되기 때문에
+// 요청도 오래걸리고 계산 로직도 오래걸린다. 현재는 client 요청 시 timeout을 5초에서 10초로 늘려놔서 오래걸리더라도 문제는 없다.
+// SaveValidatorsStats1H saves validators statstics every hour.
 func (ex *Exporter) SaveValidatorsStats1H() {
 	result := make([]schema.StatsValidators1H, 0)
 
-	validators, err := ex.db.QueryValidatorsByStatus(models.BondedValidatorStatus)
+	vals, err := ex.db.QueryValidatorsByStatus(models.BondedValidatorStatus)
 	if err != nil {
 		zap.S().Errorf("failed to query bonded validators: %s", err)
 		return
 	}
 
-	if len(validators) <= 0 {
+	if len(vals) <= 0 {
 		zap.S().Info("found no validators in database")
 		return
 	}
 
-	for _, val := range validators {
+	for _, val := range vals {
 		var selfBondedAmount float64
 		var othersAmount float64
 
 		// Get the current delegation between a delegator and a validator (self-bonded).
 		selfBondedResp, err := ex.client.RequestAPIFromLCDWithRespHeight("/staking/delegators/" + val.Address + "/delegations/" + val.OperatorAddress)
-		fmt.Println(val.Address)
-		fmt.Println(val.OperatorAddress)
 		if err != nil {
 			zap.S().Errorf("failed to get the current delegation between a delegator and a validator: %s", err)
 			return
 		}
 
 		var selfDelegation models.SelfDelegation
-		codec.Codec.UnmarshalBinaryBare(selfBondedResp.Result, &selfDelegation)
-		fmt.Println(selfDelegation)
 		err = json.Unmarshal(selfBondedResp.Result, &selfDelegation)
 		if err != nil {
 			zap.S().Errorf("failed to unmarshal self-bonded delegation: %s", err)
@@ -110,7 +106,7 @@ func (ex *Exporter) SaveValidatorsStats1H() {
 	return
 }
 
-// SaveValidatorsStats1D saves validators statstics every day
+// SaveValidatorsStats1D saves validators statstics every day.
 func (ex *Exporter) SaveValidatorsStats1D() {
 	result := make([]schema.StatsValidators1D, 0)
 
