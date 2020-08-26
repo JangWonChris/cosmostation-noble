@@ -21,7 +21,7 @@ type ResultBlock struct {
 	NumTxs                 int64     `json:"num_txs"`
 	TotalNumProposerBlocks int       `json:"total_num_proposer_blocks,omitempty"`
 	TxData                 TxData    `json:"tx_data"`
-	Timestamp              time.Time `json:"Timestamp"`
+	Timestamp              time.Time `json:"timestamp"`
 }
 
 // ResultDelegations is a struct for delegations result response
