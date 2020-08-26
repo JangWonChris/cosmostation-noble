@@ -5,6 +5,16 @@ DESTDIR         	  ?= $(GOPATH)/bin/stats-exporter
 BUILD_FLAGS 		  := -ldflags "-X github.com/cosmostation/cosmostation-cosmos/stats-exporter/exporter.Version=${VERSION} \
 									-X github.com/cosmostation/cosmostation-cosmos/stats-exporter/exporter.Commit=${COMMIT}"
 
+## Show all make target commands.
+help:
+	@make2help $(MAKEFILE_LIST)
+
+## Print out application information.
+version: 
+	@echo "NAME: ${NAME}"
+	@echo "VERSION: ${VERSION}"
+	@echo "COMMIT: ${COMMIT}"	
+
 ## Build an executable file in $DESTDIR directory.
 build: go.sum
 	@echo "-> Building stats-exporter binary..."
@@ -29,7 +39,7 @@ enable_service:
 
 ## Clean the executable file.
 clean:
-	@echo "cleaning stats-exporter binary..."
-	rm -f $(TOOLS_DESTDIR) 2> /dev/null
+	@echo "-> Cleaning stats-exporter binary..."
+	rm -f $(DESTDIR) 2> /dev/null
 
-PHONY: build install make_service enable_service clean
+PHONY: help version build install make_service enable_service clean

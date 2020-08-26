@@ -9,7 +9,7 @@ mainnet:
     port: "5432"
     user: "root"
     password: ""
-    table: "kava-3"
+    table: "cosmoshub-3"
   market:
     coingecko_endpoint: ""
 
@@ -22,7 +22,7 @@ dev:
     port: "5432"
     user: "root"
     password: ""
-    table: "kava-3-dev"
+    table: "cosmoshub-3-dev"
   market:
     coingecko_endpoint: ""
 
@@ -35,6 +35,6 @@ testnet:
     port: "5432"
     user: "root"
     password: ""
-    table: "kava-testnet-8000"
+    table: "gaia-16000"
   market:
     coingecko_endpoint: ""
