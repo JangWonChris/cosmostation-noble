@@ -65,8 +65,6 @@ func (ex *Exporter) Start() error {
 	zap.S().Info("Starting Stat Exporter...")
 	zap.S().Infof("Version: %s Commit: %s", Version, Commit)
 
-	ex.SaveValidatorsStats1H()
-
 	c := cron.New(
 		cron.WithLocation(time.UTC),
 	)
