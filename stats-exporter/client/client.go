@@ -39,14 +39,10 @@ func NewClient(nodeCfg config.Node, marketCfg config.Market) (*Client, error) {
 		WithTrustNode(true)
 
 	rpcClient := rpcclient.NewHTTP(nodeCfg.RPCNode, "/websocket")
-	// rpcClient, err := rpc.NewWithTimeout(nodeCfg.RPCNode, "/websocket", 5)
-	// if err != nil {
-	// 	return &Client{}, err
-	// }
 
 	apiClient := resty.New().
 		SetHostURL(nodeCfg.LCDEndpoint).
-		SetTimeout(time.Duration(5 * time.Second))
+		SetTimeout(time.Duration(10 * time.Second))
 
 	coinGeckoClient := resty.New().
 		SetHostURL(marketCfg.CoinGeckoEndpoint).
@@ -55,8 +51,9 @@ func NewClient(nodeCfg config.Node, marketCfg config.Market) (*Client, error) {
 	return &Client{cliCtx, codec.Codec, rpcClient, apiClient, coinGeckoClient}, nil
 }
 
-//-----------------------------------------------------------------------------
+// --------------------
 // RPC APIs
+// --------------------
 
 // GetNetworkChainID returns network chain id.
 func (c *Client) GetNetworkChainID() (string, error) {
@@ -82,8 +79,9 @@ func (c *Client) GetBondDenom() (string, error) {
 	return params.BondDenom, nil
 }
 
-//-----------------------------------------------------------------------------
+// --------------------
 // REST SERVER APIs
+// --------------------
 
 // RequestAPIFromLCDWithRespHeight is general request API from REST Server and
 // return without any modification.
@@ -96,7 +94,7 @@ func (c *Client) RequestAPIFromLCDWithRespHeight(reqParam string) (models.Respon
 	return models.ReadRespWithHeight(resp), nil
 }
 
-// GetInflation returns current minting inflation value
+// GetInflation returns current minting inflation value.
 func (c *Client) GetInflation() (models.Inflation, error) {
 	resp, err := c.apiClient.R().Get("/minting/inflation")
 	if err != nil {
@@ -129,8 +127,9 @@ func (c *Client) GetValidators() ([]*models.Validator, error) {
 	return vals, nil
 }
 
-//-----------------------------------------------------------------------------
+// --------------------
 // CoinGecko APIs
+// --------------------
 
 // CoinMarketData returns coin market data using CoinGecko API based upon coin id.
 func (c *Client) CoinMarketData(id string) (models.CoinGeckoMarket, error) {
@@ -141,7 +140,7 @@ func (c *Client) CoinMarketData(id string) (models.CoinGeckoMarket, error) {
 	}
 
 	if resp.IsError() {
-		return models.CoinGeckoMarket{}, fmt.Errorf("failed to respond coingecko server: %s", err)
+		return models.CoinGeckoMarket{}, err
 	}
 
 	var data models.CoinGeckoMarket

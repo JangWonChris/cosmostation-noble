@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/config"
-	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/models"
 	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/schema"
 
 	"github.com/go-pg/pg"
@@ -17,8 +16,6 @@ import (
 var db *Database
 
 func TestMain(m *testing.M) {
-	models.SetAppConfig()
-
 	config := config.ParseConfig()
 	db = Connect(&config.DB)
 

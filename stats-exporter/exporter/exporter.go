@@ -56,9 +56,6 @@ func NewExporter() *Exporter {
 	// Create database tables if not exist already
 	db.CreateTables()
 
-	// Set Bech32 address prefixes and BIP44 coin type for Kava
-	// models.SetAppConfig()
-
 	return &Exporter{client, db}
 }
 
@@ -68,19 +65,19 @@ func (ex *Exporter) Start() error {
 	zap.S().Info("Starting Stat Exporter...")
 	zap.S().Infof("Version: %s Commit: %s", Version, Commit)
 
+	ex.SaveValidatorsStats1H()
+
 	c := cron.New(
 		cron.WithLocation(time.UTC),
 	)
 
-	// Run every 5 minutes
-	// @every 5m
+	// Run every 5 minutes: @every 5m
 	c.AddFunc("@every 5m", func() {
 		ex.SaveStatsMarket5M()
 		zap.S().Info("successfully saved data @every 5m ")
 	})
 
-	// Run once an hour
-	// @hourly or @every 1h
+	// Run once an hour: @hourly or @every 1h
 	c.AddFunc("@hourly", func() { // same as 0 * * * * *
 		ex.SaveStatsMarket1H()
 		ex.SaveNetworkStats1H()
@@ -88,8 +85,7 @@ func (ex *Exporter) Start() error {
 		zap.S().Info("successfully saved data @hourly ")
 	})
 
-	// Run once a day
-	// @daily or @midnight
+	// Run once a day: @daily or @midnight
 	c.AddFunc("@midnight", func() { // same as 0 0 * * *
 		ex.SaveStatsMarket1D()
 		ex.SaveNetworkStats1D()

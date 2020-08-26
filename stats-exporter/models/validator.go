@@ -15,7 +15,7 @@ const (
 	UnbondedValidatorStatus = 0
 )
 
-// Validator defines the structure for validator
+// Validator defines the structure for validator information.
 type Validator struct {
 	OperatorAddress string `json:"operator_address"`
 	ConsensusPubkey string `json:"consensus_pubkey"`
@@ -42,20 +42,20 @@ type Validator struct {
 	MinSelfDelegation string `json:"min_self_delegation"`
 }
 
-// ValidatorDelegation defines the structure for delegations for a validator
+// ValidatorDelegation defines the structure for delegations for a validator.
 type ValidatorDelegation struct {
 	DelegatorAddress string `json:"delegator_address"`
 	ValidatorAddress string `json:"validator_address"`
 	Shares           string `json:"shares"`
 	Balance          string `json:"balance"`
-	// Balance          Coin   `json:"balance"`
+	// Balance          Coin   `json:"balance"` // Will be used in next version
 }
 
-// SelfDelegation defines the structure for self-bonded delegation
+// SelfDelegation defines the structure for self-bonded delegation.
 type SelfDelegation struct {
 	DelegatorAddress string `json:"delegator_address"`
 	ValidatorAddress string `json:"validator_address"`
 	Shares           string `json:"shares"`
 	Balance          string `json:"balance"`
-	// Balance          Coin   `json:"balance"`
+	// Balance          Coin   `json:"balance"` // Will be used in next version
 }

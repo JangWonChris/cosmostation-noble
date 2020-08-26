@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// CoinGeckoMarket defines the structure for CoinGecko Market API
+// CoinGeckoMarket defines the structure for CoinGecko Market API response.
 type (
 	CoinGeckoMarket struct {
 		ID                  string          `json:"id"`
