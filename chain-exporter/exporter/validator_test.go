@@ -59,3 +59,8 @@ func TestParseMsgBeginRedelegate(t *testing.T) {
 		require.NotNil(t, msgBeginRedelegate)
 	}
 }
+
+func TestValidatorRank(t *testing.T) {
+	ex := NewExporter()
+	ex.saveValidators()
+}
