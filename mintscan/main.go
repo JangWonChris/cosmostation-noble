@@ -85,7 +85,7 @@ func main() {
 	r.HandleFunc("/staking/redelegations", handler.GetRedelegations).Methods("GET")
 
 	// deprecated
-	r.HandleFunc("/account/balance/{accAddr}", handler.GetAccountBalance).Methods("GET")
+	r.HandleFunc("/account/balance/{accAddr}", handler.GetLegacyAccountBalance).Methods("GET")
 	r.HandleFunc("/account/commission/{accAddr}", handler.GetValidatorCommission).Methods("GET")                      // /account/validator/commission/...
 	r.HandleFunc("/account/unbonding-delegations/{accAddr}", handler.GetDelegatorUnbondingDelegations).Methods("GET") // /acount/unbonding_delegations/...
 
