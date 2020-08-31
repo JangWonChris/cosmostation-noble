@@ -85,7 +85,7 @@ func GetNetworkStats(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// query 24 network stats
-	network1HStats, err := s.db.QueryNetworkStats(limit)
+	network1HStats, err := s.db.QueryNetworkStats1H(limit)
 	if err != nil {
 		model.Respond(rw, schema.StatsNetwork1H{})
 		return

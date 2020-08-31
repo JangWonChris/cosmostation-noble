@@ -106,7 +106,7 @@ func GetValidator(rw http.ResponseWriter, r *http.Request) {
 
 	val, err := s.db.QueryValidatorByAny(address)
 	if err != nil {
-		zap.L().Debug("failed to query validator informatino", zap.Error(err))
+		zap.L().Debug("failed to query validator information", zap.Error(err))
 		errors.ErrNotExist(rw, http.StatusNotFound)
 		return
 	}
@@ -171,14 +171,19 @@ func GetValidatorUptime(rw http.ResponseWriter, r *http.Request) {
 
 	val, err := s.db.QueryValidatorByAny(address)
 	if err != nil {
-		zap.L().Debug("failed to query validator info", zap.Error(err))
+		zap.S().Errorf("failed to query validator information: %s", err)
+		return
+	}
+
+	if val.Address == "" {
 		errors.ErrNotExist(rw, http.StatusNotFound)
 		return
 	}
 
-	latestHeight, _ := s.db.QueryLatestBlockHeight()
-	if latestHeight == -1 {
-		zap.L().Debug("failed to query latest block height", zap.Int64("latestHeight", latestHeight))
+	latestHeight, err := s.db.QueryLatestBlockHeight()
+	if err != nil {
+		zap.S().Errorf("failed to query latest block height: %s", err)
+		return
 	}
 
 	result := make([]*model.ResultMissesDetail, 0)
@@ -328,7 +333,11 @@ func GetValidatorPowerHistoryEvents(rw http.ResponseWriter, r *http.Request) {
 
 	val, err := s.db.QueryValidatorByAny(address)
 	if err != nil {
-		zap.L().Error("failed to query validator info", zap.Error(err))
+		zap.S().Errorf("failed to query validator information: %s", err)
+		return
+	}
+
+	if val.Address == "" {
 		errors.ErrNotExist(rw, http.StatusNotFound)
 		return
 	}
@@ -379,7 +388,11 @@ func GetValidatorEventsTotalCount(rw http.ResponseWriter, r *http.Request) {
 
 	val, err := s.db.QueryValidatorByAny(address)
 	if err != nil {
-		zap.L().Error("failed to query validator info", zap.Error(err))
+		zap.S().Errorf("failed to query validator information: %s", err)
+		return
+	}
+
+	if val.Address == "" {
 		errors.ErrNotExist(rw, http.StatusNotFound)
 		return
 	}

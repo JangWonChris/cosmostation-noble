@@ -34,8 +34,11 @@ func GetProposals(rw http.ResponseWriter, r *http.Request) {
 	result := make([]*model.ResultProposal, 0)
 
 	for _, p := range proposals {
-		// Error doesn't need to be handled since any accoount can propose proposal
-		val, _ := s.db.QueryValidatorByAny(p.Proposer)
+		val, err := s.db.QueryValidatorByAny(p.Proposer)
+		if err != nil {
+			zap.S().Errorf("failed to query validator information: %s", err)
+			return
+		}
 
 		proposal := &model.ResultProposal{
 			ProposalID:           p.ID,
@@ -81,7 +84,11 @@ func GetProposal(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Error doesn't need to be handled since any accoount can propose proposal
-	val, _ := s.db.QueryValidatorByAny(p.Proposer)
+	val, err := s.db.QueryValidatorByAny(p.Proposer)
+	if err != nil {
+		zap.S().Errorf("failed to query validator information: %s", err)
+		return
+	}
 
 	result := &model.ResultProposal{
 		ProposalID:           p.ID,
@@ -133,8 +140,11 @@ func GetDeposits(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, d := range deposits {
-		// Error doesn't need to be handled since any accoount can propose proposal
-		val, _ := s.db.QueryValidatorByAny(d.Depositor)
+		val, err := s.db.QueryValidatorByAny(d.Depositor)
+		if err != nil {
+			zap.S().Errorf("failed to query validator information: %s", err)
+			return
+		}
 
 		deposit := &model.ResultDeposit{
 			Depositor:     d.Depositor,
@@ -179,8 +189,11 @@ func GetVotes(rw http.ResponseWriter, r *http.Request) {
 	rv := make([]*model.Votes, 0)
 
 	for _, v := range votes {
-		// Error doesn't need to be handled since any accoount can propose proposal
-		val, _ := s.db.QueryValidatorByAny(v.Voter)
+		val, err := s.db.QueryValidatorByAny(v.Voter)
+		if err != nil {
+			zap.S().Errorf("failed to query validator information: %s", err)
+			return
+		}
 
 		vote := &model.Votes{
 			Voter:   v.Voter,
