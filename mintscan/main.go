@@ -12,6 +12,7 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/db"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/handler"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/log"
+
 	"go.uber.org/zap"
 
 	"github.com/gorilla/mux"
@@ -43,8 +44,6 @@ func main() {
 		return
 	}
 
-	// Set Bech32 address prefixes and BIP44 coin type for Kava
-	// model.SetAppConfig()
 	r := mux.NewRouter()
 	r = r.PathPrefix("/v1").Subrouter()
 	r.HandleFunc("/auth/accounts/{accAddr}", handler.GetAccount).Methods("GET")
@@ -56,7 +55,6 @@ func main() {
 	r.HandleFunc("/account/txs/{accAddr}", handler.GetAccountTxs).Methods("GET")                                // Mobile
 	r.HandleFunc("/account/txs/{accAddr}/{valAddr}", handler.GetTxsBetweenDelegatorAndValidator).Methods("GET") // Mobile
 	r.HandleFunc("/account/transfer_txs/{accAddr}", handler.GetAccountTransferTxs).Methods("GET")               // Mobile
-	// r.HandleFunc("/module/accounts", handler.GetModuleAccounts).Methods("GET")
 	r.HandleFunc("/blocks", handler.GetBlocks).Methods("GET")
 	r.HandleFunc("/blocks/{proposer}", handler.GetBlocksByProposer).Methods("GET")
 	r.HandleFunc("/distribution/delegators/{delAddr}/rewards/{valAddr}", handler.GetRewardsBetweenDelegatorAndValidator).Methods("GET")
@@ -84,24 +82,25 @@ func main() {
 	r.HandleFunc("/staking/validator/events/{address}/count", handler.GetValidatorEventsTotalCount).Methods("GET")
 	r.HandleFunc("/staking/redelegations", handler.GetRedelegations).Methods("GET")
 
-	// deprecated
+	// These will be deprecated in next update.
 	r.HandleFunc("/account/balance/{accAddr}", handler.GetLegacyAccountBalance).Methods("GET")
-	r.HandleFunc("/account/commission/{accAddr}", handler.GetValidatorCommission).Methods("GET")                      // /account/validator/commission/...
-	r.HandleFunc("/account/unbonding-delegations/{accAddr}", handler.GetDelegatorUnbondingDelegations).Methods("GET") // /acount/unbonding_delegations/...
-
+	r.HandleFunc("/account/commission/{accAddr}", handler.GetValidatorCommission).Methods("GET")                      // equals to /account/validator/commission/...
+	r.HandleFunc("/account/unbonding-delegations/{accAddr}", handler.GetDelegatorUnbondingDelegations).Methods("GET") // equals to /acount/unbonding_delegations/...
 	r.HandleFunc("/tx/{hash}", handler.GetLegacyTransactionFromDB).Methods("GET")
+	r.HandleFunc("/staking/validator/misses/detail/{address}", handler.GetValidatorUptime).Methods("GET") // equals to /staking/validator/updatime/...
+	r.HandleFunc("/staking/validator/misses/{address}", handler.GetValidatorUptimeRange).Methods("GET")   // equals to /staking/validator/uptime/range/...
 
-	r.HandleFunc("/staking/validator/misses/detail/{address}", handler.GetValidatorUptime).Methods("GET") // /staking/validator/updatime/...
-	r.HandleFunc("/staking/validator/misses/{address}", handler.GetValidatorUptimeRange).Methods("GET")   // /staking/validator/uptime/range/...
+	// For next update.
+	// r.HandleFunc("/module/accounts", handler.GetModuleAccounts).Methods("GET")
 
 	sm := &http.Server{
 		Addr:         ":" + config.Web.Port,
 		Handler:      handler.Middleware(r, client, db),
 		ReadTimeout:  10 * time.Second, // max time to read request from the client
-		WriteTimeout: 10 * time.Second, // max time to write response to the client4
+		WriteTimeout: 10 * time.Second, // max time to write response to the client
 	}
 
-	// Start the Mintscan API server
+	// Start the Mintscan API server.
 	go func() {
 		zap.S().Infof("Server is running on http://localhost:%s", config.Web.Port)
 
@@ -114,16 +113,16 @@ func main() {
 	TrapSignal(sm)
 }
 
-// TrapSignal traps sigterm or interupt and gracefully shutdown the server
+// TrapSignal traps sigterm or interupt and gracefully shutdown the server.
 func TrapSignal(sm *http.Server) {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	signal.Notify(c, os.Kill)
 
-	// block until a signal is received.
+	// Block until a signal is received.
 	sig := <-c
 
-	// gracefully shutdown the server, waiting max 30 seconds for current operations to complete
+	// Gracefully shutdown the server, waiting max 30 seconds for current operations to complete.
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	sm.Shutdown(ctx)
