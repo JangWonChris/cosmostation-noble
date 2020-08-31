@@ -26,13 +26,7 @@ const (
 	MissingAllBlocks = 100
 )
 
-type Uptime struct {
-	Address      string `json:"address"`
-	MissedBlocks int    `json:"missed_blocks"`
-	OverBlocks   int    `json:"over_blocks"`
-}
-
-// Validator is a struct for REST API
+// Validator defines the structure for a validator information.
 type Validator struct {
 	OperatorAddress string `json:"operator_address"`
 	ConsensusPubkey string `json:"consensus_pubkey"`
@@ -59,7 +53,14 @@ type Validator struct {
 	MinSelfDelegation string `json:"min_self_delegation"`
 }
 
-// ValidatorDelegations is a struct for REST API
+// Uptime defines the structure for a validator's liveness of the last 100 blocks.
+type Uptime struct {
+	Address      string `json:"address"`
+	MissedBlocks int    `json:"missed_blocks"`
+	OverBlocks   int    `json:"over_blocks"`
+}
+
+// ValidatorDelegations defines the structure for validator's delegations.
 type ValidatorDelegations struct {
 	DelegatorAddress string  `json:"delegator_address"`
 	ValidatorAddress string  `json:"validator_address"`
@@ -67,7 +68,7 @@ type ValidatorDelegations struct {
 	Amount           string  `json:"amount"`
 }
 
-// Redelegations is a struct for REST API
+// Redelegations defines the structure for delegator's redeletations.
 type Redelegations struct {
 	DelegatorAddress    string `json:"delegator_address"`
 	ValidatorSrcAddress string `json:"validator_src_address"`

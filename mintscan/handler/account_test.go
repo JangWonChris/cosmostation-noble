@@ -12,7 +12,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/supply/exported"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/client"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/config"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/libs/bech32"
@@ -23,8 +22,6 @@ import (
 var iclient *client.Client
 
 func TestMain(m *testing.M) {
-	model.SetAppConfig()
-
 	config := config.ParseConfig()
 	iclient, _ = client.NewClient(config.Node, config.Market)
 
@@ -35,12 +32,10 @@ func TestModuleAccounts(t *testing.T) {
 	tmdb := tdb.NewMemDB()
 	// gapp := app.NewGaiaApp(tlog.NewTMLogger(tlog.NewSyncWriter(os.Stdout)), tmdb, nil, true, 0)
 	sapp := simapp.NewSimApp(tlog.NewTMLogger(tlog.NewSyncWriter(os.Stdout)), tmdb, nil, true, 0)
-	// kavaApp := app.NewApp(log.NewTMLogger(log.NewSyncWriter(os.Stdout)), tmdb, nil, true, map[int64]bool{}, 0)
 
 	// modAccAddrs := gapp.ModuleAccountAddrs()
 	modAccAddrs := sapp.ModuleAccountAddrs()
 	authtypes.ModuleCdc.RegisterConcrete(&auth.BaseAccount{}, "cosmos-sdk/ModuleAccount", nil)
-	// fmt.Println(sitypes.NewModuleAddress("fee_colletor"))
 
 	a := crypto.AddressHash([]byte("fee_collector"))
 	s, _ := bech32.ConvertAndEncode(sdk.GetConfig().GetBech32AccountAddrPrefix(), a.Bytes())

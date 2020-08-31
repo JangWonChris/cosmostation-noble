@@ -5,23 +5,23 @@ import (
 )
 
 const (
-	Kava           = "kava"
-	Binance        = "binancecoin"
-	BNB            = "bnb"
-	USDX           = "usdx"
-	USDXStableCoin = "usdx-stablecoin"
+	// Cosmos is the coin id of Cosmos Network for CoinGecko API.
+	Cosmos = "cosmos"
 )
 
+// PriceStats defines the structure for price statistics.
 type PriceStats struct {
 	Price float64   `json:"price"`
 	Time  time.Time `json:"time"`
 }
 
+// NetworkInfo defines the structure for chain's network information.
 type NetworkInfo struct {
 	BondendTokensPercentChange24H float64              `json:"bonded_tokens_percent_change_24h"`
 	BondedTokensStats             []*BondedTokensStats `json:"bonded_tokens_stats"`
 }
 
+// BondedTokensStats defines the structure for bonded tokens statistics.
 type BondedTokensStats struct {
 	BondedTokens float64   `json:"bonded_tokens"`
 	BondedRatio  float64   `json:"bonded_ratio"`

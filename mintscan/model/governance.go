@@ -16,16 +16,7 @@ const (
 	ABSTAIN = "Abstain"
 )
 
-// Votes defines the structure for proposal votes.
-type Votes struct {
-	Voter   string    `json:"voter"`
-	Moniker string    `json:"moniker" sql:"default:null"`
-	Option  string    `json:"option"`
-	TxHash  string    `json:"tx_hash"`
-	Time    time.Time `json:"time"`
-}
-
-// Proposal is a struct for REST API
+// Proposal defines the structure for a proposal information.
 type Proposal struct {
 	Content struct {
 		Type  string `json:"type"`
@@ -52,7 +43,16 @@ type Proposal struct {
 	VotingEndTime   time.Time `json:"voting_end_time"`
 }
 
-// Tally is a struct for REST API
+// Votes defines the structure for proposal votes.
+type Votes struct {
+	Voter   string    `json:"voter"`
+	Moniker string    `json:"moniker" sql:"default:null"`
+	Option  string    `json:"option"`
+	TxHash  string    `json:"tx_hash"`
+	Time    time.Time `json:"time"`
+}
+
+// Tally defines the structure for a proposal's tally information.
 type Tally struct {
 	Yes        string `json:"yes"`
 	Abstain    string `json:"abstain"`

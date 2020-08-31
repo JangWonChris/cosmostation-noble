@@ -12,7 +12,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// GetBlocks returns latest blocks
+// GetBlocks returns blocks with given params.
 func GetBlocks(rw http.ResponseWriter, r *http.Request) {
 	before, after, limit, err := model.ParseHTTPArgsWithBeforeAfterLimit(r, model.DefaultBefore, model.DefaultAfter, model.DefaultLimit)
 	if err != nil {
@@ -38,7 +38,7 @@ func GetBlocks(rw http.ResponseWriter, r *http.Request) {
 	for _, block := range blocks {
 		validator, err := s.db.QueryValidatorByAny(block.Proposer)
 		if err != nil {
-			zap.L().Error("failed to query validator by proposer", zap.Error(err))
+			zap.S().Error("failed to query validator by proposer", zap.Error(err))
 			return
 		}
 
@@ -74,7 +74,7 @@ func GetBlocks(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// GetBlocksByProposer returns blocks that are proposed by a proposer
+// GetBlocksByProposer returns blocks that are proposed by the proposer.
 func GetBlocksByProposer(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	proposer := vars["proposer"]
@@ -93,7 +93,12 @@ func GetBlocksByProposer(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Query validator information by any type of bech32 address, even moniker.
-	val, _ := s.db.QueryValidatorByAny(proposer)
+	val, err := s.db.QueryValidatorByAny(proposer)
+	if err != nil {
+		zap.S().Errorf("failed to query validator information: %s", err)
+		return
+	}
+
 	if val.Proposer == "" {
 		errors.ErrNotExist(rw, http.StatusNotFound)
 		return

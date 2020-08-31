@@ -18,6 +18,14 @@ import (
 	"github.com/gorilla/mux"
 )
 
+var (
+	// Version is a project's version string.
+	Version = "Development"
+
+	// Commit is commit hash of this project.
+	Commit = ""
+)
+
 func main() {
 	// Create custom logger with a combination of using uber/zap and lumberjack.v2.
 	l, _ := log.NewCustomLogger()
@@ -103,6 +111,7 @@ func main() {
 	// Start the Mintscan API server.
 	go func() {
 		zap.S().Infof("Server is running on http://localhost:%s", config.Web.Port)
+		zap.S().Infof("Network Type: %s | Version: %s | Commit: %s", config.Node.NetworkType, Version, Commit)
 
 		err := sm.ListenAndServe()
 		if err != nil {

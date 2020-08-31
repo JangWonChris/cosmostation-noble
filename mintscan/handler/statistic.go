@@ -18,7 +18,7 @@ const (
 // GetMarketStats returns market statistics
 // TODO: find better and cleaner way to handle this API.
 func GetMarketStats(rw http.ResponseWriter, r *http.Request) {
-	resp, err := s.client.GetCoinGeckoMarketData(model.Kava)
+	resp, err := s.client.GetCoinGeckoMarketData(model.Cosmos)
 	if err != nil {
 		zap.L().Error("failed to get market data from CoinGecko", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)

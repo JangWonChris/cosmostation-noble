@@ -15,19 +15,10 @@ func GetCoinPrice(rw http.ResponseWriter, r *http.Request) {
 	coinID := vars["id"]
 
 	switch coinID {
-	case model.Kava:
-		coinID = model.Kava
-	case model.BNB:
-		coinID = model.Binance
-	case model.Binance:
-		coinID = model.Binance
-	case model.USDX:
-		coinID = model.USDXStableCoin
-	case model.USDXStableCoin:
-		coinID = model.USDXStableCoin
-
+	case model.Cosmos:
+		coinID = model.Cosmos
 	default:
-		coinID = model.Kava
+		coinID = model.Cosmos
 	}
 
 	result, err := s.client.GetCoinGeckoCoinPrice(coinID)

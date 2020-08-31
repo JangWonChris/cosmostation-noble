@@ -6,12 +6,13 @@ import (
 )
 
 const (
+	// Currency is the currency
 	Currency = "USD"
 )
 
-// GetCoinGeckoMarketData defines the structure for CoinGecko Market API
+// CoinGeckoMarketData defines the structure for CoinGecko Market API response.
 type (
-	GetCoinGeckoMarketData struct {
+	CoinGeckoMarketData struct {
 		ID                  string          `json:"id"`
 		Symbol              string          `json:"symbol"`
 		Name                string          `json:"name"`
@@ -75,7 +76,7 @@ type (
 		Tickers             json.RawMessage `json:"tickers"`
 	}
 
-	// CoinMarketCurrencies wraps the structure for market currencies
+	// CoinMarketCurrencies wraps the structure for market currencies.
 	CoinMarketCurrencies struct {
 		Aed float64 `json:"aed"`
 		Ars float64 `json:"ars"`
@@ -134,14 +135,14 @@ type (
 	}
 )
 
-// GetCoinGeckoMarketDataChart defines the structure for CoinGecko Market Chart API
-type GetCoinGeckoMarketDataChart struct {
+// CoinGeckoMarketDataChart defines the structure for CoinGecko Market Chart API response.
+type CoinGeckoMarketDataChart struct {
 	Prices       [][]float64 `json:"prices"`
 	MarketCaps   [][]float64 `json:"market_caps"`
 	TotalVolumes [][]float64 `json:"total_volumes"`
 }
 
-// CoinGeckoCoinList defines the structure for CoinGecko Coin List
+// CoinGeckoCoinList defines the structure for CoinGecko Coin List API response.
 type CoinGeckoCoinList struct {
 	ID     string `json:"id"`
 	Symbol string `json:"symbol"`

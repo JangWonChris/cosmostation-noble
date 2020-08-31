@@ -8,7 +8,7 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/schema"
 )
 
-// ResultBlock is a struct for block result response.
+// ResultBlock defines the structure for block result response.
 type ResultBlock struct {
 	ID                     int64     `json:"id,omitempty"`
 	Height                 int64     `json:"height"`
@@ -24,7 +24,7 @@ type ResultBlock struct {
 	Timestamp              time.Time `json:"timestamp"`
 }
 
-// ResultDelegations is a struct for delegations result response
+// ResultDelegations defines the structure for delegations result response.
 type ResultDelegations struct {
 	DelegatorAddress string `json:"delegator_address"`
 	ValidatorAddress string `json:"validator_address"`
@@ -36,7 +36,7 @@ type ResultDelegations struct {
 	Rewards []Coin `json:"delegator_rewards"`
 }
 
-// ResultProposal is a struct for proposal result response
+// ResultProposal defines the structure for proposal result response.
 type ResultProposal struct {
 	ProposalID           int64     `json:"proposal_id"`
 	TxHash               string    `json:"tx_hash"`
@@ -60,18 +60,18 @@ type ResultProposal struct {
 	VotingEndTime        time.Time `json:"voting_end_time"`
 }
 
-// ResultInflation is a struct for inflation result response
+// ResultInflation defines the structure for inflation result response
 type ResultInflation struct {
 	Inflation float64 `json:"inflation"`
 }
 
-// ResultVote is a struct for vote information result response
+// ResultVote defines the structure for vote information result response.
 type ResultVote struct {
 	Tally *ResultTally `json:"tally"`
 	Votes []*Votes     `json:"votes"`
 }
 
-// ResultProposalDetail is a struct for deposit detail information result response
+// ResultProposalDetail defines the structure for deposit detail information result response.
 type ResultProposalDetail struct {
 	ProposalID         int64          `json:"proposal_id"`
 	TotalVotesNum      int            `json:"total_votes_num"`
@@ -80,7 +80,7 @@ type ResultProposalDetail struct {
 	DepositInfo        schema.Deposit `json:"deposit_info"`
 }
 
-// ResultStatus is a struct for status result response
+// ResultStatus defines the structure for status result response.
 type ResultStatus struct {
 	ChainID                string    `json:"chain_id"`
 	BlockHeight            int64     `json:"block_height"`
@@ -96,7 +96,7 @@ type ResultStatus struct {
 	Timestamp              time.Time `json:"timestamp"`
 }
 
-// ResultValidator is a struct for validator result response
+// ResultValidator defines the structure for validator result response.
 type ResultValidator struct {
 	Rank                 int       `json:"rank"`
 	AccountAddress       string    `json:"account_address"`
@@ -121,7 +121,7 @@ type ResultValidator struct {
 	KeybaseURL           string    `json:"keybase_url"`
 }
 
-// ResultValidatorDetail is a struct for validator detail result response
+// ResultValidatorDetail defines the structure for validator detail result response.
 type ResultValidatorDetail struct {
 	Rank                 int       `json:"rank"`
 	AccountAddress       string    `json:"account_address"`
@@ -148,7 +148,7 @@ type ResultValidatorDetail struct {
 	KeybaseURL           string    `json:"keybase_url"`
 }
 
-// ResultMisses is a struct for validator miss blocks result response
+// ResultMisses defines the structure for validator miss blocks result response.
 type ResultMisses struct {
 	StartHeight  int64     `json:"start_height"`
 	EndHeight    int64     `json:"end_height"`
@@ -157,13 +157,13 @@ type ResultMisses struct {
 	EndTime      time.Time `json:"end_time"`
 }
 
-// ResultMissesDetail is a struct for validator miss block detail result response
+// ResultMissesDetail defines the structure for validator miss block detail result response.
 type ResultMissesDetail struct {
 	Height    int64     `json:"height"`
 	Timestamp time.Time `json:"timestamp"`
 }
 
-// ResultPowerEventHistory is a struct for validator voting power history result response
+// ResultPowerEventHistory defines the structure for validator voting power history result response.
 type ResultPowerEventHistory struct {
 	ID             int64     `json:"id"`
 	Height         int64     `json:"height"`
@@ -174,27 +174,27 @@ type ResultPowerEventHistory struct {
 	Timestamp      time.Time `json:"timestamp"`
 }
 
-// ResultVotingPowerHistoryCount wraps count for validator's power event history
+// ResultVotingPowerHistoryCount wraps count for validator's power event history.
 type ResultVotingPowerHistoryCount struct {
 	Moniker         string `json:"moniker"`
 	OperatorAddress string `json:"operator_address"`
 	Count           int    `json:"count"`
 }
 
-// ResultValidatorDelegations is a struct for validator delegations result response
+// ResultValidatorDelegations defines the structure for validator delegations result response.
 type ResultValidatorDelegations struct {
 	TotalDelegatorNum     int                     `json:"total_delegator_num"`
 	DelegatorNumChange24H int                     `json:"delegator_num_change_24h"`
 	ValidatorDelegations  []*ValidatorDelegations `json:"delegations"`
 }
 
-// ResultRewards is a struct for rewards result response
+// ResultRewards defines the structure for rewards result response.
 type ResultRewards struct {
 	Rewards []Rewards `json:"rewards"`
 	Total   []Coin    `json:"total"`
 }
 
-// ResultTally is a struct for tally result response
+// ResultTally defines the structure for tally result response.
 type ResultTally struct {
 	YesAmount        string `json:"yes_amount"`
 	AbstainAmount    string `json:"abstain_amount"`
@@ -206,7 +206,7 @@ type ResultTally struct {
 	NoWithVetoNum    int    `json:"no_with_veto_num"`
 }
 
-// ResultDeposit is a struct for deposit result response
+// ResultDeposit defines the structure for deposit result response.
 type ResultDeposit struct {
 	Depositor     string    `json:"depositor"`
 	Moniker       string    `json:"moniker" sql:"default:null"`
@@ -217,7 +217,7 @@ type ResultDeposit struct {
 	Timestamp     time.Time `json:"timestamp"`
 }
 
-// ResultMarket is a struct for market result response
+// ResultMarket defines the structure for market result response.
 type ResultMarket struct {
 	Price             float64       `json:"price"`
 	Currency          string        `json:"currency"`
@@ -232,7 +232,7 @@ type ResultMarket struct {
 	PriceStats        []*PriceStats `json:"price_stats"`
 }
 
-// ResultTx is a struct for txs result response
+// ResultTx defines the structure for txs result response.
 type ResultTx struct {
 	ID        int64     `json:"id"`
 	Height    int64     `json:"height"`
@@ -245,7 +245,7 @@ type ResultTx struct {
 	Timestamp string    `json:"timestamp"`
 }
 
-// Respond responds result of each API
+// Respond responds result of any data type.
 func Respond(w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")

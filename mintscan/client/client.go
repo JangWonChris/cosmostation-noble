@@ -239,22 +239,22 @@ func (c *Client) HandleResponseHeight(reqParam string) (model.ResponseWithHeight
 }
 
 // GetCoinGeckoMarketData returns current market data from CoinGecko API based upon params
-func (c *Client) GetCoinGeckoMarketData(id string) (model.GetCoinGeckoMarketData, error) {
+func (c *Client) GetCoinGeckoMarketData(id string) (model.CoinGeckoMarketData, error) {
 	queryStr := "/coins/" + id + "?localization=false&tickers=false&community_data=false&developer_data=false&sparkline=false"
 
 	resp, err := c.coinGeckoClient.R().Get(queryStr)
 	if err != nil {
-		return model.GetCoinGeckoMarketData{}, err
+		return model.CoinGeckoMarketData{}, err
 	}
 
 	if resp.IsError() {
-		return model.GetCoinGeckoMarketData{}, fmt.Errorf("failed to respond: %s", err)
+		return model.CoinGeckoMarketData{}, fmt.Errorf("failed to respond: %s", err)
 	}
 
-	var data model.GetCoinGeckoMarketData
+	var data model.CoinGeckoMarketData
 	err = json.Unmarshal(resp.Body(), &data)
 	if err != nil {
-		return model.GetCoinGeckoMarketData{}, err
+		return model.CoinGeckoMarketData{}, err
 	}
 
 	return data, nil

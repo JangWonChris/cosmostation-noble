@@ -14,43 +14,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-/*
-// GetModuleAccounts returns moudle accounts information.
-func GetModuleAccounts(rw http.ResponseWriter, r *http.Request) {
-	tmdb := db.NewMemDB()
-	kavaApp := simapp.NewApp(tmlog.NewTMLogger(tmlog.NewSyncWriter(os.Stdout)), tmdb, nil, true, map[int64]bool{}, 0)
-
-	moduleAccounts := make([]*model.ModuleAccount, 0)
-
-	for mAccAddr, permission := range kavaApp.ModuleAccountAddrs() {
-		if !permission {
-			continue
-		}
-
-		account, err := s.client.GetAccount(mAccAddr)
-		if err != nil {
-			zap.L().Error("failed to get module account information", zap.Error(err))
-			return
-		}
-
-		acc := account.(exported.ModuleAccountI)
-
-		ma := &model.ModuleAccount{
-			Address:       acc.GetAddress().String(),
-			AccountNumber: acc.GetAccountNumber(),
-			Coins:         acc.GetCoins(),
-			Permissions:   acc.GetPermissions(),
-			Name:          acc.GetName(),
-		}
-
-		moduleAccounts = append(moduleAccounts, ma)
-	}
-
-	model.Respond(rw, moduleAccounts)
-	return
-}
-*/
-
 // GetAccount returns general account information.
 func GetAccount(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -338,10 +301,7 @@ func GetValidatorCommission(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
-//-----------------------------------------------------------------------------
-// Mobile APIs
-
-// GetAccountTxs returns transactions that are sent by an account
+// GetAccountTxs returns transactions that are sent by an account.
 func GetAccountTxs(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	accAddr := vars["accAddr"]
@@ -397,7 +357,7 @@ func GetAccountTxs(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// GetAccountTransferTxs returns transfer txs (MsgSend and MsgMultiSend) that are sent by an account
+// GetAccountTransferTxs returns transfer txs (MsgSend and MsgMultiSend) that are sent by an account.
 func GetAccountTransferTxs(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	accAddr := vars["accAddr"]
@@ -453,7 +413,7 @@ func GetAccountTransferTxs(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// GetTxsBetweenDelegatorAndValidator returns transactions that are made between an account and his delegated validator
+// GetTxsBetweenDelegatorAndValidator returns transactions that are made between an account and his delegated validator.
 func GetTxsBetweenDelegatorAndValidator(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	accAddr := vars["accAddr"]

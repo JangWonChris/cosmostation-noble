@@ -6,19 +6,23 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/schema"
 )
 
+// TxData defines the structure for transction data list.
 type TxData struct {
 	Txs []string `json:"txs"`
 }
 
+// TxList defines the structure for transaction list.
 type TxList struct {
 	TxHash []string `json:"tx_list"`
 }
 
+// Message defines the structure for transaction message.
 type Message struct {
 	Type  string          `json:"type"`
 	Value json.RawMessage `json:"value"`
 }
 
+// Fee defines the structure for transaction fee.
 type Fee struct {
 	Gas    string `json:"gas,omitempty"`
 	Amount []struct {
@@ -27,6 +31,7 @@ type Fee struct {
 	} `json:"amount,omitempty"`
 }
 
+// Event defines the structure for transaction event.
 type Event struct {
 	Type       string `json:"type"`
 	Attributes []struct {
@@ -35,6 +40,7 @@ type Event struct {
 	} `json:"attributes"`
 }
 
+// Log defines the structure for transaction log.
 type Log struct {
 	MsgIndex int     `json:"msg_index"`
 	Log      string  `json:"log"`
@@ -72,6 +78,7 @@ func ParseTransaction(tx schema.Transaction) (result *ResultTx, err error) {
 		Fee:       fee,
 		Timestamp: tx.Timestamp,
 	}
+
 	return result, nil
 }
 
