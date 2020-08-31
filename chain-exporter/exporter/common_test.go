@@ -26,7 +26,7 @@ func commonTxParser(txHash string) (sdkTypes.TxResponse, auth.StdTx, error) {
 	}
 
 	if txResponse.Empty() {
-		return sdkTypes.TxResponse{}, auth.StdTx{}, fmt.Errorf("empty tx")
+		return sdkTypes.TxResponse{}, auth.StdTx{}, nil
 	}
 
 	stdTx, ok := txResponse.Tx.(auth.StdTx)

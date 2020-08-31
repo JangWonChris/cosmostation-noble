@@ -60,9 +60,6 @@ func NewExporter() *Exporter {
 	// Setup database tables
 	db.CreateTables()
 
-	// Set Bech32 address prefixes and BIP44 coin type for Cosmos
-	// types.SetAppConfig()
-
 	return &Exporter{cfg, ceCodec.Codec, client, db}
 }
 
@@ -156,8 +153,7 @@ func (ex *Exporter) process(height int64) error {
 	}
 
 	// First block has no previous block and no pre-commits.
-	// Handle this to save first block information
-	// var resultGenesisAccounts []schema.Account
+	// Handle this to save first block information.
 	prevBlock := new(tmctypes.ResultBlock)
 	prevBlockHeight := block.Block.LastCommit.Height()
 	if prevBlockHeight == 0 {
@@ -169,19 +165,6 @@ func (ex *Exporter) process(height int64) error {
 			return fmt.Errorf("failed to query previous block: %s", err)
 		}
 	}
-
-	// if height == 1 {
-	// var genesisAccts exported.GenesisAccounts
-	// genesisAccts, err = ex.client.GetGenesisAccounts()
-	// if err != nil {
-	// 	return fmt.Errorf("failed to get genesis accounts: %s", err)
-	// }
-
-	// resultGenesisAccounts, err = ex.getGenesisAccounts(genesisAccts)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to get block: %s", err)
-	// }
-	// }
 
 	vals, err := ex.client.GetValidators(prevBlockHeight, types.DefaultQueryValidatorsPage, types.DefaultQueryValidatorsPerPage)
 	if err != nil {
@@ -202,11 +185,6 @@ func (ex *Exporter) process(height int64) error {
 	if err != nil {
 		return fmt.Errorf("failed to get genesis validator set: %s", err)
 	}
-
-	// resultAccounts, err := ex.getAccounts(block, txs)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to get accounts: %s", err)
-	// }
 
 	resultMissBlocks, resultAccumulatedMissBlocks, resultMissDetailBlocks, err := ex.getValidatorsUptime(prevBlock, block, vals)
 	if err != nil {
@@ -233,17 +211,12 @@ func (ex *Exporter) process(height int64) error {
 		return fmt.Errorf("failed to get transactions: %s", err)
 	}
 
-	// TODO: is this right place to be?
 	if ex.config.Alarm.Switch {
 		ex.handlePushNotification(block, txs)
 	}
 
 	err = ex.db.InsertExportedData(schema.ExportData{
-		// ResultAccounts: resultAccounts,
-		ResultAccounts: nil,
-		ResultBlock:    resultBlock,
-		// ResultGenesisAccounts:             resultGenesisAccounts,
-		ResultGenesisAccounts:             nil,
+		ResultBlock:                       resultBlock,
 		ResultTxs:                         resultTxs,
 		ResultEvidence:                    resultEvidence,
 		ResultMissBlocks:                  resultMissBlocks,
@@ -257,7 +230,7 @@ func (ex *Exporter) process(height int64) error {
 	})
 
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to insert exported data: %s", err)
 	}
 
 	return nil

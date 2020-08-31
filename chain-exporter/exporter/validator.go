@@ -10,7 +10,7 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 	"go.uber.org/zap"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkTypes "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/staking"
 
@@ -18,7 +18,7 @@ import (
 )
 
 // getPowerEventHistory returns voting power event history of validators by decoding transactions in a block.
-func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*sdk.TxResponse) ([]schema.PowerEventHistory, error) {
+func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*sdkTypes.TxResponse) ([]schema.PowerEventHistory, error) {
 	powerEventHistory := make([]schema.PowerEventHistory, 0)
 
 	if len(txResp) <= 0 {
@@ -47,7 +47,7 @@ func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*
 			// id_validator may overlap. Needs to find other way to handle this.
 			highestIDValidatorNum, _ := ex.db.QueryHighestValidatorID()
 
-			newVotingPowerAmount, _ := strconv.ParseFloat(msgCreateValidator.Value.Amount.String(), 64) // parseFloat from sdk.Dec.String()
+			newVotingPowerAmount, _ := strconv.ParseFloat(msgCreateValidator.Value.Amount.String(), 64) // parseFloat from sdkTypes.Dec.String()
 			newVotingPowerAmount = float64(newVotingPowerAmount) / 1000000
 
 			peh := &schema.PowerEventHistory{
@@ -75,7 +75,7 @@ func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*
 			// Query id_validator of lastly inserted data.
 			validatorID, _ := ex.db.QueryValidatorID(valInfo.Proposer)
 
-			newVotingPowerAmount, _ := strconv.ParseFloat(msgDelegate.Amount.Amount.String(), 64) // parseFloat from sdk.Dec.String()
+			newVotingPowerAmount, _ := strconv.ParseFloat(msgDelegate.Amount.Amount.String(), 64) // parseFloat from sdkTypes.Dec.String()
 			newVotingPowerAmount = newVotingPowerAmount / 1000000
 
 			// Get current voting power of the validator.
@@ -121,7 +121,7 @@ func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*
 			// Query d_validator of lastly inserted data.
 			validatorID, _ := ex.db.QueryValidatorID(valInfo.Proposer)
 
-			newVotingPowerAmount, _ := strconv.ParseFloat(msgUndelegate.Amount.Amount.String(), 64) // parseFloat from sdk.Dec.String()
+			newVotingPowerAmount, _ := strconv.ParseFloat(msgUndelegate.Amount.Amount.String(), 64) // parseFloat from sdkTypes.Dec.String()
 			newVotingPowerAmount = -newVotingPowerAmount / 1000000                                  // needs to be negative value
 
 			// Get current voting power of the validator.

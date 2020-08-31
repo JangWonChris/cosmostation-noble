@@ -10,14 +10,14 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/context"
 	sdkCodec "github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkTypes "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	sdkUtils "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 	"github.com/cosmos/cosmos-sdk/x/auth/exported"
 	distr "github.com/cosmos/cosmos-sdk/x/distribution"
 	"github.com/cosmos/cosmos-sdk/x/distribution/client/common"
 	"github.com/cosmos/cosmos-sdk/x/staking"
-	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	stakingTypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
@@ -25,9 +25,7 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 
 	rpcclient "github.com/tendermint/tendermint/rpc/client"
-	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
-
-	// rpc "github.com/tendermint/tendermint/rpc"
+	tmcTypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	resty "github.com/go-resty/resty/v2"
 )
@@ -35,10 +33,9 @@ import (
 // Client implements a wrapper around both Tendermint RPC HTTP client and
 // Cosmos SDK REST client that allow for essential data queries.
 type Client struct {
-	cliCtx    context.CLIContext
-	cdc       *sdkCodec.Codec
-	rpcClient rpcclient.Client
-	// rpcClient     *rpc.HTTP
+	cliCtx        context.CLIContext
+	cdc           *sdkCodec.Codec
+	rpcClient     rpcclient.Client
 	apiClient     *resty.Client
 	keyBaseClient *resty.Client
 }
@@ -55,11 +52,6 @@ func NewClient(nodeCfg config.Node, keyBaseURL string) (*Client, error) {
 	if err := rpcClient.Start(); err != nil {
 		return &Client{}, err
 	}
-	// rpcClient, err := rpc.NewWithTimeout(nodeCfg.RPCNode, "/websocket", 5)
-	// if err != nil {
-	// 	return &Client{}, err
-	// }
-
 	apiClient := resty.New().
 		SetHostURL(nodeCfg.LCDEndpoint).
 		SetTimeout(time.Duration(5 * time.Second))
@@ -71,8 +63,9 @@ func NewClient(nodeCfg config.Node, keyBaseURL string) (*Client, error) {
 	return &Client{cliCtx, codec.Codec, rpcClient, apiClient, keyBaseClient}, nil
 }
 
-//-----------------------------------------------------------------------------
+// --------------------
 // RPC APIs
+// --------------------
 
 // GetNetworkChainID returns network chain id.
 func (c *Client) GetNetworkChainID() (string, error) {
@@ -84,13 +77,27 @@ func (c *Client) GetNetworkChainID() (string, error) {
 	return status.NodeInfo.Network, nil
 }
 
+// GetBondDenom returns bond denomination for the network.
+func (c *Client) GetBondDenom() (string, error) {
+	route := fmt.Sprintf("custom/%s/%s", stakingTypes.StoreKey, stakingTypes.QueryParameters)
+	bz, _, err := c.cliCtx.QueryWithData(route, nil)
+	if err != nil {
+		return "", err
+	}
+
+	var params stakingTypes.Params
+	c.cdc.MustUnmarshalJSON(bz, &params)
+
+	return params.BondDenom, nil
+}
+
 // GetStatus queries for status on the active chain.
-func (c *Client) GetStatus() (*tmctypes.ResultStatus, error) {
+func (c *Client) GetStatus() (*tmcTypes.ResultStatus, error) {
 	return c.rpcClient.Status()
 }
 
 // GetBlock queries for a block with height.
-func (c *Client) GetBlock(height int64) (*tmctypes.ResultBlock, error) {
+func (c *Client) GetBlock(height int64) (*tmcTypes.ResultBlock, error) {
 	return c.rpcClient.Block(&height)
 }
 
@@ -104,40 +111,15 @@ func (c *Client) GetLatestBlockHeight() (int64, error) {
 	return status.SyncInfo.LatestBlockHeight, nil
 }
 
-func (c Client) Validators(height int64) (*tmctypes.ResultValidators, error) {
+// GetValidators returns all the known Tendermint validators for a given block
+// height. An error is returned if the query fails.
+func (c *Client) GetValidators(height int64, page int, perPage int) (*tmcTypes.ResultValidators, error) {
+	// This method will change to c.rpcClient.Validators(&height, page, perPage) in above v0.38.+
 	return c.rpcClient.Validators(&height)
 }
 
-// GetValidators returns all the known Tendermint validators for a given block
-// height. An error is returned if the query fails.
-func (c *Client) GetValidators(height int64, page int, perPage int) (*tmctypes.ResultValidators, error) {
-	// return c.rpcClient.Validators(&height, page, perPage)
-	return c.Validators(height)
-}
-
-/*
-// GetGenesisAccounts extracts all genesis accounts from genesis file and return them.
-func (c *Client) GetGenesisAccounts() (exported.GenesisAccounts, error) {
-	gen, err := c.rpcClient.Genesis()
-	if err != nil {
-		return exported.GenesisAccounts{}, err
-	}
-
-	appState := make(map[string]json.RawMessage)
-	err = c.cdc.UnmarshalJSON(gen.Genesis.AppState, &appState)
-	if err != nil {
-		return exported.GenesisAccounts{}, err
-	}
-
-	genesisState := auth.GetGenesisStateFromAppState(c.cdc, appState)
-	genesisAccts := auth.SanitizeGenesisAccounts(genesisState.Accounts)
-
-	return genesisAccts, nil
-}
-*/
-
 // GetTendermintTx queries for a transaction by hash.
-func (c *Client) GetTendermintTx(hash string) (*tmctypes.ResultTx, error) {
+func (c *Client) GetTendermintTx(hash string) (*tmcTypes.ResultTx, error) {
 	hashRaw, err := hex.DecodeString(hash)
 	if err != nil {
 		return nil, err
@@ -146,24 +128,10 @@ func (c *Client) GetTendermintTx(hash string) (*tmctypes.ResultTx, error) {
 	return c.rpcClient.Tx(hashRaw, false)
 }
 
-/*
-// GetTendermintTxSearch queries for a transaction search by condition.
-// TODO: need more tests. ex:) query := "tx.height=75960",prove := true, page := 1, perPage := 30, orderBy := "asc"
-// If this is not needed for this project, let's just remove.
-func (c *Client) GetTendermintTxSearch(query string, prove bool, page, perPage int, orderBy string) (*tmctypes.ResultTxSearch, error) {
-	txResp, err := c.rpcClient.TxSearch(query, prove, page, perPage, orderBy)
-	if err != nil {
-		return nil, err
-	}
-
-	return txResp, nil
-}
-*/
-
 // GetTxs queries for all the transactions in a block.
-// Transactions are returned in the sdk.TxResponse format which internally contains an sdk.Tx.
-func (c *Client) GetTxs(block *tmctypes.ResultBlock) ([]*sdk.TxResponse, error) {
-	txResponses := make([]*sdk.TxResponse, len(block.Block.Txs), len(block.Block.Txs))
+// Transactions are returned in the sdkTypes.TxResponse format which internally contains an sdkTypes.Tx.
+func (c *Client) GetTxs(block *tmcTypes.ResultBlock) ([]*sdkTypes.TxResponse, error) {
+	txResponses := make([]*sdkTypes.TxResponse, len(block.Block.Txs), len(block.Block.Txs))
 
 	if len(block.Block.Txs) <= 0 {
 		return txResponses, nil
@@ -183,14 +151,14 @@ func (c *Client) GetTxs(block *tmctypes.ResultBlock) ([]*sdk.TxResponse, error) 
 
 // GetTx queries for a single transaction by a hash string in hex format. An
 // error is returned if the transaction does not exist or cannot be queried.
-func (c *Client) GetTx(hash string) (sdk.TxResponse, error) {
+func (c *Client) GetTx(hash string) (sdkTypes.TxResponse, error) {
 	txResponse, err := sdkUtils.QueryTx(c.cliCtx, hash) // use RPC under the hood
 	if err != nil {
-		return sdk.TxResponse{}, fmt.Errorf("failed to query tx hash: %s", err)
+		return sdkTypes.TxResponse{}, fmt.Errorf("failed to query tx hash: %s", err)
 	}
 
 	if txResponse.Empty() {
-		return sdk.TxResponse{}, fmt.Errorf("tx hash has empty tx response: %s", err)
+		return sdkTypes.TxResponse{}, fmt.Errorf("tx hash has empty tx response: %s", err)
 	}
 
 	return txResponse, nil
@@ -198,7 +166,7 @@ func (c *Client) GetTx(hash string) (sdk.TxResponse, error) {
 
 // GetAccount checks account type and returns account interface.
 func (c *Client) GetAccount(address string) (exported.Account, error) {
-	accAddr, err := sdk.AccAddressFromBech32(address)
+	accAddr, err := sdkTypes.AccAddressFromBech32(address)
 	if err != nil {
 		return nil, err
 	}
@@ -212,15 +180,15 @@ func (c *Client) GetAccount(address string) (exported.Account, error) {
 }
 
 // GetValidatorCommission queries validator's commission and returns the coins with truncated decimals and the change.
-func (c *Client) GetValidatorCommission(address string) (sdk.Coins, error) {
-	valAddr, err := sdk.ValAddressFromBech32(address)
+func (c *Client) GetValidatorCommission(address string) (sdkTypes.Coins, error) {
+	valAddr, err := sdkTypes.ValAddressFromBech32(address)
 	if err != nil {
-		return sdk.Coins{}, err
+		return sdkTypes.Coins{}, err
 	}
 
 	res, err := common.QueryValidatorCommission(c.cliCtx, distr.QuerierRoute, valAddr)
 	if err != nil {
-		return sdk.Coins{}, err
+		return sdkTypes.Coins{}, err
 	}
 
 	var valCom distr.ValidatorAccumulatedCommission
@@ -233,7 +201,7 @@ func (c *Client) GetValidatorCommission(address string) (sdk.Coins, error) {
 
 // GetDelegatorDelegations returns a list of delegations made by a certain delegator address
 func (c *Client) GetDelegatorDelegations(address string) (staking.DelegationResponses, error) {
-	delAddr, err := sdk.AccAddressFromBech32(address)
+	delAddr, err := sdkTypes.AccAddressFromBech32(address)
 	if err != nil {
 		return staking.DelegationResponses{}, err
 	}
@@ -257,151 +225,22 @@ func (c *Client) GetDelegatorDelegations(address string) (staking.DelegationResp
 	return delegations, nil
 }
 
-// GetDelegatorUndelegations returns a list of undelegations made by a certain delegator address
-func (c *Client) GetDelegatorUndelegations(address string) (staking.UnbondingDelegations, error) {
-	delAddr, err := sdk.AccAddressFromBech32(address)
-	if err != nil {
-		return staking.UnbondingDelegations{}, err
-	}
-
-	bz, err := c.cdc.MarshalJSON(staking.NewQueryDelegatorParams(delAddr))
-	if err != nil {
-		return staking.UnbondingDelegations{}, err
-	}
-
-	route := fmt.Sprintf("custom/%s/%s", staking.QuerierRoute, staking.QueryDelegatorUnbondingDelegations)
-	res, _, err := c.cliCtx.QueryWithData(route, bz)
-	if err != nil {
-		return staking.UnbondingDelegations{}, err
-	}
-
-	var undelegations staking.UnbondingDelegations
-	if err := c.cdc.UnmarshalJSON(res, &undelegations); err != nil {
-		return staking.UnbondingDelegations{}, err
-	}
-
-	return undelegations, nil
-}
-
-// GetDelegatorTotalRewards returns the total rewards balance from all delegations by a delegator
-func (c *Client) GetDelegatorTotalRewards(address string) (distr.QueryDelegatorTotalRewardsResponse, error) {
-	delAddr, err := sdk.AccAddressFromBech32(address)
-	if err != nil {
-		return distr.QueryDelegatorTotalRewardsResponse{}, err
-	}
-
-	bz, err := c.cdc.MarshalJSON(distr.NewQueryDelegatorParams(delAddr))
-	if err != nil {
-		return distr.QueryDelegatorTotalRewardsResponse{}, err
-	}
-
-	route := fmt.Sprintf("custom/%s/%s", distr.QuerierRoute, distr.QueryDelegatorTotalRewards)
-	res, _, err := c.cliCtx.QueryWithData(route, bz)
-	if err != nil {
-		return distr.QueryDelegatorTotalRewardsResponse{}, err
-	}
-
-	var totalRewards distr.QueryDelegatorTotalRewardsResponse
-	if err := c.cdc.UnmarshalJSON(res, &totalRewards); err != nil {
-		return distr.QueryDelegatorTotalRewardsResponse{}, err
-	}
-
-	return totalRewards, nil
-}
-
-// GetBaseAccountTotalAsset returns total available, rewards, commission, delegations, and undelegations from a delegator.
-func (c *Client) GetBaseAccountTotalAsset(address string) (sdk.Coins, sdk.Coins, sdk.Coins, sdk.Coin, sdk.Coin, error) {
-	account, err := c.GetAccount(address)
-	if err != nil {
-		return sdk.Coins{}, sdk.Coins{}, sdk.Coins{}, sdk.Coin{}, sdk.Coin{}, err
-	}
-
-	denom, err := c.GetBondDenom()
-	if err != nil {
-		return sdk.Coins{}, sdk.Coins{}, sdk.Coins{}, sdk.Coin{}, sdk.Coin{}, err
-	}
-
-	// Get total spendable coins.
-	totalSpendable := account.GetCoins()
-
-	// Get total rewarded coins.
-	totalRewards, err := c.GetDelegatorTotalRewards(address)
-	if err != nil {
-		return sdk.Coins{}, sdk.Coins{}, sdk.Coins{}, sdk.Coin{}, sdk.Coin{}, err
-	}
-	truncatedTotalRewards, _ := totalRewards.Total.TruncateDecimal()
-
-	// Get total delegated coins.
-	delegations, err := c.GetDelegatorDelegations(address)
-	if err != nil {
-		return sdk.Coins{}, sdk.Coins{}, sdk.Coins{}, sdk.Coin{}, sdk.Coin{}, err
-	}
-
-	totalDelegations := sdk.NewCoin(denom, sdk.NewInt(0))
-	if 0 < len(delegations) {
-		for _, d := range delegations {
-			totalDelegations = totalDelegations.Add(sdk.NewCoin(denom, d.Balance))
-		}
-	}
-
-	undelegations, err := c.GetDelegatorUndelegations(address)
-	if err != nil {
-		return sdk.Coins{}, sdk.Coins{}, sdk.Coins{}, sdk.Coin{}, sdk.Coin{}, err
-	}
-
-	// Get total undelegated coins.
-	totalUndelegations := sdk.NewCoin(denom, sdk.NewInt(0))
-	if 0 < len(undelegations) {
-		for _, u := range undelegations {
-			for _, e := range u.Entries {
-				totalUndelegations = totalUndelegations.Add(sdk.NewCoin(denom, e.Balance))
-			}
-		}
-	}
-
-	// Get total validator's commission.
-	valAddr, err := types.ConvertValAddrFromAccAddr(address)
-	if err != nil {
-		return sdk.Coins{}, sdk.Coins{}, sdk.Coins{}, sdk.Coin{}, sdk.Coin{}, err
-	}
-
-	totalCommission, err := c.GetValidatorCommission(valAddr)
-	if err != nil {
-		return sdk.Coins{}, sdk.Coins{}, sdk.Coins{}, sdk.Coin{}, sdk.Coin{}, err
-	}
-
-	return totalSpendable, truncatedTotalRewards, totalCommission, totalDelegations, totalUndelegations, nil
-}
-
-// GetBondDenom returns bond denomination for the network.
-func (c *Client) GetBondDenom() (string, error) {
-	route := fmt.Sprintf("custom/%s/%s", stakingtypes.StoreKey, stakingtypes.QueryParameters)
-	bz, _, err := c.cliCtx.QueryWithData(route, nil)
-	if err != nil {
-		return "", err
-	}
-
-	var params stakingtypes.Params
-	c.cdc.MustUnmarshalJSON(bz, &params)
-
-	return params.BondDenom, nil
-}
-
-//-----------------------------------------------------------------------------
+// --------------------
 // REST SERVER APIs
+// --------------------
 
-// GetTxAPIClient queries for a transaction from the REST client and decodes it into a sdk.Tx [Another way to query a transaction.]
+// GetTxAPIClient queries for a transaction from the REST client and decodes it into a sdkTypes.Tx [Another way to query a transaction.]
 // if the transaction exists. An error is returned if the tx doesn't exist or
 // decoding fails.
-func (c *Client) GetTxAPIClient(hash string) (sdk.TxResponse, error) {
+func (c *Client) GetTxAPIClient(hash string) (sdkTypes.TxResponse, error) {
 	resp, err := c.apiClient.R().Get("/txs/" + hash)
 	if err != nil {
-		return sdk.TxResponse{}, fmt.Errorf("failed to request tx hash: %s", err)
+		return sdkTypes.TxResponse{}, fmt.Errorf("failed to request tx hash: %s", err)
 	}
 
-	var txResponse sdk.TxResponse
+	var txResponse sdkTypes.TxResponse
 	if err := c.cdc.UnmarshalJSON(resp.Body(), &txResponse); err != nil {
-		return sdk.TxResponse{}, fmt.Errorf("failed to unmarshal tx hash: %s", err)
+		return sdkTypes.TxResponse{}, fmt.Errorf("failed to unmarshal tx hash: %s", err)
 	}
 
 	return txResponse, nil
@@ -494,8 +333,6 @@ func (c *Client) GetBondedValidators() (validators []schema.Validator, err error
 	}
 
 	for i, val := range bondedVals {
-		// accAddr, _ := types.AccAddressFromOperatorAddress(val.OperatorAddress)
-		// consAddr, _ := types.ConsAddrFromConsPubkey(val.ConsensusPubkey)
 		accAddr, _ := types.ConvertAccAddrFromValAddr(val.OperatorAddress)
 		consAddr, _ := types.ConvertConsAddrFromConsPubkey(val.ConsensusPubkey)
 

@@ -1,5 +1,6 @@
 package types
 
+// KeyBase defines the structure for KeyBase API result response.
 type KeyBase struct {
 	Status struct {
 		Code int64  `json:"code"`

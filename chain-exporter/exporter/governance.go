@@ -5,17 +5,18 @@ import (
 	"strconv"
 
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
-	"go.uber.org/zap"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkTypes "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/gov"
 
-	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
+	tmcTypes "github.com/tendermint/tendermint/rpc/core/types"
+
+	"go.uber.org/zap"
 )
 
 // getGovernance returns governance by decoding governance related transactions in a block.
-func (ex *Exporter) getGovernance(block *tmctypes.ResultBlock, txs []*sdk.TxResponse) ([]schema.Proposal, []schema.Deposit, []schema.Vote, error) {
+func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txs []*sdkTypes.TxResponse) ([]schema.Proposal, []schema.Deposit, []schema.Vote, error) {
 	proposals := make([]schema.Proposal, 0)
 	deposits := make([]schema.Deposit, 0)
 	votes := make([]schema.Vote, 0)

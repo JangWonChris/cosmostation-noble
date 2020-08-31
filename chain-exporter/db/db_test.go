@@ -16,8 +16,6 @@ import (
 var db *Database
 
 func TestMain(m *testing.M) {
-	// types.SetAppConfig()
-
 	config := config.ParseConfig()
 	db = Connect(&config.DB)
 
@@ -30,24 +28,12 @@ func TestInsertOrUpdate(t *testing.T) {
 
 }
 
-func TestExistAccount(t *testing.T) {
-	err := db.Ping()
-	require.NoError(t, err)
-
-	address := "kava140g8fnnl46mlvfhygj3zvjqlku6x0fwuhfj3uf"
-
-	exist, err := db.ExistAccount(address)
-	require.NoError(t, err)
-
-	require.Equal(t, true, exist)
-}
-
 func TestUpdate_Validator(t *testing.T) {
 	err := db.Ping()
 	require.NoError(t, err)
 
 	val := schema.Validator{
-		Address: "kava1ulzzxuvghlv04sglkzyxv94rvl7c2llhs098ju",
+		Address: "cosmos1clpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9q",
 		Rank:    5,
 	}
 
@@ -72,19 +58,6 @@ func TestQuery_LatestBlockHeight(t *testing.T) {
 
 	require.NotNil(t, height)
 }
-
-func TestQuery_Account(t *testing.T) {
-	err := db.Ping()
-	require.NoError(t, err)
-
-	acct := &schema.Account{AccountAddress: "kava1m36xddywe0yneykv34az8smzhtxy3nyc6v9jdj"}
-
-	account, err := db.QueryAccount(acct.AccountAddress)
-	require.NoError(t, err)
-
-	require.NotNil(t, account)
-}
-
 func TestCreate_Indexes(t *testing.T) {
 	err := db.Ping()
 	require.NoError(t, err)
@@ -100,7 +73,7 @@ func TestCreate_Tables(t *testing.T) {
 	require.NoError(t, err)
 
 	tables := []interface{}{
-		(*schema.Account)(nil),
+		(*schema.Block)(nil),
 	}
 
 	for _, table := range tables {
@@ -122,5 +95,5 @@ func TestConnection(t *testing.T) {
 	_, err := db.QueryOne(pg.Scan(&n), "SELECT 1")
 	require.NoError(t, err)
 
-	require.Equal(t, n, "1", "failed to ping database")
+	require.Equal(t, n, 1, "failed to ping database")
 }
