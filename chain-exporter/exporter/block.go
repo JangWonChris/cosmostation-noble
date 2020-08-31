@@ -6,22 +6,18 @@ import (
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
-// getBlock provides block information
-func (ex *Exporter) getBlock(block *tmctypes.ResultBlock) ([]*schema.BlockCosmoshub3, error) {
-	resultBlock := make([]*schema.BlockCosmoshub3, 0)
-
-	tempBlock := &schema.BlockCosmoshub3{
+// getBlock exports block information
+func (ex *Exporter) getBlock(block *tmctypes.ResultBlock) (schema.Block, error) {
+	b := schema.NewBlock(schema.Block{
+		ChainID:       block.Block.Header.ChainID,
 		Height:        block.Block.Height,
 		Proposer:      block.Block.ProposerAddress.String(),
 		BlockHash:     block.BlockMeta.BlockID.Hash.String(),
-		ParentHash:    block.BlockMeta.Header.LastBlockID.Hash.String(),
-		NumPrecommits: int64(len(block.Block.LastCommit.Precommits)),
-		NumTxs:        block.Block.NumTxs,
-		TotalTxs:      block.Block.TotalTxs,
+		ParentHash:    block.Block.Header.LastBlockID.Hash.String(),
+		NumSignatures: int64(len(block.Block.LastCommit.Precommits)),
+		NumTxs:        int64(len(block.Block.Data.Txs)),
 		Timestamp:     block.Block.Time,
-	}
+	})
 
-	resultBlock = append(resultBlock, tempBlock)
-
-	return resultBlock, nil
+	return *b, nil
 }

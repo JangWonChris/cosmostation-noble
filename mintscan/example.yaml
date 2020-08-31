@@ -1,0 +1,56 @@
+network_type: "testnet"
+
+mainnet:
+  node: 
+    rpc_node: "http://localhost:26657"
+    lcd_endpoint: "http://localhost:1317" 
+  database:
+    host: ""
+    port: "5432"
+    user: "root"
+    password: ""
+    table: "kava-3"
+  web:
+    port: 5000
+  market:
+    coingecko_endpoint: "https://api.coingecko.com/api/v3"
+    coinmarketcap_endpoint: "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest"
+    coinmarketcap_coin_id: "4846"
+    coinmarketcap_api_key: ""
+
+dev:
+  node: 
+    rpc_node: "http://localhost:26657"
+    lcd_endpoint: "http://localhost:1317" 
+  database:
+    host: ""
+    port: "5432"
+    user: "root"
+    password: ""
+    table: ""
+  web:
+    port: 5000
+  market:
+    coingecko_endpoint: "https://api.coingecko.com/api/v3"
+    coinmarketcap_endpoint: "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest"
+    coinmarketcap_coin_id: "4846"
+    coinmarketcap_api_key: ""
+
+testnet:
+  node: 
+    rpc_node: "http://localhost:26657"
+    lcd_endpoint: "http://localhost:1317" 
+  database:
+    host: ""
+    port: "5432"
+    user: "root"
+    password: ""
+    table: ""
+  web:
+    port: 5000
+  market:
+    coingecko_endpoint: "https://api.coingecko.com/api/v3"
+    coinmarketcap_endpoint: "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest"
+    coinmarketcap_coin_id: "4846"
+    coinmarketcap_api_key: ""
+

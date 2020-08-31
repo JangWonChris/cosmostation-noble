@@ -2,153 +2,201 @@ package exporter
 
 import (
 	"encoding/json"
-	"fmt"
-	"log"
 	"strconv"
-	"time"
 
+	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/models"
 	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/schema"
-	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/types"
-
-	resty "gopkg.in/resty.v1"
+	"go.uber.org/zap"
 )
 
-// SaveValidatorsStats1H saves validator statistics every hour
-func (ses *StatsExporterService) SaveValidatorsStats1H() {
-	validatorStats := make([]*schema.StatsValidators1H, 0)
+// TODO: REST API 사용보다는 RPC로 해보는 건 어떤지. Delegations API 요청 시 800개가 넘는 Delegations 검증인들이 꾀나 되기 때문에
+// 요청도 오래걸리고 계산 로직도 오래걸린다. 현재는 client 요청 시 timeout을 5초에서 10초로 늘려놔서 오래걸리더라도 문제는 없다.
+// SaveValidatorsStats1H saves validators statstics every hour.
+func (ex *Exporter) SaveValidatorsStats1H() {
+	result := make([]schema.StatsValidators1H, 0)
 
-	// query 125 validators that are exist in the current network
-	validators, _ := ses.db.QueryValidatorsByRank(125)
+	vals, err := ex.db.QueryValidatorsByStatus(models.BondedValidatorStatus)
+	if err != nil {
+		zap.S().Errorf("failed to query bonded validators: %s", err)
+		return
+	}
 
-	for _, validator := range validators {
+	if len(vals) <= 0 {
+		zap.S().Info("found no validators in database")
+		return
+	}
+
+	for _, val := range vals {
 		var selfBondedAmount float64
 		var othersAmount float64
 
-		// reqeusts self-bonded amount by querying the current delegation between a delegator and a validator
-		selfBondedResp, _ := resty.R().Get(ses.config.Node.LCDURL + "/staking/delegators/" + validator.Address + "/delegations/" + validator.OperatorAddress)
-
-		var delegatorDelegation types.DelegatorDelegation
-		err := json.Unmarshal(types.ReadRespWithHeight(selfBondedResp).Result, &delegatorDelegation)
+		// Get the current delegation between a delegator and a validator (self-bonded).
+		selfBondedResp, err := ex.client.RequestAPIFromLCDWithRespHeight("/staking/delegators/" + val.Address + "/delegations/" + val.OperatorAddress)
 		if err != nil {
-			fmt.Printf("failed to unmarshal delegatorDelegation: %v, \n", err)
-			fmt.Printf("valAddr - %v, OperAddr: %v \n", validator.Address, validator.OperatorAddress)
+			zap.S().Errorf("failed to get the current delegation between a delegator and a validator: %s", err)
+			return
+		}
+
+		var selfDelegation models.SelfDelegation
+		err = json.Unmarshal(selfBondedResp.Result, &selfDelegation)
+		if err != nil {
+			zap.S().Errorf("failed to unmarshal self-bonded delegation: %s", err)
+			return
 		}
 
 		// LCD 요청 값이 없을 경우 아래와 같이 에러가 발생하므로 아래 if 문으로 에러 처리. 추후에 Cosmos SDK 에서 에러 처리를 변경 할 걸로 보인다.
-		// {  %!v(PANIC=Format method: runtime error: invalid memory address or nil pointer dereference)}
-		if delegatorDelegation.DelegatorAddress != "" {
-			selfBondedAmount, _ = strconv.ParseFloat(delegatorDelegation.Shares, 64)
+		// {  %!v(PANIC=Format method: runtime error: invalid memory address or nil pointer dereference)}.
+		if selfDelegation.DelegatorAddress != "" {
+			selfBondedAmount, _ = strconv.ParseFloat(selfDelegation.Shares, 64)
 		}
 
-		// reqeusts validator information
-		validatorResp, _ := resty.R().Get(ses.config.Node.LCDURL + "/staking/validators/" + validator.OperatorAddress)
-
-		var validatorInfo types.Validator
-		err = json.Unmarshal(types.ReadRespWithHeight(validatorResp).Result, &validatorInfo)
+		// Get the information from a single validator.
+		valResp, err := ex.client.RequestAPIFromLCDWithRespHeight("/staking/validators/" + val.OperatorAddress)
 		if err != nil {
-			fmt.Printf("failed to unmarshal Validator: %v \n", err)
+			zap.S().Errorf("failed to get the validator information: %s", err)
+			return
 		}
 
-		othersAmount, _ = strconv.ParseFloat(validatorInfo.DelegatorShares, 64)
+		var valInfo models.Validator
+		err = json.Unmarshal(valResp.Result, &valInfo)
+		if err != nil {
+			zap.S().Errorf("failed to unmarshal the validator information: %s", err)
+			return
+		}
+
+		othersAmount, _ = strconv.ParseFloat(valInfo.DelegatorShares, 64)
 		othersAmount = othersAmount - selfBondedAmount
 
-		// reqeusts all validator's delegations to calculate delegatorNum
-		valiDelegationResp, _ := resty.R().Get(ses.config.Node.LCDURL + "/staking/validators/" + validator.OperatorAddress + "/delegations")
-
-		var validatorDelegations []types.ValidatorDelegation
-		err = json.Unmarshal(types.ReadRespWithHeight(valiDelegationResp).Result, &validatorDelegations)
+		// Get all delegations from a validator.
+		delgationsResp, err := ex.client.RequestAPIFromLCDWithRespHeight("/staking/validators/" + val.OperatorAddress + "/delegations")
 		if err != nil {
-			fmt.Printf("failed to unmarshal ValidatorDelegation: %v \n", err)
-			fmt.Printf("OperAddr: %v \n", validator.OperatorAddress)
+			zap.S().Errorf("failed to get all delegations from the validator: %s", err)
+			return
 		}
 
-		tempValidatorStats := &schema.StatsValidators1H{
-			Moniker:          validator.Moniker,
-			OperatorAddress:  validator.OperatorAddress,
-			Address:          validator.Address,
-			Proposer:         validator.Proposer,
-			ConsensusPubkey:  validator.ConsensusPubkey,
+		var valDelegations []models.ValidatorDelegation
+		err = json.Unmarshal(delgationsResp.Result, &valDelegations)
+		if err != nil {
+			zap.S().Errorf("failed to unmarshal delegations for the validator: %s", err)
+			return
+		}
+
+		sv := &schema.StatsValidators1H{
+			Moniker:          val.Moniker,
+			OperatorAddress:  val.OperatorAddress,
+			Address:          val.Address,
+			Proposer:         val.Proposer,
+			ConsensusPubkey:  val.ConsensusPubkey,
 			TotalDelegations: selfBondedAmount + othersAmount,
 			SelfBonded:       selfBondedAmount,
 			Others:           othersAmount,
-			DelegatorNum:     len(validatorDelegations),
-			Time:             time.Now(),
+			DelegatorNum:     len(valDelegations),
 		}
-		validatorStats = append(validatorStats, tempValidatorStats)
+
+		result = append(result, *sv)
 	}
 
-	result, _ := ses.db.InsertValidatorStats1H(validatorStats)
-	if result {
-		log.Println("succesfully saved ValidatorStats 1H")
+	err = ex.db.InsertValidatorStats1H(result)
+	if err != nil {
+		zap.S().Errorf("failed to save validators data: %s", err)
+		return
 	}
+
+	zap.S().Info("successfully saved ValidatorsStats1H")
+	return
 }
 
-// SaveValidatorsStats24H saves validator statistics 24 hours
-func (ses *StatsExporterService) SaveValidatorsStats24H() {
-	validatorStats := make([]*schema.StatsValidators24H, 0)
+// SaveValidatorsStats1D saves validators statstics every day.
+func (ex *Exporter) SaveValidatorsStats1D() {
+	result := make([]schema.StatsValidators1D, 0)
 
-	// query 125 validators that are exist in the current network
-	validators, _ := ses.db.QueryValidatorsByRank(125)
+	vals, err := ex.db.QueryValidatorsByStatus(models.BondedValidatorStatus)
+	if err != nil {
+		zap.S().Errorf("failed to query bonded validators: %s", err)
+		return
+	}
 
-	for _, validator := range validators {
+	if len(vals) <= 0 {
+		zap.S().Info("found no validators in database")
+		return
+	}
+
+	for _, val := range vals {
 		var selfBondedAmount float64
 		var othersAmount float64
 
-		// reqeusts self-bonded amount by querying the current delegation between a delegator and a validator
-		selfBondedResp, _ := resty.R().Get(ses.config.Node.LCDURL + "/staking/delegators/" + validator.Address + "/delegations/" + validator.OperatorAddress)
-
-		var delegatorDelegation types.DelegatorDelegation
-		err := json.Unmarshal(types.ReadRespWithHeight(selfBondedResp).Result, &delegatorDelegation)
+		// Get the current delegation between a delegator and a validator (self-bonded).
+		selfBondedResp, err := ex.client.RequestAPIFromLCDWithRespHeight("/staking/delegators/" + val.Address + "/delegations/" + val.OperatorAddress)
 		if err != nil {
-			fmt.Printf("failed to unmarshal delegatorDelegation: %v, \n", err)
-			fmt.Printf("valAddr - %v, OperAddr: %v \n", validator.Address, validator.OperatorAddress)
+			zap.S().Errorf("failed to get the current delegation between a delegator and a validator: %s", err)
+			return
+		}
+
+		var selfDelegation models.SelfDelegation
+		err = json.Unmarshal(selfBondedResp.Result, &selfDelegation)
+		if err != nil {
+			zap.S().Errorf("failed to unmarshal self-bonded delegation: %s", err)
+			return
 		}
 
 		// LCD 요청 값이 없을 경우 아래와 같이 에러가 발생하므로 아래 if 문으로 에러 처리. 추후에 Cosmos SDK 에서 에러 처리를 변경 할 걸로 보인다.
-		// {  %!v(PANIC=Format method: runtime error: invalid memory address or nil pointer dereference)}
-		if delegatorDelegation.DelegatorAddress != "" {
-			selfBondedAmount, _ = strconv.ParseFloat(delegatorDelegation.Shares, 64)
+		// {  %!v(PANIC=Format method: runtime error: invalid memory address or nil pointer dereference)}.
+		if selfDelegation.DelegatorAddress != "" {
+			selfBondedAmount, _ = strconv.ParseFloat(selfDelegation.Shares, 64)
 		}
 
-		// reqeusts validator information
-		validatorResp, _ := resty.R().Get(ses.config.Node.LCDURL + "/staking/validators/" + validator.OperatorAddress)
-
-		var validatorInfo types.Validator
-		err = json.Unmarshal(types.ReadRespWithHeight(validatorResp).Result, &validatorInfo)
+		// Get the information from a single validator.
+		valResp, err := ex.client.RequestAPIFromLCDWithRespHeight("/staking/validators/" + val.OperatorAddress)
 		if err != nil {
-			fmt.Printf("failed to unmarshal Validator: %v \n", err)
+			zap.S().Errorf("failed to get the validator information: %s", err)
+			return
 		}
 
-		othersAmount, _ = strconv.ParseFloat(validatorInfo.DelegatorShares, 64)
+		var valInfo models.Validator
+		err = json.Unmarshal(valResp.Result, &valInfo)
+		if err != nil {
+			zap.S().Errorf("failed to unmarshal the validator information: %s", err)
+			return
+		}
+
+		othersAmount, _ = strconv.ParseFloat(valInfo.DelegatorShares, 64)
 		othersAmount = othersAmount - selfBondedAmount
 
-		// reqeusts all validator's delegations to calculate delegatorNum
-		valiDelegationResp, _ := resty.R().Get(ses.config.Node.LCDURL + "/staking/validators/" + validator.OperatorAddress + "/delegations")
-
-		var validatorDelegations []types.ValidatorDelegation
-		err = json.Unmarshal(types.ReadRespWithHeight(valiDelegationResp).Result, &validatorDelegations)
+		// Get all delegations from a validator
+		delgationsResp, err := ex.client.RequestAPIFromLCDWithRespHeight("/staking/validators/" + val.OperatorAddress + "/delegations")
 		if err != nil {
-			fmt.Printf("failed to unmarshal ValidatorDelegation: %v \n", err)
-			fmt.Printf("OperAddr: %v \n", validator.OperatorAddress)
+			zap.S().Errorf("failed to get all delegations from the validator: %s", err)
+			return
 		}
 
-		tempValidatorStats := &schema.StatsValidators24H{
-			Moniker:          validator.Moniker,
-			OperatorAddress:  validator.OperatorAddress,
-			Address:          validator.Address,
-			Proposer:         validator.Proposer,
-			ConsensusPubkey:  validator.ConsensusPubkey,
+		var valDelegations []models.ValidatorDelegation
+		err = json.Unmarshal(delgationsResp.Result, &valDelegations)
+		if err != nil {
+			zap.S().Errorf("failed to unmarshal delegations for the validator: %s", err)
+			return
+		}
+
+		sv := &schema.StatsValidators1D{
+			Moniker:          val.Moniker,
+			OperatorAddress:  val.OperatorAddress,
+			Address:          val.Address,
+			Proposer:         val.Proposer,
+			ConsensusPubkey:  val.ConsensusPubkey,
 			TotalDelegations: selfBondedAmount + othersAmount,
 			SelfBonded:       selfBondedAmount,
 			Others:           othersAmount,
-			DelegatorNum:     len(validatorDelegations),
-			Time:             time.Now(),
+			DelegatorNum:     len(valDelegations),
 		}
-		validatorStats = append(validatorStats, tempValidatorStats)
+
+		result = append(result, *sv)
 	}
 
-	result, _ := ses.db.InsertValidatorStats24H(validatorStats)
-	if result {
-		log.Println("succesfully saved ValidatorStats 24H")
+	err = ex.db.InsertValidatorStats1D(result)
+	if err != nil {
+		zap.S().Errorf("failed to save validators data: %s", err)
+		return
 	}
+
+	zap.S().Info("successfully saved ValidatorsStats1D")
+	return
 }

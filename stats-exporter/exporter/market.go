@@ -1,143 +1,111 @@
 package exporter
 
 import (
-	"encoding/json"
-	"fmt"
-	"log"
-	"time"
-
 	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/schema"
-	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/types"
 
-	resty "gopkg.in/resty.v1"
+	"go.uber.org/zap"
 )
 
-// SaveCoinGeckoMarketStats1H saves coingecko market stats every hour
-func (ses *StatsExporterService) SaveCoinGeckoMarketStats1H() {
-	var coinGeckoMarket types.CoinGeckoMarket
-	resp, err := resty.R().
-		SetHeader("Accepts", "application/json").
-		Get(ses.config.Market.CoinGecko.URL)
+const (
+	// CoinID is identification that needs when requesting CoingGecko Market API.
+	CoinID = "cosmos"
+
+	// Currency is the currency parsed from CoinGecko Market API.
+	Currency = "usd"
+)
+
+// SaveStatsMarket5M saves market statistics every 5 minutes.
+func (ex *Exporter) SaveStatsMarket5M() {
+	data, err := ex.client.CoinMarketData(CoinID)
 	if err != nil {
-		fmt.Printf("failed to request CoinGecko API: %v \n", err)
+		zap.S().Errorf("failed to get market data: %s", err)
+		return
 	}
 
-	err = json.Unmarshal(resp.Body(), &coinGeckoMarket)
+	market := &schema.StatsMarket5M{
+		Price:             data.MarketData.CurrentPrice.Usd,
+		Currency:          Currency,
+		MarketCapRank:     data.MarketCapRank,
+		CoinGeckoRank:     data.CoingeckoRank,
+		PercentChange1H:   data.MarketData.PriceChangePercentage1HInCurrency.Usd,
+		PercentChange24H:  data.MarketData.PriceChangePercentage24HInCurrency.Usd,
+		PercentChange7D:   data.MarketData.PriceChangePercentage7DInCurrency.Usd,
+		PercentChange30D:  data.MarketData.PriceChangePercentage30DInCurrency.Usd,
+		TotalVolume:       data.MarketData.TotalVolume.Usd,
+		CirculatingSupply: data.MarketData.CirculatingSupply,
+		LastUpdated:       data.LastUpdated,
+	}
+
+	err = ex.db.InsertMarket5M(market)
 	if err != nil {
-		fmt.Printf("failed to unmarshal CoinGeckoMarket: %v \n", err)
+		zap.S().Errorf("failed to save market data: %s", err)
+		return
 	}
 
-	statsCoingeckoMarket := &schema.StatsCoingeckoMarket1H{
-		Price:             coinGeckoMarket.MarketData.CurrentPrice.Usd,
-		Currency:          types.Currency,
-		MarketCapRank:     coinGeckoMarket.MarketCapRank,
-		PercentChange1H:   coinGeckoMarket.MarketData.PriceChangePercentage1HInCurrency.Usd,
-		PercentChange24H:  coinGeckoMarket.MarketData.PriceChangePercentage24HInCurrency.Usd,
-		PercentChange7D:   coinGeckoMarket.MarketData.PriceChangePercentage7DInCurrency.Usd,
-		PercentChange30D:  coinGeckoMarket.MarketData.PriceChangePercentage30DInCurrency.Usd,
-		TotalVolume:       coinGeckoMarket.MarketData.TotalVolume.Usd,
-		CirculatingSupply: coinGeckoMarket.MarketData.CirculatingSupply,
-		LastUpdated:       coinGeckoMarket.LastUpdated,
-		Time:              time.Now(),
-	}
-
-	result, _ := ses.db.InsertCoinGeckoMarket1H(*statsCoingeckoMarket)
-	if result {
-		log.Println("succesfully saved CoingGecko Market Stats 1H")
-	}
+	zap.S().Info("successfully saved StatsMarket")
+	return
 }
 
-// SaveCoinGeckoMarketStats24H saves coingecko market stats 24 hours
-func (ses *StatsExporterService) SaveCoinGeckoMarketStats24H() {
-	var coinGeckoMarket types.CoinGeckoMarket
-	resp, err := resty.R().SetHeader("Accepts", "application/json").Get(ses.config.Market.CoinGecko.URL)
+// SaveStatsMarket1H saves market statistics every hour.
+func (ex *Exporter) SaveStatsMarket1H() {
+	resp, err := ex.client.CoinMarketData(CoinID)
 	if err != nil {
-		fmt.Printf("failed to request CoinGecko API: %v \n", err)
+		zap.S().Errorf("failed to get market data: %s", err)
+		return
 	}
 
-	err = json.Unmarshal(resp.Body(), &coinGeckoMarket)
+	market := &schema.StatsMarket1H{
+		Price:             resp.MarketData.CurrentPrice.Usd,
+		Currency:          Currency,
+		MarketCapRank:     resp.MarketCapRank,
+		CoinGeckoRank:     resp.CoingeckoRank,
+		PercentChange1H:   resp.MarketData.PriceChangePercentage1HInCurrency.Usd,
+		PercentChange24H:  resp.MarketData.PriceChangePercentage24HInCurrency.Usd,
+		PercentChange7D:   resp.MarketData.PriceChangePercentage7DInCurrency.Usd,
+		PercentChange30D:  resp.MarketData.PriceChangePercentage30DInCurrency.Usd,
+		TotalVolume:       resp.MarketData.TotalVolume.Usd,
+		CirculatingSupply: resp.MarketData.CirculatingSupply,
+		LastUpdated:       resp.LastUpdated,
+	}
+
+	err = ex.db.InsertMarket1H(market)
 	if err != nil {
-		fmt.Printf("failed to unmarshal CoinGeckoMarket: %v \n", err)
+		zap.S().Errorf("failed to save market data: %s", err)
+		return
 	}
 
-	statsCoingeckoMarket := &schema.StatsCoingeckoMarket24H{
-		Price:             coinGeckoMarket.MarketData.CurrentPrice.Usd,
-		Currency:          types.Currency,
-		MarketCapRank:     coinGeckoMarket.MarketCapRank,
-		PercentChange1H:   coinGeckoMarket.MarketData.PriceChangePercentage1HInCurrency.Usd,
-		PercentChange24H:  coinGeckoMarket.MarketData.PriceChangePercentage24HInCurrency.Usd,
-		PercentChange7D:   coinGeckoMarket.MarketData.PriceChangePercentage7DInCurrency.Usd,
-		PercentChange30D:  coinGeckoMarket.MarketData.PriceChangePercentage30DInCurrency.Usd,
-		TotalVolume:       coinGeckoMarket.MarketData.TotalVolume.Usd,
-		CirculatingSupply: coinGeckoMarket.MarketData.CirculatingSupply,
-		LastUpdated:       coinGeckoMarket.LastUpdated,
-		Time:              time.Now(),
-	}
-
-	result, _ := ses.db.InsertCoinGeckoMarket24H(*statsCoingeckoMarket)
-	if result {
-		log.Println("succesfully saved CoingGecko Market Stats 24H")
-	}
+	zap.S().Info("successfully saved StatsMarket1H")
+	return
 }
 
-// SaveCoinMarketCapMarketStats1H saves coinmarketcap stats every hour
-func (ses *StatsExporterService) SaveCoinMarketCapMarketStats1H() {
-	var coinMarketCapQuotes types.CoinmarketcapQuotes
-	resp, err := resty.R().
-		SetQueryParam("id", ses.config.Market.CoinmarketCap.CoinID).
-		SetQueryParam("convert", "USD").
-		SetHeader("Accepts", "application/json").
-		SetHeader("X-CMC_PRO_API_KEY", ses.config.Market.CoinmarketCap.APIKey). // [TODO] API KEY - 요청 건수 제한으로 인해 회사 계정으로 만들어야 될 필요
-		Get(ses.config.Market.CoinmarketCap.URL)
+// SaveStatsMarket1D saves market statistics every day.
+func (ex *Exporter) SaveStatsMarket1D() {
+	resp, err := ex.client.CoinMarketData(CoinID)
 	if err != nil {
-		fmt.Printf("failed to request CoinMarketCap API: %v \n", err)
+		zap.S().Errorf("failed to get market data: %s", err)
+		return
 	}
 
-	err = json.Unmarshal(resp.Body(), &coinMarketCapQuotes)
+	market := &schema.StatsMarket1D{
+		Price:             resp.MarketData.CurrentPrice.Usd,
+		Currency:          Currency,
+		MarketCapRank:     resp.MarketCapRank,
+		CoinGeckoRank:     resp.CoingeckoRank,
+		PercentChange1H:   resp.MarketData.PriceChangePercentage1HInCurrency.Usd,
+		PercentChange24H:  resp.MarketData.PriceChangePercentage24HInCurrency.Usd,
+		PercentChange7D:   resp.MarketData.PriceChangePercentage7DInCurrency.Usd,
+		PercentChange30D:  resp.MarketData.PriceChangePercentage30DInCurrency.Usd,
+		TotalVolume:       resp.MarketData.TotalVolume.Usd,
+		CirculatingSupply: resp.MarketData.CirculatingSupply,
+		LastUpdated:       resp.LastUpdated,
+	}
+
+	err = ex.db.InsertMarket1D(market)
 	if err != nil {
-		fmt.Printf("failed to unmarshal CoinMarketCapQuotes: %v \n", err)
+		zap.S().Errorf("failed to save market data", err)
+		return
 	}
 
-	statsCoinmarketcapMarket := &schema.StatsCoinmarketcapMarket1H{
-		Price:     coinMarketCapQuotes.Data.Num.Quote.USD.Price,
-		Currency:  types.Currency,
-		Volume24H: coinMarketCapQuotes.Data.Num.Quote.USD.Volume24H,
-		Time:      time.Now(),
-	}
-
-	result, _ := ses.db.InsertCoinMarketCapMarket1H(*statsCoinmarketcapMarket)
-	if result {
-		log.Println("succesfully saved CoinMarketCap Market Stats 1H")
-	}
-}
-
-// SaveCoinMarketCapMarketStats24H saves coinmarketcap stats 24 hours
-func (ses *StatsExporterService) SaveCoinMarketCapMarketStats24H() {
-	var coinMarketCapQuotes types.CoinmarketcapQuotes
-	resp, err := resty.R().
-		SetQueryParam("id", ses.config.Market.CoinmarketCap.CoinID). // Cosmos ID
-		SetQueryParam("convert", "USD").
-		SetHeader("Accepts", "application/json").
-		SetHeader("X-CMC_PRO_API_KEY", ses.config.Market.CoinmarketCap.APIKey).
-		Get(ses.config.Market.CoinmarketCap.URL)
-	if err != nil {
-		fmt.Printf("failed to request CoinMarketCap API: %v \n", err)
-	}
-
-	err = json.Unmarshal(resp.Body(), &coinMarketCapQuotes)
-	if err != nil {
-		fmt.Printf("failed to unmarshal CoinMarketCapQuotes: %v \n", err)
-	}
-
-	statsCoinmarketcapMarket := &schema.StatsCoinmarketcapMarket24H{
-		Price:     coinMarketCapQuotes.Data.Num.Quote.USD.Price,
-		Currency:  types.Currency,
-		Volume24H: coinMarketCapQuotes.Data.Num.Quote.USD.Volume24H,
-		Time:      time.Now(),
-	}
-
-	result, _ := ses.db.InsertCoinMarketCapMarket24H(*statsCoinmarketcapMarket)
-	if result {
-		log.Println("succesfully saved CoinMarketCap Market Stats 24H")
-	}
+	zap.S().Info("successfully saved StatsMarket1D")
+	return
 }

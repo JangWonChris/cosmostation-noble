@@ -1,93 +1,89 @@
 package notification
 
 import (
-	"fmt"
+	"time"
 
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/db"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
+	"go.uber.org/zap"
 
-	resty "gopkg.in/resty.v1"
+	resty "github.com/go-resty/resty/v2"
 )
 
-// Notification implemnts a wrapper around configuration for this project
+// Notification wraps around configuration for push notification for mobile apps.
 type Notification struct {
-	cfg *config.Config
-	db  *db.Database
+	cfg    *config.Config
+	client *resty.Client
+	db     *db.Database
 }
 
-func New() Notification {
-	cfg := config.ParseConfig()
+// NewNotification returns new notification instance.
+func NewNotification() *Notification {
+	config := config.ParseConfig()
 
-	return Notification{
-		cfg: cfg,
-		db:  db.Connect(&cfg.DB),
+	client := resty.New().
+		SetHostURL(config.Alarm.PushServerEndpoint).
+		SetTimeout(time.Duration(5 * time.Second))
+
+	database := db.Connect(&config.DB)
+
+	return &Notification{config, client, database}
+}
+
+// Push sends push notification to local notification server and it delivers the message to
+// its respective device. Uses a push notification micro server called gorush.
+// More information can be found here in this link. https://github.com/appleboy/gorush
+func (nof *Notification) Push(np types.NotificationPayload, tokens []string, target string) {
+	var notifications []types.Notification
+
+	// Create new notification payload for a user sending tokens
+	if target == types.From {
+		platform := int8(2)
+		title := types.NotificationSentTitle + np.Amount + np.Denom
+		message := types.NotificationSentMessage + np.Amount + np.Denom
+		data := types.NewNotificationData(np.From, np.Txid, types.Sent)
+		temp := types.NewNotification(tokens, platform, title, message, data)
+
+		notifications = append(notifications, temp)
+
+		zap.S().Infof("sent notification - hash: %s | from: %s", np.Txid, np.From)
 	}
-}
 
-// PushNotification sends push notification to its respective device
-func (nof *Notification) PushNotification(pnp *types.PushNotificationPayload, tokens []string, target string) {
-	var pns []types.PushNotifications
+	// Create new notification payload for a user receiving tokens
+	if target == types.To {
+		platform := int8(2)
+		title := types.NotificationSentTitle + np.Amount + np.Denom
+		message := types.NotificationSentMessage + np.Amount + np.Denom
+		data := types.NewNotificationData(np.To, np.Txid, types.Received)
+		temp := types.NewNotification(tokens, platform, title, message, data)
 
-	switch target {
-	case "from":
-		tempNotification := types.PushNotifications{
-			Tokens:   tokens,
-			Platform: 2,
-			Title:    types.PushNotificationSentTitle + pnp.Amount + pnp.Denom,
-			Message:  types.PushNotificationSentMessage + pnp.Amount + pnp.Denom,
-			Data: types.PushNotificationData{
-				NotifyTo: pnp.From,
-				Txid:     pnp.Txid,
-				Type:     types.SENT,
-			},
+		notifications = append(notifications, temp)
+
+		zap.S().Infof("sent notification - hash: %s | to: %s", np.Txid, np.To)
+	}
+
+	if len(notifications) > 0 {
+		nsp := types.NotificationServerPayload{
+			Notifications: notifications,
 		}
-		pns = append(pns, tempNotification)
-		fmt.Printf("sent push notification - Hash: %s, From: %s \n", pnp.Txid, pnp.From)
-	case "to":
-		tempNotification := types.PushNotifications{
-			Tokens:   tokens,
-			Platform: 2,
-			Title:    types.PushNotificationReceivedTitle + pnp.Amount + pnp.Denom,
-			Message:  types.PushNotificationReceivedMessage + pnp.Amount + pnp.Denom,
-			Data: types.PushNotificationData{
-				NotifyTo: pnp.To,
-				Txid:     pnp.Txid,
-				Type:     types.RECEIVED,
-			},
-		}
-		pns = append(pns, tempNotification)
-		fmt.Printf("sent push notification - Hash: %s, To: %s \n", pnp.Txid, pnp.To)
-	default:
-		fmt.Printf("invalid target: %s ", target)
-	}
 
-	pnsp := types.PushNotificationServerPayload{
-		Notifications: pns,
-	}
-
-	// send push notification
-	_, err := resty.R().
-		SetHeader("Content-Type", "application/json").
-		SetBody(pnsp).
-		Post(nof.cfg.Alarm.PushServerEndpoint)
-	if err != nil {
-		fmt.Printf("failed to push notification %s: ", err)
+		// Send push notification
+		nof.client.R().SetBody(nsp)
 	}
 }
 
-// VerifyAccount verifes account before sending push notification
-func (nof *Notification) VerifyAccount(address string) bool {
-	var account types.Account
-	account, _ = nof.db.QueryAccount(address)
+// VerifyAccountStatus verifes account status before sending notification to its local server.
+func (nof *Notification) VerifyAccountStatus(address string) bool {
+	acct, _ := nof.db.QueryAccountMobile(address)
 
-	// return when data is empty
-	if account.AlarmToken == "" {
+	// Check account's alarm token
+	if acct.AlarmToken == "" {
 		return false
 	}
 
-	// check user's alarm status
-	if !account.AlarmStatus {
+	// Check user's alarm status
+	if !acct.AlarmStatus {
 		return false
 	}
 

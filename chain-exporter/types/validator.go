@@ -6,6 +6,24 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+const (
+	// DefaultQueryValidatorsPage is the default page number for querying validators via querier.
+	DefaultQueryValidatorsPage = 1
+
+	// DefaultQueryValidatorsPerPage is the default per page number for querying validators via querier.
+	DefaultQueryValidatorsPerPage = 200
+
+	// BondedValidatorStatus is status code when a validator is live.
+	BondedValidatorStatus = 2
+
+	// UnbondingValidatorStatus is status code when a validator is not live.
+	UnbondingValidatorStatus = 1
+
+	// UnbondedValidatorStatus is status code when a validator is jailed.
+	UnbondedValidatorStatus = 0
+)
+
+// Validator is a struct for validator information.
 type Validator struct {
 	OperatorAddress string `json:"operator_address"`
 	ConsensusPubkey string `json:"consensus_pubkey"`
@@ -32,6 +50,7 @@ type Validator struct {
 	MinSelfDelegation string `json:"min_self_delegation"`
 }
 
+// ValidatorDelegations is a struct for validator's delegations.
 type ValidatorDelegations struct {
 	DelegatorAddress string  `json:"delegator_address"`
 	ValidatorAddress string  `json:"validator_address"`

@@ -1,104 +1,102 @@
 package exporter
 
 import (
-	"context"
-	"crypto/tls"
-	"fmt"
 	"os"
 	"os/signal"
 	"time"
 
+	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/client"
 	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/config"
 	"github.com/cosmostation/cosmostation-cosmos/stats-exporter/db"
 
-	"github.com/cosmos/cosmos-sdk/codec"
-	gaiaApp "github.com/cosmos/gaia/app"
+	"go.uber.org/zap"
 
-	cmn "github.com/tendermint/tendermint/libs/common"
-	"github.com/tendermint/tendermint/libs/log"
-	"github.com/tendermint/tendermint/rpc/client"
-
-	"github.com/robfig/cron"
-
-	resty "gopkg.in/resty.v1"
+	cron "github.com/robfig/cron/v3"
 )
 
 var (
-	logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout))
+	// Version is a project's version string.
+	Version = "Development"
+
+	// Commit is commit hash of this project.
+	Commit = ""
 )
 
-// StatsExporterService wraps all the required configs
-type StatsExporterService struct {
-	cmn.BaseService
-	codec     *codec.Codec
-	config    *config.Config
-	db        *db.Database
-	wsCtx     context.Context
-	rpcClient *client.HTTP
+// Exporter wraps all required parameters to create exporter jobs
+type Exporter struct {
+	client *client.Client
+	db     *db.Database
 }
 
-// NewStatsExporterService initializes all the required configs
-func NewStatsExporterService(config *config.Config) *StatsExporterService {
-	ses := &StatsExporterService{
-		codec:     gaiaApp.MakeCodec(), // register Cosmos SDK codecs
-		config:    config,
-		db:        db.Connect(config), // connect to PostgreSQL
-		wsCtx:     context.Background(),
-		rpcClient: client.NewHTTP(config.Node.GaiadURL, "/websocket"), // connect to Tendermint RPC client
+// NewExporter creates new exporter
+func NewExporter() *Exporter {
+	l, _ := zap.NewDevelopment()
+	zap.ReplaceGlobals(l)
+
+	// Parse config from configuration file (config.yaml).
+	config := config.ParseConfig()
+
+	// Create new client with node configruation.
+	// Client is used for requesting any type of network data from RPC full node and REST Server.
+	client, err := client.NewClient(config.Node, config.Market)
+	if err != nil {
+		zap.S().Errorf("failed to create new client", err)
+		return &Exporter{}
 	}
 
-	// create database schema
-	ses.db.CreateSchema()
+	// Create connection with PostgreSQL database and
+	// Ping database to verify connection is success.
+	db := db.Connect(&config.DB)
+	err = db.Ping()
+	if err != nil {
+		zap.S().Errorf("failed to ping database: %s", err)
+		return &Exporter{}
+	}
 
-	// sets timeout for request.
-	resty.SetTimeout(5 * time.Second)
-	resty.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true}) // for local test
+	// Create database tables if not exist already
+	db.CreateTables()
 
-	return ses
+	return &Exporter{client, db}
 }
 
-// OnStart overrides method for BaseService, which starts a service
-func (ses *StatsExporterService) OnStart() {
-	fmt.Println("<Starts Stats Exporter>")
+// Start starts to create cron jobs and start them
+// Cron spec format can be found here https://godoc.org/gopkg.in/robfig/cron.v3#hdr-Intervals
+func (ex *Exporter) Start() error {
+	zap.S().Info("Starting Stat Exporter...")
+	zap.S().Infof("Version: %s Commit: %s", Version, Commit)
 
-	// ses.setCronJobs()
+	c := cron.New(
+		cron.WithLocation(time.UTC),
+	)
 
-	// TEST
-	ses.SaveValidatorsStats1H()
-	// ses.SaveValidatorsStats24H()
+	// Run every 5 minutes: @every 5m
+	c.AddFunc("@every 5m", func() {
+		ex.SaveStatsMarket5M()
+		zap.S().Info("successfully saved data @every 5m ")
+	})
 
-	// ses.SaveNetworkStats1H()
-	// ses.SaveNetworkStats24H()
+	// Run once an hour: @hourly or @every 1h
+	c.AddFunc("@hourly", func() { // same as 0 * * * * *
+		ex.SaveStatsMarket1H()
+		ex.SaveNetworkStats1H()
+		ex.SaveValidatorsStats1H()
+		zap.S().Info("successfully saved data @hourly ")
+	})
 
-	// ses.SaveCoinGeckoMarketStats1H()
-	// ses.SaveCoinGeckoMarketStats24H()
+	// Run once a day: @daily or @midnight
+	c.AddFunc("@midnight", func() { // same as 0 0 * * *
+		ex.SaveStatsMarket1D()
+		ex.SaveNetworkStats1D()
+		ex.SaveValidatorsStats1D()
+		zap.S().Info("successfully saved data @midnight ")
+	})
 
-	// ses.SaveCoinMarketCapMarketStats1H()
-	// ses.SaveCoinMarketCapMarketStats24H()
-}
+	c.Start()
 
-// Every hour
-// 0 * * * * = every minute
-// 0 */60 * * * = every hour
-// 0 0 * * * * = every hour
-func (ses *StatsExporterService) setCronJobs() {
-	c := cron.New()
+	// Allow graceful closing of cron jobs
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt, os.Kill)
+	<-sig
 
-	// Every hour
-	c.AddFunc("0 0 * * * *", func() { ses.SaveValidatorsStats1H() })
-	c.AddFunc("0 0 * * * *", func() { ses.SaveNetworkStats1H() })
-	c.AddFunc("0 0 * * * *", func() { ses.SaveCoinGeckoMarketStats1H() })
-	c.AddFunc("0 0 * * * *", func() { ses.SaveCoinMarketCapMarketStats1H() })
-
-	// Every day at 2:00 AM (UTC zone) which equals 11:00 AM in Seoul
-	c.AddFunc("0 0 2 * * *", func() { ses.SaveValidatorsStats24H() })
-	c.AddFunc("0 0 2 * * *", func() { ses.SaveNetworkStats24H() })
-	c.AddFunc("0 0 2 * * *", func() { ses.SaveCoinGeckoMarketStats24H() })
-	c.AddFunc("0 0 2 * * *", func() { ses.SaveCoinMarketCapMarketStats24H() })
-	go c.Start()
-
-	// Allow graceful closing of the governance loop
-	signalCh := make(chan os.Signal, 1)
-	signal.Notify(signalCh, os.Interrupt)
-	<-signalCh
+	return nil
 }
