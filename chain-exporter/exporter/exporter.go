@@ -69,7 +69,7 @@ func NewExporter() *Exporter {
 // Start starts to synchronize blockchain data
 func (ex *Exporter) Start() {
 	zap.S().Info("Starting Chain Exporter...")
-	zap.S().Infof("Version: %s Commit: %s", Version, Commit)
+	zap.S().Infof("Network Type: %s | Version: %s | Commit: %s", ex.config.Node.NetworkType, Version, Commit)
 
 	// Store data initially
 	ex.saveValidators()
