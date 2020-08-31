@@ -359,7 +359,7 @@ func GetValidatorPowerHistoryEvents(rw http.ResponseWriter, r *http.Request) {
 		temp := &model.ResultPowerEventHistory{
 			ID:             e.ID,
 			Height:         e.Height,
-			EventType:      e.EventType,
+			EventType:      e.MsgType,
 			VotingPower:    e.VotingPower * 1000000,
 			NewVotingPower: e.NewVotingPowerAmount * 1000000,
 			TxHash:         e.TxHash,

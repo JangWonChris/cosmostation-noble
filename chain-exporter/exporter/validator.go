@@ -355,8 +355,8 @@ func (ex *Exporter) saveValidators() {
 	if len(unbondingVals) > 0 {
 		highestBondedRank := ex.db.QueryHighestRankValidatorByStatus(types.BondedValidatorStatus)
 
-		for i, val := range unbondingVals {
-			val.Rank = (highestBondedRank + 1 + i)
+		for i := range unbondingVals {
+			unbondingVals[i].Rank = (highestBondedRank + 1 + i)
 		}
 
 		err := ex.db.InsertOrUpdateValidators(unbondingVals)
@@ -380,8 +380,8 @@ func (ex *Exporter) saveValidators() {
 			unbondingHighestRank = ex.db.QueryHighestRankValidatorByStatus(types.BondedValidatorStatus)
 		}
 
-		for i, val := range unbondedVals {
-			val.Rank = (unbondingHighestRank + 1 + i)
+		for i := range unbondedVals {
+			unbondedVals[i].Rank = (unbondingHighestRank + 1 + i)
 		}
 
 		err := ex.db.InsertOrUpdateValidators(unbondedVals)
