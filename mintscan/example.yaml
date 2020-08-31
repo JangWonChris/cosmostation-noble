@@ -9,13 +9,13 @@ mainnet:
     port: "5432"
     user: "root"
     password: ""
-    table: "kava-3"
+    table: "cosmoshub-3"
   web:
     port: 5000
   market:
     coingecko_endpoint: "https://api.coingecko.com/api/v3"
     coinmarketcap_endpoint: "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest"
-    coinmarketcap_coin_id: "4846"
+    coinmarketcap_coin_id: "3794"
     coinmarketcap_api_key: ""
 
 dev:
@@ -27,13 +27,13 @@ dev:
     port: "5432"
     user: "root"
     password: ""
-    table: ""
+    table: "cosmoshub-3-dev"
   web:
     port: 5000
   market:
     coingecko_endpoint: "https://api.coingecko.com/api/v3"
     coinmarketcap_endpoint: "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest"
-    coinmarketcap_coin_id: "4846"
+    coinmarketcap_coin_id: "3794"
     coinmarketcap_api_key: ""
 
 testnet:
@@ -51,6 +51,6 @@ testnet:
   market:
     coingecko_endpoint: "https://api.coingecko.com/api/v3"
     coinmarketcap_endpoint: "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest"
-    coinmarketcap_coin_id: "4846"
+    coinmarketcap_coin_id: "3794"
     coinmarketcap_api_key: ""
 
