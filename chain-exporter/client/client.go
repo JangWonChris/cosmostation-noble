@@ -54,7 +54,7 @@ func NewClient(nodeCfg config.Node, keyBaseURL string) (*Client, error) {
 	}
 	apiClient := resty.New().
 		SetHostURL(nodeCfg.LCDEndpoint).
-		SetTimeout(time.Duration(5 * time.Second))
+		SetTimeout(time.Duration(10 * time.Second))
 
 	keyBaseClient := resty.New().
 		SetHostURL(keyBaseURL).
