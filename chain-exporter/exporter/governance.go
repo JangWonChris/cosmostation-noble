@@ -38,7 +38,7 @@ func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txs []*sdkTypes.T
 
 		switch stdTx.Msgs[0].(type) {
 		case gov.MsgSubmitProposal:
-			zap.S().Info(zap.Any("MsgType ", stdTx.Msgs[0].Type()), zap.Any("Hash ", tx.TxHash))
+			zap.S().Infof("MsgType: %s | Hash: %s", stdTx.Msgs[0].Type(), tx.TxHash)
 
 			msgSubmitProposal := stdTx.Msgs[0].(gov.MsgSubmitProposal)
 
@@ -90,7 +90,7 @@ func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txs []*sdkTypes.T
 			deposits = append(deposits, *d)
 
 		case gov.MsgDeposit:
-			zap.S().Info(zap.Any("MsgType ", stdTx.Msgs[0].Type()), zap.Any("Hash ", tx.TxHash))
+			zap.S().Infof("MsgType: %s | Hash: %s", stdTx.Msgs[0].Type(), tx.TxHash)
 
 			msgDeposit := stdTx.Msgs[0].(gov.MsgDeposit)
 
@@ -117,7 +117,7 @@ func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txs []*sdkTypes.T
 			deposits = append(deposits, *d)
 
 		case gov.MsgVote:
-			zap.S().Info(zap.Any("MsgType ", stdTx.Msgs[0].Type()), zap.Any("Hash ", tx.TxHash))
+			zap.S().Infof("MsgType: %s | Hash: %s", stdTx.Msgs[0].Type(), tx.TxHash)
 
 			msgVote := stdTx.Msgs[0].(gov.MsgVote)
 

@@ -39,9 +39,6 @@ func (ex *Exporter) getTxs(block *tmctypes.ResultBlock, txResp []*sdkTypes.TxRes
 		sigs := make([]auth.StdSignature, len(stdTx.GetSignatures()), len(stdTx.GetSignatures()))
 		for i, s := range stdTx.GetSignatures() {
 			sigs[i].Signature = s.Signature
-			// }
-			// for i, pk := range stdTx.GetPubKeys() {
-			// sigs[i].PubKey = pk
 			sigs[i].PubKey = s.PubKey
 		}
 
