@@ -499,6 +499,7 @@ func (db *Database) InsertExportedData(e schema.ExportData) error {
 					Set("end_time = ?", e.ResultBlock.Timestamp).
 					Where("end_height = ? AND address = ?", rmb.EndHeight-int64(1), rmb.Address).
 					Update()
+
 				if err != nil {
 					return fmt.Errorf("failed to update result accumulated miss blocks: %s", err)
 				}
@@ -507,24 +508,24 @@ func (db *Database) InsertExportedData(e schema.ExportData) error {
 
 		if len(e.ResultProposals) > 0 {
 			var proposal schema.Proposal
-			for _, p := range e.ResultProposals {
-				ok, _ := db.ExistProposal(p.ID)
+			for _, rp := range e.ResultProposals {
+				ok, _ := db.ExistProposal(rp.ID)
 				if !ok {
-					err := tx.Insert(&e.ResultProposals)
+					err := tx.Insert(&rp)
 					if err != nil {
-						return err
+						return fmt.Errorf("failed to insert result proposal: %s", err)
 					}
 				} else {
-					// Update proposal
 					_, err := tx.Model(&proposal).
-						Set("tx_hash = ?", p.TxHash).
-						Set("proposer = ?", p.Proposer).
-						Set("initial_deposit_amount = ?", p.InitialDepositAmount).
-						Set("initial_deposit_denom = ?", p.InitialDepositDenom).
-						Where("id = ?", p.ID).
+						Set("tx_hash = ?", rp.TxHash).
+						Set("proposer = ?", rp.Proposer).
+						Set("initial_deposit_amount = ?", rp.InitialDepositAmount).
+						Set("initial_deposit_denom = ?", rp.InitialDepositDenom).
+						Where("id = ?", rp.ID).
 						Update()
+
 					if err != nil {
-						return err
+						return fmt.Errorf("failed to update result proposal: %s", err)
 					}
 				}
 
@@ -536,12 +537,11 @@ func (db *Database) InsertExportedData(e schema.ExportData) error {
 			for _, rv := range e.ReusltVotes {
 				ok, _ := db.ExistVote(rv.ProposalID, rv.Voter)
 				if !ok {
-					err := tx.Insert(&e.ReusltVotes)
+					err := tx.Insert(&rv)
 					if err != nil {
-						return fmt.Errorf("failed to insert result votes: %s", err)
+						return fmt.Errorf("failed to insert result vote: %s", err)
 					}
 				} else {
-					// Update vote
 					_, err := tx.Model(&vote).
 						Set("height = ?", rv.Height).
 						Set("option = ?", rv.Option).
@@ -551,8 +551,9 @@ func (db *Database) InsertExportedData(e schema.ExportData) error {
 						Set("timestamp = ?", rv.Timestamp).
 						Where("proposal_id = ? AND voter = ?", rv.ProposalID, rv.Voter).
 						Update()
+
 					if err != nil {
-						return fmt.Errorf("failed to update result votes: %s", err)
+						return fmt.Errorf("failed to update result vote: %s", err)
 					}
 				}
 			}
