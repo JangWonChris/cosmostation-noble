@@ -62,9 +62,9 @@ func ParseConfig() *Config {
 
 	// This code is used in main.go to log network type when starting server.
 	if viper.GetString("network_type") == "mainnet" {
-		config.Node.NetworkType = "mainnet"
+		config.Node.NetworkType = viper.GetString("network_type")
 	} else {
-		config.Node.NetworkType = "testnet"
+		config.Node.NetworkType = viper.GetString("network_type")
 	}
 
 	return &config
