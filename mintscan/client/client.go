@@ -281,3 +281,22 @@ func (c *Client) GetCoinGeckoCoinPrice(id string) (json.RawMessage, error) {
 
 	return rawData, nil
 }
+
+// GetCoinMarketChartData returns current market chart data from CoinGecko API based upon params.
+func (c *Client) GetCoinMarketChartData(id string, from string, to string) (data model.CoinGeckoMarketDataChart, err error) {
+	resp, err := c.coinGeckoClient.R().Get("/coins/" + id + "/market_chart/range?id=" + id + "&vs_currency=usd&from=" + from + "&to=" + to)
+	if err != nil {
+		return model.CoinGeckoMarketDataChart{}, err
+	}
+
+	if resp.IsError() {
+		return model.CoinGeckoMarketDataChart{}, fmt.Errorf("failed to request: %s", err)
+	}
+
+	err = json.Unmarshal(resp.Body(), &data)
+	if err != nil {
+		return model.CoinGeckoMarketDataChart{}, err
+	}
+
+	return data, nil
+}
