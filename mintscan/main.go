@@ -60,9 +60,9 @@ func main() {
 	r.HandleFunc("/account/delegations/rewards/{accAddr}", handler.GetDelegationsRewards).Methods("GET")
 	r.HandleFunc("/account/validator/commission/{accAddr}", handler.GetValidatorCommission).Methods("GET")
 	r.HandleFunc("/account/unbonding_delegations/{accAddr}", handler.GetDelegatorUnbondingDelegations).Methods("GET")
-	r.HandleFunc("/account/txs/{accAddr}", handler.GetAccountTxs).Methods("GET")                                // Mobile
-	r.HandleFunc("/account/txs/{accAddr}/{valAddr}", handler.GetTxsBetweenDelegatorAndValidator).Methods("GET") // Mobile
-	r.HandleFunc("/account/transfer_txs/{accAddr}", handler.GetAccountTransferTxs).Methods("GET")               // Mobile
+	r.HandleFunc("/account/txs/{accAddr}", handler.GetAccountTxs).Methods("GET")
+	r.HandleFunc("/account/txs/{accAddr}/{valAddr}", handler.GetTxsBetweenDelegatorAndValidator).Methods("GET")
+	r.HandleFunc("/account/transfer_txs/{accAddr}", handler.GetAccountTransferTxs).Methods("GET")
 	r.HandleFunc("/blocks", handler.GetBlocks).Methods("GET")
 	r.HandleFunc("/blocks/{proposer}", handler.GetBlocksByProposer).Methods("GET")
 	r.HandleFunc("/distribution/delegators/{delAddr}/rewards/{valAddr}", handler.GetRewardsBetweenDelegatorAndValidator).Methods("GET")
@@ -94,7 +94,7 @@ func main() {
 	r.HandleFunc("/account/balance/{accAddr}", handler.GetAccountBalance).Methods("GET")                              // /account/balances/{accAddr}
 	r.HandleFunc("/account/commission/{accAddr}", handler.GetValidatorCommission).Methods("GET")                      // /account/validator/commission/{accAddr}
 	r.HandleFunc("/account/unbonding-delegations/{accAddr}", handler.GetDelegatorUnbondingDelegations).Methods("GET") // /acount/unbonding_delegations/{accAddr}
-	r.HandleFunc("/tx/{hash}", handler.GetLegacyTransactionFromDB).Methods("GET")                                     // /tx?hash=
+	r.HandleFunc("/tx/{hash}", handler.GetLegacyTransactionFromDB).Methods("GET")                                     // /tx?hash={hash}
 	r.HandleFunc("/staking/validator/misses/detail/{address}", handler.GetValidatorUptime).Methods("GET")             // /staking/validator/updatime/{address}
 	r.HandleFunc("/staking/validator/misses/{address}", handler.GetValidatorUptimeRange).Methods("GET")               // /staking/validator/uptime/range/{address}
 
