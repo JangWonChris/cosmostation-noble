@@ -677,6 +677,20 @@ func (db *Database) QueryBondedRateIn1D() ([]schema.StatsNetwork1D, error) {
 // Count
 // --------------------
 
+// CountProposedBlocks counts how many proposed blocks made by a proposer.
+func (db *Database) CountProposedBlocks(proposer string) (int, error) {
+	var block schema.Block
+	count, err := db.Model(&block).
+		Where("proposer = ?", proposer).
+		Count()
+
+	if err != nil {
+		return -1, err
+	}
+
+	return count, nil
+}
+
 // CountMissingBlocks counts how many missing blocks a validator misses in detail and return total missing blocks count.
 func (db *Database) CountMissingBlocks(address string, latestHeight int, count int) (int, error) {
 	var misses []schema.MissDetail

@@ -116,7 +116,12 @@ func GetBlocksByProposer(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	totalNum := len(blocks)
+	totalNum, err := s.db.CountProposedBlocks(val.Proposer)
+	if err != nil {
+		zap.L().Error("failed to count proposed blocks by proposer", zap.Error(err))
+		errors.ErrInternalServer(rw, http.StatusInternalServerError)
+		return
+	}
 
 	result := make([]*model.ResultBlock, 0)
 
