@@ -37,29 +37,6 @@ func GetAccount(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// GetLegacyAccountBalance returns account balance.
-func GetLegacyAccountBalance(rw http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	accAddr := vars["accAddr"]
-
-	err := model.VerifyBech32AccAddr(accAddr)
-	if err != nil {
-		zap.L().Debug("failed to validate account address", zap.Error(err))
-		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
-		return
-	}
-
-	resp, err := s.client.HandleResponseHeight("/bank/balances/" + accAddr)
-	if err != nil {
-		zap.L().Error("failed to get account balance", zap.Error(err))
-		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
-		return
-	}
-
-	model.Respond(rw, resp.Result)
-	return
-}
-
 // GetAccountBalance returns account balance.
 func GetAccountBalance(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)

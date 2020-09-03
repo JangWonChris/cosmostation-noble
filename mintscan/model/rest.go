@@ -21,7 +21,7 @@ const (
 	DefaultBefore = 0
 
 	// DefaultAfter is he default parameter that will be used to query database next items from the default param.
-	DefaultAfter = 0
+	DefaultAfter = -1
 )
 
 // ResponseWithHeight is a wrapper for returned values from REST API calls.

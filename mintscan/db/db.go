@@ -81,7 +81,7 @@ func (db *Database) QueryBlocks(before, after int, limit int) (blocks []schema.B
 			Limit(limit).
 			Order("id DESC").
 			Select()
-	case after > 0:
+	case after >= 0:
 		err = db.Model(&blocks).
 			Where("height > ?", after).
 			Limit(limit).

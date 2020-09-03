@@ -90,15 +90,15 @@ func main() {
 	r.HandleFunc("/staking/validator/events/{address}/count", handler.GetValidatorEventsTotalCount).Methods("GET")
 	r.HandleFunc("/staking/redelegations", handler.GetRedelegations).Methods("GET")
 
-	// These will be deprecated in next update.
-	r.HandleFunc("/account/balance/{accAddr}", handler.GetLegacyAccountBalance).Methods("GET")
-	r.HandleFunc("/account/commission/{accAddr}", handler.GetValidatorCommission).Methods("GET")                      // equals to /account/validator/commission/...
-	r.HandleFunc("/account/unbonding-delegations/{accAddr}", handler.GetDelegatorUnbondingDelegations).Methods("GET") // equals to /acount/unbonding_delegations/...
-	r.HandleFunc("/tx/{hash}", handler.GetLegacyTransactionFromDB).Methods("GET")
-	r.HandleFunc("/staking/validator/misses/detail/{address}", handler.GetValidatorUptime).Methods("GET") // equals to /staking/validator/updatime/...
-	r.HandleFunc("/staking/validator/misses/{address}", handler.GetValidatorUptimeRange).Methods("GET")   // equals to /staking/validator/uptime/range/...
+	// These APIs will be deprecated in next update.
+	r.HandleFunc("/account/balance/{accAddr}", handler.GetAccountBalance).Methods("GET")                              // /account/balances/{accAddr}
+	r.HandleFunc("/account/commission/{accAddr}", handler.GetValidatorCommission).Methods("GET")                      // /account/validator/commission/{accAddr}
+	r.HandleFunc("/account/unbonding-delegations/{accAddr}", handler.GetDelegatorUnbondingDelegations).Methods("GET") // /acount/unbonding_delegations/{accAddr}
+	r.HandleFunc("/tx/{hash}", handler.GetLegacyTransactionFromDB).Methods("GET")                                     // /tx?hash=
+	r.HandleFunc("/staking/validator/misses/detail/{address}", handler.GetValidatorUptime).Methods("GET")             // /staking/validator/updatime/{address}
+	r.HandleFunc("/staking/validator/misses/{address}", handler.GetValidatorUptimeRange).Methods("GET")               // /staking/validator/uptime/range/{address}
 
-	// For next update.
+	// These APIs will need to be added in next update.
 	// r.HandleFunc("/module/accounts", handler.GetModuleAccounts).Methods("GET")
 
 	sm := &http.Server{
