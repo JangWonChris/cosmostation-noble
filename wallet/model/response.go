@@ -1,4 +1,4 @@
-package models
+package model
 
 /*
 	API 호출 후 리턴되는 리턴값을 동일한 포맷으로 리턴해주고 싶다.

@@ -10,6 +10,7 @@ require (
 	github.com/gorilla/mux v1.7.3
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/spf13/viper v1.4.0
+	github.com/stretchr/testify v1.4.0
 	github.com/tendermint/tendermint v0.32.7
 	gopkg.in/resty.v1 v1.12.0
 	mellium.im/sasl v0.2.1 // indirect

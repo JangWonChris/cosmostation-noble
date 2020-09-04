@@ -1,18 +1,4 @@
-package services
-
-import (
-	"encoding/json"
-	"net/http"
-	"strings"
-
-	"github.com/cosmostation/cosmostation-cosmos/wallet/api/databases"
-	"github.com/cosmostation/cosmostation-cosmos/wallet/api/errors"
-	"github.com/cosmostation/cosmostation-cosmos/wallet/api/models"
-	u "github.com/cosmostation/cosmostation-cosmos/wallet/api/utils"
-
-	"github.com/go-pg/pg"
-	"github.com/gorilla/mux"
-)
+package handler
 
 // GetVersion returns version number of an app
 func GetVersion(db *pg.DB, w http.ResponseWriter, r *http.Request) {
@@ -22,13 +8,13 @@ func GetVersion(db *pg.DB, w http.ResponseWriter, r *http.Request) {
 	// lower case
 	deviceType = strings.ToLower(deviceType)
 
-	var version models.AppVersion
+	var version schema.MobileVersion
 
 	switch deviceType {
-	case models.Android:
-		version, _ = databases.QueryAppVersion(w, db, deviceType)
-	case models.IOS:
-		version, _ = databases.QueryAppVersion(w, db, deviceType)
+	case model.Android:
+		version, _ = s.db.QueryMobileVersion(w, db, deviceType)
+	case model.IOS:
+		version, _ = s.db.QueryMobileVersion(w, db, deviceType)
 	default:
 		errors.ErrInvalidDeviceType(w, http.StatusBadRequest)
 		return
@@ -47,7 +33,7 @@ func GetVersion(db *pg.DB, w http.ResponseWriter, r *http.Request) {
 
 // SetVersion sets version number of an app
 func SetVersion(db *pg.DB, w http.ResponseWriter, r *http.Request) {
-	var version models.AppVersion
+	var version model.AppVersion
 
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&version)
@@ -69,6 +55,6 @@ func SetVersion(db *pg.DB, w http.ResponseWriter, r *http.Request) {
 		databases.InsertAppVersion(w, db, version)
 	}
 
-	u.Respond(w, version)
+	model.Respond(w, version)
 	return
 }

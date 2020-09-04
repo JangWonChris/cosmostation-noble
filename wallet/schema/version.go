@@ -1,13 +1,8 @@
-package models
+package schema
 
 import "time"
 
-const (
-	Android     = "android"
-	IOS         = "ios"
-	ForceUpdate = false
-)
-
+// AppVersion defines the structure for app versions.
 type AppVersion struct {
 	IdfVersion uint16    `json:"idf_version,omitempty" sql:",pk"`
 	AppName    string    `json:"app_name"`

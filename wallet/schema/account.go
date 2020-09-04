@@ -1,9 +1,9 @@
-package models
+package schema
 
 import "time"
 
-// Account is an account for our cosmostation mobile wallet app users
-type Account struct {
+// AppAccount defines the structure for Cosmostation's wallet app users information.
+type AppAccount struct {
 	IdfAccount  uint16    `json:"idf_account" sql:",pk"`
 	ChainID     uint16    `json:"chain_id,omitempty" sql:",notnull"`
 	DeviceType  string    `json:"device_type,omitempty" sql:",notnull"`
