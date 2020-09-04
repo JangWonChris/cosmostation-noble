@@ -4,8 +4,8 @@ import (
 	"time"
 )
 
-// AccountMobile defines an account for our mobile wallet app users.
-type AccountMobile struct {
+// AppAccount defines an account for our mobile wallet app users.
+type AppAccount struct {
 	IdfAccount  uint16    `json:"idf_account" sql:",pk"`
 	ChainID     uint16    `json:"chain_id,omitempty" sql:",notnull"`
 	DeviceType  string    `json:"device_type,omitempty" sql:",notnull"`

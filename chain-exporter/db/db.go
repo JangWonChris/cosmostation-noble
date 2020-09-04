@@ -248,9 +248,9 @@ func (db *Database) QueryHighestValidatorID() (int, error) {
 	return powerEventHistory.IDValidator, nil
 }
 
-// QueryAccountMobile queries account information
-func (db *Database) QueryAccountMobile(address string) (schema.AccountMobile, error) {
-	var account schema.AccountMobile
+// QueryAppAccount queries account information
+func (db *Database) QueryAppAccount(address string) (schema.AppAccount, error) {
+	var account schema.AppAccount
 	_ = db.Model(&account).
 		Where("address = ?", address).
 		Select()
@@ -260,7 +260,7 @@ func (db *Database) QueryAccountMobile(address string) (schema.AccountMobile, er
 
 // QueryAlarmTokens queries user's alarm tokens
 func (db *Database) QueryAlarmTokens(address string) ([]string, error) {
-	var accounts []schema.AccountMobile
+	var accounts []schema.AppAccount
 	_ = db.Model(&accounts).
 		Column("alarm_token").
 		Where("address = ?", address).
