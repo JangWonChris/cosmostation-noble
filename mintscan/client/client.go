@@ -49,7 +49,7 @@ func NewClient(nodeCfg config.NodeConfig, marketCfg config.MarketConfig) (*Clien
 
 	apiClient := resty.New().
 		SetHostURL(nodeCfg.LCDEndpoint).
-		SetTimeout(time.Duration(5 * time.Second))
+		SetTimeout(time.Duration(10 * time.Second))
 
 	coinGeckoClient := resty.New().
 		SetHostURL(marketCfg.CoinGeckoEndpoint).
