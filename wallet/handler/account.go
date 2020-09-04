@@ -1,11 +1,21 @@
 package handler
 
-// RegisterOrUpdate registers an account if it doesn't exist and
-// updates the account information if it exists
-func RegisterOrUpdate(w http.ResponseWriter, r *http.Request) {
-	var account model.Account
+import (
+	"encoding/json"
+	"net/http"
+	"strings"
 
-	// get post data from request
+	"github.com/cosmostation/cosmostation-cosmos/wallet/errors"
+	"github.com/cosmostation/cosmostation-cosmos/wallet/model"
+	"github.com/cosmostation/cosmostation-cosmos/wallet/schema"
+	"go.uber.org/zap"
+)
+
+// RegisterOrUpdateAccount registers an account if it doesn't exist or
+// updates the account information if it exists.
+func RegisterOrUpdateAccount(w http.ResponseWriter, r *http.Request) {
+	var account schema.AppAccount
+
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&account)
 	if err != nil {
@@ -13,53 +23,58 @@ func RegisterOrUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	account.Address = strings.ToLower(account.Address)
-	account.DeviceType = strings.ToLower(account.DeviceType)
+	accAddr := strings.ToLower(account.Address)
+	deviceType := strings.ToLower(account.DeviceType)
 
-	// check device type
-	if account.DeviceType != model.Android && account.DeviceType != model.IOS {
+	if deviceType != model.Android && deviceType != model.IOS {
 		errors.ErrInvalidDeviceType(w, http.StatusBadRequest)
 		return
 	}
 
-	// check chain id
-	if account.ChainID != model.CosmosHub && account.ChainID != model.IrisHub && account.ChainID != model.Kava {
+	if account.ChainID != model.Cosmos &&
+		account.ChainID != model.Iris &&
+		account.ChainID != model.Kava {
 		errors.ErrInvalidChainID(w, http.StatusBadRequest)
 		return
 	}
 
-	// [TODO]: check validity of an address depending on which network
-	if !strings.Contains(account.Address, sdk.Bech32PrefixAccAddr) || len(account.Address) != 45 {
-		errors.ErrInvalidFormat(w, http.StatusBadRequest)
+	err = model.VerifyBech32AccAddr(accAddr)
+	if err != nil {
+		zap.L().Debug("failed to verify account address", zap.Error(err))
+		errors.ErrInvalidParam(w, http.StatusBadRequest, "account address is invalid")
 		return
 	}
 
-	// insert account information if it doesn't exist
-	exist, _ := databases.QueryExistsAccount(w, db, account)
+	// Insert account information if it doesn't exist
+	exist, _ := s.db.ExistAppAccount(account.AlarmToken, account.Address)
 	if !exist {
-		result, _, _ := databases.InsertAccount(w, db, account)
-		if result != 1 {
+		err := s.db.InsertAppAccount(account)
+		if err != nil {
+			zap.L().Error("failed to insert app account information", zap.Error(err))
+			errors.ErrInternalServer(w, http.StatusInternalServerError)
 			return
 		}
-		model.Respond(w, true, "successfully inserted")
+
+		model.Result(w, true, "successfully inserted")
 		return
 	}
 
-	result, err := databases.UpdateAccount(w, db, account)
-	if !result {
+	err = s.db.UpdateAppAccount(account)
+	if err != nil {
+		zap.L().Error("failed to insert app account information", zap.Error(err))
+		errors.ErrInternalServer(w, http.StatusInternalServerError)
 		return
 	}
 
-	model.Respond(w, true, "successfully updated")
+	model.Result(w, true, "successfully updated")
 	return
 }
 
-// Delete delete the account information
-// CURRENTLY NOT USED
-func Delete(w http.ResponseWriter, r *http.Request) {
-	var account model.Account
+// DeleteAccount deletes the account information.
+// [NOT USED]
+func DeleteAccount(w http.ResponseWriter, r *http.Request) {
+	var account schema.AppAccount
 
-	// get post data from request
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&account)
 	if err != nil {
@@ -67,18 +82,19 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// check if there is the same account
-	exist, _ := databases.QueryExistsAccount(w, db, account)
+	exist, _ := s.db.ExistAppAccount(account.AlarmToken, account.Address)
 	if !exist {
 		errors.ErrNotFound(w, http.StatusNotFound)
 		return
 	}
 
-	// delete the account
-	if exist {
-		databases.DeleteAccount(w, db, account)
+	err = s.db.DeleteAppAccount(account)
+	if err != nil {
+		zap.L().Error("failed to delete app account information", zap.Error(err))
+		errors.ErrInternalServer(w, http.StatusInternalServerError)
+		return
 	}
 
-	model.Respond(w, true, "successfully deleted")
+	model.Result(w, true, "successfully deleted")
 	return
 }

@@ -7,9 +7,9 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/cosmostation/cosmostation-cosmos/wallet/client"
 	"github.com/cosmostation/cosmostation-cosmos/wallet/config"
 	"github.com/cosmostation/cosmostation-cosmos/wallet/db"
+	"github.com/cosmostation/cosmostation-cosmos/wallet/handler"
 
 	"go.uber.org/zap"
 
@@ -28,23 +28,13 @@ func main() {
 	l, _ := zap.NewDevelopment()
 	zap.ReplaceGlobals(l)
 
-	config := config.NewConfig()
-
 	// Parse config from configuration file (config.yaml).
 	config := config.ParseConfig()
-
-	// Create new client with node configruation.
-	// Client is used for requesting any type of network data from RPC full node and REST Server.
-	client, err := client.NewClient(config.Node, config.Market)
-	if err != nil {
-		zap.L().Error("failed to create new client", zap.Error(err))
-		return
-	}
 
 	// Create connection with PostgreSQL database and
 	// Ping database to verify connection is success.
 	db := db.Connect(config.DB)
-	err = db.Ping()
+	err := db.Ping()
 	if err != nil {
 		zap.L().Error("failed to ping database", zap.Error(err))
 		return
@@ -52,17 +42,17 @@ func main() {
 
 	r := mux.NewRouter()
 	r = r.PathPrefix("/v1").Subrouter()
-	r.HandleFunc("/account/update", handler.RegisterOrUpdate).Methods("POST")
-	r.HandleFunc("/account/delete", handler.Delete).Methods("DELETE")
-	r.HandleFunc("/app/version/{deviceType}", handler.GetVersion).Methods("GET")
-	r.HandleFunc("/app/version", handler.SetVersion).Methods("POST")
+	r.HandleFunc("/account/update", handler.RegisterOrUpdateAccount).Methods("POST")
+	r.HandleFunc("/app/version/{device_type}", handler.GetAppVersion).Methods("GET")
+	r.HandleFunc("/app/version", handler.SetAppVersion).Methods("POST")
 
 	// These APIs are not used at this moment.
 	r.HandleFunc("/alarm/push", handler.PushNotification).Methods("POST")
+	r.HandleFunc("/account/delete", handler.DeleteAccount).Methods("DELETE")
 
 	sm := &http.Server{
 		Addr:         ":" + config.Web.Port,
-		Handler:      handler.Middleware(r, client, db),
+		Handler:      handler.Middleware(r, db),
 		ReadTimeout:  10 * time.Second, // max time to read request from the client
 		WriteTimeout: 10 * time.Second, // max time to write response to the client
 	}

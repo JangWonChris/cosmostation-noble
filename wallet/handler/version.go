@@ -1,39 +1,48 @@
 package handler
 
-// GetVersion returns version number of an app
-func GetVersion(db *pg.DB, w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	deviceType := vars["deviceType"]
+import (
+	"encoding/json"
+	"net/http"
+	"strings"
 
-	// lower case
+	"github.com/cosmostation/cosmostation-cosmos/wallet/errors"
+	"github.com/cosmostation/cosmostation-cosmos/wallet/model"
+	"github.com/cosmostation/cosmostation-cosmos/wallet/schema"
+
+	"github.com/gorilla/mux"
+
+	"go.uber.org/zap"
+)
+
+// GetAppVersion returns version number of an app.
+func GetAppVersion(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	deviceType := vars["device_type"]
+
 	deviceType = strings.ToLower(deviceType)
 
-	var version schema.MobileVersion
-
-	switch deviceType {
-	case model.Android:
-		version, _ = s.db.QueryMobileVersion(w, db, deviceType)
-	case model.IOS:
-		version, _ = s.db.QueryMobileVersion(w, db, deviceType)
-	default:
-		errors.ErrInvalidDeviceType(w, http.StatusBadRequest)
+	version, err := s.db.QueryAppVersion(deviceType)
+	if err != nil {
+		zap.L().Error("failed to get app version information", zap.Error(err))
+		errors.ErrInternalServer(w, http.StatusInternalServerError)
 		return
 	}
 
-	// in case when data is empty
+	// Handle when data is empty
 	if version.Version == 0 {
+		model.Respond(w, schema.AppVersion{})
 		return
 	}
 
 	version.IdfVersion = 0
 
-	u.Respond(w, version)
+	model.Respond(w, version)
 	return
 }
 
-// SetVersion sets version number of an app
-func SetVersion(db *pg.DB, w http.ResponseWriter, r *http.Request) {
-	var version model.AppVersion
+// SetAppVersion sets version number of an app.
+func SetAppVersion(w http.ResponseWriter, r *http.Request) {
+	var version schema.AppVersion
 
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&version)
@@ -42,17 +51,15 @@ func SetVersion(db *pg.DB, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// lower case
-	version.AppName = strings.ToLower(version.AppName)
-	version.DeviceType = strings.ToLower(version.DeviceType)
+	appName := strings.ToLower(version.AppName)
+	deviceType := strings.ToLower(version.DeviceType)
 
-	exist, _ := databases.QueryExistsAppVersion(w, db, version)
-
-	// update version info if it exists. Otherwise, insert version info
-	if exist {
-		databases.UpdateAppVersion(w, db, version)
+	// Insert or udpate version information
+	exist, _ := s.db.ExistAppVersion(appName, deviceType)
+	if !exist {
+		s.db.InsertAppVersion(version)
 	} else {
-		databases.InsertAppVersion(w, db, version)
+		s.db.UpdateAppVersion(version)
 	}
 
 	model.Respond(w, version)

@@ -1,5 +1,7 @@
 package handler
 
+import "net/http"
+
 /*
 
 JSON structure that is required when sending push notification

@@ -59,6 +59,11 @@ func (db *Database) Ping() error {
 // CreateTables creates database tables using object relational mapper (ORM)
 func (db *Database) CreateTables() error {
 	for _, model := range []interface{}{(*schema.AppAccount)(nil), (*schema.AppVersion)(nil)} {
+		// Disable pluralization
+		orm.SetTableNameInflector(func(s string) string {
+			return s
+		})
+
 		err := db.CreateTable(model, &orm.CreateTableOptions{
 			IfNotExists: true,
 			Varchar:     columnLength,
@@ -112,8 +117,8 @@ func (db *Database) QueryAppVersion(deviceType string) (mv schema.AppVersion, er
 	return mv, nil
 }
 
-// QueryAccount returns user information.
-func (db *Database) QueryAccount(address string) (account schema.AppAccount, err error) {
+// QueryAppAccount returns user information.
+func (db *Database) QueryAppAccount(address string) (account schema.AppAccount, err error) {
 	err = db.Model(&account).
 		Where("address = ?", address).
 		Select()
@@ -133,8 +138,8 @@ func (db *Database) QueryAccount(address string) (account schema.AppAccount, err
 // Insert
 // --------------------
 
-// InsertAccount inserts new account information.
-func (db *Database) InsertAccount(account schema.AppAccount) error {
+// InsertAppAccount inserts new account information.
+func (db *Database) InsertAppAccount(account schema.AppAccount) error {
 	err := db.Insert(&account)
 	if err != nil {
 		return err
@@ -143,8 +148,8 @@ func (db *Database) InsertAccount(account schema.AppAccount) error {
 	return nil
 }
 
-// InsertVersion inserts new app version
-func (db *Database) InsertVersion(version schema.AppVersion) error {
+// InsertAppVersion inserts new app version
+func (db *Database) InsertAppVersion(version schema.AppVersion) error {
 	err := db.Insert(&version)
 	if err != nil {
 		return err
@@ -157,10 +162,11 @@ func (db *Database) InsertVersion(version schema.AppVersion) error {
 // Exist
 // --------------------
 
-// ExistsAccount queries to check if the account data exists.
-func (db *Database) ExistsAccount(account schema.Account) (bool, error) {
+// ExistAppAccount queries to check if the account data exists.
+func (db *Database) ExistAppAccount(alarmToken, address string) (bool, error) {
+	var account schema.AppAccount
 	exist, err := db.Model(&account).
-		Where("alarm_token = ? AND address = ?", account.AlarmToken, account.Address).
+		Where("alarm_token = ? AND address = ?", alarmToken, address).
 		Exists()
 
 	if err != nil {
@@ -170,10 +176,11 @@ func (db *Database) ExistsAccount(account schema.Account) (bool, error) {
 	return exist, nil
 }
 
-// ExistsVersion queries to check if the app data exists
-func (db *Database) ExistsVersion(version schema.AppVersion) (bool, error) {
+// ExistAppVersion queries to check if the app data exists
+func (db *Database) ExistAppVersion(appName, deviceType string) (bool, error) {
+	var version schema.AppVersion
 	exist, err := db.Model(&version).
-		Where("app_name = ? AND device_type = ?", version.AppName, version.DeviceType).
+		Where("app_name = ? AND device_type = ?", appName, deviceType).
 		Exists()
 
 	if err != nil {
@@ -187,8 +194,8 @@ func (db *Database) ExistsVersion(version schema.AppVersion) (bool, error) {
 // Update
 // --------------------
 
-// UpdateVersion updates the app version.
-func (db *Database) UpdateVersion(version schema.AppVersion) (schema.AppVersion, error) {
+// UpdateAppVersion updates the app version.
+func (db *Database) UpdateAppVersion(version schema.AppVersion) (schema.AppVersion, error) {
 	_, err := db.Model(&version).
 		Set("version = ?", version.Version).
 		Set("enable = ?", version.Enable).
@@ -202,8 +209,8 @@ func (db *Database) UpdateVersion(version schema.AppVersion) (schema.AppVersion,
 	return version, nil
 }
 
-// UpdateAccount updates the account information.
-func (db *Database) UpdateAccount(account schema.Account) error {
+// UpdateAppAccount updates the account information.
+func (db *Database) UpdateAppAccount(account schema.AppAccount) error {
 	_, err := db.Model(&account).
 		Set("alarm_status = ?", account.AlarmStatus).
 		Where("device_type = ? AND alarm_token = ? AND address = ?", account.DeviceType, account.AlarmToken, account.Address).
@@ -219,8 +226,8 @@ func (db *Database) UpdateAccount(account schema.Account) error {
 // Delete
 // --------------------
 
-// DeleteAccount deletes the account
-func (db *Database) DeleteAccount(account schema.Account) error {
+// DeleteAppAccount deletes the account.
+func (db *Database) DeleteAppAccount(account schema.AppAccount) error {
 	_, err := db.Model(&account).
 		Where("device_type = ? AND alarm_token = ? AND address = ?", account.DeviceType, account.AlarmToken, account.Address).
 		Delete()

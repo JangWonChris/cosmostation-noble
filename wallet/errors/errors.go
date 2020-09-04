@@ -29,9 +29,12 @@ const (
 
 	InvalidDeviceType ErrorCode = 301
 	InvalidChainID    ErrorCode = 302
+
+	RequiredParam ErrorCode = 601
+	InvalidParam  ErrorCode = 602
 )
 
-// ErrorCodeToErrorMsg returns error message from error code
+// ErrorCodeToErrorMsg returns error message from error code.
 func ErrorCodeToErrorMsg(code ErrorCode) ErrorMsg {
 	switch code {
 	case InternalServer:
@@ -53,9 +56,21 @@ func ErrorCodeToErrorMsg(code ErrorCode) ErrorMsg {
 	}
 }
 
-/*
-	----------------------------------------------- Error Types
-*/
+// ErrorCodeToErrorMsgs returns error message concatenating with custom message from error code.
+func ErrorCodeToErrorMsgs(code ErrorCode, msg string) ErrorMsg {
+	switch code {
+	case RequiredParam:
+		return ErrorMsg(msg)
+	case InvalidParam:
+		return ErrorMsg(msg)
+	default:
+		return "Unknown"
+	}
+}
+
+// --------------------
+// Error Types
+// --------------------
 
 func ErrInternalServer(w http.ResponseWriter, statusCode int) {
 	wrapError := WrapError{
@@ -113,6 +128,22 @@ func ErrInvalidChainID(w http.ResponseWriter, statusCode int) {
 	PrintException(w, statusCode, wrapError)
 }
 
+func ErrRequiredParam(w http.ResponseWriter, statusCode int, msg string) {
+	wrapError := WrapError{
+		ErrorCode: RequiredParam,
+		ErrorMsg:  ErrorCodeToErrorMsgs(RequiredParam, msg),
+	}
+	PrintException(w, statusCode, wrapError)
+}
+
+func ErrInvalidParam(w http.ResponseWriter, statusCode int, msg string) {
+	wrapError := WrapError{
+		ErrorCode: InvalidParam,
+		ErrorMsg:  ErrorCodeToErrorMsgs(InvalidParam, msg),
+	}
+	PrintException(w, statusCode, wrapError)
+}
+
 /*
 	----------------------------------------------- PrintException
 */
@@ -120,12 +151,8 @@ func ErrInvalidChainID(w http.ResponseWriter, statusCode int) {
 // PrintException prints out the exception result
 func PrintException(w http.ResponseWriter, statusCode int, err WrapError) {
 	w.Header().Add("Content-Type", "application/json")
-
-	// Write HTTP status code
-	w.WriteHeader(statusCode)
+	w.WriteHeader(statusCode) // HTTP status code
 
 	result, _ := json.Marshal(err)
-
 	fmt.Fprint(w, string(result))
-	return
 }

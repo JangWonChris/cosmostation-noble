@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"github.com/cosmostation/cosmostation-cosmos/wallet/client"
 	"github.com/cosmostation/cosmostation-cosmos/wallet/db"
 )
 
@@ -10,11 +9,10 @@ var s *Session
 
 // Session is struct for wrapping both client and db structs.
 type Session struct {
-	client *client.Client
-	db     *db.Database
+	db *db.Database
 }
 
 // SetSession set Session object.
-func SetSession(client *client.Client, db *db.Database) {
-	s = &Session{client, db}
+func SetSession(db *db.Database) {
+	s = &Session{db}
 }
