@@ -2,8 +2,8 @@ package schema
 
 import "time"
 
-// StatsMarket defines the structure for market statistics
-type StatsMarket struct {
+// StatsMarket5M defines the structure for market statistics.
+type StatsMarket5M struct {
 	ID                int64     `json:"id" sql:",pk"`
 	Price             float64   `json:"price"`
 	Currency          string    `json:"currency"`

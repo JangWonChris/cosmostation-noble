@@ -629,8 +629,22 @@ func (db *Database) QueryValidatorStats1D(address string, limit int) ([]schema.S
 	return statsValidators24H, nil
 }
 
-// QueryPrices1D returns market statistics from 1 hour makret stats table.
-func (db *Database) QueryPrices1D(limit int) (stats []schema.StatsMarket1H, err error) {
+// QueryPriceFromMarketStat5M returns market data from 5 minutes makret stats table.
+func (db *Database) QueryPriceFromMarketStat5M() (data schema.StatsMarket5M, err error) {
+	err = db.Model(&data).
+		Order("id DESC").
+		Limit(1).
+		Select()
+
+	if err != nil {
+		return schema.StatsMarket5M{}, err
+	}
+
+	return data, nil
+}
+
+// QueryPricesFromMarketStat1H returns market statistics from 1 hour makret stats table.
+func (db *Database) QueryPricesFromMarketStat1H(limit int) (stats []schema.StatsMarket1H, err error) {
 	err = db.Model(&stats).
 		Order("id DESC").
 		Limit(limit).
@@ -656,6 +670,24 @@ func (db *Database) QueryNetworkStats1H(limit int) ([]schema.StatsNetwork1H, err
 	}
 
 	return networkStats, nil
+}
+
+// QueryNetworkStats1D returns 1 day network statistics.
+func (db *Database) QueryNetworkStats1D(limit int) (stats []schema.StatsNetwork1D, err error) {
+	err = db.Model(&stats).
+		Order("id DESC").
+		Limit(limit).
+		Select()
+
+	if err == pg.ErrNoRows {
+		return []schema.StatsNetwork1D{}, nil
+	}
+
+	if err != nil {
+		return []schema.StatsNetwork1D{}, err
+	}
+
+	return stats, nil
 }
 
 // QueryBondedRateIn1D return bonded rate in network from 1 day network stats table.
@@ -726,6 +758,28 @@ func (db *Database) CountValidatorPowerEvents(proposer string) (int, error) {
 		Where("proposer = ?", proposer).
 		Count()
 
+	if err != nil {
+		return -1, err
+	}
+
+	return num, nil
+}
+
+// CountMarketStats1H counts network statistics.
+func (db *Database) CountMarketStats1H() (int, error) {
+	var market schema.StatsMarket1H
+	num, err := db.Model(&market).Count()
+	if err != nil {
+		return -1, err
+	}
+
+	return num, nil
+}
+
+// CountNetworkStats1H counts network statistics.
+func (db *Database) CountNetworkStats1H() (int, error) {
+	var network schema.StatsNetwork1H
+	num, err := db.Model(&network).Count()
 	if err != nil {
 		return -1, err
 	}

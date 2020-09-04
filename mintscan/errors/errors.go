@@ -61,6 +61,7 @@ const (
 
 	InternalServer    ErrorCode = 500
 	ServerUnavailable ErrorCode = 501
+	NoDataAvailable   ErrorCode = 502
 
 	RequiredParam ErrorCode = 601
 	InvalidParam  ErrorCode = 602
@@ -87,6 +88,8 @@ func ErrorCodeToErrorMsg(code ErrorCode) ErrorMsg {
 		return "Internal server error"
 	case ServerUnavailable:
 		return "ServerUnavailable"
+	case NoDataAvailable:
+		return "NoDataAvailable"
 	default:
 		return "Unknown"
 	}
@@ -175,6 +178,14 @@ func ErrFailedMarshalBinaryLengthPrefixed(w http.ResponseWriter, statusCode int)
 func ErrServerUnavailable(w http.ResponseWriter, statusCode int) {
 	wrapError := WrapError{
 		ErrorCode: ServerUnavailable,
+		ErrorMsg:  ErrorCodeToErrorMsg(ServerUnavailable),
+	}
+	PrintException(w, statusCode, wrapError)
+}
+
+func ErrNoDataAvailable(w http.ResponseWriter, statusCode int) {
+	wrapError := WrapError{
+		ErrorCode: NoDataAvailable,
 		ErrorMsg:  ErrorCodeToErrorMsg(ServerUnavailable),
 	}
 	PrintException(w, statusCode, wrapError)
