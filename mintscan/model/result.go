@@ -242,6 +242,7 @@ type ResultTx struct {
 	Fee       *Fee      `json:"fee,omitempty"`
 	GasWanted int64     `json:"gas_wanted,omitempty"`
 	GasUsed   int64     `json:"gas_used,omitempty"`
+	Memo      string    `json:"memo"`
 	Timestamp string    `json:"timestamp"`
 }
 

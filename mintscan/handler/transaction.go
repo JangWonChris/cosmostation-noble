@@ -53,6 +53,7 @@ func GetTransactions(rw http.ResponseWriter, r *http.Request) {
 			ID:        tx.ID,
 			Height:    tx.Height,
 			TxHash:    tx.TxHash,
+			Memo:      tx.Memo,
 			Timestamp: tx.Timestamp,
 		}
 

@@ -76,6 +76,7 @@ func ParseTransaction(tx schema.Transaction) (result *ResultTx, err error) {
 		GasUsed:   tx.GasUsed,
 		Msgs:      msgs,
 		Fee:       fee,
+		Memo:      tx.Memo,
 		Timestamp: tx.Timestamp,
 	}
 
@@ -112,6 +113,7 @@ func ParseTransactions(txs []schema.Transaction) (result []ResultTx, err error) 
 			GasUsed:   tx.GasUsed,
 			Msgs:      msgs,
 			Fee:       fee,
+			Memo:      tx.Memo,
 			Timestamp: tx.Timestamp,
 		}
 
