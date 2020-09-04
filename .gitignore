@@ -21,3 +21,4 @@
 chain-exporter/config.yaml
 mintscan/config.yaml
 stats-exporter/config.yaml
+wallet/config.yaml
