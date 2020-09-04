@@ -138,6 +138,8 @@ func GetTransaction(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	txHashStr = strings.ToUpper(txHashStr)
+
 	if strings.Contains(txHashStr, "0x") {
 		txHashStr = txHashStr[2:]
 	}
