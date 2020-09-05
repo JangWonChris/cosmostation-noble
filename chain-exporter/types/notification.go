@@ -1,6 +1,6 @@
 package types
 
-// These are parameters that are used for sending push notification to notification server.
+// These are parameters that are used for sending push notification to push notification server.
 var (
 	From = "from"
 	To   = "to"
@@ -15,18 +15,7 @@ var (
 	NotificationReceivedMessage = "You have just received "
 )
 
-type NotificationPayload struct {
-	From   string `json:"from"`
-	To     string `json:"to"`
-	Txid   string `json:"txid"`
-	Amount string `json:"amount"`
-	Denom  string `json:"denom"`
-}
-
-type NotificationServerPayload struct {
-	Notifications []Notification `json:"notifications"`
-}
-
+// Notification defines the structure for payload from push notification server.
 type Notification struct {
 	Tokens   []string         `json:"tokens"`
 	Platform int8             `json:"platform"`
@@ -35,10 +24,30 @@ type Notification struct {
 	Data     NotificationData `json:"data"`
 }
 
+// NotificationPayload defines the structure for notification payload.
+type NotificationPayload struct {
+	From   string `json:"from"`
+	To     string `json:"to"`
+	Txid   string `json:"txid"`
+	Amount string `json:"amount"`
+	Denom  string `json:"denom"`
+}
+
+// NotificationServerPayload defines the structure for a list of payloads from push notification server.
+type NotificationServerPayload struct {
+	Notifications []Notification `json:"notifications"`
+}
+
+// NotificationData defines the structure for notification data.
 type NotificationData struct {
 	NotifyTo string `json:"notifyto"`
 	Txid     string `json:"txid"`
 	Type     string `json:"type"`
+}
+
+// NewNotification returns new Notification.
+func NewNotification(tokens []string, platform int8, title string, message string, data NotificationData) Notification {
+	return Notification{tokens, platform, title, message, data}
 }
 
 // NewNotificationPayload returns new NotificationPayload.
@@ -50,11 +59,6 @@ func NewNotificationPayload(payload NotificationPayload) *NotificationPayload {
 		Amount: payload.Amount,
 		Denom:  payload.Denom,
 	}
-}
-
-// NewNotification returns new Notification.
-func NewNotification(tokens []string, platform int8, title string, message string, data NotificationData) Notification {
-	return Notification{tokens, platform, title, message, data}
 }
 
 // NewNotificationData returns new NotificationData.

@@ -25,5 +25,5 @@ func TestConnection(t *testing.T) {
 	_, err := db.QueryOne(pg.Scan(&n), "SELECT 1")
 	require.NoError(t, err)
 
-	require.Equal(t, n, "1", "failed to ping database")
+	require.Equal(t, n, 1, "failed to ping database")
 }

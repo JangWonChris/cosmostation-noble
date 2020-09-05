@@ -53,6 +53,7 @@ func GetTransactions(rw http.ResponseWriter, r *http.Request) {
 			ID:        tx.ID,
 			Height:    tx.Height,
 			TxHash:    tx.TxHash,
+			Memo:      tx.Memo,
 			Timestamp: tx.Timestamp,
 		}
 
@@ -137,6 +138,8 @@ func GetTransaction(rw http.ResponseWriter, r *http.Request) {
 		model.Respond(rw, result)
 		return
 	}
+
+	txHashStr = strings.ToUpper(txHashStr)
 
 	if strings.Contains(txHashStr, "0x") {
 		txHashStr = txHashStr[2:]

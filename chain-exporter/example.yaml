@@ -9,7 +9,7 @@ mainnet:
     port: "5432"
     user: "root"
     password: ""
-    table: "cosmos-3"
+    table: "cosmoshub-3"
   alarm:
     push_server_endpoint: "http://localhost:65522/api/push"
     switch: false # switch to turn on push notification 
@@ -23,7 +23,7 @@ dev:
     port: "5432"
     user: "root"
     password: ""
-    table: "cosmos-dev"
+    table: "cosmoshub-3-dev"
   alarm:
     push_server_endpoint: "http://localhost:65522/api/push"
     switch: false 

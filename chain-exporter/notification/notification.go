@@ -75,7 +75,7 @@ func (nof *Notification) Push(np types.NotificationPayload, tokens []string, tar
 
 // VerifyAccountStatus verifes account status before sending notification to its local server.
 func (nof *Notification) VerifyAccountStatus(address string) bool {
-	acct, _ := nof.db.QueryAccountMobile(address)
+	acct, _ := nof.db.QueryAppAccount(address)
 
 	// Check account's alarm token
 	if acct.AlarmToken == "" {

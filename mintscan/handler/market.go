@@ -1,33 +1,27 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
+	"time"
 
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
 	"github.com/gorilla/mux"
 
 	"go.uber.org/zap"
 )
 
-// GetCoinPrice returns coin price.
-func GetCoinPrice(rw http.ResponseWriter, r *http.Request) {
+// GetSimpleCoinPrice returns coin price.
+func GetSimpleCoinPrice(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	coinID := vars["id"]
 
 	switch coinID {
-	case model.Kava:
-		coinID = model.Kava
-	case model.BNB:
-		coinID = model.Binance
-	case model.Binance:
-		coinID = model.Binance
-	case model.USDX:
-		coinID = model.USDXStableCoin
-	case model.USDXStableCoin:
-		coinID = model.USDXStableCoin
-
+	case model.Cosmos:
+		coinID = model.Cosmos
 	default:
-		coinID = model.Kava
+		coinID = model.Cosmos
 	}
 
 	result, err := s.client.GetCoinGeckoCoinPrice(coinID)
@@ -37,5 +31,28 @@ func GetCoinPrice(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	model.Respond(rw, result)
+	return
+}
+
+// GetCoinMarketChartData returns market chart data using CoinGecko market chart API.
+func GetCoinMarketChartData(rw http.ResponseWriter, r *http.Request) {
+	if len(r.URL.Query()["id"]) <= 0 {
+		errors.ErrRequiredParam(rw, http.StatusBadRequest, "id param is required")
+		return
+	}
+
+	id := r.URL.Query()["id"][0]
+
+	// Current time and its minus 24 hours
+	to := time.Now().UTC()
+	from := to.AddDate(0, 0, -1)
+
+	marketChartData, err := s.client.GetCoinMarketChartData(id, fmt.Sprintf("%d", from.Unix()), fmt.Sprintf("%d", to.Unix()))
+	if err != nil {
+		zap.S().Errorf("failed to request coin market chart data: %s", err)
+		return
+	}
+
+	model.Respond(rw, marketChartData)
 	return
 }

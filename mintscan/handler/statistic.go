@@ -5,61 +5,74 @@ import (
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/schema"
 
 	"go.uber.org/zap"
 )
 
 const (
-	// RequiredLimit is the limit number of items that are required for clients to handle market chart graph.
-	RequiredLimit = 25
+	// requiredLimit is the limit number of items that are required for clients to handle market chart graph.
+	requiredLimit = 25
 )
 
 // GetMarketStats returns market statistics
 // TODO: find better and cleaner way to handle this API.
 func GetMarketStats(rw http.ResponseWriter, r *http.Request) {
-	resp, err := s.client.GetCoinGeckoMarketData(model.Kava)
+	// Count market statistics to see if enough data is available to query.
+	num, err := s.db.CountMarketStats1H()
 	if err != nil {
-		zap.L().Error("failed to get market data from CoinGecko", zap.Error(err))
+		zap.S().Errorf("failed to count market stats: %s", err)
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
 		return
 	}
 
-	// query every price of an hour for 24 hours
-	prices, err := s.db.QueryPrices1D(RequiredLimit)
+	if num < requiredLimit {
+		zap.S().Errorf("failed to query prices for 1 day: %s", err)
+		errors.ErrNoDataAvailable(rw, http.StatusInternalServerError)
+		return
+	}
+
+	prices, err := s.db.QueryPricesFromMarketStat1H(requiredLimit)
 	if err != nil {
-		zap.L().Error("failed to query prices for 1 day", zap.Error(err))
+		zap.S().Errorf("failed to query prices for 1 day: %s", err)
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
 		return
 	}
 
 	if len(prices) <= 0 {
-		zap.L().Debug("failed to query prices", zap.Int("len(prices)", len(prices)))
+		zap.L().Debug("failed to query prices")
 		errors.ErrNotExist(rw, http.StatusNotFound)
 		return
 	}
 
 	priceStats := make([]*model.PriceStats, 0)
 
-	for _, market := range prices {
-		tempPriceStats := &model.PriceStats{
-			Price: market.Price,
-			Time:  market.Timestamp,
+	for _, p := range prices {
+		ps := &model.PriceStats{
+			Price: p.Price,
+			Time:  p.Timestamp,
 		}
-		priceStats = append(priceStats, tempPriceStats)
+
+		priceStats = append(priceStats, ps)
+	}
+
+	currentPrice, err := s.db.QueryPriceFromMarketStat5M()
+	if err != nil {
+		zap.S().Errorf("failed to query current price from stat market 5m: %s", err)
+		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
+		return
 	}
 
 	result := &model.ResultMarket{
-		Price:             resp.MarketData.CurrentPrice.Usd,
-		Currency:          model.Currency,
-		MarketCapRank:     prices[0].MarketCapRank,
-		PercentChange1H:   prices[0].PercentChange1H,
-		PercentChange24H:  prices[0].PercentChange24H,
-		PercentChange7D:   prices[0].PercentChange7D,
-		PercentChange30D:  prices[0].PercentChange30D,
-		TotalVolume:       prices[0].TotalVolume,
-		CirculatingSupply: prices[0].CirculatingSupply,
-		LastUpdated:       prices[0].LastUpdated,
+		Price:             currentPrice.Price,
+		Currency:          currentPrice.Currency,
+		MarketCapRank:     currentPrice.MarketCapRank,
+		PercentChange1H:   currentPrice.PercentChange1H,
+		PercentChange24H:  currentPrice.PercentChange24H,
+		PercentChange7D:   currentPrice.PercentChange7D,
+		PercentChange30D:  currentPrice.PercentChange30D,
+		TotalVolume:       currentPrice.TotalVolume,
+		CirculatingSupply: currentPrice.CirculatingSupply,
+		LastUpdated:       currentPrice.LastUpdated,
 		PriceStats:        priceStats,
 	}
 
@@ -69,58 +82,54 @@ func GetMarketStats(rw http.ResponseWriter, r *http.Request) {
 
 // GetNetworkStats returns network statistics
 func GetNetworkStats(rw http.ResponseWriter, r *http.Request) {
-	var limit int
-
-	var statsNetwork schema.StatsNetwork1H
-	cntStats, _ := s.db.Model(&statsNetwork).Count()
-
-	switch {
-	case cntStats == 1:
-		model.Respond(rw, schema.StatsNetwork1H{})
-		return
-	case cntStats <= 24:
-		limit = cntStats
-	default:
-		limit = RequiredLimit
-	}
-
-	// query 24 network stats
-	network1HStats, err := s.db.QueryNetworkStats(limit)
+	// Count network statistics to see if enough data is available to query.
+	networkStatsNum, err := s.db.CountNetworkStats1H()
 	if err != nil {
-		model.Respond(rw, schema.StatsNetwork1H{})
+		zap.S().Errorf("failed to count network stats: %s", err)
+		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
 		return
 	}
 
-	if len(network1HStats) <= 0 {
-		zap.L().Debug("failed to query network stats", zap.Int("len(network1HStats)", len(network1HStats)))
+	if networkStatsNum < requiredLimit {
+		zap.S().Debug("network stats num is less than required limit")
+		errors.ErrNoDataAvailable(rw, http.StatusInternalServerError)
+		return
 	}
 
-	// Query bonded tokens percentage change for 24 hours
-	network24HStats, err := s.db.QueryBondedRateIn1D()
+	network1HStats, err := s.db.QueryNetworkStats1H(requiredLimit)
 	if err != nil {
-		model.Respond(rw, schema.StatsNetwork1H{})
+		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
 		return
 	}
 
-	if len(network24HStats) <= 0 {
-		zap.L().Debug("failed to query bonded tokens stats", zap.Int("len(network1HStats)", len(network1HStats)))
+	bondedTokensStats := make([]*model.BondedTokensStats, 0)
+
+	for _, ns := range network1HStats {
+		stats := &model.BondedTokensStats{
+			BondedTokens: ns.BondedTokens,
+			BondedRatio:  ns.BondedRatio,
+			LastUpdated:  ns.Timestamp,
+		}
+
+		bondedTokensStats = append(bondedTokensStats, stats)
+	}
+
+	// Query two latest network stats from 1D table to calculate bonded change rate within 24 hours.
+	network1Dstats, err := s.db.QueryNetworkStats1D(2)
+	if err != nil {
+		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
+		return
+	}
+
+	if len(network1Dstats) < 2 {
+		zap.S().Debug("network stats data from 1 day table needs at least two")
+		errors.ErrNoDataAvailable(rw, http.StatusInternalServerError)
+		return
 	}
 
 	// Calculate change rate of bonded tokens in 24hours
 	// (LatestBondedTokens - SecondLatestBondedTokens) / SecondLatestBondedTokens
-	diff := network24HStats[0].BondedTokens - network24HStats[1].BondedTokens
-	changeRateIn24H := diff / network24HStats[1].BondedTokens
-
-	bondedTokensStats := make([]*model.BondedTokensStats, 0)
-
-	for _, network1HStat := range network1HStats {
-		temp := &model.BondedTokensStats{
-			BondedTokens: network1HStat.BondedTokens,
-			BondedRatio:  network1HStat.BondedRatio,
-			LastUpdated:  network1HStat.Timestamp,
-		}
-		bondedTokensStats = append(bondedTokensStats, temp)
-	}
+	changeRateIn24H := (network1Dstats[0].BondedTokens - network1Dstats[1].BondedTokens) / network1Dstats[1].BondedTokens
 
 	result := &model.NetworkInfo{
 		BondendTokensPercentChange24H: changeRateIn24H,

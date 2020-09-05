@@ -4,22 +4,22 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-// Delegations is a struct for REST API
+// Delegations defines the structure for delegations.
 type Delegations struct {
 	DelegatorAddress string `json:"delegator_address"`
 	ValidatorAddress string `json:"validator_address"`
 	Shares           string `json:"shares"`
 	Balance          string `json:"balance"`
-	// Balance          Coin   `json:"balance"`
+	// Balance          Coin   `json:"balance"` // for next update
 }
 
-// Rewards is a struct for REST API
+// Rewards defines the structure for rewards.
 type Rewards struct {
 	ValidatorAddress string `json:"validator_address"`
 	Reward           []Coin `json:"reward"`
 }
 
-// UnbondingDelegations is a struct for REST API
+// UnbondingDelegations defines the structure for unbonding delegations.
 type UnbondingDelegations struct {
 	DelegatorAddress string `json:"delegator_address"`
 	ValidatorAddress string `json:"validator_address"`
@@ -32,7 +32,7 @@ type UnbondingDelegations struct {
 	} `json:"entries"`
 }
 
-// ModuleAccount is module account on chain
+// ModuleAccount defines the structure for module account information.
 type ModuleAccount struct {
 	Address       string    `json:"address"`
 	AccountNumber uint64    `json:"account_number"`

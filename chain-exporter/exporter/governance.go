@@ -5,17 +5,18 @@ import (
 	"strconv"
 
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
-	"go.uber.org/zap"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkTypes "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/gov"
 
-	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
+	tmcTypes "github.com/tendermint/tendermint/rpc/core/types"
+
+	"go.uber.org/zap"
 )
 
 // getGovernance returns governance by decoding governance related transactions in a block.
-func (ex *Exporter) getGovernance(block *tmctypes.ResultBlock, txs []*sdk.TxResponse) ([]schema.Proposal, []schema.Deposit, []schema.Vote, error) {
+func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txs []*sdkTypes.TxResponse) ([]schema.Proposal, []schema.Deposit, []schema.Vote, error) {
 	proposals := make([]schema.Proposal, 0)
 	deposits := make([]schema.Deposit, 0)
 	votes := make([]schema.Vote, 0)
@@ -37,7 +38,7 @@ func (ex *Exporter) getGovernance(block *tmctypes.ResultBlock, txs []*sdk.TxResp
 
 		switch stdTx.Msgs[0].(type) {
 		case gov.MsgSubmitProposal:
-			zap.S().Info(zap.Any("MsgType ", stdTx.Msgs[0].Type()), zap.Any("Hash ", tx.TxHash))
+			zap.S().Infof("MsgType: %s | Hash: %s", stdTx.Msgs[0].Type(), tx.TxHash)
 
 			msgSubmitProposal := stdTx.Msgs[0].(gov.MsgSubmitProposal)
 
@@ -89,7 +90,7 @@ func (ex *Exporter) getGovernance(block *tmctypes.ResultBlock, txs []*sdk.TxResp
 			deposits = append(deposits, *d)
 
 		case gov.MsgDeposit:
-			zap.S().Info(zap.Any("MsgType ", stdTx.Msgs[0].Type()), zap.Any("Hash ", tx.TxHash))
+			zap.S().Infof("MsgType: %s | Hash: %s", stdTx.Msgs[0].Type(), tx.TxHash)
 
 			msgDeposit := stdTx.Msgs[0].(gov.MsgDeposit)
 
@@ -116,7 +117,7 @@ func (ex *Exporter) getGovernance(block *tmctypes.ResultBlock, txs []*sdk.TxResp
 			deposits = append(deposits, *d)
 
 		case gov.MsgVote:
-			zap.S().Info(zap.Any("MsgType ", stdTx.Msgs[0].Type()), zap.Any("Hash ", tx.TxHash))
+			zap.S().Infof("MsgType: %s | Hash: %s", stdTx.Msgs[0].Type(), tx.TxHash)
 
 			msgVote := stdTx.Msgs[0].(gov.MsgVote)
 

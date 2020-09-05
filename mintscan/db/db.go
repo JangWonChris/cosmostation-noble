@@ -48,10 +48,12 @@ func (db *Database) Ping() error {
 	return nil
 }
 
-//-----------------------------------------------------------------------------
+// --------------------
 // Query
+// --------------------
 
-// QueryLatestBlockHeight queries the latest block height in database
+// QueryLatestBlockHeight queries the latest block height in database.
+// return 0 if there is not row in result set and -1 for any type of database errors.
 func (db *Database) QueryLatestBlockHeight() (int64, error) {
 	var block schema.Block
 	err := db.Model(&block).
@@ -59,12 +61,10 @@ func (db *Database) QueryLatestBlockHeight() (int64, error) {
 		Limit(1).
 		Select()
 
-	// return 0 when there is no row in result set
 	if err == pg.ErrNoRows {
-		return 0, err
+		return 0, nil
 	}
 
-	// return -1 for any type of errors
 	if err != nil {
 		return -1, err
 	}
@@ -81,7 +81,7 @@ func (db *Database) QueryBlocks(before, after int, limit int) (blocks []schema.B
 			Limit(limit).
 			Order("id DESC").
 			Select()
-	case after > 0:
+	case after >= 0:
 		err = db.Model(&blocks).
 			Where("height > ?", after).
 			Limit(limit).
@@ -311,7 +311,7 @@ func (db *Database) QueryValidatorsByStatus(status int) (validators []*schema.Va
 		Select()
 
 	if err == pg.ErrNoRows {
-		return []*schema.Validator{}, fmt.Errorf("found no rows in table: %s", err)
+		return []*schema.Validator{}, nil
 	}
 
 	if err != nil {
@@ -360,6 +360,10 @@ func (db *Database) QueryValidatorVotingPowerEventHistory(validatorID, before, a
 			Select()
 	}
 
+	if err == pg.ErrNoRows {
+		return []schema.PowerEventHistory{}, nil
+	}
+
 	if err != nil {
 		return []schema.PowerEventHistory{}, err
 	}
@@ -399,7 +403,7 @@ func (db *Database) QueryValidatorByAny(address string) (val schema.Validator, e
 	}
 
 	if err == pg.ErrNoRows {
-		return schema.Validator{}, fmt.Errorf("found no rows in table: %s", err)
+		return schema.Validator{}, nil
 	}
 
 	if err != nil {
@@ -432,7 +436,7 @@ func (db *Database) QueryTransactions(before int, after int, limit int) (txs []s
 	}
 
 	if err == pg.ErrNoRows {
-		return []schema.Transaction{}, fmt.Errorf("found no rows in table: %s", err)
+		return []schema.Transaction{}, nil
 	}
 
 	if err != nil {
@@ -496,9 +500,6 @@ func (db *Database) QueryTransactionsByAddr(accAddr, valAddr string, before, aft
 		QueryTxParamProposer + "'" + accAddr + "'" + " OR " +
 		QueryTxParamDepositer + "'" + accAddr + "'" + " OR " +
 		QueryTxParamVoter + "'" + accAddr + "'" + " OR " +
-		QueryTxParamFrom + "'" + accAddr + "'" + " OR " +
-		QueryTxParamSender + "'" + accAddr + "'" + " OR " +
-		QueryTxParamDepositor + "'" + accAddr + "'" + " OR " +
 		QueryTxParamValidatorCommission + " AND " + QueryTxParamValidatorAddress + "'" + valAddr + "'" + ")"
 
 	switch {
@@ -616,8 +617,111 @@ func (db *Database) QueryTotalTransactionNum() int {
 	return int(tx.ID)
 }
 
-//-----------------------------------------------------------------------------
+// QueryValidatorStats1D returns validator statistics from 1 day validator stats table.
+func (db *Database) QueryValidatorStats1D(address string, limit int) ([]schema.StatsValidators1D, error) {
+	statsValidators24H := make([]schema.StatsValidators1D, 0)
+	_ = db.Model(&statsValidators24H).
+		Where("proposer = ?", address).
+		Order("id DESC").
+		Limit(limit).
+		Select()
+
+	return statsValidators24H, nil
+}
+
+// QueryPriceFromMarketStat5M returns market data from 5 minutes makret stats table.
+func (db *Database) QueryPriceFromMarketStat5M() (data schema.StatsMarket5M, err error) {
+	err = db.Model(&data).
+		Order("id DESC").
+		Limit(1).
+		Select()
+
+	if err != nil {
+		return schema.StatsMarket5M{}, err
+	}
+
+	return data, nil
+}
+
+// QueryPricesFromMarketStat1H returns market statistics from 1 hour makret stats table.
+func (db *Database) QueryPricesFromMarketStat1H(limit int) (stats []schema.StatsMarket1H, err error) {
+	err = db.Model(&stats).
+		Order("id DESC").
+		Limit(limit).
+		Select()
+
+	if err != nil {
+		return []schema.StatsMarket1H{}, err
+	}
+
+	return stats, nil
+}
+
+// QueryNetworkStats1H returns network statistics from 1 hour network stats table.
+func (db *Database) QueryNetworkStats1H(limit int) ([]schema.StatsNetwork1H, error) {
+	var networkStats []schema.StatsNetwork1H
+	err := db.Model(&networkStats).
+		Order("id DESC").
+		Limit(limit).
+		Select()
+
+	if err != nil {
+		return networkStats, err
+	}
+
+	return networkStats, nil
+}
+
+// QueryNetworkStats1D returns 1 day network statistics.
+func (db *Database) QueryNetworkStats1D(limit int) (stats []schema.StatsNetwork1D, err error) {
+	err = db.Model(&stats).
+		Order("id DESC").
+		Limit(limit).
+		Select()
+
+	if err == pg.ErrNoRows {
+		return []schema.StatsNetwork1D{}, nil
+	}
+
+	if err != nil {
+		return []schema.StatsNetwork1D{}, err
+	}
+
+	return stats, nil
+}
+
+// QueryBondedRateIn1D return bonded rate in network from 1 day network stats table.
+func (db *Database) QueryBondedRateIn1D() ([]schema.StatsNetwork1D, error) {
+	var networkStats []schema.StatsNetwork1D
+	err := db.Model(&networkStats).
+		Order("id DESC").
+		Limit(2).
+		Select()
+
+	if err != nil {
+		return networkStats, err
+	}
+
+	return networkStats, nil
+}
+
+// --------------------
 // Count
+// --------------------
+
+// CountProposedBlocks counts how many proposed blocks made by a proposer.
+func (db *Database) CountProposedBlocks(proposer string) (int, error) {
+	var block schema.Block
+	count, err := db.Model(&block).
+		Where("proposer = ?", proposer).
+		Count()
+
+	if err != nil {
+		return -1, err
+	}
+
+	return count, nil
+}
 
 // CountMissingBlocks counts how many missing blocks a validator misses in detail and return total missing blocks count.
 func (db *Database) CountMissingBlocks(address string, latestHeight int, count int) (int, error) {
@@ -661,5 +765,28 @@ func (db *Database) CountValidatorPowerEvents(proposer string) (int, error) {
 	return num, nil
 }
 
-//-----------------------------------------------------------------------------
+// CountMarketStats1H counts network statistics.
+func (db *Database) CountMarketStats1H() (int, error) {
+	var market schema.StatsMarket1H
+	num, err := db.Model(&market).Count()
+	if err != nil {
+		return -1, err
+	}
+
+	return num, nil
+}
+
+// CountNetworkStats1H counts network statistics.
+func (db *Database) CountNetworkStats1H() (int, error) {
+	var network schema.StatsNetwork1H
+	num, err := db.Model(&network).Count()
+	if err != nil {
+		return -1, err
+	}
+
+	return num, nil
+}
+
+// --------------------
 // Exist
+// --------------------

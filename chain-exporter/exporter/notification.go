@@ -7,7 +7,7 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 	"go.uber.org/zap"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkTypes "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 
@@ -15,7 +15,7 @@ import (
 )
 
 // handlePushNotification handles our mobile wallet applications' push notification.
-func (ex *Exporter) handlePushNotification(block *tmctypes.ResultBlock, txs []*sdk.TxResponse) error {
+func (ex *Exporter) handlePushNotification(block *tmctypes.ResultBlock, txs []*sdkTypes.TxResponse) error {
 	if len(txs) <= 0 {
 		return nil
 	}

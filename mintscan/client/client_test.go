@@ -1,7 +1,6 @@
 package client
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -15,8 +14,6 @@ import (
 var client *Client
 
 func TestMain(m *testing.M) {
-	// model.SetAppConfig()
-
 	config := config.ParseConfig()
 	client, _ = NewClient(config.Node, config.Market)
 
@@ -71,14 +68,8 @@ func TestParseTxResponse(t *testing.T) {
 		sigs[i].PubKey = s.PubKey
 	}
 
-	// for i, pk := range stdTx.GetPubKeys() {
-	// 	sigs[i].PubKey = pk
-	// }
-
 	sigsBz, err := client.cdc.MarshalJSON(sigs)
 	require.NoError(t, err, "failed to unmarshal tx signatures")
-
-	fmt.Println("string(msgsBz): ", string(msgsBz))
 
 	require.NotNil(t, string(msgsBz), "Messages")
 	require.NotNil(t, string(feeBz), "Fees")

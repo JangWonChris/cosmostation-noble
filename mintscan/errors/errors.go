@@ -6,8 +6,39 @@ import (
 	"net/http"
 )
 
-// Error code and msg
+// [TODO]
+// References
+// 1. https://nordicapis.com/best-practices-api-error-handling/
+// 2. https://stackoverflow.blog/2020/03/02/best-practices-for-rest-api-design/
+
+// Facebook: https://developers.facebook.com/docs/graph-api/using-graph-api/error-handling/
+// Twitter: https://developer.twitter.com/en/docs/basics/response-codes
+// Gogle Maps Booking API: https://developers.google.com/maps-booking/reference/rest-api-v3/status_codes
+
+// Organize error types needed for this project
+// [1] Database
+// 	FailedConnection
+
+// [2] API Server
+// 	RequestFailed
+// 	OverMaxLimit
+// 	RequiredParam
+// 	InvalidParam
+// 	Unauthorized
+
+// [3] Database + API Server + General Format
+// 	NotFound
+
+// [3] General Format (Encoding / Decoding)
+// 	InvalidFormat - address length, bech32 prefix
+
+// 	FailedUnmarshalJSON
+// 	FailedMarshalBinaryLengthPrefixed
+
+// ErrorCode is the internal error code number.
 type ErrorCode uint32
+
+// ErrorMsg is the error message that is returns to client.
 type ErrorMsg string
 
 // WrapError parses the error into an object-like struct for exporting
@@ -15,43 +46,6 @@ type WrapError struct {
 	ErrorCode ErrorCode `json:"error_code"`
 	ErrorMsg  ErrorMsg  `json:"error_msg"`
 }
-
-/*
-	[TODO]
-		Refs
-			https://nordicapis.com/best-practices-api-error-handling/
-			https://stackoverflow.blog/2020/03/02/best-practices-for-rest-api-design/
-
-		Facebook
-			https://developers.facebook.com/docs/graph-api/using-graph-api/error-handling/
-
-		Twitter
-			https://developer.twitter.com/en/docs/basics/response-codes
-
-		Gogle Maps Booking API
-			https://developers.google.com/maps-booking/reference/rest-api-v3/status_codes
-
-	Organize error types needed for this project
-
-	[1] Database
-		FailedConnection
-
-	[2] API Server
-		RequestFailed
-		OverMaxLimit
-		RequiredParam
-		InvalidParam
-		Unauthorized
-
-	[3] Database + API Server + General Format
-		NotFound
-
-	[3] General Format (Encoding / Decoding)
-		InvalidFormat - address length, bech32 prefix
-
-		FailedUnmarshalJSON
-		FailedMarshalBinaryLengthPrefixed
-*/
 
 const (
 	InvalidFormat     ErrorCode = 202
@@ -67,12 +61,13 @@ const (
 
 	InternalServer    ErrorCode = 500
 	ServerUnavailable ErrorCode = 501
+	NoDataAvailable   ErrorCode = 502
 
 	RequiredParam ErrorCode = 601
 	InvalidParam  ErrorCode = 602
 )
 
-// ErrorCodeToErrorMsg returns error message from error code
+// ErrorCodeToErrorMsg returns error message from error code.
 func ErrorCodeToErrorMsg(code ErrorCode) ErrorMsg {
 	switch code {
 	case InvalidFormat:
@@ -93,12 +88,14 @@ func ErrorCodeToErrorMsg(code ErrorCode) ErrorMsg {
 		return "Internal server error"
 	case ServerUnavailable:
 		return "ServerUnavailable"
+	case NoDataAvailable:
+		return "NoDataAvailable"
 	default:
 		return "Unknown"
 	}
 }
 
-// ErrorCodeToErrorMsgs returns error message concatenating with custom message from error code
+// ErrorCodeToErrorMsgs returns error message concatenating with custom message from error code.
 func ErrorCodeToErrorMsgs(code ErrorCode, msg string) ErrorMsg {
 	switch code {
 	case RequiredParam:
@@ -110,9 +107,9 @@ func ErrorCodeToErrorMsgs(code ErrorCode, msg string) ErrorMsg {
 	}
 }
 
-/*
-	----------------------------------------------- Error Types
-*/
+// --------------------
+// Error Types
+// --------------------
 
 func ErrInternalServer(w http.ResponseWriter, statusCode int) {
 	wrapError := WrapError{
@@ -186,6 +183,14 @@ func ErrServerUnavailable(w http.ResponseWriter, statusCode int) {
 	PrintException(w, statusCode, wrapError)
 }
 
+func ErrNoDataAvailable(w http.ResponseWriter, statusCode int) {
+	wrapError := WrapError{
+		ErrorCode: NoDataAvailable,
+		ErrorMsg:  ErrorCodeToErrorMsg(ServerUnavailable),
+	}
+	PrintException(w, statusCode, wrapError)
+}
+
 func ErrRequiredParam(w http.ResponseWriter, statusCode int, msg string) {
 	wrapError := WrapError{
 		ErrorCode: RequiredParam,
@@ -202,9 +207,9 @@ func ErrInvalidParam(w http.ResponseWriter, statusCode int, msg string) {
 	PrintException(w, statusCode, wrapError)
 }
 
-/*
-	----------------------------------------------- PrintException
-*/
+// --------------------
+// PrintException
+// --------------------
 
 // PrintException prints out the exception result
 func PrintException(w http.ResponseWriter, statusCode int, err WrapError) {

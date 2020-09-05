@@ -68,7 +68,7 @@ func (db *Database) Ping() error {
 
 // CreateTables creates database tables using ORM (Object Relational Mapper).
 func (db *Database) CreateTables() error {
-	for _, table := range []interface{}{(*schema.Account)(nil), (*schema.Block)(nil), (*schema.Evidence)(nil), (*schema.Miss)(nil),
+	for _, table := range []interface{}{(*schema.Block)(nil), (*schema.Evidence)(nil), (*schema.Miss)(nil),
 		(*schema.MissDetail)(nil), (*schema.Proposal)(nil), (*schema.PowerEventHistory)(nil), (*schema.Validator)(nil),
 		(*schema.Transaction)(nil), (*schema.Vote)(nil), (*schema.Deposit)(nil)} {
 
@@ -100,11 +100,7 @@ func (db *Database) CreateTables() error {
 // if function returns an error, transaction is rollbacked, otherwise transaction is committed.
 // Create B-Tree indexes to reduce the cost of lookup queries
 func (db *Database) createIndexes() error {
-	db.RunInTransaction(func(tx *pg.Tx) error {
-		_, err := db.Model(schema.Account{}).Exec(indexAccountAddress)
-		if err != nil {
-			return fmt.Errorf("failed to create account address index: %s", err)
-		}
+	db.RunInTransaction(func(tx *pg.Tx) (err error) {
 		_, err = db.Model(schema.Block{}).Exec(indexBlockHeight)
 		if err != nil {
 			return fmt.Errorf("failed to create block height index: %s", err)
@@ -238,16 +234,6 @@ func (db *Database) QueryValidatorID(proposer string) (schema.PowerEventHistory,
 	return powerEventHistory, nil
 }
 
-// QueryAccount queries account information
-func (db *Database) QueryAccount(address string) (schema.Account, error) {
-	var account schema.Account
-	_ = db.Model(&account).
-		Where("account_address = ?", address).
-		Select()
-
-	return account, nil
-}
-
 // QueryHighestValidatorID returns highest id number of a validator from power_event_history table
 func (db *Database) QueryHighestValidatorID() (int, error) {
 	var powerEventHistory schema.PowerEventHistory
@@ -262,9 +248,9 @@ func (db *Database) QueryHighestValidatorID() (int, error) {
 	return powerEventHistory.IDValidator, nil
 }
 
-// QueryAccountMobile queries account information
-func (db *Database) QueryAccountMobile(address string) (schema.AccountMobile, error) {
-	var account schema.AccountMobile
+// QueryAppAccount queries account information
+func (db *Database) QueryAppAccount(address string) (schema.AppAccount, error) {
+	var account schema.AppAccount
 	_ = db.Model(&account).
 		Where("address = ?", address).
 		Select()
@@ -274,7 +260,7 @@ func (db *Database) QueryAccountMobile(address string) (schema.AccountMobile, er
 
 // QueryAlarmTokens queries user's alarm tokens
 func (db *Database) QueryAlarmTokens(address string) ([]string, error) {
-	var accounts []schema.AccountMobile
+	var accounts []schema.AppAccount
 	_ = db.Model(&accounts).
 		Column("alarm_token").
 		Where("address = ?", address).
@@ -316,20 +302,6 @@ func (db *Database) QueryMissingPreviousBlock(consAddrHex string, prevHeight int
 // --------------------
 // Exists
 // --------------------
-
-// ExistAccount queries to find if the account exists in database.
-func (db *Database) ExistAccount(address string) (exist bool, err error) {
-	var account schema.Account
-	exist, err = db.Model(&account).
-		Where("account_address = ?", address).
-		Exists()
-
-	if err != nil {
-		return false, err
-	}
-
-	return exist, nil
-}
 
 // ExistProposal queries to find if the proposal id exists in database.
 func (db *Database) ExistProposal(proposalID int64) (exist bool, err error) {
@@ -376,42 +348,6 @@ func (db *Database) ExistValidator(valAddr string) (bool, error) {
 // --------------------
 // Insert or Update
 // --------------------
-
-// InsertOrUpdateAccounts inserts if not exist already or update accounts.
-func (db *Database) InsertOrUpdateAccounts(accounts []schema.Account) error {
-	var account schema.Account
-	for _, acc := range accounts {
-		ok, _ := db.ExistAccount(acc.AccountAddress)
-		if !ok {
-			err := db.Insert(&acc)
-			if err != nil {
-				return err
-			}
-		} else {
-			_, err := db.Model(&account).
-				Set("account_number = ?", acc.AccountNumber).
-				Set("coins_total = ?", acc.CoinsTotal).
-				Set("coins_spendable = ?", acc.CoinsSpendable).
-				Set("coins_delegated = ?", acc.CoinsDelegated).
-				Set("coins_undelegated = ?", acc.CoinsUndelegated).
-				Set("coins_rewards = ?", acc.CoinsRewards).
-				Set("coins_commission = ?", acc.CoinsCommission).
-				Set("coins_vesting = ?", acc.CoinsVesting).
-				Set("coins_vested = ?", acc.CoinsVested).
-				Set("coins_failed_vested = ?", acc.CoinsFailedVested).
-				Set("last_tx = ?", acc.LastTx).
-				Set("last_tx_time = ?", acc.LastTxTime).
-				Where("account_address = ?", acc.AccountAddress).
-				Update()
-
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
 
 // InsertOrUpdateProposals inserts if not exist already or updates proposals.
 func (db *Database) InsertOrUpdateProposals(proposals []schema.Proposal) error {
@@ -502,20 +438,6 @@ func (db *Database) InsertExportedData(e schema.ExportData) error {
 			return fmt.Errorf("failed to insert result block: %s", err)
 		}
 
-		if len(e.ResultGenesisAccounts) > 0 {
-			err := tx.Insert(&e.ResultGenesisAccounts)
-			if err != nil {
-				return fmt.Errorf("failed to insert result genesis accounts: %s", err)
-			}
-		}
-
-		if len(e.ResultAccounts) > 0 {
-			err := db.InsertOrUpdateAccounts(e.ResultAccounts)
-			if err != nil {
-				return fmt.Errorf("failed to insert result accounts: %s", err)
-			}
-		}
-
 		if len(e.ResultEvidence) > 0 {
 			err := tx.Insert(&e.ResultEvidence)
 			if err != nil {
@@ -577,6 +499,7 @@ func (db *Database) InsertExportedData(e schema.ExportData) error {
 					Set("end_time = ?", e.ResultBlock.Timestamp).
 					Where("end_height = ? AND address = ?", rmb.EndHeight-int64(1), rmb.Address).
 					Update()
+
 				if err != nil {
 					return fmt.Errorf("failed to update result accumulated miss blocks: %s", err)
 				}
@@ -585,24 +508,24 @@ func (db *Database) InsertExportedData(e schema.ExportData) error {
 
 		if len(e.ResultProposals) > 0 {
 			var proposal schema.Proposal
-			for _, p := range e.ResultProposals {
-				ok, _ := db.ExistProposal(p.ID)
+			for _, rp := range e.ResultProposals {
+				ok, _ := db.ExistProposal(rp.ID)
 				if !ok {
-					err := tx.Insert(&e.ResultProposals)
+					err := tx.Insert(&rp)
 					if err != nil {
-						return err
+						return fmt.Errorf("failed to insert result proposal: %s", err)
 					}
 				} else {
-					// Update proposal
 					_, err := tx.Model(&proposal).
-						Set("tx_hash = ?", p.TxHash).
-						Set("proposer = ?", p.Proposer).
-						Set("initial_deposit_amount = ?", p.InitialDepositAmount).
-						Set("initial_deposit_denom = ?", p.InitialDepositDenom).
-						Where("id = ?", p.ID).
+						Set("tx_hash = ?", rp.TxHash).
+						Set("proposer = ?", rp.Proposer).
+						Set("initial_deposit_amount = ?", rp.InitialDepositAmount).
+						Set("initial_deposit_denom = ?", rp.InitialDepositDenom).
+						Where("id = ?", rp.ID).
 						Update()
+
 					if err != nil {
-						return err
+						return fmt.Errorf("failed to update result proposal: %s", err)
 					}
 				}
 
@@ -614,12 +537,11 @@ func (db *Database) InsertExportedData(e schema.ExportData) error {
 			for _, rv := range e.ReusltVotes {
 				ok, _ := db.ExistVote(rv.ProposalID, rv.Voter)
 				if !ok {
-					err := tx.Insert(&e.ReusltVotes)
+					err := tx.Insert(&rv)
 					if err != nil {
-						return fmt.Errorf("failed to insert result votes: %s", err)
+						return fmt.Errorf("failed to insert result vote: %s", err)
 					}
 				} else {
-					// Update vote
 					_, err := tx.Model(&vote).
 						Set("height = ?", rv.Height).
 						Set("option = ?", rv.Option).
@@ -629,8 +551,9 @@ func (db *Database) InsertExportedData(e schema.ExportData) error {
 						Set("timestamp = ?", rv.Timestamp).
 						Where("proposal_id = ? AND voter = ?", rv.ProposalID, rv.Voter).
 						Update()
+
 					if err != nil {
-						return fmt.Errorf("failed to update result votes: %s", err)
+						return fmt.Errorf("failed to update result vote: %s", err)
 					}
 				}
 			}

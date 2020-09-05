@@ -2,9 +2,7 @@ package schema
 
 // ExportData has all exported data that will be saved in database.
 type ExportData struct {
-	ResultAccounts                    []Account
 	ResultBlock                       Block
-	ResultGenesisAccounts             []Account
 	ResultTxs                         []Transaction
 	ResultEvidence                    []Evidence
 	ResultMissBlocks                  []Miss
@@ -20,9 +18,7 @@ type ExportData struct {
 // NewExportData returns a new ExportData.
 func NewExportData(e ExportData) *ExportData {
 	return &ExportData{
-		ResultAccounts:                    e.ResultAccounts,
 		ResultBlock:                       e.ResultBlock,
-		ResultGenesisAccounts:             e.ResultGenesisAccounts,
 		ResultTxs:                         e.ResultTxs,
 		ResultEvidence:                    e.ResultEvidence,
 		ResultMissBlocks:                  e.ResultMissBlocks,

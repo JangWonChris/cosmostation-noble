@@ -19,6 +19,7 @@ type Config struct {
 type Node struct {
 	RPCNode     string `mapstructure:"rpc_node"`
 	LCDEndpoint string `mapstructure:"lcd_endpoint"`
+	NetworkType string
 }
 
 // Database wraps PostgreSQL database config.
@@ -58,6 +59,13 @@ func ParseConfig() *Config {
 	sub.Unmarshal(&config)
 
 	config.KeybaseURL = viper.GetString("keybase_endpoint")
+
+	// This code is used in main.go to log network type when starting server.
+	if viper.GetString("network_type") == "mainnet" {
+		config.Node.NetworkType = viper.GetString("network_type")
+	} else {
+		config.Node.NetworkType = viper.GetString("network_type")
+	}
 
 	return &config
 }

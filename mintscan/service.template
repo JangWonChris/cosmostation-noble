@@ -2,7 +2,7 @@
 
 cat << EOF > $HOME/mintscan.service
 [Unit] 
-Description=Running a Mintscan API for Band Protocol
+Description=Running Mintscan API for Cosmos
 ConditionPathExists=${GOPATH}/bin/mintscan
 After=network.target 
 

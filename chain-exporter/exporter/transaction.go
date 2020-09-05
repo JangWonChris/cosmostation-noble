@@ -6,14 +6,14 @@ import (
 	ceCodec "github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkTypes "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
 // getTxs decodes transactions in a block and return a format of database transaction.
-func (ex *Exporter) getTxs(block *tmctypes.ResultBlock, txResp []*sdk.TxResponse) ([]schema.Transaction, error) {
+func (ex *Exporter) getTxs(block *tmctypes.ResultBlock, txResp []*sdkTypes.TxResponse) ([]schema.Transaction, error) {
 	txs := make([]schema.Transaction, 0)
 
 	if len(txResp) <= 0 {
@@ -39,9 +39,6 @@ func (ex *Exporter) getTxs(block *tmctypes.ResultBlock, txResp []*sdk.TxResponse
 		sigs := make([]auth.StdSignature, len(stdTx.GetSignatures()), len(stdTx.GetSignatures()))
 		for i, s := range stdTx.GetSignatures() {
 			sigs[i].Signature = s.Signature
-			// }
-			// for i, pk := range stdTx.GetPubKeys() {
-			// sigs[i].PubKey = pk
 			sigs[i].PubKey = s.PubKey
 		}
 
