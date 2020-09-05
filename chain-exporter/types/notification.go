@@ -15,6 +15,11 @@ var (
 	NotificationReceivedMessage = "You have just received "
 )
 
+// NotificationServerPayload defines the structure for a list of payloads from push notification server.
+type NotificationServerPayload struct {
+	Notifications []Notification `json:"notifications"`
+}
+
 // Notification defines the structure for payload from push notification server.
 type Notification struct {
 	Tokens   []string         `json:"tokens"`
@@ -24,6 +29,13 @@ type Notification struct {
 	Data     NotificationData `json:"data"`
 }
 
+// NotificationData defines the structure for notification data.
+type NotificationData struct {
+	NotifyTo string `json:"notifyto"`
+	Txid     string `json:"txid"`
+	Type     string `json:"type"`
+}
+
 // NotificationPayload defines the structure for notification payload.
 type NotificationPayload struct {
 	From   string `json:"from"`
@@ -31,18 +43,6 @@ type NotificationPayload struct {
 	Txid   string `json:"txid"`
 	Amount string `json:"amount"`
 	Denom  string `json:"denom"`
-}
-
-// NotificationServerPayload defines the structure for a list of payloads from push notification server.
-type NotificationServerPayload struct {
-	Notifications []Notification `json:"notifications"`
-}
-
-// NotificationData defines the structure for notification data.
-type NotificationData struct {
-	NotifyTo string `json:"notifyto"`
-	Txid     string `json:"txid"`
-	Type     string `json:"type"`
 }
 
 // NewNotification returns new Notification.

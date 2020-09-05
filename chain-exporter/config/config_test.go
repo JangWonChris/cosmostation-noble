@@ -18,5 +18,5 @@ func TestParseConfig(t *testing.T) {
 	require.NotEmpty(t, config.DB.Table, "Database Table should not be empty")
 	require.NotEmpty(t, config.Alarm.PushServerEndpoint, "Alarm PustServerEndpoint should not be empty")
 	require.NotEmpty(t, config.KeybaseURL, "KeyBaseURL field should not be empty")
-	// require.NotEmpty(t, config.Alarm.Switch, "Alarm Switch should not be empty")
+	require.NotEmpty(t, config.Alarm.Switch, "Alarm Switch should not be empty")
 }
