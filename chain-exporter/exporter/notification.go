@@ -54,26 +54,26 @@ func (ex *Exporter) handlePushNotification(block *tmctypes.ResultBlock, txs []*s
 			})
 
 			// Push notification to both sender and recipient
-			fromAccount, err := ex.db.QueryAppAccount(msgSend.FromAddress.String())
+			fromAcctRows, err := ex.db.QueryAppAccount(msgSend.FromAddress.String())
 			if err != nil {
 				return fmt.Errorf("unexpected database error: %s", err)
 			}
 
-			for _, acct := range fromAccount {
+			for _, acct := range fromAcctRows {
 				// Send push notification when alarm token is not empty and status is true.
-				if acct.AlarmToken != "" || acct.AlarmStatus {
+				if acct.AlarmToken != "" && acct.AlarmStatus {
 					ex.notiClient.Push(*payload, acct.AlarmToken, types.From)
 				}
 			}
 
-			toAccount, err := ex.db.QueryAppAccount(msgSend.ToAddress.String())
+			toAcctRows, err := ex.db.QueryAppAccount(msgSend.ToAddress.String())
 			if err != nil {
 				return fmt.Errorf("unexpected database error: %s", err)
 			}
 
-			for _, acct := range toAccount {
+			for _, acct := range toAcctRows {
 				// Send push notification when alarm token is not empty and status is true.
-				if acct.AlarmToken != "" || acct.AlarmStatus {
+				if acct.AlarmToken != "" && acct.AlarmStatus {
 					ex.notiClient.Push(*payload, acct.AlarmToken, types.To)
 				}
 			}
@@ -101,14 +101,14 @@ func (ex *Exporter) handlePushNotification(block *tmctypes.ResultBlock, txs []*s
 				}
 
 				// Handle from address
-				inputAccounts, err := ex.db.QueryAppAccount(input.Address.String())
+				inputAcctRows, err := ex.db.QueryAppAccount(input.Address.String())
 				if err != nil {
 					return fmt.Errorf("unexpected database error: %s", err)
 				}
 
-				for _, acct := range inputAccounts {
+				for _, acct := range inputAcctRows {
 					// Send push notification when alarm token is not empty and status is true.
-					if acct.AlarmToken != "" || acct.AlarmStatus {
+					if acct.AlarmToken != "" && acct.AlarmStatus {
 						ex.notiClient.Push(*payload, acct.AlarmToken, types.From)
 					}
 				}
@@ -132,14 +132,14 @@ func (ex *Exporter) handlePushNotification(block *tmctypes.ResultBlock, txs []*s
 				}
 
 				// Handle to address
-				outputAccounts, err := ex.db.QueryAppAccount(output.Address.String())
+				outputAcctRows, err := ex.db.QueryAppAccount(output.Address.String())
 				if err != nil {
 					return fmt.Errorf("unexpected database error: %s", err)
 				}
 
-				for _, acct := range outputAccounts {
+				for _, acct := range outputAcctRows {
 					// Send push notification when alarm token is not empty and status is true.
-					if acct.AlarmToken != "" || acct.AlarmStatus {
+					if acct.AlarmToken != "" && acct.AlarmStatus {
 						ex.notiClient.Push(*payload, acct.AlarmToken, types.To)
 					}
 				}
