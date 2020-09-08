@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/rest"
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/errors"
@@ -74,30 +73,34 @@ func GetTransactionsList(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txResp := make([]sdk.TxResponse, len(txList.TxHash))
+	txResp := make([]*model.ResultTx, len(txList.TxHash))
 
 	if len(txResp) == 0 {
 		errors.ErrInvalidFormat(rw, http.StatusBadRequest)
 		zap.L().Debug("received empty tx hash list", zap.Int("len", len(txResp)))
 		return
 	}
-
-	// Remove if tx hash contains prefix '0x' and check length.
 	for i, txHashStr := range txList.TxHash {
+
+		txHashStr = strings.ToUpper(txHashStr)
+
 		if strings.Contains(txHashStr, "0x") {
 			txHashStr = txHashStr[2:]
 		}
 
 		if len(txHashStr) != 64 {
-			zap.L().Debug("tx hash length is invalid", zap.Int("len", len(txHashStr)), zap.String("txHashStr", txHashStr))
+			zap.L().Debug("tx hash length is invalid", zap.String("txHashStr", txHashStr))
 			continue
 		}
 
-		err := s.client.GetTxs(txHashStr, &txResp[i])
+		tx, err := s.db.QueryTransactionByTxHash(txHashStr)
 		if err != nil {
-			zap.L().Error("failed to get transaction details", zap.Error(err))
+			zap.L().Error("failed to get transaction by tx hash", zap.Error(err))
 			continue
 		}
+
+		result, _ := model.ParseTransaction(tx)
+		txResp[i] = result
 	}
 
 	model.Respond(rw, txResp)
