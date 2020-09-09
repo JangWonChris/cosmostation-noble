@@ -109,6 +109,16 @@ func main() {
 		WriteTimeout: 10 * time.Second, // max time to write response to the client
 	}
 
+	go func() {
+		for {
+			if err := handler.SetStatus(); err != nil {
+				time.Sleep(1 * time.Second)
+				continue
+			}
+			time.Sleep(5 * time.Second)
+		}
+	}()
+
 	// Start the Mintscan API server.
 	go func() {
 		zap.S().Infof("Server is running on http://localhost:%s", config.Web.Port)
