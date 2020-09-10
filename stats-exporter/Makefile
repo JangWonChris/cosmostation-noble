@@ -1,7 +1,8 @@
+NAME				  := stats-exporter
 VERSION               := $(shell echo $(shell git describe --tags) | sed 's/^v//')
 COMMIT                := $(shell git log -1 --format='%H')
 DATE 				  := $(shell date +%FT%T%z)
-DESTDIR         	  ?= $(GOPATH)/bin/stats-exporter
+DESTDIR         	  ?= $(GOPATH)/bin/${NAME}
 BUILD_FLAGS 		  := -ldflags "-X github.com/cosmostation/cosmostation-cosmos/stats-exporter/exporter.Version=${VERSION} \
 									-X github.com/cosmostation/cosmostation-cosmos/stats-exporter/exporter.Commit=${COMMIT}"
 
