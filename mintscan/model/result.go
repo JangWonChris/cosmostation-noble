@@ -165,10 +165,9 @@ type ResultMissesDetail struct {
 
 // ResultPowerEventHistory defines the structure for validator voting power history result response.
 type ResultPowerEventHistory struct {
-	ID      int64  `json:"id"`
-	Height  int64  `json:"height"`
-	MsgType string `json:"msg_type"`
-	// EventType      string    `json:"event_type"`
+	ID             int64     `json:"id"`
+	Height         int64     `json:"height"`
+	MsgType        string    `json:"msg_type"`
 	VotingPower    float64   `json:"voting_power"`
 	NewVotingPower float64   `json:"new_voting_power"`
 	TxHash         string    `json:"tx_hash"`

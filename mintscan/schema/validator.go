@@ -30,15 +30,14 @@ type Validator struct {
 
 // PowerEventHistory has validator's voting power event history information.
 type PowerEventHistory struct {
-	ID              int64   `sql:",pk"`
-	IDValidator     int     `json:"id_validator" sql:"default:0"`
-	Height          int64   `json:"height"`
-	Moniker         string  `json:"moniker"`
-	OperatorAddress string  `json:"operator_address"`
-	Proposer        string  `json:"proposer"`
-	VotingPower     float64 `json:"voting_power" sql:"default:0"`
-	MsgType         string  `json:"msg_type" sql:"default:null"`
-	// EventType            string    `json:"event_type" sql:"default:null"`
+	ID                   int64     `sql:",pk"`
+	IDValidator          int       `json:"id_validator" sql:"default:0"`
+	Height               int64     `json:"height"`
+	Moniker              string    `json:"moniker"`
+	OperatorAddress      string    `json:"operator_address"`
+	Proposer             string    `json:"proposer"`
+	VotingPower          float64   `json:"voting_power" sql:"default:0"`
+	MsgType              string    `json:"msg_type" sql:"default:null"`
 	NewVotingPowerAmount float64   `json:"new_voting_power_amount" sql:"new_voting_power_amount"`
 	NewVotingPowerDenom  string    `json:"new_voting_power_denom" sql:"new_voting_power_denom"`
 	TxHash               string    `json:"tx_hash" sql:"default:null"`
