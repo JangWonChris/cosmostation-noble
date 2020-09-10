@@ -242,38 +242,29 @@ func (db *Database) QueryHighestValidatorID() (int, error) {
 		Order("id_validator DESC").
 		Limit(1).
 		Select()
+
 	if err != nil {
 		return 0, err
 	}
+
 	return powerEventHistory.IDValidator, nil
 }
 
-// QueryAppAccount queries account information
-func (db *Database) QueryAppAccount(address string) (schema.AppAccount, error) {
-	var account schema.AppAccount
-	_ = db.Model(&account).
+// QueryAppAccount returns app user's account information.
+func (db *Database) QueryAppAccount(address string) (account []schema.AppAccount, err error) {
+	err = db.Model(&account).
 		Where("address = ?", address).
 		Select()
 
-	return account, nil
-}
-
-// QueryAlarmTokens queries user's alarm tokens
-func (db *Database) QueryAlarmTokens(address string) ([]string, error) {
-	var accounts []schema.AppAccount
-	_ = db.Model(&accounts).
-		Column("alarm_token").
-		Where("address = ?", address).
-		Select()
-
-	var result []string
-	if len(accounts) > 0 {
-		for _, account := range accounts {
-			result = append(result, account.AlarmToken)
-		}
+	if err == pg.ErrNoRows {
+		return []schema.AppAccount{}, nil
 	}
 
-	return result, nil
+	if err != nil {
+		return []schema.AppAccount{}, err
+	}
+
+	return account, nil
 }
 
 // QueryHighestRankValidatorByStatus queries highest rank of a validator by status

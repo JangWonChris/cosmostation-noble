@@ -3,7 +3,6 @@ package exporter
 import (
 	"fmt"
 
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/notification"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 	"go.uber.org/zap"
 
@@ -54,22 +53,28 @@ func (ex *Exporter) handlePushNotification(block *tmctypes.ResultBlock, txs []*s
 				Denom:  denom,
 			})
 
-			// Push notification to both sender and recipient.
-			notification := notification.NewNotification()
+			// Push notification to both sender and recipient
+			fromAcctRows, err := ex.db.QueryAppAccount(msgSend.FromAddress.String())
+			if err != nil {
+				return fmt.Errorf("unexpected database error: %s", err)
+			}
 
-			fromAccountStatus := notification.VerifyAccountStatus(msgSend.FromAddress.String())
-			if fromAccountStatus {
-				tokens, _ := ex.db.QueryAlarmTokens(msgSend.FromAddress.String())
-				if len(tokens) > 0 {
-					notification.Push(*payload, tokens, types.From)
+			for _, acct := range fromAcctRows {
+				// Send push notification when alarm token is not empty and status is true.
+				if acct.AlarmToken != "" && acct.AlarmStatus {
+					ex.notiClient.Push(*payload, acct.AlarmToken, types.From)
 				}
 			}
 
-			toAccountStatus := notification.VerifyAccountStatus(msgSend.ToAddress.String())
-			if toAccountStatus {
-				tokens, _ := ex.db.QueryAlarmTokens(msgSend.ToAddress.String())
-				if len(tokens) > 0 {
-					notification.Push(*payload, tokens, types.To)
+			toAcctRows, err := ex.db.QueryAppAccount(msgSend.ToAddress.String())
+			if err != nil {
+				return fmt.Errorf("unexpected database error: %s", err)
+			}
+
+			for _, acct := range toAcctRows {
+				// Send push notification when alarm token is not empty and status is true.
+				if acct.AlarmToken != "" && acct.AlarmStatus {
+					ex.notiClient.Push(*payload, acct.AlarmToken, types.To)
 				}
 			}
 
@@ -77,8 +82,6 @@ func (ex *Exporter) handlePushNotification(block *tmctypes.ResultBlock, txs []*s
 			zap.S().Infof("MsgType: %s | Hash: %s", stdTx.Msgs[0].Type(), tx.TxHash)
 
 			msgMultiSend := stdTx.Msgs[0].(bank.MsgMultiSend)
-
-			notification := notification.NewNotification()
 
 			// Push notifications to all accounts in inputs
 			for _, input := range msgMultiSend.Inputs {
@@ -97,11 +100,16 @@ func (ex *Exporter) handlePushNotification(block *tmctypes.ResultBlock, txs []*s
 					Denom:  denom,
 				}
 
-				fromAccountStatus := notification.VerifyAccountStatus(input.Address.String())
-				if fromAccountStatus {
-					tokens, _ := ex.db.QueryAlarmTokens(input.Address.String())
-					if len(tokens) > 0 {
-						notification.Push(*payload, tokens, types.From)
+				// Handle from address
+				inputAcctRows, err := ex.db.QueryAppAccount(input.Address.String())
+				if err != nil {
+					return fmt.Errorf("unexpected database error: %s", err)
+				}
+
+				for _, acct := range inputAcctRows {
+					// Send push notification when alarm token is not empty and status is true.
+					if acct.AlarmToken != "" && acct.AlarmStatus {
+						ex.notiClient.Push(*payload, acct.AlarmToken, types.From)
 					}
 				}
 			}
@@ -123,11 +131,16 @@ func (ex *Exporter) handlePushNotification(block *tmctypes.ResultBlock, txs []*s
 					Denom:  denom,
 				}
 
-				toAcctStatus := notification.VerifyAccountStatus(output.Address.String())
-				if toAcctStatus {
-					tokens, _ := ex.db.QueryAlarmTokens(output.Address.String())
-					if len(tokens) > 0 {
-						notification.Push(*payload, tokens, types.To)
+				// Handle to address
+				outputAcctRows, err := ex.db.QueryAppAccount(output.Address.String())
+				if err != nil {
+					return fmt.Errorf("unexpected database error: %s", err)
+				}
+
+				for _, acct := range outputAcctRows {
+					// Send push notification when alarm token is not empty and status is true.
+					if acct.AlarmToken != "" && acct.AlarmStatus {
+						ex.notiClient.Push(*payload, acct.AlarmToken, types.To)
 					}
 				}
 			}
