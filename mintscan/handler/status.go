@@ -33,7 +33,7 @@ func GetStatus(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// SetStatus store the latest status in memory periodically
+// SetStatus store the latest status in memory using mutex every 5 seconds.
 func SetStatus() error {
 	if s == nil {
 		return fmt.Errorf("Session is not initialized")
