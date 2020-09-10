@@ -9,6 +9,7 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/config"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/schema"
+	"go.uber.org/zap"
 
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
@@ -227,26 +228,37 @@ func (db *Database) QueryVotes(id string) (votes []schema.Vote, err error) {
 }
 
 // QueryVoteOptions queries all vote options for the proposal
-func (db *Database) QueryVoteOptions(id string) (int, int, int, int) {
-	votes := make([]schema.Vote, 0)
+func (db *Database) QueryVoteOptions(id string) (yes, no, noWithVeto, abstain int, err error) {
+	var oc []struct {
+		Option string
+		Count  int
+	}
+	err = db.Model(&schema.Vote{}).
+		Column("vote.option").
+		ColumnExpr("count(option) AS count").
+		Where("proposal_id = ?", id).
+		Group("option").
+		Select(&oc)
+	if err != nil {
+		return yes, no, noWithVeto, abstain, err
+	}
 
-	yes, _ := db.Model(&votes).
-		Where("proposal_id = ? AND option = ?", id, model.YES).
-		Count()
+	for _, e := range oc {
+		switch e.Option {
+		case model.YES:
+			yes = e.Count
+		case model.NO:
+			no = e.Count
+		case model.NOWITHVETO:
+			noWithVeto = e.Count
+		case model.ABSTAIN:
+			abstain = e.Count
+		default:
+			zap.S().Errorf("Unknown option type\n")
+		}
+	}
 
-	no, _ := db.Model(&votes).
-		Where("proposal_id = ? AND option = ?", id, model.NO).
-		Count()
-
-	noWithVeto, _ := db.Model(&votes).
-		Where("proposal_id = ? AND option = ?", id, model.NOWITHVETO).
-		Count()
-
-	abstain, _ := db.Model(&votes).
-		Where("proposal_id = ? AND option = ?", id, model.ABSTAIN).
-		Count()
-
-	return yes, no, noWithVeto, abstain
+	return yes, no, noWithVeto, abstain, nil
 }
 
 // QueryValidators returns all validators.
