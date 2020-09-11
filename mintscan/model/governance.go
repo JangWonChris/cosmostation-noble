@@ -4,7 +4,7 @@ import "time"
 
 const (
 	// YES is one of the voting options that agrees to the proposal.
-	YES = "yes"
+	YES = "Yes"
 
 	// NO is one of the voting options that disagree with the proposal.
 	NO = "No"

@@ -167,7 +167,7 @@ type ResultMissesDetail struct {
 type ResultPowerEventHistory struct {
 	ID             int64     `json:"id"`
 	Height         int64     `json:"height"`
-	EventType      string    `json:"event_type"`
+	MsgType        string    `json:"msg_type"`
 	VotingPower    float64   `json:"voting_power"`
 	NewVotingPower float64   `json:"new_voting_power"`
 	TxHash         string    `json:"tx_hash"`

@@ -248,10 +248,10 @@ func (db *Database) QueryValidatorsByStatus(status int) (validators []*schema.Va
 
 // QueryValidatorBondedInfo returns a validator's bonded information.
 func (db *Database) QueryValidatorBondedInfo(address string) (peh schema.PowerEventHistory, err error) {
-	eventType := "create_validator"
+	msgType := "create_validator"
 
 	err = db.Model(&peh).
-		Where("proposer = ? AND event_type = ?", address, eventType).
+		Where("proposer = ? AND msg_type = ?", address, msgType).
 		Limit(1).
 		Select()
 
