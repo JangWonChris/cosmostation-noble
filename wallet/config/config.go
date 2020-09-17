@@ -9,10 +9,11 @@ import (
 
 // Config wraps all configs that are used in this project.
 type Config struct {
-	Node  NodeConfig  `mapstructure:"node"`
-	DB    DBConfig    `mapstructure:"database"`
-	Web   WebConfig   `mapstructure:"web"`
-	Alarm AlarmConfig `mapstructure:"alarm"`
+	Node    NodeConfig    `mapstructure:"node"`
+	DB      DBConfig      `mapstructure:"database"`
+	Web     WebConfig     `mapstructure:"web"`
+	Alarm   AlarmConfig   `mapstructure:"alarm"`
+	Payment PaymentConfig `mapstructure:"payment"`
 }
 
 // NodeConfig wraps both endpoints for Tendermint RPC Node and REST API Server.
@@ -40,6 +41,11 @@ type WebConfig struct {
 // AlarmConfig wraps push notification server endpoint of this project.
 type AlarmConfig struct {
 	PushServerURL string
+}
+
+// PaymentConfig wraps push notification server endpoint of this project.
+type PaymentConfig struct {
+	MoonPaySecretKey string `mapstructure:"moonpay_secret_key"`
 }
 
 // ParseConfig attempts to read and parse config.yaml from the given path

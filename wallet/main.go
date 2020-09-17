@@ -45,14 +45,14 @@ func main() {
 	r.HandleFunc("/account/update", handler.RegisterOrUpdateAccount).Methods("POST")
 	r.HandleFunc("/app/version/{device_type}", handler.GetAppVersion).Methods("GET")
 	r.HandleFunc("/app/version", handler.SetAppVersion).Methods("POST")
+	r.HandleFunc("/sign/moonpay", handler.SignSignature).Methods("POST")
 
-	// These APIs are not used at this moment.
-	r.HandleFunc("/alarm/push", handler.PushNotification).Methods("POST")
+	// NOT USED APIs
 	r.HandleFunc("/account/delete", handler.DeleteAccount).Methods("DELETE")
 
 	sm := &http.Server{
 		Addr:         ":" + config.Web.Port,
-		Handler:      handler.Middleware(r, db),
+		Handler:      handler.Middleware(r, config, db),
 		ReadTimeout:  10 * time.Second, // max time to read request from the client
 		WriteTimeout: 10 * time.Second, // max time to write response to the client
 	}
