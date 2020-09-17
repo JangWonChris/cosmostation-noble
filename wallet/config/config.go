@@ -12,7 +12,6 @@ type Config struct {
 	Node    NodeConfig    `mapstructure:"node"`
 	DB      DBConfig      `mapstructure:"database"`
 	Web     WebConfig     `mapstructure:"web"`
-	Alarm   AlarmConfig   `mapstructure:"alarm"`
 	Payment PaymentConfig `mapstructure:"payment"`
 }
 
@@ -36,11 +35,6 @@ type DBConfig struct {
 type WebConfig struct {
 	Port     string `mapstructure:"port"`
 	JWTToken string `mapstructure:"jwt_token"`
-}
-
-// AlarmConfig wraps push notification server endpoint of this project.
-type AlarmConfig struct {
-	PushServerURL string
 }
 
 // PaymentConfig wraps push notification server endpoint of this project.
