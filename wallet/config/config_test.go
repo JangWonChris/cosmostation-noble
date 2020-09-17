@@ -17,4 +17,5 @@ func TestParseConfig(t *testing.T) {
 	require.NotEmpty(t, config.DB.Password, "Database Password is empty")
 	require.NotEmpty(t, config.DB.Table, "Database Table is empty")
 	require.NotEmpty(t, config.Web.Port, "Web Port is empty")
+	require.NotEmpty(t, config.Payment.MoonPaySecretKey, "Payment MoonPaySecretKey is empty")
 }
