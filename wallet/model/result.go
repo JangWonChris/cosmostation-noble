@@ -5,6 +5,11 @@ import (
 	"net/http"
 )
 
+// ResultMoonPay wraps signautre
+type ResultMoonPay struct {
+	Signature string `json:"signature"`
+}
+
 // Respond responds json format with any data type
 func Respond(w http.ResponseWriter, data interface{}) {
 	w.Header().Add("Content-Type", "application/json")

@@ -48,7 +48,6 @@ func main() {
 	r.HandleFunc("/sign/moonpay", handler.SignSignature).Methods("POST")
 
 	// NOT USED APIs
-	r.HandleFunc("/alarm/push", handler.PushNotification).Methods("POST")
 	r.HandleFunc("/account/delete", handler.DeleteAccount).Methods("DELETE")
 
 	sm := &http.Server{
