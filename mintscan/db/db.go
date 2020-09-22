@@ -173,7 +173,7 @@ func (db *Database) QueryMissingBlocksDetail(address string, latestHeight int64,
 		return []schema.MissDetail{}, err
 	}
 
-	return votes, nil
+	return misses, nil
 }
 
 // QueryVotes returns all vote information.
@@ -422,47 +422,6 @@ func (db *Database) QueryDeposits(id string) (deposits []schema.Deposit, err err
 	}
 
 	return deposits, nil
-}
-
-// 
-
-
-
-returns all vote information.
-func (db *Database) QueryVotes(id string) (votes []schema.Vote, err error) {
-	err = db.Model(&votes).
-		Where("proposal_id = ?", id).
-		Order("id DESC").
-		Select()
-
-	if err != nil {
-		return []schema.Vote{}, err
-	}
-
-	return votes, nil
-}
-
-// QueryVoteOptions queries all vote options for the proposal
-func (db *Database) QueryVoteOptions(id string) (int, int, int, int) {
-	votes := make([]schema.Vote, 0)
-
-	yes, _ := db.Model(&votes).
-		Where("proposal_id = ? AND option = ?", id, model.YES).
-		Count()
-
-	no, _ := db.Model(&votes).
-		Where("proposal_id = ? AND option = ?", id, model.NO).
-		Count()
-
-	noWithVeto, _ := db.Model(&votes).
-		Where("proposal_id = ? AND option = ?", id, model.NOWITHVETO).
-		Count()
-
-	abstain, _ := db.Model(&votes).
-		Where("proposal_id = ? AND option = ?", id, model.ABSTAIN).
-		Count()
-
-	return yes, no, noWithVeto, abstain
 }
 
 // QueryTransactions queries transactions with pagination params, such as limit, before, after, and offset
