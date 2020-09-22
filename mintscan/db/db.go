@@ -9,6 +9,7 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/config"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/schema"
+	"go.uber.org/zap"
 
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
@@ -172,7 +173,55 @@ func (db *Database) QueryMissingBlocksDetail(address string, latestHeight int64,
 		return []schema.MissDetail{}, err
 	}
 
-	return misses, nil
+	return votes, nil
+}
+
+// QueryVotes returns all vote information.
+func (db *Database) QueryVotes(id string) (votes []schema.Vote, err error) {
+	err = db.Model(&votes).
+		Where("proposal_id = ?", id).
+		Order("id DESC").
+		Select()
+
+	if err != nil {
+		return []schema.Vote{}, err
+	}
+
+	return votes, nil
+}
+
+// QueryVoteOptions queries all vote options for the proposal
+func (db *Database) QueryVoteOptions(id string) (yes, no, noWithVeto, abstain int, err error) {
+	var oc []struct {
+		Option string
+		Count  int
+	}
+	err = db.Model(&schema.Vote{}).
+		Column("vote.option").
+		ColumnExpr("count(option) AS count").
+		Where("proposal_id = ?", id).
+		Group("option").
+		Select(&oc)
+	if err != nil {
+		return yes, no, noWithVeto, abstain, err
+	}
+
+	for _, e := range oc {
+		switch e.Option {
+		case model.YES:
+			yes = e.Count
+		case model.NO:
+			no = e.Count
+		case model.NOWITHVETO:
+			noWithVeto = e.Count
+		case model.ABSTAIN:
+			abstain = e.Count
+		default:
+			zap.S().Errorf("Unknown option type\n")
+		}
+	}
+
+	return yes, no, noWithVeto, abstain, nil
 }
 
 // QueryValidators returns all validators.
@@ -375,7 +424,11 @@ func (db *Database) QueryDeposits(id string) (deposits []schema.Deposit, err err
 	return deposits, nil
 }
 
-// QueryVotes returns all vote information.
+// 
+
+
+
+returns all vote information.
 func (db *Database) QueryVotes(id string) (votes []schema.Vote, err error) {
 	err = db.Model(&votes).
 		Where("proposal_id = ?", id).
