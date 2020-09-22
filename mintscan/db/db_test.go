@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/config"
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/schema"
 
 	"github.com/go-pg/pg"
 )
@@ -18,6 +19,25 @@ func TestMain(m *testing.M) {
 	db = Connect(config.DB)
 
 	os.Exit(m.Run())
+}
+
+func TestQueryOptions(t *testing.T) {
+	var result []struct {
+		Option string
+		Count  int
+	}
+
+	// select option, count(option) from vote where proposal_id = 29 group by option
+	err := db.Model(&schema.Vote{}).
+		Column("option").
+		ColumnExpr("COUNT('option') AS count").
+		Where("proposal_id = ?", 29).
+		Group("option").
+		Select(&result)
+
+	require.NoError(t, err)
+
+	require.NotNil(t, result)
 }
 
 func TestConnection(t *testing.T) {

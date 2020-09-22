@@ -11,6 +11,7 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/db"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/log"
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/notification"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
@@ -28,10 +29,11 @@ var (
 
 // Exporter implemnts a wrapper around configuration for this project
 type Exporter struct {
-	config *config.Config
-	cdc    *codec.Codec
-	client *client.Client
-	db     *db.Database
+	config     *config.Config
+	cdc        *codec.Codec
+	client     *client.Client
+	notiClient *notification.Notification
+	db         *db.Database
 }
 
 // NewExporter initializes the required config
@@ -49,6 +51,8 @@ func NewExporter() *Exporter {
 		return &Exporter{}
 	}
 
+	notiClient := notification.NewNotification()
+
 	// Connect to database
 	// Ping database to verify connection is succeeded
 	db := db.Connect(&cfg.DB)
@@ -60,7 +64,7 @@ func NewExporter() *Exporter {
 	// Setup database tables
 	db.CreateTables()
 
-	return &Exporter{cfg, ceCodec.Codec, client, db}
+	return &Exporter{cfg, ceCodec.Codec, client, notiClient, db}
 }
 
 // Start starts to synchronize blockchain data

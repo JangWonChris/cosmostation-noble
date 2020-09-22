@@ -53,27 +53,7 @@ func (db *Database) Ping() error {
 // Query
 // --------------------
 
-// QueryLatestBlockHeight queries the latest block height in database.
-// return 0 if there is not row in result set and -1 for any type of database errors.
-func (db *Database) QueryLatestBlockHeight() (int64, error) {
-	var block schema.Block
-	err := db.Model(&block).
-		Order("height DESC").
-		Limit(1).
-		Select()
-
-	if err == pg.ErrNoRows {
-		return 0, nil
-	}
-
-	if err != nil {
-		return -1, err
-	}
-
-	return block.Height, nil
-}
-
-// QueryBlocks queries blocks information with given parameters.
+// QueryBlocks returns blocks information with given parameters.
 func (db *Database) QueryBlocks(before, after int, limit int) (blocks []schema.Block, err error) {
 	switch {
 	case before > 0:
@@ -102,7 +82,7 @@ func (db *Database) QueryBlocks(before, after int, limit int) (blocks []schema.B
 	return blocks, nil
 }
 
-// QueryBlocksByProposer queries blocks by proposer
+// QueryBlocksByProposer returns blocks by proposer
 func (db *Database) QueryBlocksByProposer(address string, before, after, limit int) (blocks []schema.Block, err error) {
 	switch {
 	case before > 0:
@@ -132,7 +112,27 @@ func (db *Database) QueryBlocksByProposer(address string, before, after, limit i
 	return blocks, nil
 }
 
-// QueryLastestTwoBlocks queries lastest two blocks for blocktime calculation.
+// QueryLatestBlockHeight returns the latest block height in database.
+// return 0 if there is not row in result set and -1 for any type of database errors.
+func (db *Database) QueryLatestBlockHeight() (int64, error) {
+	var block schema.Block
+	err := db.Model(&block).
+		Order("height DESC").
+		Limit(1).
+		Select()
+
+	if err == pg.ErrNoRows {
+		return 0, nil
+	}
+
+	if err != nil {
+		return -1, err
+	}
+
+	return block.Height, nil
+}
+
+// QueryLastestTwoBlocks returns lastest two blocks for blocktime calculation.
 func (db *Database) QueryLastestTwoBlocks() (blocks []schema.Block, err error) {
 	err = db.Model(&blocks).
 		Order("height DESC").
@@ -146,22 +146,7 @@ func (db *Database) QueryLastestTwoBlocks() (blocks []schema.Block, err error) {
 	return blocks, nil
 }
 
-// QueryMissingBlocksDetail queries how many missing blocks a validator misses in detail.
-func (db *Database) QueryMissingBlocksDetail(address string, latestHeight int64, count int) (misses []schema.MissDetail, err error) {
-	err = db.Model(&misses).
-		Where("address = ? AND height BETWEEN ? AND ?", address, int(latestHeight)-count, latestHeight).
-		Limit(count).
-		Order("height DESC").
-		Select()
-
-	if err != nil {
-		return []schema.MissDetail{}, err
-	}
-
-	return misses, nil
-}
-
-// QueryMissingBlocks queries a range of missing blocks a validator misses.
+// QueryMissingBlocks returns a range of missing blocks a validator misses.
 func (db *Database) QueryMissingBlocks(address string, limit int) (misses []schema.Miss, err error) {
 	err = db.Model(&misses).
 		Where("address = ?", address).
@@ -176,41 +161,19 @@ func (db *Database) QueryMissingBlocks(address string, limit int) (misses []sche
 	return misses, nil
 }
 
-// QueryProposals returns proposals.
-func (db *Database) QueryProposals() (proposals []schema.Proposal, err error) {
-	err = db.Model(&proposals).Select()
-	if err != nil {
-		return []schema.Proposal{}, err
-	}
-
-	return proposals, nil
-}
-
-// QueryProposal returns a proposal.
-func (db *Database) QueryProposal(id string) (proposal schema.Proposal, err error) {
-	err = db.Model(&proposal).
-		Where("id = ?", id).
+// QueryMissingBlocksDetail returns how many missing blocks a validator misses in detail.
+func (db *Database) QueryMissingBlocksDetail(address string, latestHeight int64, count int) (misses []schema.MissDetail, err error) {
+	err = db.Model(&misses).
+		Where("address = ? AND height BETWEEN ? AND ?", address, int(latestHeight)-count, latestHeight).
+		Limit(count).
+		Order("height DESC").
 		Select()
 
 	if err != nil {
-		return schema.Proposal{}, err
+		return []schema.MissDetail{}, err
 	}
 
-	return proposal, nil
-}
-
-// QueryDeposits returns all deposit information.
-func (db *Database) QueryDeposits(id string) (deposits []schema.Deposit, err error) {
-	err = db.Model(&deposits).
-		Where("proposal_id = ?", id).
-		Order("id DESC").
-		Select()
-
-	if err != nil {
-		return []schema.Deposit{}, err
-	}
-
-	return deposits, nil
+	return votes, nil
 }
 
 // QueryVotes returns all vote information.
@@ -284,9 +247,8 @@ func (db *Database) QueryValidatorByID(address string) (int, error) {
 		Limit(1).
 		Select()
 
-	// return 0 when there is no row in result set
 	if err == pg.ErrNoRows {
-		return 0, err
+		return 0, nil
 	}
 
 	// return -1 for any type of errors
@@ -305,7 +267,7 @@ func (db *Database) QueryValidatorByValAddr(valAddr string) (validator schema.Va
 		Select()
 
 	if err == pg.ErrNoRows {
-		return schema.Validator{}, fmt.Errorf("no rows in block table: %s", err)
+		return schema.Validator{}, nil
 	}
 
 	if err != nil {
@@ -423,6 +385,84 @@ func (db *Database) QueryValidatorByAny(address string) (val schema.Validator, e
 	}
 
 	return val, nil
+}
+
+// QueryProposals returns proposals.
+func (db *Database) QueryProposals() (proposals []schema.Proposal, err error) {
+	err = db.Model(&proposals).Select()
+	if err != nil {
+		return []schema.Proposal{}, err
+	}
+
+	return proposals, nil
+}
+
+// QueryProposal returns a proposal.
+func (db *Database) QueryProposal(id string) (proposal schema.Proposal, err error) {
+	err = db.Model(&proposal).
+		Where("id = ?", id).
+		Select()
+
+	if err != nil {
+		return schema.Proposal{}, err
+	}
+
+	return proposal, nil
+}
+
+// QueryDeposits returns all deposit information.
+func (db *Database) QueryDeposits(id string) (deposits []schema.Deposit, err error) {
+	err = db.Model(&deposits).
+		Where("proposal_id = ?", id).
+		Order("id DESC").
+		Select()
+
+	if err != nil {
+		return []schema.Deposit{}, err
+	}
+
+	return deposits, nil
+}
+
+// 
+
+
+
+returns all vote information.
+func (db *Database) QueryVotes(id string) (votes []schema.Vote, err error) {
+	err = db.Model(&votes).
+		Where("proposal_id = ?", id).
+		Order("id DESC").
+		Select()
+
+	if err != nil {
+		return []schema.Vote{}, err
+	}
+
+	return votes, nil
+}
+
+// QueryVoteOptions queries all vote options for the proposal
+func (db *Database) QueryVoteOptions(id string) (int, int, int, int) {
+	votes := make([]schema.Vote, 0)
+
+	yes, _ := db.Model(&votes).
+		Where("proposal_id = ? AND option = ?", id, model.YES).
+		Count()
+
+	no, _ := db.Model(&votes).
+		Where("proposal_id = ? AND option = ?", id, model.NO).
+		Count()
+
+	noWithVeto, _ := db.Model(&votes).
+		Where("proposal_id = ? AND option = ?", id, model.NOWITHVETO).
+		Count()
+
+	abstain, _ := db.Model(&votes).
+		Where("proposal_id = ? AND option = ?", id, model.ABSTAIN).
+		Count()
+
+	return yes, no, noWithVeto, abstain
 }
 
 // QueryTransactions queries transactions with pagination params, such as limit, before, after, and offset

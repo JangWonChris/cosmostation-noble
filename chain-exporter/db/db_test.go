@@ -22,10 +22,28 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func TestInsertOrUpdate(t *testing.T) {
+func TestQueryAppAccount(t *testing.T) {
 	err := db.Ping()
 	require.NoError(t, err)
 
+	testCases := []struct {
+		msg     string
+		address string
+		expPass bool
+	}{
+		{"Empty Row", "cosmos22kwurrksg22fspm2g5shvhy29eaf77xyppd4y2", true},
+		{"Single Row", "cosmos18kwurrksg43fspm2g5shvhy29eaf66xyppd4y2", true},
+		{"Multiple Rows", "cosmos10mp0mt5ek4k8z7tqkfh7cmu29hc2jxmuzmwrre", true},
+	}
+
+	for _, tc := range testCases {
+		_, err := db.QueryAppAccount(tc.address)
+		if tc.expPass {
+			require.NoError(t, err, tc.msg)
+		} else {
+			require.Error(t, err, tc.msg)
+		}
+	}
 }
 
 func TestUpdate_Validator(t *testing.T) {
