@@ -15,6 +15,7 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	distr "github.com/cosmos/cosmos-sdk/x/distribution"
 	"github.com/cosmos/cosmos-sdk/x/distribution/client/common"
+	"github.com/cosmos/cosmos-sdk/x/staking"
 	stakingTypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/codec"
@@ -150,6 +151,87 @@ func (c *Client) GetAccount(address string) (exported.Account, error) {
 	}
 
 	return acc, nil
+}
+
+// GetDelegatorDelegations returns a list of delegations made by a certain delegator address
+func (c *Client) GetDelegatorDelegations(address string) (staking.DelegationResponses, error) {
+	delAddr, err := sdkTypes.AccAddressFromBech32(address)
+	if err != nil {
+		return staking.DelegationResponses{}, err
+	}
+
+	bz, err := c.cdc.MarshalJSON(staking.NewQueryDelegatorParams(delAddr))
+	if err != nil {
+		return staking.DelegationResponses{}, err
+	}
+
+	route := fmt.Sprintf("custom/%s/%s", staking.QuerierRoute, staking.QueryDelegatorDelegations)
+
+	res, _, err := c.cliCtx.QueryWithData(route, bz)
+	if err != nil {
+		return staking.DelegationResponses{}, err
+	}
+
+	var delegations staking.DelegationResponses
+	if err := c.cdc.UnmarshalJSON(res, &delegations); err != nil {
+		return staking.DelegationResponses{}, err
+	}
+
+	return delegations, nil
+}
+
+// GetDelegatorUndelegations returns a list of undelegations made by a certain delegator address
+func (c *Client) GetDelegatorUndelegations(address string) (staking.UnbondingDelegations, error) {
+	delAddr, err := sdkTypes.AccAddressFromBech32(address)
+	if err != nil {
+		return staking.UnbondingDelegations{}, err
+	}
+
+	bz, err := c.cdc.MarshalJSON(staking.NewQueryDelegatorParams(delAddr))
+	if err != nil {
+		return staking.UnbondingDelegations{}, err
+	}
+
+	route := fmt.Sprintf("custom/%s/%s", staking.QuerierRoute, staking.QueryDelegatorUnbondingDelegations)
+
+	res, _, err := c.cliCtx.QueryWithData(route, bz)
+	if err != nil {
+		return staking.UnbondingDelegations{}, err
+	}
+
+	var undelegations staking.UnbondingDelegations
+	if err := c.cdc.UnmarshalJSON(res, &undelegations); err != nil {
+		return staking.UnbondingDelegations{}, err
+	}
+
+	return undelegations, nil
+}
+
+// GetDelegatorTotalRewards returns the total rewards balance from all delegations by a delegator
+func (c *Client) GetDelegatorTotalRewards(address string) (distr.QueryDelegatorTotalRewardsResponse, error) {
+	delAddr, err := sdkTypes.AccAddressFromBech32(address)
+	if err != nil {
+		return distr.QueryDelegatorTotalRewardsResponse{}, err
+	}
+
+	bz, err := c.cdc.MarshalJSON(distr.NewQueryDelegatorParams(delAddr))
+	if err != nil {
+		return distr.QueryDelegatorTotalRewardsResponse{}, err
+	}
+
+	route := fmt.Sprintf("custom/%s/%s", distr.QuerierRoute, distr.QueryDelegatorTotalRewards)
+
+	res, _, err := c.cliCtx.QueryWithData(route, bz)
+	if err != nil {
+		return distr.QueryDelegatorTotalRewardsResponse{}, err
+	}
+
+	var totalRewards distr.QueryDelegatorTotalRewardsResponse
+	if err := c.cdc.UnmarshalJSON(res, &totalRewards); err != nil {
+		return distr.QueryDelegatorTotalRewardsResponse{}, err
+	}
+
+	return totalRewards, nil
 }
 
 // GetValidatorCommission queries validator's commission and returns the coins with truncated decimals and the change.
