@@ -146,31 +146,41 @@ func (db *Database) QueryLastestTwoBlocks() (blocks []schema.Block, err error) {
 	return blocks, nil
 }
 
-// QueryMissingBlocks returns a range of missing blocks a validator misses.
-func (db *Database) QueryMissingBlocks(address string, limit int) (misses []schema.Miss, err error) {
-	err = db.Model(&misses).
-		Where("address = ?", address).
-		Limit(limit).
-		Order("start_height DESC").
-		Select()
+// QueryValidatorUptime returns how many missing blocks a validator misses in detail.
+func (db *Database) QueryValidatorUptime(address string, latestHeight int64) (misses []schema.MissDetail, err error) {
+	count := int(100)
 
-	if err != nil {
-		return []schema.Miss{}, err
-	}
-
-	return misses, nil
-}
-
-// QueryMissingBlocksDetail returns how many missing blocks a validator misses in detail.
-func (db *Database) QueryMissingBlocksDetail(address string, latestHeight int64, count int) (misses []schema.MissDetail, err error) {
 	err = db.Model(&misses).
 		Where("address = ? AND height BETWEEN ? AND ?", address, int(latestHeight)-count, latestHeight).
 		Limit(count).
 		Order("height DESC").
 		Select()
 
+	if err == pg.ErrNoRows {
+		return []schema.MissDetail{}, nil
+	}
+
 	if err != nil {
 		return []schema.MissDetail{}, err
+	}
+
+	return misses, nil
+}
+
+// QueryValidatorUptimeRange returns a range of missing blocks a validator misses.
+func (db *Database) QueryValidatorUptimeRange(address string) (misses []schema.Miss, err error) {
+	err = db.Model(&misses).
+		Where("address = ?", address).
+		Limit(model.DefaultLimit).
+		Order("start_height DESC").
+		Select()
+
+	if err == pg.ErrNoRows {
+		return []schema.Miss{}, nil
+	}
+
+	if err != nil {
+		return []schema.Miss{}, err
 	}
 
 	return misses, nil

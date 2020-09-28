@@ -106,18 +106,33 @@ func GetValidator(rw http.ResponseWriter, r *http.Request) {
 
 	val, err := s.db.QueryValidatorByAny(address)
 	if err != nil {
-		zap.L().Debug("failed to query validator information", zap.Error(err))
+		zap.S().Errorf("failed to query validator information: %s", err)
+		errors.ErrInternalServer(rw, http.StatusInternalServerError)
+		return
+	}
+
+	if val.Address == "" {
 		errors.ErrNotExist(rw, http.StatusNotFound)
 		return
 	}
 
+	latestHeight, err := s.db.QueryLatestBlockHeight()
+	if err != nil {
+		zap.S().Errorf("failed to query latest block height: %s", err)
+		errors.ErrInternalServer(rw, http.StatusInternalServerError)
+		return
+	}
+
+	// Query bonded validators' missing blocks for the last 100 blocks
 	var missBlockCount int
 	if val.Status == model.BondedValidatorStatus {
-		blocks, err := s.db.QueryLastestTwoBlocks()
+		blocks, err := s.db.QueryValidatorUptime(val.Proposer, latestHeight)
 		if err != nil {
-			zap.L().Error("failed to get latest two blocks", zap.Error(err))
+			zap.S().Errorf("failed to query validator's missing blocks: %s", err)
+			errors.ErrInternalServer(rw, http.StatusInternalServerError)
+			return
 		}
-		missBlockCount, _ = s.db.CountMissingBlocks(val.Proposer, int(blocks[1].Height), 99)
+		missBlockCount = len(blocks)
 	} else {
 		missBlockCount = model.MissingAllBlocks
 	}
@@ -128,7 +143,7 @@ func GetValidator(rw http.ResponseWriter, r *http.Request) {
 		OverBlocks:   model.MissingAllBlocks,
 	}
 
-	// query a validator's bonded information
+	// Query a validator's bonded information
 	powerEventHistory, _ := s.db.QueryValidatorBondedInfo(val.Proposer)
 
 	result := &model.ResultValidatorDetail{
@@ -172,6 +187,7 @@ func GetValidatorUptime(rw http.ResponseWriter, r *http.Request) {
 	val, err := s.db.QueryValidatorByAny(address)
 	if err != nil {
 		zap.S().Errorf("failed to query validator information: %s", err)
+		errors.ErrInternalServer(rw, http.StatusInternalServerError)
 		return
 	}
 
@@ -183,25 +199,34 @@ func GetValidatorUptime(rw http.ResponseWriter, r *http.Request) {
 	latestHeight, err := s.db.QueryLatestBlockHeight()
 	if err != nil {
 		zap.S().Errorf("failed to query latest block height: %s", err)
+		errors.ErrInternalServer(rw, http.StatusInternalServerError)
 		return
 	}
 
-	result := make([]*model.ResultMissesDetail, 0)
+	var result model.ResultMissesDetail
+	result.LatestHeight = latestHeight - 1 // latest block height minus one block for database synchronization
 
-	// Query validator's missing blocks for the last 100
-	// Note: use second highest block height in database to ease client side's handling
-	blocks, _ := s.db.QueryMissingBlocksDetail(val.Proposer, latestHeight, 104)
+	// Query missing blocks for the last 100 blocks
+	blocks, err := s.db.QueryValidatorUptime(val.Proposer, latestHeight)
+	if err != nil {
+		zap.S().Errorf("failed to query validator's missing blocks: %s", err)
+		errors.ErrInternalServer(rw, http.StatusInternalServerError)
+		return
+	}
+
 	if len(blocks) <= 0 {
+		result.ResultUptime = []model.ResultUptime{} // empty array
 		model.Respond(rw, result)
 		return
 	}
 
 	for _, block := range blocks {
-		missDetail := &model.ResultMissesDetail{
+		uptime := &model.ResultUptime{
 			Height:    block.Height,
 			Timestamp: block.Timestamp,
 		}
-		result = append(result, missDetail)
+
+		result.ResultUptime = append(result.ResultUptime, *uptime)
 	}
 
 	model.Respond(rw, result)
@@ -216,14 +241,20 @@ func GetValidatorUptimeRange(rw http.ResponseWriter, r *http.Request) {
 	val, err := s.db.QueryValidatorByAny(address)
 	if err != nil {
 		zap.L().Debug("failed to query validator info", zap.Error(err))
+		errors.ErrInternalServer(rw, http.StatusInternalServerError)
+		return
+	}
+
+	if val.Address == "" {
 		errors.ErrNotExist(rw, http.StatusNotFound)
 		return
 	}
 
-	// TODO: move to somewhere else?
-	limit := int(50)
-
-	blocks, _ := s.db.QueryMissingBlocks(val.Proposer, limit)
+	blocks, err := s.db.QueryValidatorUptimeRange(val.Proposer)
+	if len(blocks) <= 0 {
+		errors.ErrInternalServer(rw, http.StatusInternalServerError)
+		return
+	}
 
 	result := make([]*model.ResultMisses, 0)
 
