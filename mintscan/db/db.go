@@ -744,20 +744,6 @@ func (db *Database) CountProposedBlocks(proposer string) (int, error) {
 	return count, nil
 }
 
-// CountMissingBlocks counts how many missing blocks a validator misses in detail and return total missing blocks count.
-func (db *Database) CountMissingBlocks(address string, latestHeight int, count int) (int, error) {
-	var misses []schema.MissDetail
-	count, err := db.Model(&misses).
-		Where("address = ? AND height BETWEEN ? AND ?", address, latestHeight-count, latestHeight).
-		Count()
-
-	if err != nil {
-		return -1, err
-	}
-
-	return count, nil
-}
-
 // CountValidatorNumByStatus counts a number of validators by their bonding status.
 func (db *Database) CountValidatorNumByStatus(status int) (int, error) {
 	var val schema.Validator
