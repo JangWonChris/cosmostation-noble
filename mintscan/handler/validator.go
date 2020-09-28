@@ -51,16 +51,27 @@ func GetValidators(rw http.ResponseWriter, r *http.Request) {
 		return tk1 > tk2
 	})
 
+	latestDBHeight, err := s.db.QueryLatestBlockHeight()
+	if err != nil {
+		zap.S().Errorf("failed to query latest block height: %s", err)
+		errors.ErrInternalServer(rw, http.StatusInternalServerError)
+		return
+	}
+
 	result := make([]*model.ResultValidator, 0)
 
 	for _, val := range vals {
-		var missBlockCount int
+		// Default is missing the last 100 blocks
+		missBlockCount := model.MissingAllBlocks
 
 		if val.Status == model.BondedValidatorStatus {
-			blocks, _ := s.db.QueryLastestTwoBlocks()
-			missBlockCount, _ = s.db.CountMissingBlocks(val.Proposer, int(blocks[1].Height), 99)
-		} else {
-			missBlockCount = model.MissingAllBlocks
+			blocks, err := s.db.QueryValidatorUptime(val.Proposer, latestDBHeight-1)
+			if err != nil {
+				zap.S().Errorf("failed to query validator's missing blocks: %s", err)
+				errors.ErrInternalServer(rw, http.StatusInternalServerError)
+				return
+			}
+			missBlockCount = len(blocks)
 		}
 
 		uptime := &model.Uptime{
@@ -116,25 +127,24 @@ func GetValidator(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	latestHeight, err := s.db.QueryLatestBlockHeight()
+	latestDBHeight, err := s.db.QueryLatestBlockHeight()
 	if err != nil {
 		zap.S().Errorf("failed to query latest block height: %s", err)
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
 		return
 	}
 
-	// Query bonded validators' missing blocks for the last 100 blocks
-	var missBlockCount int
+	// Default is missing the last 100 blocks
+	missBlockCount := model.MissingAllBlocks
+
 	if val.Status == model.BondedValidatorStatus {
-		blocks, err := s.db.QueryValidatorUptime(val.Proposer, latestHeight)
+		blocks, err := s.db.QueryValidatorUptime(val.Proposer, latestDBHeight-1)
 		if err != nil {
 			zap.S().Errorf("failed to query validator's missing blocks: %s", err)
 			errors.ErrInternalServer(rw, http.StatusInternalServerError)
 			return
 		}
 		missBlockCount = len(blocks)
-	} else {
-		missBlockCount = model.MissingAllBlocks
 	}
 
 	uptime := &model.Uptime{
@@ -176,10 +186,11 @@ func GetValidator(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// GetValidatorUptime returns a validator's missing blocks in detail
-// Uptime is 100%: there is no missing blocks in database therefore it returns an empty array.
-// Uptime is from 1% through 99%: just return how many missing blocks are recorded in database.
-// Uptime is 0%: there are two cases. Missing last 100 blocks or a validator is unbonded | unbonding state.
+// GetValidatorUptime returns a validator's uptime, which counts a number of missing blocks for the last 100 blocks.
+// When uptime is 100%: there is not a single missing block saved in database. Therfore, it returns an empty array.
+// When uptime is from 1% ~ 99%: simply return a number of missing blocks.
+// When uptime is 0%: Case 1. return 100 missing blocks.
+// When uptime is 0%: Case 2. a validator is unbonding or unbonded state.
 func GetValidatorUptime(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	address := vars["address"]
@@ -196,7 +207,7 @@ func GetValidatorUptime(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	latestHeight, err := s.db.QueryLatestBlockHeight()
+	latestDBHeight, err := s.db.QueryLatestBlockHeight()
 	if err != nil {
 		zap.S().Errorf("failed to query latest block height: %s", err)
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -204,10 +215,10 @@ func GetValidatorUptime(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	var result model.ResultMissesDetail
-	result.LatestHeight = latestHeight - 1 // latest block height minus one block for database synchronization
+	result.LatestHeight = latestDBHeight - 1 // handle database synchronization
 
 	// Query missing blocks for the last 100 blocks
-	blocks, err := s.db.QueryValidatorUptime(val.Proposer, latestHeight)
+	blocks, err := s.db.QueryValidatorUptime(val.Proposer, result.LatestHeight)
 	if err != nil {
 		zap.S().Errorf("failed to query validator's missing blocks: %s", err)
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
