@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/spf13/viper"
 )
@@ -41,8 +42,8 @@ func ParseConfig() *Config {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
-	viper.AddConfigPath("../")                                              // for test cases
-	viper.AddConfigPath("/home/ubuntu/cosmostation-cosmos/stats-exporter/") // for production
+	viper.AddConfigPath("../")                                                      // for test cases
+	viper.AddConfigPath(os.Getenv("HOME") + "/cosmostation-cosmos/stats-exporter/") // for production
 
 	if err := viper.ReadInConfig(); err != nil {
 		panic(fmt.Errorf("fatal error config file: %s ", err))
