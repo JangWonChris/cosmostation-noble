@@ -20,6 +20,13 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+func TestGetChainID(t *testing.T) {
+	chainID, err := client.GetNetworkChainID()
+	require.NoError(t, err)
+
+	require.NotNil(t, chainID)
+}
+
 func TestGetBlock(t *testing.T) {
 	height := int64(67270)
 
@@ -36,8 +43,40 @@ func TestGetCoinDenom(t *testing.T) {
 	require.NotNil(t, bondDenom)
 }
 
+func TestGetAccountSpendableCoins(t *testing.T) {
+	account, err := client.GetAccount("cosmos1clpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9q")
+	require.NoError(t, err)
+
+	require.NotNil(t, account.GetCoins())
+}
+
+func TestGetAccountDelegatedCoins(t *testing.T) {
+	delegations, err := client.GetDelegatorDelegations("cosmos1clpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9q")
+	require.NoError(t, err)
+
+	for _, delegation := range delegations {
+		require.NotNil(t, delegation)
+	}
+}
+
+func TestGetAccountUndelegatedCoins(t *testing.T) {
+	undelegations, err := client.GetDelegatorUndelegations("cosmos1clpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9q")
+	require.NoError(t, err)
+
+	for _, undelegation := range undelegations {
+		require.NotNil(t, undelegation)
+	}
+}
+
+func TestGetAccountTotalRewards(t *testing.T) {
+	rewards, err := client.GetDelegatorTotalRewards("cosmos1clpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9q")
+	require.NoError(t, err)
+
+	require.NotNil(t, rewards)
+}
+
 func TestGetValidatorCommission(t *testing.T) {
-	truncatedValCommission, err := client.GetValidatorCommission("kavavaloper1j26c4k2jj9tv95whdhva3e8v2fcm4s3dsgstd2")
+	truncatedValCommission, err := client.GetValidatorCommission("cosmosvaloper1clpqr4nrk4khgkxj78fcwwh6dl3uw4epsluffn")
 	require.NoError(t, err)
 
 	require.NotNil(t, truncatedValCommission)

@@ -51,16 +51,27 @@ func GetValidators(rw http.ResponseWriter, r *http.Request) {
 		return tk1 > tk2
 	})
 
+	latestDBHeight, err := s.db.QueryLatestBlockHeight()
+	if err != nil {
+		zap.S().Errorf("failed to query latest block height: %s", err)
+		errors.ErrInternalServer(rw, http.StatusInternalServerError)
+		return
+	}
+
 	result := make([]*model.ResultValidator, 0)
 
 	for _, val := range vals {
-		var missBlockCount int
+		// Default is missing the last 100 blocks
+		missBlockCount := model.MissingAllBlocks
 
 		if val.Status == model.BondedValidatorStatus {
-			blocks, _ := s.db.QueryLastestTwoBlocks()
-			missBlockCount, _ = s.db.CountMissingBlocks(val.Proposer, int(blocks[1].Height), 99)
-		} else {
-			missBlockCount = model.MissingAllBlocks
+			blocks, err := s.db.QueryValidatorUptime(val.Proposer, latestDBHeight-1)
+			if err != nil {
+				zap.S().Errorf("failed to query validator's missing blocks: %s", err)
+				errors.ErrInternalServer(rw, http.StatusInternalServerError)
+				return
+			}
+			missBlockCount = len(blocks)
 		}
 
 		uptime := &model.Uptime{
@@ -106,20 +117,34 @@ func GetValidator(rw http.ResponseWriter, r *http.Request) {
 
 	val, err := s.db.QueryValidatorByAny(address)
 	if err != nil {
-		zap.L().Debug("failed to query validator information", zap.Error(err))
+		zap.S().Errorf("failed to query validator information: %s", err)
+		errors.ErrInternalServer(rw, http.StatusInternalServerError)
+		return
+	}
+
+	if val.Address == "" {
 		errors.ErrNotExist(rw, http.StatusNotFound)
 		return
 	}
 
-	var missBlockCount int
+	latestDBHeight, err := s.db.QueryLatestBlockHeight()
+	if err != nil {
+		zap.S().Errorf("failed to query latest block height: %s", err)
+		errors.ErrInternalServer(rw, http.StatusInternalServerError)
+		return
+	}
+
+	// Default is missing the last 100 blocks
+	missBlockCount := model.MissingAllBlocks
+
 	if val.Status == model.BondedValidatorStatus {
-		blocks, err := s.db.QueryLastestTwoBlocks()
+		blocks, err := s.db.QueryValidatorUptime(val.Proposer, latestDBHeight-1)
 		if err != nil {
-			zap.L().Error("failed to get latest two blocks", zap.Error(err))
+			zap.S().Errorf("failed to query validator's missing blocks: %s", err)
+			errors.ErrInternalServer(rw, http.StatusInternalServerError)
+			return
 		}
-		missBlockCount, _ = s.db.CountMissingBlocks(val.Proposer, int(blocks[1].Height), 99)
-	} else {
-		missBlockCount = model.MissingAllBlocks
+		missBlockCount = len(blocks)
 	}
 
 	uptime := &model.Uptime{
@@ -128,7 +153,7 @@ func GetValidator(rw http.ResponseWriter, r *http.Request) {
 		OverBlocks:   model.MissingAllBlocks,
 	}
 
-	// query a validator's bonded information
+	// Query a validator's bonded information
 	powerEventHistory, _ := s.db.QueryValidatorBondedInfo(val.Proposer)
 
 	result := &model.ResultValidatorDetail{
@@ -161,10 +186,11 @@ func GetValidator(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// GetValidatorUptime returns a validator's missing blocks in detail
-// Uptime is 100%: there is no missing blocks in database therefore it returns an empty array.
-// Uptime is from 1% through 99%: just return how many missing blocks are recorded in database.
-// Uptime is 0%: there are two cases. Missing last 100 blocks or a validator is unbonded | unbonding state.
+// GetValidatorUptime returns a validator's uptime, which counts a number of missing blocks for the last 100 blocks.
+// When uptime is 100%: there is not a single missing block saved in database. Therfore, it returns an empty array.
+// When uptime is from 1% ~ 99%: simply return a number of missing blocks.
+// When uptime is 0%: Case 1. return 100 missing blocks.
+// When uptime is 0%: Case 2. a validator is unbonding or unbonded state.
 func GetValidatorUptime(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	address := vars["address"]
@@ -172,6 +198,7 @@ func GetValidatorUptime(rw http.ResponseWriter, r *http.Request) {
 	val, err := s.db.QueryValidatorByAny(address)
 	if err != nil {
 		zap.S().Errorf("failed to query validator information: %s", err)
+		errors.ErrInternalServer(rw, http.StatusInternalServerError)
 		return
 	}
 
@@ -180,28 +207,37 @@ func GetValidatorUptime(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	latestHeight, err := s.db.QueryLatestBlockHeight()
+	latestDBHeight, err := s.db.QueryLatestBlockHeight()
 	if err != nil {
 		zap.S().Errorf("failed to query latest block height: %s", err)
+		errors.ErrInternalServer(rw, http.StatusInternalServerError)
 		return
 	}
 
-	result := make([]*model.ResultMissesDetail, 0)
+	var result model.ResultMissesDetail
+	result.LatestHeight = latestDBHeight
 
-	// Query validator's missing blocks for the last 100
-	// Note: use second highest block height in database to ease client side's handling
-	blocks, _ := s.db.QueryMissingBlocksDetail(val.Proposer, latestHeight, 104)
+	// Query missing blocks for the last 100 blocks
+	blocks, err := s.db.QueryValidatorUptime(val.Proposer, result.LatestHeight-1) // 100 blocks before the latest height should be queried for the correct uptime
+	if err != nil {
+		zap.S().Errorf("failed to query validator's missing blocks: %s", err)
+		errors.ErrInternalServer(rw, http.StatusInternalServerError)
+		return
+	}
+
 	if len(blocks) <= 0 {
+		result.ResultUptime = []model.ResultUptime{} // empty array
 		model.Respond(rw, result)
 		return
 	}
 
 	for _, block := range blocks {
-		missDetail := &model.ResultMissesDetail{
+		uptime := &model.ResultUptime{
 			Height:    block.Height,
 			Timestamp: block.Timestamp,
 		}
-		result = append(result, missDetail)
+
+		result.ResultUptime = append(result.ResultUptime, *uptime)
 	}
 
 	model.Respond(rw, result)
@@ -216,14 +252,20 @@ func GetValidatorUptimeRange(rw http.ResponseWriter, r *http.Request) {
 	val, err := s.db.QueryValidatorByAny(address)
 	if err != nil {
 		zap.L().Debug("failed to query validator info", zap.Error(err))
+		errors.ErrInternalServer(rw, http.StatusInternalServerError)
+		return
+	}
+
+	if val.Address == "" {
 		errors.ErrNotExist(rw, http.StatusNotFound)
 		return
 	}
 
-	// TODO: move to somewhere else?
-	limit := int(50)
-
-	blocks, _ := s.db.QueryMissingBlocks(val.Proposer, limit)
+	blocks, err := s.db.QueryValidatorUptimeRange(val.Proposer)
+	if len(blocks) <= 0 {
+		errors.ErrInternalServer(rw, http.StatusInternalServerError)
+		return
+	}
 
 	result := make([]*model.ResultMisses, 0)
 

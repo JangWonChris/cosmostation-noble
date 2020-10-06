@@ -157,11 +157,19 @@ type ResultMisses struct {
 	EndTime      time.Time `json:"end_time"`
 }
 
-// ResultMissesDetail defines the structure for validator miss block detail result response.
-type ResultMissesDetail struct {
-	Height    int64     `json:"height"`
-	Timestamp time.Time `json:"timestamp"`
-}
+type (
+	// ResultMissesDetail defines the structure for validator miss block detail result response.
+	ResultMissesDetail struct {
+		LatestHeight int64          `json:"latest_height"`
+		ResultUptime []ResultUptime `json:"uptime"`
+	}
+
+	// ResultUptime defines the structure for validator's uptime (last 100 blocks from the latest block).
+	ResultUptime struct {
+		Height    int64     `json:"height"`
+		Timestamp time.Time `json:"timestamp"`
+	}
+)
 
 // ResultPowerEventHistory defines the structure for validator voting power history result response.
 type ResultPowerEventHistory struct {
