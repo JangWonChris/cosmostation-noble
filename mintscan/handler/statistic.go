@@ -17,44 +17,6 @@ const (
 // GetMarketStats returns market statistics
 // TODO: find better and cleaner way to handle this API.
 func GetMarketStats(rw http.ResponseWriter, r *http.Request) {
-	// Count market statistics to see if enough data is available to query.
-	num, err := s.db.CountMarketStats1H()
-	if err != nil {
-		zap.S().Errorf("failed to count market stats: %s", err)
-		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
-		return
-	}
-
-	if num < requiredLimit {
-		zap.S().Errorf("failed to query prices for 1 day: %s", err)
-		errors.ErrNoDataAvailable(rw, http.StatusInternalServerError)
-		return
-	}
-
-	prices, err := s.db.QueryPricesFromMarketStat1H(requiredLimit)
-	if err != nil {
-		zap.S().Errorf("failed to query prices for 1 day: %s", err)
-		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
-		return
-	}
-
-	if len(prices) <= 0 {
-		zap.L().Debug("failed to query prices")
-		errors.ErrNotExist(rw, http.StatusNotFound)
-		return
-	}
-
-	priceStats := make([]*model.PriceStats, 0)
-
-	for _, p := range prices {
-		ps := &model.PriceStats{
-			Price: p.Price,
-			Time:  p.Timestamp,
-		}
-
-		priceStats = append(priceStats, ps)
-	}
-
 	currentPrice, err := s.db.QueryPriceFromMarketStat5M()
 	if err != nil {
 		zap.S().Errorf("failed to query current price from stat market 5m: %s", err)
@@ -73,7 +35,6 @@ func GetMarketStats(rw http.ResponseWriter, r *http.Request) {
 		TotalVolume:       currentPrice.TotalVolume,
 		CirculatingSupply: currentPrice.CirculatingSupply,
 		LastUpdated:       currentPrice.LastUpdated,
-		PriceStats:        priceStats,
 	}
 
 	model.Respond(rw, result)
