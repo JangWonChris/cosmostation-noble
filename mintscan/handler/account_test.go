@@ -12,18 +12,22 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/supply/exported"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/client"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/config"
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/db"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/libs/bech32"
 	tlog "github.com/tendermint/tendermint/libs/log"
+
 	tdb "github.com/tendermint/tm-db"
 )
 
 var iclient *client.Client
+var idb *db.Database
 
 func TestMain(m *testing.M) {
 	config := config.ParseConfig()
 	iclient, _ = client.NewClient(config.Node, config.Market)
+	idb = db.Connect(config.DB)
 
 	os.Exit(m.Run())
 }
