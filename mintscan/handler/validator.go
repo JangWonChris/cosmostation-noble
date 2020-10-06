@@ -215,10 +215,10 @@ func GetValidatorUptime(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	var result model.ResultMissesDetail
-	result.LatestHeight = latestDBHeight - 1 // handle database synchronization
+	result.LatestHeight = latestDBHeight
 
 	// Query missing blocks for the last 100 blocks
-	blocks, err := s.db.QueryValidatorUptime(val.Proposer, result.LatestHeight)
+	blocks, err := s.db.QueryValidatorUptime(val.Proposer, result.LatestHeight-1) // 100 blocks before the latest height should be queried for the correct uptime
 	if err != nil {
 		zap.S().Errorf("failed to query validator's missing blocks: %s", err)
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
