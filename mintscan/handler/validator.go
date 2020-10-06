@@ -215,7 +215,7 @@ func GetValidatorUptime(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	var result model.ResultMissesDetail
-	result.LatestHeight = latestDBHeight
+	result.LatestHeight = latestDBHeight - 1
 
 	// Query missing blocks for the last 100 blocks
 	blocks, err := s.db.QueryValidatorUptime(val.Proposer, result.LatestHeight)
