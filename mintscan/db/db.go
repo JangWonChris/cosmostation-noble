@@ -151,7 +151,7 @@ func (db *Database) QueryValidatorUptime(address string, latestHeight int64) (mi
 	count := int(100)
 
 	err = db.Model(&misses).
-		Where("address = ? AND height BETWEEN ? AND ?", address, int(latestHeight)-count, latestHeight).
+		Where("address = ? AND height BETWEEN ? AND ?", address, int(latestHeight)-99, latestHeight).
 		Limit(count).
 		Order("height DESC").
 		Select()
