@@ -9,12 +9,6 @@ const (
 	Cosmos = "cosmos"
 )
 
-// PriceStats defines the structure for price statistics.
-type PriceStats struct {
-	Price float64   `json:"price"`
-	Time  time.Time `json:"time"`
-}
-
 // NetworkInfo defines the structure for chain's network information.
 type NetworkInfo struct {
 	BondendTokensPercentChange24H float64              `json:"bonded_tokens_percent_change_24h"`
