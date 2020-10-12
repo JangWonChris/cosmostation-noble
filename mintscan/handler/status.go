@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/config"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
 
 	"go.uber.org/zap"
@@ -102,6 +103,7 @@ func SetStatus() error {
 		TotalCirculatingTokens: coins, // TODO: should be how we discuss with CoinGecko (Total Supply - Vesting Amount)
 		BondedTokens:           bondedTokens,
 		NotBondedTokens:        notBondedTokens,
+		Maintenance:            config.Common.Maintenance,
 		Timestamp:              status.SyncInfo.LatestBlockTime,
 	}
 	mu.Unlock()
