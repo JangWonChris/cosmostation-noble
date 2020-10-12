@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/test-go/testify/assert"
 )
 
 func TestParseConfig(t *testing.T) {
@@ -21,4 +22,5 @@ func TestParseConfig(t *testing.T) {
 	require.NotEmpty(t, config.Market.CoinmarketCapEndpoint, "Coinmarketcap Endpoint is empty")
 	require.NotEmpty(t, config.Market.CoinmarketCapCoinID, "Coinmarketcap CoinID is empty")
 	require.NotEmpty(t, config.Market.CoinmarketCapAPIKey, "Coinmarketcap APIKey is empty")
+	assert.IsType(t, false, Common.Maintenance, "Maintenance")
 }

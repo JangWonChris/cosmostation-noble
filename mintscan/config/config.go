@@ -2,11 +2,17 @@ package config
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
+
+// CommonConfig wraps common configs that are used in this project.
+type CommonConfig struct {
+	NetworkType string `mapstructure:"network_type"`
+	Maintenance bool   `mapstructure:"maintenance"`
+}
 
 // Config wraps all configs that are used in this project.
 type Config struct {
@@ -20,7 +26,6 @@ type Config struct {
 type NodeConfig struct {
 	RPCNode     string `mapstructure:"rpc_node"`
 	LCDEndpoint string `mapstructure:"lcd_endpoint"`
-	NetworkType string
 }
 
 // DBConfig wraps PostgreSQL database config.
@@ -46,6 +51,9 @@ type MarketConfig struct {
 	CoinmarketCapAPIKey   string `mapstructure:"coinmarketcap_api_key"`
 }
 
+//Common is store common information read from config file
+var Common CommonConfig
+
 // ParseConfig attempts to read and parse config.yaml from the given path
 // An error reading or parsing the config results in a panic.
 func ParseConfig() *Config {
@@ -60,15 +68,27 @@ func ParseConfig() *Config {
 	}
 
 	if viper.GetString("network_type") == "" {
-		log.Fatal("define network_type param in your config file.")
+		zap.S().Fatal("define network_type param in your config file.")
 	}
 
 	var config Config
-	sub := viper.Sub(viper.GetString("network_type"))
-	sub.Unmarshal(&config)
 
-	// This code is used in main.go to log network type when starting server.
-	config.Node.NetworkType = viper.GetString("network_type")
+	Common.NetworkType = viper.GetString("network_type")
+	Common.Maintenance = viper.GetBool("maintenance")
+
+	sub := viper.Sub(Common.NetworkType)
+	if err := sub.Unmarshal(&config); err != nil {
+		zap.S().Fatal("error occurs while reading confie file")
+	}
 
 	return &config
+}
+
+// ReloadConfig is reload Maintenance param when receive syscall.SIGHUP from os
+func ReloadConfig() {
+	if err := viper.ReadInConfig(); err != nil {
+		panic(fmt.Errorf("fatal error config file: %s ", err))
+	}
+	Common.Maintenance = viper.GetBool("maintenance")
+	zap.S().Info("reload complete, Maintenance :", Common.Maintenance)
 }
