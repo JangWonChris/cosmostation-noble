@@ -78,7 +78,7 @@ func ParseConfig() *Config {
 
 	sub := viper.Sub(Common.NetworkType)
 	if err := sub.Unmarshal(&config); err != nil {
-		zap.S().Fatal("error occurs while reading confie file")
+		zap.S().Fatal("error occurs while reading config file")
 	}
 
 	return &config
