@@ -255,13 +255,13 @@ func (db *Database) QueryValidatorByID(address string) (int, error) {
 		Column("id_validator").
 		Where("proposer = ?", address).
 		Limit(1).
+		Order("id DESC").
 		Select()
 
 	if err == pg.ErrNoRows {
 		return 0, nil
 	}
 
-	// return -1 for any type of errors
 	if err != nil {
 		return -1, err
 	}
