@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/client"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/config"
 	cfg "github.com/cosmostation/cosmostation-cosmos/mintscan/config"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/db"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/handler"
@@ -148,7 +147,7 @@ func TrapSignal(sm *http.Server) {
 		sig := <-c // Block until a signal is received.
 		switch sig {
 		case syscall.SIGHUP:
-			config.ReloadConfig()
+			cfg.ReloadConfig()
 		default:
 			terminate(sm, sig)
 			break
