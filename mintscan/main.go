@@ -5,10 +5,11 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/client"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/config"
+	cfg "github.com/cosmostation/cosmostation-cosmos/mintscan/config"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/db"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/handler"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/log"
@@ -33,7 +34,7 @@ func main() {
 	defer l.Sync()
 
 	// Parse config from configuration file (config.yaml).
-	config := config.ParseConfig()
+	config := cfg.ParseConfig()
 
 	// Create new client with node configruation.
 	// Client is used for requesting any type of network data from RPC full node and REST Server.
@@ -122,7 +123,7 @@ func main() {
 	// Start the Mintscan API server.
 	go func() {
 		zap.S().Infof("Server is running on http://localhost:%s", config.Web.Port)
-		zap.S().Infof("Network Type: %s | Version: %s | Commit: %s", config.Node.NetworkType, Version, Commit)
+		zap.S().Infof("Network Type: %s | Version: %s | Commit: %s", cfg.Common.NetworkType, Version, Commit)
 
 		err := sm.ListenAndServe()
 		if err != nil {
@@ -133,15 +134,28 @@ func main() {
 	TrapSignal(sm)
 }
 
-// TrapSignal traps sigterm or interupt and gracefully shutdown the server.
+//TrapSignal trap the signal from os
 func TrapSignal(sm *http.Server) {
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	signal.Notify(c, os.Kill)
+	signal.Notify(c,
+		syscall.SIGINT,  // interrupt
+		syscall.SIGKILL, // kill
+		syscall.SIGTERM, // terminate
+		syscall.SIGHUP)  // hangup(reload)
 
-	// Block until a signal is received.
-	sig := <-c
+	for {
+		sig := <-c // Block until a signal is received.
+		switch sig {
+		case syscall.SIGHUP:
+			cfg.ReloadConfig()
+		default:
+			terminate(sm, sig)
+			break
+		}
+	}
+}
 
+func terminate(sm *http.Server, sig os.Signal) {
 	// Gracefully shutdown the server, waiting max 30 seconds for current operations to complete.
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()

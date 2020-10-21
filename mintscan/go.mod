@@ -24,6 +24,7 @@ require (
 	github.com/stretchr/testify v1.5.1
 	github.com/tendermint/tendermint v0.32.7
 	github.com/tendermint/tm-db v0.2.0
+	github.com/test-go/testify v1.1.4
 	github.com/tomasen/realip v0.0.0-20180522021738-f0c99a92ddce
 	go.uber.org/zap v1.13.0
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4 // indirect

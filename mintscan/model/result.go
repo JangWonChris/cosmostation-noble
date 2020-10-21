@@ -93,6 +93,7 @@ type ResultStatus struct {
 	TotalCirculatingTokens []Coin    `json:"total_circulating_tokens"`
 	BondedTokens           float64   `json:"bonded_tokens"`
 	NotBondedTokens        float64   `json:"not_bonded_tokens"`
+	Maintenance            bool      `json:"maintenance"`
 	Timestamp              time.Time `json:"timestamp"`
 }
 
@@ -255,7 +256,6 @@ type ResultTx struct {
 
 // Respond responds result of any data type.
 func Respond(w http.ResponseWriter, data interface{}) {
-	// w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(data)
 }
