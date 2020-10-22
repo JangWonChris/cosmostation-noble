@@ -12,9 +12,9 @@ func (ex *Exporter) getBlock(block *tmcTypes.ResultBlock) (schema.Block, error) 
 		ChainID:       block.Block.Header.ChainID,
 		Height:        block.Block.Height,
 		Proposer:      block.Block.ProposerAddress.String(),
-		BlockHash:     block.BlockMeta.BlockID.Hash.String(),
+		BlockHash:     block.BlockID.Hash.String(),
 		ParentHash:    block.Block.Header.LastBlockID.Hash.String(),
-		NumSignatures: int64(len(block.Block.LastCommit.Precommits)),
+		NumSignatures: int64(len(block.Block.LastCommit.Signatures)),
 		NumTxs:        int64(len(block.Block.Data.Txs)),
 		Timestamp:     block.Block.Time,
 	})

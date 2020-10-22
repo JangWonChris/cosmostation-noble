@@ -4,18 +4,20 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-
-	"github.com/tendermint/tendermint/libs/bech32"
+	"github.com/cosmos/cosmos-sdk/types/bech32"
+	// [libs] #4831 Remove Bech32 pkg from Tendermint. This pkg now lives in the cosmos-sdk
+	// https://github.com/cosmos/cosmos-sdk/tree/4173ea5ebad906dd9b45325bed69b9c655504867/types/bech32
+	// "github.com/tendermint/tendermint/libs/bech32"
 )
 
-// ConvertConsAddrFromConsPubkey converts validator consensus public key to proposer address in hex string.
+// ConvertConsAddrFromConsPubkey converts validator consensus public key to proposer address format
 func ConvertConsAddrFromConsPubkey(consPubKey string) (string, error) {
-	// This method will change to sdk.GetPubKeyFromBech32(sdk.Bech32PubKeyTypeConsPub, consPubKey) in above v0.38.+.
-	pk, err := sdk.GetConsPubKeyBech32(consPubKey)
+	pubKey, err := sdk.GetPubKeyFromBech32(sdk.Bech32PubKeyTypeConsPub, consPubKey)
 	if err != nil {
 		return "", fmt.Errorf("failed to get pubkey from bech32: %s", err)
 	}
-	return pk.Address().String(), nil
+
+	return pubKey.Address().String(), nil
 }
 
 // ConvertAccAddrFromValAddr converts validator operator address to bech32 account address.
