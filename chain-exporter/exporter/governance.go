@@ -1,14 +1,12 @@
 package exporter
 
 import (
-	"fmt"
 	"strconv"
 
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 
 	sdkTypes "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/gov"
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 
 	tmcTypes "github.com/tendermint/tendermint/rpc/core/types"
 
@@ -16,126 +14,131 @@ import (
 )
 
 // getGovernance returns governance by decoding governance related transactions in a block.
-func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txs []*sdkTypes.TxResponse) ([]schema.Proposal, []schema.Deposit, []schema.Vote, error) {
+func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txResp []*sdkTypes.TxResponse) ([]schema.Proposal, []schema.Deposit, []schema.Vote, error) {
 	proposals := make([]schema.Proposal, 0)
 	deposits := make([]schema.Deposit, 0)
 	votes := make([]schema.Vote, 0)
 
-	if len(txs) <= 0 {
+	if len(txResp) <= 0 {
 		return proposals, deposits, votes, nil
 	}
 
-	for _, tx := range txs {
+	for _, tx := range txResp {
 		// Other than code equals to 0, it is failed transaction.
 		if tx.Code != 0 {
 			return proposals, deposits, votes, nil
 		}
 
-		stdTx, ok := tx.Tx.(auth.StdTx)
-		if !ok {
-			return proposals, deposits, votes, fmt.Errorf("unsupported tx type: %s", tx.Tx)
-		}
+		// stdTx, ok := tx.Tx.(auth.StdTx)
+		// if !ok {
+		// 	return proposals, deposits, votes, fmt.Errorf("unsupported tx type: %s", tx.Tx)
+		// }
 
-		switch stdTx.Msgs[0].(type) {
-		case gov.MsgSubmitProposal:
-			zap.S().Infof("MsgType: %s | Hash: %s", stdTx.Msgs[0].Type(), tx.TxHash)
+		msgs := tx.GetTx().GetMsgs()
 
-			msgSubmitProposal := stdTx.Msgs[0].(gov.MsgSubmitProposal)
+		for _, msg := range msgs {
 
-			// Get proposal id for this proposal.
-			// Handle case of multiple messages which has multiple events and attributes.
-			var proposalID uint64
-			for _, log := range tx.Logs {
-				for _, event := range log.Events {
-					if event.Type == "submit_proposal" {
-						for _, attribute := range event.Attributes {
-							if attribute.Key == "proposal_id" {
-								proposalID, _ = strconv.ParseUint(attribute.Value, 10, 64)
+			switch m := msg.(type) {
+			case *govtypes.MsgSubmitProposal:
+				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
+
+				// msgSubmitProposal := m.(gov.MsgSubmitProposal)
+
+				// Get proposal id for this proposal.
+				// Handle case of multiple messages which has multiple events and attributes.
+				var proposalID uint64
+				for _, log := range tx.Logs {
+					for _, event := range log.Events {
+						if event.Type == "submit_proposal" {
+							for _, attribute := range event.Attributes {
+								if attribute.Key == "proposal_id" {
+									proposalID, _ = strconv.ParseUint(attribute.Value, 10, 64)
+								}
 							}
 						}
 					}
 				}
+
+				var initialDepositAmount string
+				var initialDepositDenom string
+
+				if len(m.InitialDeposit) > 0 {
+					initialDepositAmount = m.InitialDeposit[0].Amount.String()
+					initialDepositDenom = m.InitialDeposit[0].Denom
+				}
+
+				p := schema.NewProposal(schema.Proposal{
+					ID:                   int64(proposalID),
+					TxHash:               tx.TxHash,
+					Proposer:             m.Proposer,
+					InitialDepositAmount: initialDepositAmount,
+					InitialDepositDenom:  initialDepositDenom,
+				})
+
+				proposals = append(proposals, *p)
+
+				d := schema.NewDeposit(schema.Deposit{
+					Height:     tx.Height,
+					ProposalID: proposalID,
+					Depositor:  m.Proposer,
+					Amount:     initialDepositAmount,
+					Denom:      initialDepositDenom,
+					TxHash:     tx.TxHash,
+					GasWanted:  tx.GasWanted,
+					GasUsed:    tx.GasUsed,
+					Timestamp:  block.Block.Header.Time,
+				})
+
+				deposits = append(deposits, *d)
+
+			case *govtypes.MsgDeposit:
+				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
+
+				// msgDeposit := m.(gov.MsgDeposit)
+
+				var amount string
+				var denom string
+
+				if len(m.Amount) > 0 {
+					amount = m.Amount[0].Amount.String()
+					denom = m.Amount[0].Denom
+				}
+
+				d := schema.NewDeposit(schema.Deposit{
+					Height:     tx.Height,
+					ProposalID: m.ProposalId,
+					Depositor:  m.Depositor,
+					Amount:     amount,
+					Denom:      denom,
+					TxHash:     tx.TxHash,
+					GasWanted:  tx.GasWanted,
+					GasUsed:    tx.GasUsed,
+					Timestamp:  block.Block.Header.Time,
+				})
+
+				deposits = append(deposits, *d)
+
+			case *govtypes.MsgVote:
+				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
+
+				// msgVote := m.(gov.MsgVote)
+
+				v := schema.NewVote(schema.Vote{
+					Height:     tx.Height,
+					ProposalID: m.ProposalId,
+					Voter:      m.Voter,
+					Option:     m.Option.String(),
+					TxHash:     tx.TxHash,
+					GasWanted:  tx.GasWanted,
+					GasUsed:    tx.GasUsed,
+					Timestamp:  block.Block.Header.Time,
+				})
+
+				votes = append(votes, *v)
+
+			default:
+				continue
 			}
-
-			var initialDepositAmount string
-			var initialDepositDenom string
-
-			if len(msgSubmitProposal.InitialDeposit) > 0 {
-				initialDepositAmount = msgSubmitProposal.InitialDeposit[0].Amount.String()
-				initialDepositDenom = msgSubmitProposal.InitialDeposit[0].Denom
-			}
-
-			p := schema.NewProposal(schema.Proposal{
-				ID:                   int64(proposalID),
-				TxHash:               tx.TxHash,
-				Proposer:             msgSubmitProposal.Proposer.String(),
-				InitialDepositAmount: initialDepositAmount,
-				InitialDepositDenom:  initialDepositDenom,
-			})
-
-			proposals = append(proposals, *p)
-
-			d := schema.NewDeposit(schema.Deposit{
-				Height:     tx.Height,
-				ProposalID: proposalID,
-				Depositor:  msgSubmitProposal.Proposer.String(),
-				Amount:     initialDepositAmount,
-				Denom:      initialDepositDenom,
-				TxHash:     tx.TxHash,
-				GasWanted:  tx.GasWanted,
-				GasUsed:    tx.GasUsed,
-				Timestamp:  block.Block.Header.Time,
-			})
-
-			deposits = append(deposits, *d)
-
-		case gov.MsgDeposit:
-			zap.S().Infof("MsgType: %s | Hash: %s", stdTx.Msgs[0].Type(), tx.TxHash)
-
-			msgDeposit := stdTx.Msgs[0].(gov.MsgDeposit)
-
-			var amount string
-			var denom string
-
-			if len(msgDeposit.Amount) > 0 {
-				amount = msgDeposit.Amount[0].Amount.String()
-				denom = msgDeposit.Amount[0].Denom
-			}
-
-			d := schema.NewDeposit(schema.Deposit{
-				Height:     tx.Height,
-				ProposalID: msgDeposit.ProposalID,
-				Depositor:  msgDeposit.Depositor.String(),
-				Amount:     amount,
-				Denom:      denom,
-				TxHash:     tx.TxHash,
-				GasWanted:  tx.GasWanted,
-				GasUsed:    tx.GasUsed,
-				Timestamp:  block.Block.Header.Time,
-			})
-
-			deposits = append(deposits, *d)
-
-		case gov.MsgVote:
-			zap.S().Infof("MsgType: %s | Hash: %s", stdTx.Msgs[0].Type(), tx.TxHash)
-
-			msgVote := stdTx.Msgs[0].(gov.MsgVote)
-
-			v := schema.NewVote(schema.Vote{
-				Height:     tx.Height,
-				ProposalID: msgVote.ProposalID,
-				Voter:      msgVote.Voter.String(),
-				Option:     msgVote.Option.String(),
-				TxHash:     tx.TxHash,
-				GasWanted:  tx.GasWanted,
-				GasUsed:    tx.GasUsed,
-				Timestamp:  block.Block.Header.Time,
-			})
-
-			votes = append(votes, *v)
-
-		default:
-			continue
 		}
 	}
 

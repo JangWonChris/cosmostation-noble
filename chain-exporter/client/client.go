@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log"
 	"sort"
 	"strconv"
 	"time"
@@ -15,10 +16,7 @@ import (
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
 	// sdkUtils "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 
-	// "github.com/cosmos/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-
-	// "github.com/cosmos/cosmos-sdk/x/auth/exported"
 
 	"github.com/cosmos/cosmos-sdk/x/distribution/client/common"
 
@@ -36,16 +34,15 @@ import (
 	rpcclient "github.com/tendermint/tendermint/rpc/client"
 	rpc "github.com/tendermint/tendermint/rpc/client/http"
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
+
+	"google.golang.org/grpc"
 )
 
 // Client implements a wrapper around both Tendermint RPC HTTP client and
 // Cosmos SDK REST client that allow for essential data queries.
 type Client struct {
-	// cliCtx context.CLIContext
-	cliCtx client.Context
-	// cdc           *sdkCodec.Codec legacy
-	// appCodec      sdkCodec.Marshaler
-	// cdc           *sdkCodec.LegacyAmino
+	cliCtx        client.Context
+	grpcClient    *grpc.ClientConn
 	rpcClient     rpcclient.Client
 	apiClient     *resty.Client
 	keyBaseClient *resty.Client
@@ -55,14 +52,14 @@ type Client struct {
 // return Client struct. An error is returned if it fails.
 func NewClient(nodeCfg config.Node, keyBaseURL string) (*Client, error) {
 	cliCtx := client.Context{}.
-		WithJSONMarshaler(codec.AppCodec).
-		WithLegacyAmino(codec.AminoCodec).
-		WithNodeURI(nodeCfg.RPCNode)
+		WithNodeURI(nodeCfg.RPCNode).
+		WithJSONMarshaler(codec.EncodingConfig.Marshaler).
+		WithLegacyAmino(codec.EncodingConfig.Amino).
+		WithTxConfig(codec.EncodingConfig.TxConfig).
+		WithInterfaceRegistry(codec.EncodingConfig.InterfaceRegistry).
+		WithAccountRetriever(authtypes.AccountRetriever{})
 
-	// cliCtx := context.NewCLIContext().
-	// 	WithCodec(codec.Codec).
-	// 	WithNodeURI(nodeCfg.RPCNode).
-	// 	WithTrustNode(true)
+	grpcClient, err := grpc.Dial("220.76.21.184:9090", grpc.WithInsecure())
 
 	rpcClient, err := rpc.NewWithTimeout(nodeCfg.RPCNode, "/websocket", 10)
 	if err != nil {
@@ -77,7 +74,7 @@ func NewClient(nodeCfg config.Node, keyBaseURL string) (*Client, error) {
 		SetHostURL(keyBaseURL).
 		SetTimeout(time.Duration(5 * time.Second))
 
-	return &Client{cliCtx, rpcClient, apiClient, keyBaseClient}, nil
+	return &Client{cliCtx, grpcClient, rpcClient, apiClient, keyBaseClient}, nil
 }
 
 // --------------------
@@ -224,23 +221,28 @@ func (c *Client) GetAccount(address string) (authtypes.AccountI, error) {
 		return nil, err
 	}
 
+	ar := authtypes.AccountRetriever{}
+	acc, err := ar.GetAccount(c.cliCtx, accAddr)
+	if err != nil {
+		log.Println(err)
+	}
 	// acc, err := auth.NewAccountRetriever(c.cliCtx).GetAccount(accAddr)
 	// if err != nil {
 	// 	return nil, err
 	// }
-
 	// jeonghwan : need grpc
-	queryClient := authtypes.NewQueryClient(c.cliCtx)
-	res, err := queryClient.Account(context.Background(), &authtypes.QueryAccountRequest{Address: accAddr.String()})
-	if err != nil {
-		return nil, err
-	}
-	out, err := c.cliCtx.LegacyAmino.MarshalJSON(res.Account)
-	if err != nil {
-		return nil, err
-	}
-	var acc authtypes.AccountI
-	c.cliCtx.LegacyAmino.UnmarshalJSON(out, &acc)
+	// queryClient := authtypes.NewQueryClient(c.cliCtx)
+	// res, err := queryClient.Account(context.Background(), &authtypes.QueryAccountRequest{Address: accAddr.String()})
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// out, err := c.cliCtx.LegacyAmino.MarshalJSON(res.Account)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// var acc authtypes.AccountI
+	// c.cliCtx.LegacyAmino.UnmarshalJSON(out, &acc)
 
 	return acc, nil
 }

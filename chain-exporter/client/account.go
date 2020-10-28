@@ -1,16 +1,22 @@
 package client
 
 import (
+	"context"
+	"log"
+
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 )
 
 // GetBaseAccountTotalAsset returns total available, rewards, commission, delegations, and undelegations from a delegator.
 func (c *Client) GetBaseAccountTotalAsset(address string) (sdktypes.Coin, sdktypes.Coin, sdktypes.Coin, sdktypes.Coin, sdktypes.Coin, error) {
-	account, err := c.GetAccount(address)
-	if err != nil {
-		return sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, err
-	}
+	// account, err := c.GetAccount(address)
+	// if err != nil {
+	// 	return sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, err
+	// }
 
 	denom, err := c.GetBondDenom()
 	if err != nil {
@@ -23,17 +29,30 @@ func (c *Client) GetBaseAccountTotalAsset(address string) (sdktypes.Coin, sdktyp
 	rewards := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
 	commission := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
 
-	// bank.
-
+	// address := "cosmos1x5wgh6vwye60wv3dtshs9dmqggwfx2ldnqvev0"
+	sdkaddr, err := sdktypes.AccAddressFromBech32(address)
+	if err != nil {
+		return sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, err
+	}
+	b := banktypes.NewQueryBalanceRequest(sdkaddr, "umuon")
+	bankClient := banktypes.NewQueryClient(c.grpcClient)
+	var header metadata.MD
+	bankRes, err := bankClient.Balance(
+		context.Background(),
+		b,
+		grpc.Header(&header), // Also fetch grpc header
+	)
+	log.Println(*bankRes.GetBalance())
+	spendable = spendable.Add(*bankRes.GetBalance())
 	// banktypes.GetGenesisStateFromAppState(c.cliCtx.JSONMarshaler, appState map[string]json.RawMessage)
 	// Get total spendable coins.
-	if len(account.GetCoins()) > 0 {
-		for _, coin := range account.GetCoins() {
-			if coin.Denom == denom {
-				spendable = spendable.Add(coin)
-			}
-		}
-	}
+	// if len(account.GetCoins()) > 0 {
+	// 	for _, coin := range account.GetCoins() {
+	// 		if coin.Denom == denom {
+	// 			spendable = spendable.Add(coin)
+	// 		}
+	// 	}
+	// }
 
 	// Get total delegated coins.
 	delegations, err := c.GetDelegatorDelegations(address)

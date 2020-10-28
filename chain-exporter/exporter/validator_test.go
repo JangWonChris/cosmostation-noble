@@ -3,7 +3,7 @@ package exporter
 import (
 	"testing"
 
-	"github.com/cosmos/cosmos-sdk/x/staking"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	"github.com/stretchr/testify/require"
 )
@@ -20,8 +20,8 @@ func TestParseMsgCreateValidator(t *testing.T) {
 	_, stdTx, err := commonTxParser(SampleMsgCreateValidatorTxHash)
 	require.NoError(t, err)
 
-	for _, msg := range stdTx.Msgs {
-		msgCreateValidator, ok := msg.(staking.MsgCreateValidator)
+	for _, msg := range stdTx.GetMsgs() {
+		msgCreateValidator, ok := msg.(*stakingtypes.MsgCreateValidator)
 		require.Equal(t, true, ok)
 		require.NotNil(t, msgCreateValidator)
 	}
@@ -31,8 +31,8 @@ func TestParseMsgDelegate(t *testing.T) {
 	_, stdTx, err := commonTxParser(SampleMsgDelegateTxHash)
 	require.NoError(t, err)
 
-	for _, msg := range stdTx.Msgs {
-		msgDelegate, ok := msg.(staking.MsgDelegate)
+	for _, msg := range stdTx.GetMsgs() {
+		msgDelegate, ok := msg.(*stakingtypes.MsgDelegate)
 		require.Equal(t, true, ok)
 		require.NotNil(t, msgDelegate)
 	}
@@ -42,8 +42,8 @@ func TestParseMsgUndelegate(t *testing.T) {
 	_, stdTx, err := commonTxParser(SampleMsgUndelegateTxHash)
 	require.NoError(t, err)
 
-	for _, msg := range stdTx.Msgs {
-		msgUndelegate, ok := msg.(staking.MsgUndelegate)
+	for _, msg := range stdTx.GetMsgs() {
+		msgUndelegate, ok := msg.(*stakingtypes.MsgUndelegate)
 		require.Equal(t, true, ok)
 		require.NotNil(t, msgUndelegate)
 	}
@@ -53,8 +53,8 @@ func TestParseMsgBeginRedelegate(t *testing.T) {
 	_, stdTx, err := commonTxParser(SampleMsgBeginRedelegateTxHash)
 	require.NoError(t, err)
 
-	for _, msg := range stdTx.Msgs {
-		msgBeginRedelegate, ok := msg.(staking.MsgBeginRedelegate)
+	for _, msg := range stdTx.GetMsgs() {
+		msgBeginRedelegate, ok := msg.(*stakingtypes.MsgBeginRedelegate)
 		require.Equal(t, true, ok)
 		require.NotNil(t, msgBeginRedelegate)
 	}

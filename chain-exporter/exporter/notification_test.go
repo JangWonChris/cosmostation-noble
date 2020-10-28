@@ -3,14 +3,14 @@ package exporter
 import (
 	"testing"
 
-	"github.com/cosmos/cosmos-sdk/x/bank"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 
 	"github.com/stretchr/testify/require"
 )
 
 var (
 	// Bank module staking hashes
-	SampleMsgSendTxHash      = "AFB944BA8230912E04363CBCC450F1F1EC9A2405B2D791C928E0597739093224"
+	SampleMsgSendTxHash      = "A80ADDA7929801AF3B1E6957BE9C63C30B5A0B9F903E760C555CAC19D2FC0DFC"
 	SampleMsgMultiSendTxHash = ""
 )
 
@@ -18,8 +18,8 @@ func TestParseMsgSend(t *testing.T) {
 	_, stdTx, err := commonTxParser(SampleMsgSendTxHash)
 	require.NoError(t, err)
 
-	for _, msg := range stdTx.Msgs {
-		msgSend, ok := msg.(bank.MsgSend)
+	for _, msg := range stdTx.GetMsgs() {
+		msgSend, ok := msg.(*banktypes.MsgSend)
 		require.Equal(t, true, ok)
 		require.NotNil(t, msgSend)
 	}

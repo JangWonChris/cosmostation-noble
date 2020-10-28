@@ -1,152 +1,141 @@
 package exporter
 
 import (
-	"fmt"
-
+	sdktypes "github.com/cosmos/cosmos-sdk/types"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/notification"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 	"go.uber.org/zap"
-
-	sdkTypes "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/bank"
 
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
 // handlePushNotification handles our mobile wallet applications' push notification.
-func (ex *Exporter) handlePushNotification(block *tmctypes.ResultBlock, txs []*sdkTypes.TxResponse) error {
-	if len(txs) <= 0 {
+func (ex *Exporter) handlePushNotification(block *tmctypes.ResultBlock, txResp []*sdktypes.TxResponse) error {
+	if len(txResp) <= 0 {
 		return nil
 	}
 
-	for _, tx := range txs {
+	for _, tx := range txResp {
 		// Other than code equals to 0, it is failed transaction.
 		if tx.Code != 0 {
 			return nil
 		}
 
-		stdTx, ok := tx.Tx.(auth.StdTx)
-		if !ok {
-			return fmt.Errorf("unsupported tx type: %s", tx.Tx)
-		}
+		msgs := tx.GetTx().GetMsgs()
 
-		switch stdTx.Msgs[0].(type) {
-		case bank.MsgSend:
-			zap.S().Infof("MsgType: %s | Hash: %s", stdTx.Msgs[0].Type(), tx.TxHash)
+		for _, msg := range msgs {
 
-			msgSend := stdTx.Msgs[0].(bank.MsgSend)
+			// stdTx, ok := tx.Tx.(auth.StdTx)
+			// if !ok {
+			// 	return fmt.Errorf("unsupported tx type: %s", tx.Tx)
+			// }
 
-			var amount string
-			var denom string
+			switch m := msg.(type) {
+			// case bank.MsgSend:
+			case *banktypes.MsgSend:
+				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
 
-			// TODO: need to test for multiple coins in one message.
-			if len(msgSend.Amount) > 0 {
-				amount = msgSend.Amount[0].Amount.String()
-				denom = msgSend.Amount[0].Denom
-			}
+				// msgSend := m.(banktypestypes.MsgSend)
 
-			payload := types.NewNotificationPayload(types.NotificationPayload{
-				From:   msgSend.FromAddress.String(),
-				To:     msgSend.ToAddress.String(),
-				Txid:   tx.TxHash,
-				Amount: amount,
-				Denom:  denom,
-			})
-
-			// Push notification to both sender and recipient
-			fromAcctRows, err := ex.db.QueryAppAccount(msgSend.FromAddress.String())
-			if err != nil {
-				return fmt.Errorf("unexpected database error: %s", err)
-			}
-
-			for _, acct := range fromAcctRows {
-				// Send push notification when alarm token is not empty and status is true.
-				if acct.AlarmToken != "" && acct.AlarmStatus {
-					ex.notiClient.Push(*payload, acct.AlarmToken, types.From)
-				}
-			}
-
-			toAcctRows, err := ex.db.QueryAppAccount(msgSend.ToAddress.String())
-			if err != nil {
-				return fmt.Errorf("unexpected database error: %s", err)
-			}
-
-			for _, acct := range toAcctRows {
-				// Send push notification when alarm token is not empty and status is true.
-				if acct.AlarmToken != "" && acct.AlarmStatus {
-					ex.notiClient.Push(*payload, acct.AlarmToken, types.To)
-				}
-			}
-
-		case bank.MsgMultiSend:
-			zap.S().Infof("MsgType: %s | Hash: %s", stdTx.Msgs[0].Type(), tx.TxHash)
-
-			msgMultiSend := stdTx.Msgs[0].(bank.MsgMultiSend)
-
-			// Push notifications to all accounts in inputs
-			for _, input := range msgMultiSend.Inputs {
 				var amount string
 				var denom string
 
-				if len(input.Coins) > 0 {
-					amount = input.Coins[0].Amount.String()
-					denom = input.Coins[0].Denom
+				// TODO: need to test for multiple coins in one message.
+				if len(m.Amount) > 0 {
+					amount = m.Amount[0].Amount.String()
+					denom = m.Amount[0].Denom
 				}
 
-				payload := &types.NotificationPayload{
-					From:   input.Address.String(),
+				payload := types.NewNotificationPayload(types.NotificationPayload{
+					From:   m.FromAddress,
+					To:     m.ToAddress,
 					Txid:   tx.TxHash,
 					Amount: amount,
 					Denom:  denom,
-				}
+				})
 
-				// Handle from address
-				inputAcctRows, err := ex.db.QueryAppAccount(input.Address.String())
-				if err != nil {
-					return fmt.Errorf("unexpected database error: %s", err)
-				}
+				// Push notification to both sender and recipient.
+				notification := notification.NewNotification()
 
-				for _, acct := range inputAcctRows {
-					// Send push notification when alarm token is not empty and status is true.
-					if acct.AlarmToken != "" && acct.AlarmStatus {
-						ex.notiClient.Push(*payload, acct.AlarmToken, types.From)
+				fromAccountStatus := notification.VerifyAccountStatus(m.FromAddress)
+				if fromAccountStatus {
+					tokens, _ := ex.db.QueryAlarmTokens(m.FromAddress)
+					if len(tokens) > 0 {
+						notification.Push(*payload, tokens, types.From)
 					}
 				}
-			}
 
-			// Push notifications to all accounts in outputs
-			for _, output := range msgMultiSend.Outputs {
-				var amount string
-				var denom string
-
-				if len(output.Coins) > 0 {
-					amount = output.Coins[0].Amount.String()
-					denom = output.Coins[0].Denom
-				}
-
-				payload := &types.NotificationPayload{
-					To:     output.Address.String(),
-					Txid:   tx.TxHash,
-					Amount: amount,
-					Denom:  denom,
-				}
-
-				// Handle to address
-				outputAcctRows, err := ex.db.QueryAppAccount(output.Address.String())
-				if err != nil {
-					return fmt.Errorf("unexpected database error: %s", err)
-				}
-
-				for _, acct := range outputAcctRows {
-					// Send push notification when alarm token is not empty and status is true.
-					if acct.AlarmToken != "" && acct.AlarmStatus {
-						ex.notiClient.Push(*payload, acct.AlarmToken, types.To)
+				toAccountStatus := notification.VerifyAccountStatus(m.ToAddress)
+				if toAccountStatus {
+					tokens, _ := ex.db.QueryAlarmTokens(m.ToAddress)
+					if len(tokens) > 0 {
+						notification.Push(*payload, tokens, types.To)
 					}
 				}
-			}
 
-		default:
-			continue
+			case *banktypes.MsgMultiSend:
+				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
+
+				// msgMultiSend := m.(banktypes.MsgMultiSend)
+
+				notification := notification.NewNotification()
+
+				// Push notifications to all accounts in inputs
+				for _, input := range m.Inputs {
+					var amount string
+					var denom string
+
+					if len(input.Coins) > 0 {
+						amount = input.Coins[0].Amount.String()
+						denom = input.Coins[0].Denom
+					}
+
+					payload := &types.NotificationPayload{
+						From:   input.Address,
+						Txid:   tx.TxHash,
+						Amount: amount,
+						Denom:  denom,
+					}
+
+					fromAccountStatus := notification.VerifyAccountStatus(input.Address)
+					if fromAccountStatus {
+						tokens, _ := ex.db.QueryAlarmTokens(input.Address)
+						if len(tokens) > 0 {
+							notification.Push(*payload, tokens, types.From)
+						}
+					}
+				}
+
+				// Push notifications to all accounts in outputs
+				for _, output := range m.Outputs {
+					var amount string
+					var denom string
+
+					if len(output.Coins) > 0 {
+						amount = output.Coins[0].Amount.String()
+						denom = output.Coins[0].Denom
+					}
+
+					payload := &types.NotificationPayload{
+						To:     output.Address,
+						Txid:   tx.TxHash,
+						Amount: amount,
+						Denom:  denom,
+					}
+
+					toAcctStatus := notification.VerifyAccountStatus(output.Address)
+					if toAcctStatus {
+						tokens, _ := ex.db.QueryAlarmTokens(output.Address)
+						if len(tokens) > 0 {
+							notification.Push(*payload, tokens, types.To)
+						}
+					}
+				}
+
+			default:
+				continue
+			}
 		}
 	}
 

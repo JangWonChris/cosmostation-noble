@@ -23,7 +23,7 @@ const (
 	UnbondedValidatorStatus = 0
 )
 
-// Validator defines the structure for validator information.
+// Validator is a struct for validator information.
 type Validator struct {
 	OperatorAddress string `json:"operator_address"`
 	ConsensusPubkey string `json:"consensus_pubkey"`
@@ -50,7 +50,7 @@ type Validator struct {
 	MinSelfDelegation string `json:"min_self_delegation"`
 }
 
-// ValidatorDelegations defines the structure for validator's delegations.
+// ValidatorDelegations is a struct for validator's delegations.
 type ValidatorDelegations struct {
 	DelegatorAddress string  `json:"delegator_address"`
 	ValidatorAddress string  `json:"validator_address"`

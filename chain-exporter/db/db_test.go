@@ -16,34 +16,30 @@ import (
 var db *Database
 
 func TestMain(m *testing.M) {
+	// types.SetAppConfig()
+
 	config := config.ParseConfig()
 	db = Connect(&config.DB)
 
 	os.Exit(m.Run())
 }
 
-func TestQueryAppAccount(t *testing.T) {
+func TestInsertOrUpdate(t *testing.T) {
 	err := db.Ping()
 	require.NoError(t, err)
 
-	testCases := []struct {
-		msg     string
-		address string
-		expPass bool
-	}{
-		{"Empty Row", "cosmos22kwurrksg22fspm2g5shvhy29eaf77xyppd4y2", true},
-		{"Single Row", "cosmos18kwurrksg43fspm2g5shvhy29eaf66xyppd4y2", true},
-		{"Multiple Rows", "cosmos10mp0mt5ek4k8z7tqkfh7cmu29hc2jxmuzmwrre", true},
-	}
+}
 
-	for _, tc := range testCases {
-		_, err := db.QueryAppAccount(tc.address)
-		if tc.expPass {
-			require.NoError(t, err, tc.msg)
-		} else {
-			require.Error(t, err, tc.msg)
-		}
-	}
+func TestExistAccount(t *testing.T) {
+	err := db.Ping()
+	require.NoError(t, err)
+
+	address := "kava140g8fnnl46mlvfhygj3zvjqlku6x0fwuhfj3uf"
+
+	exist, err := db.ExistAccount(address)
+	require.NoError(t, err)
+
+	require.Equal(t, true, exist)
 }
 
 func TestUpdate_Validator(t *testing.T) {
@@ -51,7 +47,7 @@ func TestUpdate_Validator(t *testing.T) {
 	require.NoError(t, err)
 
 	val := schema.Validator{
-		Address: "cosmos1clpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9q",
+		Address: "kava1ulzzxuvghlv04sglkzyxv94rvl7c2llhs098ju",
 		Rank:    5,
 	}
 
@@ -76,6 +72,19 @@ func TestQuery_LatestBlockHeight(t *testing.T) {
 
 	require.NotNil(t, height)
 }
+
+func TestQuery_Account(t *testing.T) {
+	err := db.Ping()
+	require.NoError(t, err)
+
+	acct := &schema.Account{AccountAddress: "kava1m36xddywe0yneykv34az8smzhtxy3nyc6v9jdj"}
+
+	account, err := db.QueryAccount(acct.AccountAddress)
+	require.NoError(t, err)
+
+	require.NotNil(t, account)
+}
+
 func TestCreate_Indexes(t *testing.T) {
 	err := db.Ping()
 	require.NoError(t, err)
@@ -91,7 +100,7 @@ func TestCreate_Tables(t *testing.T) {
 	require.NoError(t, err)
 
 	tables := []interface{}{
-		(*schema.Block)(nil),
+		(*schema.Account)(nil),
 	}
 
 	for _, table := range tables {

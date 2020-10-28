@@ -3,7 +3,7 @@ package exporter
 import (
 	"testing"
 
-	"github.com/cosmos/cosmos-sdk/x/gov"
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 
 	"github.com/stretchr/testify/require"
 )
@@ -19,8 +19,8 @@ func TestParseMsgSubmitProposal(t *testing.T) {
 	txResp, stdTx, err := commonTxParser(SampleMsgSubmitProposalTxHash)
 	require.NoError(t, err)
 
-	for _, msg := range stdTx.Msgs {
-		msgSubmitProposal, ok := msg.(gov.MsgSubmitProposal)
+	for _, msg := range stdTx.GetMsgs() {
+		msgSubmitProposal, ok := msg.(*govtypes.MsgSubmitProposal)
 		require.Equal(t, true, ok)
 		require.NotNil(t, msgSubmitProposal)
 
@@ -43,8 +43,8 @@ func TestParseMsgDeposit(t *testing.T) {
 	_, stdTx, err := commonTxParser(SampleMsgDepositTxHash)
 	require.NoError(t, err)
 
-	for _, msg := range stdTx.Msgs {
-		msgDeposit, ok := msg.(gov.MsgDeposit)
+	for _, msg := range stdTx.GetMsgs() {
+		msgDeposit, ok := msg.(*govtypes.MsgDeposit)
 		require.Equal(t, true, ok)
 		require.NotNil(t, msgDeposit)
 	}
@@ -54,8 +54,8 @@ func TestParseMsgVote(t *testing.T) {
 	_, stdTx, err := commonTxParser(SampleMsgVoteTxHash)
 	require.NoError(t, err)
 
-	for _, msg := range stdTx.Msgs {
-		msgVote, ok := msg.(gov.MsgVote)
+	for _, msg := range stdTx.GetMsgs() {
+		msgVote, ok := msg.(*govtypes.MsgVote)
 		require.Equal(t, true, ok)
 		require.NotNil(t, msgVote)
 	}

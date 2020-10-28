@@ -14,6 +14,7 @@ type Transaction struct {
 	Signatures string `json:"signatures" sql:"type:jsonb, default: '[]'::jsonb"`
 	Memo       string `json:"memo"`
 	Logs       string `json:"logs" sql:"type:jsonb, default: '[]'::jsonb"`
+	RawLog     string `json:"raw_log"`
 	Timestamp  string `json:"timestamp" sql:"default:now()"` // format that TxResponse returns
 }
 
@@ -31,6 +32,7 @@ func NewTransaction(t Transaction) *Transaction {
 		Signatures: t.Signatures,
 		Memo:       t.Memo,
 		Logs:       t.Logs,
+		RawLog:     t.RawLog,
 		Timestamp:  t.Timestamp,
 	}
 }

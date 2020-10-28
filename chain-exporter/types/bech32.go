@@ -5,10 +5,28 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
-	// [libs] #4831 Remove Bech32 pkg from Tendermint. This pkg now lives in the cosmos-sdk
-	// https://github.com/cosmos/cosmos-sdk/tree/4173ea5ebad906dd9b45325bed69b9c655504867/types/bech32
 	// "github.com/tendermint/tendermint/libs/bech32"
 )
+
+// SetAppConfig creates a new config instance for the SDK configuration.
+// func SetAppConfig() {
+// 	config := sdk.GetConfig()
+// 	SetBech32AddressPrefixes(config)
+// 	SetBip44CoinType(config)
+// 	config.Seal()
+// }
+
+// SetBech32AddressPrefixes sets the global prefix to be used when serializing addresses to bech32 strings.
+// func SetBech32AddressPrefixes(config *sdk.Config) {
+// 	config.SetBech32PrefixForAccount(app.Bech32MainPrefix, app.Bech32MainPrefix+sdk.PrefixPublic)
+// 	config.SetBech32PrefixForValidator(app.Bech32MainPrefix+sdk.PrefixValidator+sdk.PrefixOperator, app.Bech32MainPrefix+sdk.PrefixValidator+sdk.PrefixOperator+sdk.PrefixPublic)
+// 	config.SetBech32PrefixForConsensusNode(app.Bech32MainPrefix+sdk.PrefixValidator+sdk.PrefixConsensus, app.Bech32MainPrefix+sdk.PrefixValidator+sdk.PrefixConsensus+sdk.PrefixPublic)
+// }
+
+// SetBip44CoinType sets the global coin type to be used in hierarchical deterministic wallets.
+// func SetBip44CoinType(config *sdk.Config) {
+// 	config.SetCoinType(app.Bip44CoinType)
+// }
 
 // ConvertConsAddrFromConsPubkey converts validator consensus public key to proposer address format
 func ConvertConsAddrFromConsPubkey(consPubKey string) (string, error) {
@@ -20,7 +38,7 @@ func ConvertConsAddrFromConsPubkey(consPubKey string) (string, error) {
 	return pubKey.Address().String(), nil
 }
 
-// ConvertAccAddrFromValAddr converts validator operator address to bech32 account address.
+// ConvertAccAddrFromValAddr converts validator operator address to account address.
 func ConvertAccAddrFromValAddr(valAddr string) (string, error) {
 	_, decoded, err := bech32.DecodeAndConvert(valAddr)
 	if err != nil {
@@ -51,21 +69,39 @@ func ConvertValAddrFromAccAddr(accAddr string) (string, error) {
 }
 
 // VerifyBech32AccAddr validates bech32 account address format.
-func VerifyBech32AccAddr(accAddr string) error {
+func VerifyBech32AccAddr(accAddr string) (bool, error) {
 	bz, err := sdk.GetFromBech32(accAddr, sdk.GetConfig().GetBech32AccountAddrPrefix())
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	return sdk.VerifyAddressFormat(bz)
+	err = sdk.VerifyAddressFormat(bz)
+	if err != nil {
+		return false, err
+	}
+
+	if accAddr != sdk.AccAddress(bz).String() {
+		return false, fmt.Errorf("invalid account address: %s", err)
+	}
+
+	return true, nil
 }
 
 // VerifyBech32ValAddr validates bech32 validator address format.
-func VerifyBech32ValAddr(accAddr string) error {
+func VerifyBech32ValAddr(accAddr string) (bool, error) {
 	bz, err := sdk.GetFromBech32(accAddr, sdk.GetConfig().GetBech32ValidatorAddrPrefix())
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	return sdk.VerifyAddressFormat(bz)
+	err = sdk.VerifyAddressFormat(bz)
+	if err != nil {
+		return false, err
+	}
+
+	if accAddr != sdk.ValAddress(bz).String() {
+		return false, fmt.Errorf("invalid validator address: %s", err)
+	}
+
+	return true, nil
 }

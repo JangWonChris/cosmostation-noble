@@ -6,17 +6,12 @@ import (
 
 	"go.uber.org/zap"
 
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/client"
-	ceCodec "github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/db"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/log"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/notification"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
-	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
-
-	"github.com/cosmos/cosmos-sdk/codec"
 )
 
 var (
@@ -27,44 +22,43 @@ var (
 	Commit = ""
 )
 
-// Exporter implemnts a wrapper around configuration for this project
+// Exporter is
 type Exporter struct {
-	config     *config.Config
-	cdc        *codec.Codec
-	client     *client.Client
-	notiClient *notification.Notification
-	db         *db.Database
+	config *config.Config
+	client *client.Client
+	db     *db.Database
 }
 
-// NewExporter initializes the required config
+// NewExporter returns new Exporter instance
 func NewExporter() *Exporter {
-	// Create custom logger with a combination of using uber/zap and lumberjack.v2.
-	l, _ := log.NewCustomLogger()
+	l, _ := zap.NewDevelopment()
 	zap.ReplaceGlobals(l)
 	defer l.Sync()
 
-	cfg := config.ParseConfig()
+	// Parse config from configuration file (config.yaml).
+	config := config.ParseConfig()
 
-	client, err := client.NewClient(cfg.Node, cfg.KeybaseURL)
+	// Create new client with node configruation.
+	// Client is used for requesting any type of network data from RPC full node and REST Server.
+	client, err := client.NewClient(config.Node, config.KeybaseURL)
 	if err != nil {
 		zap.L().Error("failed to create new client", zap.Error(err))
 		return &Exporter{}
 	}
 
-	notiClient := notification.NewNotification()
-
-	// Connect to database
-	// Ping database to verify connection is succeeded
-	db := db.Connect(&cfg.DB)
+	// Create connection with PostgreSQL database and
+	// Ping database to verify connection is success.
+	db := db.Connect(&config.DB)
 	err = db.Ping()
 	if err != nil {
 		zap.L().Error("failed to ping database", zap.Error(err))
+		return &Exporter{}
 	}
 
-	// Setup database tables
+	// Create database tables if not exist already
 	db.CreateTables()
 
-	return &Exporter{cfg, ceCodec.Codec, client, notiClient, db}
+	return &Exporter{config, client, db}
 }
 
 // Start starts to synchronize blockchain data
@@ -157,20 +151,29 @@ func (ex *Exporter) process(height int64) error {
 	}
 
 	// First block has no previous block and no pre-commits.
-	// Handle this to save first block information.
-	prevBlock := new(tmctypes.ResultBlock)
-	prevBlockHeight := block.Block.LastCommit.Height()
-	if prevBlockHeight == 0 {
-		prevBlock = block
-		prevBlockHeight = 1
-	} else {
-		prevBlock, err = ex.client.GetBlock(prevBlockHeight)
+	// Handle this to save first block information
+	var resultGenesisAccounts []schema.Account
+	if height == 1 {
+		block.Block.LastCommit.Height = 1
+
+		var genesisAccts authtypes.GenesisAccounts
+		genesisAccts, err = ex.client.GetGenesisAccounts()
 		if err != nil {
-			return fmt.Errorf("failed to query previous block: %s", err)
+			return fmt.Errorf("failed to get genesis accounts: %s", err)
+		}
+
+		resultGenesisAccounts, err = ex.getGenesisAccounts(genesisAccts)
+		if err != nil {
+			return fmt.Errorf("failed to get block: %s", err)
 		}
 	}
 
-	vals, err := ex.client.GetValidators(prevBlockHeight, types.DefaultQueryValidatorsPage, types.DefaultQueryValidatorsPerPage)
+	prevBlock, err := ex.client.GetBlock(block.Block.LastCommit.Height)
+	if err != nil {
+		return fmt.Errorf("failed to query previous block: %s", err)
+	}
+
+	vals, err := ex.client.GetValidators(block.Block.LastCommit.Height, types.DefaultQueryValidatorsPage, types.DefaultQueryValidatorsPerPage)
 	if err != nil {
 		return fmt.Errorf("failed to query validators: %s", err)
 	}
@@ -188,6 +191,11 @@ func (ex *Exporter) process(height int64) error {
 	resultGenesisValidatorsSet, err := ex.getGenesisValidatorsSet(block, vals)
 	if err != nil {
 		return fmt.Errorf("failed to get genesis validator set: %s", err)
+	}
+
+	resultAccounts, err := ex.getAccounts(block, txs)
+	if err != nil {
+		return fmt.Errorf("failed to get accounts: %s", err)
 	}
 
 	resultMissBlocks, resultAccumulatedMissBlocks, resultMissDetailBlocks, err := ex.getValidatorsUptime(prevBlock, block, vals)
@@ -215,12 +223,15 @@ func (ex *Exporter) process(height int64) error {
 		return fmt.Errorf("failed to get transactions: %s", err)
 	}
 
+	// TODO: is this right place to be?
 	if ex.config.Alarm.Switch {
 		ex.handlePushNotification(block, txs)
 	}
 
 	err = ex.db.InsertExportedData(schema.ExportData{
+		ResultAccounts:                    resultAccounts,
 		ResultBlock:                       resultBlock,
+		ResultGenesisAccounts:             resultGenesisAccounts,
 		ResultTxs:                         resultTxs,
 		ResultEvidence:                    resultEvidence,
 		ResultMissBlocks:                  resultMissBlocks,
@@ -234,7 +245,7 @@ func (ex *Exporter) process(height int64) error {
 	})
 
 	if err != nil {
-		return fmt.Errorf("failed to insert exported data: %s", err)
+		return err
 	}
 
 	return nil
