@@ -59,7 +59,7 @@ func NewClient(nodeCfg config.Node, keyBaseURL string) (*Client, error) {
 		WithInterfaceRegistry(codec.EncodingConfig.InterfaceRegistry).
 		WithAccountRetriever(authtypes.AccountRetriever{})
 
-	grpcClient, err := grpc.Dial("220.76.21.184:9090", grpc.WithInsecure())
+	grpcClient, err := grpc.Dial(nodeCfg.GRPCEndpoint, grpc.WithInsecure())
 
 	rpcClient, err := rpc.NewWithTimeout(nodeCfg.RPCNode, "/websocket", 10)
 	if err != nil {

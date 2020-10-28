@@ -18,9 +18,10 @@ type Config struct {
 
 // Node wraps both endpoints for Tendermint RPC Node and REST API Server.
 type Node struct {
-	RPCNode     string `mapstructure:"rpc_node"`
-	LCDEndpoint string `mapstructure:"lcd_endpoint"`
-	NetworkType string
+	RPCNode      string `mapstructure:"rpc_node"`
+	LCDEndpoint  string `mapstructure:"lcd_endpoint"`
+	GRPCEndpoint string `mapstructure:"grpc_endpoint"`
+	NetworkType  string
 }
 
 // Database wraps PostgreSQL database config.
