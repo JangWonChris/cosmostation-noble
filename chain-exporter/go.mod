@@ -7,7 +7,6 @@ require (
 	github.com/cosmos/gaia v0.0.1-0.20201013155758-3a8b1b414004
 	github.com/go-pg/pg v8.0.4+incompatible
 	github.com/go-resty/resty/v2 v2.3.0
-	github.com/golang/protobuf v1.4.2
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/spf13/viper v1.7.1
 	github.com/stretchr/testify v1.6.1
