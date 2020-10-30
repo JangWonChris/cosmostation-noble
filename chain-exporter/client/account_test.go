@@ -47,7 +47,7 @@ func TestGetGenesisAccount(t *testing.T) {
 		sAcc := schema.Account{
 			ChainID:        genDoc.ChainID,
 			AccountAddress: ga.GetAddress().String(),
-			AccountNumber:  uint64(i),
+			AccountNumber:  uint64(i),            //account number is set by specified order in genesis file
 			AccountType:    authAcc.GetTypeUrl(), //type 변경
 			CreationTime:   genDoc.GenesisTime.String(),
 		}

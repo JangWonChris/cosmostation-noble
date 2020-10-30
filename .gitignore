@@ -18,7 +18,8 @@
 *.log
 
 # config files
-chain-exporter/config.yaml
-mintscan/config.yaml
-stats-exporter/config.yaml
-wallet/config.yaml
+
+**/config.yaml
+
+# genesis.json
+genesis.json
