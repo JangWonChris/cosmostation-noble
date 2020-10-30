@@ -38,7 +38,7 @@ func TestGetGenesisAccount(t *testing.T) {
 	authAccs := authGenesisState.GetAccounts()
 	NumberOfTotalAccounts := len(authAccs)
 	accountMapper := make(map[string]*schema.Account, NumberOfTotalAccounts)
-	for _, authAcc := range authAccs {
+	for i, authAcc := range authAccs {
 		var ga authtypes.GenesisAccount
 		codec.AppCodec.UnpackAny(authAcc, &ga)
 		// log.Println(authAcc.GetTypeUrl())
@@ -47,7 +47,7 @@ func TestGetGenesisAccount(t *testing.T) {
 		sAcc := schema.Account{
 			ChainID:        genDoc.ChainID,
 			AccountAddress: ga.GetAddress().String(),
-			AccountNumber:  ga.GetAccountNumber(),
+			AccountNumber:  uint64(i),
 			AccountType:    authAcc.GetTypeUrl(), //type 변경
 			CreationTime:   genDoc.GenesisTime.String(),
 		}

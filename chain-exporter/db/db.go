@@ -504,12 +504,12 @@ func (db *Database) InsertExportedData(e schema.ExportData) error {
 			return fmt.Errorf("failed to insert result block: %s", err)
 		}
 
-		if len(e.ResultGenesisAccounts) > 0 {
-			err := tx.Insert(&e.ResultGenesisAccounts)
-			if err != nil {
-				return fmt.Errorf("failed to insert result genesis accounts: %s", err)
-			}
-		}
+		// if len(e.ResultGenesisAccounts) > 0 {
+		// 	err := tx.Insert(&e.ResultGenesisAccounts)
+		// 	if err != nil {
+		// 		return fmt.Errorf("failed to insert result genesis accounts: %s", err)
+		// 	}
+		// }
 
 		if len(e.ResultAccounts) > 0 {
 			err := db.InsertOrUpdateAccounts(e.ResultAccounts)
@@ -660,4 +660,23 @@ func (db *Database) UpdateValidatorsKeyBaseURL(vals []schema.Validator) (bool, e
 	}
 
 	return true, nil
+}
+
+// InsertGenesisAccount insert the given genesis accounts using Copy command, it will faster than insert
+func (db *Database) InsertGenesisAccount(e schema.ExportData) error {
+	err := db.RunInTransaction(func(tx *pg.Tx) error {
+		if len(e.ResultGenesisAccounts) > 0 {
+			err := tx.Insert(&e.ResultGenesisAccounts)
+			if err != nil {
+				return fmt.Errorf("failed to insert result genesis accounts: %s", err)
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

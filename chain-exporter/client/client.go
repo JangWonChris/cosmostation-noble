@@ -83,6 +83,11 @@ func NewClient(nodeCfg config.Node, keyBaseURL string) (*Client, error) {
 	return &Client{cliCtx, grpcClient, rpcClient, apiClient, keyBaseClient}, nil
 }
 
+// Close close the connection
+func (c *Client) Close() {
+	c.grpcClient.Close()
+}
+
 // --------------------
 // RPC APIs
 // --------------------

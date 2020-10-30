@@ -66,6 +66,9 @@ func (ex *Exporter) Start() {
 	zap.S().Info("Starting Chain Exporter...")
 	zap.S().Infof("Network Type: %s | Version: %s | Commit: %s", ex.config.Node.NetworkType, Version, Commit)
 
+	//close grpc
+	defer ex.client.Close()
+
 	// Store data initially
 	ex.saveValidators()
 	ex.saveProposals()

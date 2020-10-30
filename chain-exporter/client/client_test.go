@@ -65,8 +65,8 @@ func TestGetAccountBalance(t *testing.T) {
 	blockHeight := header.Get(grpctypes.GRPCBlockHeightHeader)
 	log.Println("blockHeight :", blockHeight)
 	// header.Set(k string, vals ...string)
-	header.Append(grpctypes.GRPCBlockHeightHeader, "1")
-	header.Set(grpctypes.GRPCBlockHeightHeader, "1")
+	// header.Append(grpctypes.GRPCBlockHeightHeader, "1")
+	// header.Set(grpctypes.GRPCBlockHeightHeader, "1")
 	// bankRes, err := bankClient.Balance(
 	// 	metadata.AppendToOutgoingContext(context.Background(), grpctypes.GRPCBlockHeightHeader, "1"), // Add metadata to request
 	// 	b,
