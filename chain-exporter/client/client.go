@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"log"
 	"sort"
 	"strconv"
 	"time"
@@ -235,7 +234,7 @@ func (c *Client) GetAccount(address string) (authtypes.AccountI, error) {
 	ar := authtypes.AccountRetriever{}
 	acc, err := ar.GetAccount(c.cliCtx, accAddr)
 	if err != nil {
-		log.Println(err)
+		return nil, err
 	}
 	// acc, err := auth.NewAccountRetriever(c.cliCtx).GetAccount(accAddr)
 	// if err != nil {

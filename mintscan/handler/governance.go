@@ -1,9 +1,10 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
+	clienttypes "github.com/cosmostation/cosmostation-cosmos/mintscan/client/types"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/schema"
@@ -207,16 +208,15 @@ func GetVotes(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Query tally information.
-	resp, err := s.client.HandleResponseHeight("/gov/proposals/" + id + "/tally")
+	resp, err := s.client.RequestWithRestServer(clienttypes.PrefixGov + "/proposals/" + id + "/tally")
 	if err != nil {
 		zap.L().Error("failed to get tally info", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
 		return
 	}
 
-	var tally model.Tally
-	err = json.Unmarshal(resp.Result, &tally)
-	if err != nil {
+	var tallyResponse govtypes.QueryTallyResultResponse
+	if err = s.client.GetCliContext().JSONMarshaler.UnmarshalJSON(resp, &tallyResponse); err != nil {
 		zap.L().Error("failed to unmarshal tally", zap.Error(err))
 		errors.ErrFailedUnmarshalJSON(rw, http.StatusInternalServerError)
 		return
@@ -231,10 +231,10 @@ func GetVotes(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	rt := &model.ResultTally{
-		YesAmount:        tally.Yes,
-		NoAmount:         tally.No,
-		AbstainAmount:    tally.Abstain,
-		NoWithVetoAmount: tally.NoWithVeto,
+		YesAmount:        tallyResponse.Tally.Yes.ToDec().String(),
+		NoAmount:         tallyResponse.Tally.No.String(),
+		AbstainAmount:    tallyResponse.Tally.Abstain.String(),
+		NoWithVetoAmount: tallyResponse.Tally.NoWithVeto.String(),
 		YesNum:           yes,
 		AbstainNum:       abstain,
 		NoNum:            no,

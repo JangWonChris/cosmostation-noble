@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/schema"
 )
 
@@ -82,19 +83,19 @@ type ResultProposalDetail struct {
 
 // ResultStatus defines the structure for status result response.
 type ResultStatus struct {
-	ChainID                string    `json:"chain_id"`
-	BlockHeight            int64     `json:"block_height"`
-	BlockTime              float64   `json:"block_time"`
-	TotalTxsNum            int       `json:"total_txs_num"`
-	TotalValidatorNum      int       `json:"total_validator_num"`
-	UnjailedValidatorNum   int       `json:"unjailed_validator_num"`
-	JailedValidatorNum     int       `json:"jailed_validator_num"`
-	TotalSupplyTokens      []Coin    `json:"total_supply_tokens"`
-	TotalCirculatingTokens []Coin    `json:"total_circulating_tokens"`
-	BondedTokens           float64   `json:"bonded_tokens"`
-	NotBondedTokens        float64   `json:"not_bonded_tokens"`
-	Maintenance            bool      `json:"maintenance"`
-	Timestamp              time.Time `json:"timestamp"`
+	ChainID                string                             `json:"chain_id"`
+	BlockHeight            int64                              `json:"block_height"`
+	BlockTime              float64                            `json:"block_time"`
+	TotalTxsNum            int                                `json:"total_txs_num"`
+	TotalValidatorNum      int                                `json:"total_validator_num"`
+	UnjailedValidatorNum   int                                `json:"unjailed_validator_num"`
+	JailedValidatorNum     int                                `json:"jailed_validator_num"`
+	TotalSupplyTokens      banktypes.QueryTotalSupplyResponse `json:"total_supply_tokens"`
+	TotalCirculatingTokens banktypes.QueryTotalSupplyResponse `json:"total_circulating_tokens"`
+	BondedTokens           float64                            `json:"bonded_tokens"`
+	NotBondedTokens        float64                            `json:"not_bonded_tokens"`
+	Maintenance            bool                               `json:"maintenance"`
+	Timestamp              time.Time                          `json:"timestamp"`
 }
 
 // ResultValidator defines the structure for validator result response.

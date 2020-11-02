@@ -3,10 +3,9 @@ package model
 import (
 	"testing"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdktypes "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/bech32"
 	"github.com/stretchr/testify/require"
-
-	"github.com/tendermint/tendermint/libs/bech32"
 )
 
 func TestConvertConsAddrFromConsPubkey(t *testing.T) {
@@ -50,13 +49,13 @@ func TestBech32PrefixesToAcctAddr(t *testing.T) {
 	_, addr3, err := bech32.DecodeAndConvert("")
 	require.NoError(t, err)
 
-	bech1, err := bech32.ConvertAndEncode(sdk.GetConfig().GetBech32AccountAddrPrefix(), addr1)
+	bech1, err := bech32.ConvertAndEncode(sdktypes.GetConfig().GetBech32AccountAddrPrefix(), addr1)
 	require.NoError(t, err)
 
-	bech2, err := bech32.ConvertAndEncode(sdk.GetConfig().GetBech32AccountAddrPrefix(), addr2)
+	bech2, err := bech32.ConvertAndEncode(sdktypes.GetConfig().GetBech32AccountAddrPrefix(), addr2)
 	require.NoError(t, err)
 
-	bech3, err := bech32.ConvertAndEncode(sdk.GetConfig().GetBech32AccountAddrPrefix(), addr3)
+	bech3, err := bech32.ConvertAndEncode(sdktypes.GetConfig().GetBech32AccountAddrPrefix(), addr3)
 	require.NoError(t, err)
 
 	require.NotNil(t, bech1)

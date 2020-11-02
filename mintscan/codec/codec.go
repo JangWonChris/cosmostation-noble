@@ -2,14 +2,19 @@ package codec
 
 import (
 	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/simapp"
+	gaia "github.com/cosmos/gaia/app"
+	"github.com/cosmos/gaia/app/params"
 )
 
-// Codec is the application-wide Amino codec for serializing interfaces and data.
-var Codec *codec.Codec
+// Codec is the application-wide Amino codec and is initialized upon package loading.
+var (
+	AppCodec       codec.Marshaler
+	AminoCodec     *codec.LegacyAmino
+	EncodingConfig params.EncodingConfig
+)
 
-// initializes upon package loading.
 func init() {
-	Codec = simapp.MakeCodec()
-	Codec.Seal()
+	EncodingConfig = gaia.MakeEncodingConfig()
+	AppCodec = EncodingConfig.Marshaler
+	AminoCodec = EncodingConfig.Amino
 }

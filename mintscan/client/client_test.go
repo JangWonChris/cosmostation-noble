@@ -1,27 +1,34 @@
 package client
 
 import (
+	"context"
+	"encoding/json"
+	"log"
 	"os"
 	"testing"
 
+	sdktypes "github.com/cosmos/cosmos-sdk/types"
+	grpctypes "github.com/cosmos/cosmos-sdk/types/grpc"
+	sdktypestx "github.com/cosmos/cosmos-sdk/types/tx"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 
-	"github.com/cosmos/cosmos-sdk/x/auth"
-
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/config"
+	mintscanconfig "github.com/cosmostation/cosmostation-cosmos/mintscan/config"
 )
 
-var client *Client
+var cli *Client
 
 func TestMain(m *testing.M) {
-	config := config.ParseConfig()
-	client, _ = NewClient(config.Node, config.Market)
+	config := mintscanconfig.ParseConfig()
+	cli, _ = NewClient(config.Node, config.Market)
 
 	os.Exit(m.Run())
 }
 
 func TestGetChainID(t *testing.T) {
-	chainID, err := client.GetNetworkChainID()
+	chainID, err := cli.GetNetworkChainID()
 	require.NoError(t, err)
 
 	require.NotNil(t, chainID)
@@ -30,28 +37,48 @@ func TestGetChainID(t *testing.T) {
 func TestGetBlock(t *testing.T) {
 	height := int64(67270)
 
-	block, err := client.GetBlock(height)
+	block, err := cli.GetBlock(height)
 	require.NoError(t, err)
 
 	require.NotNil(t, block)
 }
 
 func TestGetCoinDenom(t *testing.T) {
-	bondDenom, err := client.GetBondDenom()
+	bondDenom, err := cli.GetBondDenom()
 	require.NoError(t, err)
 
 	require.NotNil(t, bondDenom)
 }
 
 func TestGetAccountSpendableCoins(t *testing.T) {
-	account, err := client.GetAccount("cosmos1clpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9q")
+	address := "cosmos1emaa7mwgpnpmc7yptm728ytp9quamsvuz92x5u"
+	// account, err := cli.GetAccount("cosmos1clpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9q")
+	// require.NoError(t, err)
+	sdkaddr, err := sdktypes.AccAddressFromBech32(address)
 	require.NoError(t, err)
 
-	require.NotNil(t, account.GetCoins())
+	b := banktypes.NewQueryBalanceRequest(sdkaddr, "umuon")
+	log.Println(b)
+	bankClient := banktypes.NewQueryClient(cli.grpcClient)
+	var header metadata.MD
+	blockHeight := header.Get(grpctypes.GRPCBlockHeightHeader)
+	bankRes, err := bankClient.Balance(
+		context.Background(),
+		b,
+		grpc.Header(&header), // Also fetch grpc header
+	)
+	if err != nil {
+		log.Println(err)
+	}
+	require.NotNil(t, *bankRes.GetBalance())
+
+	blockHeight = header.Get(grpctypes.GRPCBlockHeightHeader)
+	log.Println("blockHeight :", blockHeight)
+
 }
 
 func TestGetAccountDelegatedCoins(t *testing.T) {
-	delegations, err := client.GetDelegatorDelegations("cosmos1clpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9q")
+	delegations, err := cli.GetDelegatorDelegations("cosmos1clpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9q")
 	require.NoError(t, err)
 
 	for _, delegation := range delegations {
@@ -60,7 +87,7 @@ func TestGetAccountDelegatedCoins(t *testing.T) {
 }
 
 func TestGetAccountUndelegatedCoins(t *testing.T) {
-	undelegations, err := client.GetDelegatorUndelegations("cosmos1clpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9q")
+	undelegations, err := cli.GetDelegatorUndelegations("cosmos1clpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9q")
 	require.NoError(t, err)
 
 	for _, undelegation := range undelegations {
@@ -69,14 +96,14 @@ func TestGetAccountUndelegatedCoins(t *testing.T) {
 }
 
 func TestGetAccountTotalRewards(t *testing.T) {
-	rewards, err := client.GetDelegatorTotalRewards("cosmos1clpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9q")
+	rewards, err := cli.GetDelegatorTotalRewards("cosmos1clpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9q")
 	require.NoError(t, err)
 
 	require.NotNil(t, rewards)
 }
 
 func TestGetValidatorCommission(t *testing.T) {
-	truncatedValCommission, err := client.GetValidatorCommission("cosmosvaloper1clpqr4nrk4khgkxj78fcwwh6dl3uw4epsluffn")
+	truncatedValCommission, err := cli.GetValidatorCommission("cosmosvaloper1clpqr4nrk4khgkxj78fcwwh6dl3uw4epsluffn")
 	require.NoError(t, err)
 
 	require.NotNil(t, truncatedValCommission)
@@ -85,29 +112,31 @@ func TestGetValidatorCommission(t *testing.T) {
 func TestParseTxResponse(t *testing.T) {
 	hash := "A8A272A277213D17339B900B1EA2A634CBA33049327E6591648EDA8DA86AF7F2"
 
-	txResponse, err := client.GetTx(hash)
+	txResponse, err := cli.GetTx(hash)
 	require.NoError(t, err)
 	require.Equal(t, false, txResponse.Empty(), "tx hash has empty txResponse %s", hash)
 
-	stdTx, ok := txResponse.Tx.(auth.StdTx)
-	require.Equal(t, false, !ok, "unsupported tx type: %s", txResponse.Tx)
+	// stdTx, ok := txResponse.Tx.(auth.StdTx)
+	txI := txResponse.GetTx()
+	tx, ok := txI.(*sdktypestx.Tx)
+	require.Equal(t, false, !ok, "unsupported type")
 
-	msgsBz, err := client.cdc.MarshalJSON(stdTx.GetMsgs())
+	msgsBz, err := cli.cliCtx.JSONMarshaler.MarshalJSON(tx.GetBody())
 	require.NoError(t, err, "failed to unmarshal transaction messages")
 
-	feeBz, err := client.cdc.MarshalJSON(stdTx.Fee)
+	feeBz, err := cli.cliCtx.JSONMarshaler.MarshalJSON(tx.GetAuthInfo().GetFee())
 	require.NoError(t, err, "failed to unmarshal tx fee")
 
-	logsBz, err := client.cdc.MarshalJSON(txResponse.Logs)
+	logsBz, err := json.Marshal(txResponse.Logs)
 	require.NoError(t, err, "failed to unmarshal tx logs")
 
-	sigs := make([]auth.StdSignature, len(stdTx.GetSignatures()), len(stdTx.GetSignatures()))
-	for i, s := range stdTx.GetSignatures() {
-		sigs[i].Signature = s.Signature
-		sigs[i].PubKey = s.PubKey
+	sigs := make([][]byte, len(tx.GetSignatures()), len(tx.GetSignatures()))
+	for i, s := range tx.GetSignatures() {
+		sigs[i] = s
+		// sigs[i].PubKey = s.PubKey
 	}
 
-	sigsBz, err := client.cdc.MarshalJSON(sigs)
+	sigsBz, err := json.Marshal(sigs)
 	require.NoError(t, err, "failed to unmarshal tx signatures")
 
 	require.NotNil(t, string(msgsBz), "Messages")

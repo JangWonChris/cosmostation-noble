@@ -1,12 +1,14 @@
 package handler
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 	"sync"
 
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	clienttypes "github.com/cosmostation/cosmostation-cosmos/mintscan/client/types"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/config"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
 
@@ -40,34 +42,35 @@ func SetStatus() error {
 		return fmt.Errorf("Session is not initialized")
 	}
 
-	poolResp, err := s.client.HandleResponseHeight("/staking/pool")
+	poolResp, err := s.client.RequestWithRestServer(clienttypes.PrefixStaking + "/pool")
 	if err != nil {
 		zap.L().Error("failed to get staking pool", zap.Error(err))
 		return err
 	}
 
-	var pool model.Pool
-	err = json.Unmarshal(poolResp.Result, &pool)
+	var pool stakingtypes.QueryPoolResponse
+	err = s.client.GetCliContext().JSONMarshaler.UnmarshalJSON(poolResp, &pool)
 	if err != nil {
 		zap.L().Error("failed to unmarshal pool", zap.Error(err))
 		return err
 	}
 
-	tsResp, err := s.client.HandleResponseHeight("/supply/total")
+	tsResp, err := s.client.RequestWithRestServer(clienttypes.PrefixBank + "/supply")
 	if err != nil {
 		zap.L().Error("failed to get supply total", zap.Error(err))
 		return err
 	}
 
-	var coins []model.Coin
-	err = json.Unmarshal(tsResp.Result, &coins)
+	var coins banktypes.QueryTotalSupplyResponse
+	err = s.client.GetCliContext().JSONMarshaler.UnmarshalJSON(tsResp, &coins)
+	// err = json.Unmarshal(tsResp, &coins)
 	if err != nil {
 		zap.L().Error("failed to unmarshal coin", zap.Error(err))
 		return err
 	}
 
-	notBondedTokens, _ := strconv.ParseFloat(pool.NotBondedTokens, 64)
-	bondedTokens, _ := strconv.ParseFloat(pool.BondedTokens, 64)
+	notBondedTokens, _ := strconv.ParseFloat(pool.Pool.NotBondedTokens.String(), 64)
+	bondedTokens, _ := strconv.ParseFloat(pool.Pool.BondedTokens.String(), 64)
 	bondedValsNum, _ := s.db.CountValidatorNumByStatus(model.BondedValidatorStatus)
 	unbondingValsNum, _ := s.db.CountValidatorNumByStatus(model.UnbondingValidatorStatus)
 	unbondedValsNum, _ := s.db.CountValidatorNumByStatus(model.UnbondedValidatorStatus)

@@ -58,14 +58,13 @@ func main() {
 	r.HandleFunc("/auth/accounts/{accAddr}", handler.GetAccount).Methods("GET")
 	r.HandleFunc("/account/balances/{accAddr}", handler.GetAccountBalance).Methods("GET")
 	r.HandleFunc("/account/delegations/{accAddr}", handler.GetDelegatorDelegations).Methods("GET")
-	r.HandleFunc("/account/delegations/rewards/{accAddr}", handler.GetDelegationsRewards).Methods("GET")
 	r.HandleFunc("/account/validator/commission/{accAddr}", handler.GetValidatorCommission).Methods("GET")
-	r.HandleFunc("/account/unbonding_delegations/{accAddr}", handler.GetDelegatorUnbondingDelegations).Methods("GET")
 	r.HandleFunc("/account/txs/{accAddr}", handler.GetAccountTxs).Methods("GET")
 	r.HandleFunc("/account/txs/{accAddr}/{valAddr}", handler.GetTxsBetweenDelegatorAndValidator).Methods("GET")
 	r.HandleFunc("/account/transfer_txs/{accAddr}", handler.GetAccountTransferTxs).Methods("GET")
 	r.HandleFunc("/blocks", handler.GetBlocks).Methods("GET")
 	r.HandleFunc("/blocks/{proposer}", handler.GetBlocksByProposer).Methods("GET")
+	r.HandleFunc("/distribution/delegators/{delAddr}/rewards", handler.GetTotalRewardsFromDelegator).Methods("GET")
 	r.HandleFunc("/distribution/delegators/{delAddr}/rewards/{valAddr}", handler.GetRewardsBetweenDelegatorAndValidator).Methods("GET")
 	r.HandleFunc("/distribution/delegators/{delAddr}/withdraw_address", handler.GetDelegatorWithdrawalAddress).Methods("GET")
 	r.HandleFunc("/distribution/community_pool", handler.GetCommunityPool).Methods("GET")
@@ -90,11 +89,14 @@ func main() {
 	r.HandleFunc("/staking/validator/delegations/{address}", handler.GetValidatorDelegations).Methods("GET")
 	r.HandleFunc("/staking/validator/events/{address}", handler.GetValidatorPowerHistoryEvents).Methods("GET")
 	r.HandleFunc("/staking/validator/events/{address}/count", handler.GetValidatorEventsTotalCount).Methods("GET")
-	r.HandleFunc("/staking/redelegations", handler.GetRedelegations).Methods("GET")
+	r.HandleFunc("/staking/delegator/{delAddr}/redelegations", handler.GetRedelegations).Methods("GET")
+	r.HandleFunc("/staking/delegators/{delAddr}/unbonding_delegations", handler.GetDelegatorUnbondingDelegations).Methods("GET")
 
 	// These APIs will be deprecated in next update.
+	r.HandleFunc("/account/delegations/rewards/{accAddr}", handler.GetDelegationsRewards).Methods("GET")              // same with distribution delegators rewards
 	r.HandleFunc("/account/balance/{accAddr}", handler.GetAccountBalance).Methods("GET")                              // /account/balances/{accAddr}
 	r.HandleFunc("/account/commission/{accAddr}", handler.GetValidatorCommission).Methods("GET")                      // /account/validator/commission/{accAddr}
+	r.HandleFunc("/account/unbonding_delegations/{accAddr}", handler.GetDelegatorUnbondingDelegations).Methods("GET") //moved to staking
 	r.HandleFunc("/account/unbonding-delegations/{accAddr}", handler.GetDelegatorUnbondingDelegations).Methods("GET") // /acount/unbonding_delegations/{accAddr}
 	r.HandleFunc("/tx/{hash}", handler.GetLegacyTransactionFromDB).Methods("GET")                                     // /tx?hash={hash}
 	r.HandleFunc("/staking/validator/misses/detail/{address}", handler.GetValidatorUptime).Methods("GET")             // /staking/validator/updatime/{address}
@@ -103,9 +105,12 @@ func main() {
 	// These APIs will need to be added in next update.
 	// r.HandleFunc("/module/accounts", handler.GetModuleAccounts).Methods("GET")
 
+	// Session will wrap both client and database and be used throughout all handlers.
+	handler.SetSession(client, db)
+
 	sm := &http.Server{
 		Addr:         ":" + config.Web.Port,
-		Handler:      handler.Middleware(r, client, db),
+		Handler:      handler.Middleware(r),
 		ReadTimeout:  10 * time.Second, // max time to read request from the client
 		WriteTimeout: 10 * time.Second, // max time to write response to the client
 	}
@@ -116,7 +121,7 @@ func main() {
 				time.Sleep(1 * time.Second)
 				continue
 			}
-			time.Sleep(5 * time.Second)
+			time.Sleep(500 * time.Second)
 		}
 	}()
 

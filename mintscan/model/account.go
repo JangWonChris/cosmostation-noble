@@ -2,6 +2,7 @@ package model
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
 // Delegations defines the structure for delegations.
@@ -24,12 +25,13 @@ type UnbondingDelegations struct {
 	DelegatorAddress string `json:"delegator_address"`
 	ValidatorAddress string `json:"validator_address"`
 	Moniker          string `json:"moniker"`
-	Entries          []struct {
-		CreationHeight string `json:"creation_height"`
-		CompletionTime string `json:"completion_time"`
-		InitialBalance string `json:"initial_balance"`
-		Balance        string `json:"balance"`
-	} `json:"entries"`
+	Entries          []stakingtypes.UnbondingDelegationEntry
+	// Entries          []struct {
+	// 	CreationHeight string `json:"creation_height"`
+	// 	CompletionTime string `json:"completion_time"`
+	// 	InitialBalance string `json:"initial_balance"`
+	// 	Balance        string `json:"balance"`
+	// } `json:"entries"`
 }
 
 // ModuleAccount defines the structure for module account information.

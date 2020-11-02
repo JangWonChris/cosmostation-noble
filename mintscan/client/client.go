@@ -1,52 +1,64 @@
 package client
 
 import (
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"time"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
-	sdkCodec "github.com/cosmos/cosmos-sdk/codec"
-	sdkTypes "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	sdkUtils "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
-	"github.com/cosmos/cosmos-sdk/x/auth/exported"
+	"github.com/cosmos/cosmos-sdk/client"
+	sdktypes "github.com/cosmos/cosmos-sdk/types"
+	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	distr "github.com/cosmos/cosmos-sdk/x/distribution"
 	"github.com/cosmos/cosmos-sdk/x/distribution/client/common"
-	"github.com/cosmos/cosmos-sdk/x/staking"
-	stakingTypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	"google.golang.org/grpc"
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/codec"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/config"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
-
 	rpcclient "github.com/tendermint/tendermint/rpc/client"
-	tmcTypes "github.com/tendermint/tendermint/rpc/core/types"
+	rpcclienthttp "github.com/tendermint/tendermint/rpc/client/http"
+	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	resty "github.com/go-resty/resty/v2"
 )
 
-// Client implements a wrapper around both a Tendermint RPC client and a
-// Cosmos SDK REST client that allows for essential data queries.
+// Client implements a wrapper around both Tendermint RPC HTTP client and
+// Cosmos SDK REST client that allow for essential data queries.
 type Client struct {
-	cliCtx          context.CLIContext
-	cdc             *sdkCodec.Codec
+	cliCtx          client.Context
+	grpcClient      *grpc.ClientConn
 	rpcClient       rpcclient.Client
 	apiClient       *resty.Client
 	coinGeckoClient *resty.Client
 }
 
-// NewClient creates a new client with the given config.
+// NewClient creates a new client with the given configuration and
+// return Client struct. An error is returned if it fails.
 func NewClient(nodeCfg config.NodeConfig, marketCfg config.MarketConfig) (*Client, error) {
-	cliCtx := context.NewCLIContext().
-		// WithCodec(codec.Codec).
-		WithCodec(authtypes.ModuleCdc).
+	cliCtx := client.Context{}.
 		WithNodeURI(nodeCfg.RPCNode).
-		WithTrustNode(true)
+		WithJSONMarshaler(codec.EncodingConfig.Marshaler).
+		WithLegacyAmino(codec.EncodingConfig.Amino).
+		WithTxConfig(codec.EncodingConfig.TxConfig).
+		WithInterfaceRegistry(codec.EncodingConfig.InterfaceRegistry).
+		WithAccountRetriever(authtypes.AccountRetriever{})
 
-	rpcClient := rpcclient.NewHTTP(nodeCfg.RPCNode, "/websocket")
+	grpcClient, err := grpc.Dial(nodeCfg.GRPCEndpoint,
+		grpc.WithBlock(),
+		grpc.WithTimeout(time.Second*10),
+		grpc.WithInsecure())
+	if err != nil {
+		return &Client{}, err
+	}
+
+	rpcClient, err := rpcclienthttp.NewWithTimeout(nodeCfg.RPCNode, "/websocket", 10)
+	if err != nil {
+		return &Client{}, err
+	}
 
 	apiClient := resty.New().
 		SetHostURL(nodeCfg.LCDEndpoint).
@@ -54,13 +66,18 @@ func NewClient(nodeCfg config.NodeConfig, marketCfg config.MarketConfig) (*Clien
 
 	coinGeckoClient := resty.New().
 		SetHostURL(marketCfg.CoinGeckoEndpoint).
-		SetTimeout(time.Duration(5 * time.Second))
+		SetTimeout(time.Duration(10 * time.Second))
 
-	return &Client{cliCtx, codec.Codec, rpcClient, apiClient, coinGeckoClient}, nil
+	return &Client{cliCtx, grpcClient, rpcClient, apiClient, coinGeckoClient}, nil
+}
+
+// Close close the connection
+func (c *Client) Close() {
+	c.grpcClient.Close()
 }
 
 // GetCliContext returns client CLIContext.
-func (c *Client) GetCliContext() context.CLIContext {
+func (c *Client) GetCliContext() client.Context {
 	return c.cliCtx
 }
 
@@ -70,7 +87,7 @@ func (c *Client) GetCliContext() context.CLIContext {
 
 // GetNetworkChainID returns network chain id.
 func (c *Client) GetNetworkChainID() (string, error) {
-	status, err := c.rpcClient.Status()
+	status, err := c.rpcClient.Status(context.Background())
 	if err != nil {
 		return "", err
 	}
@@ -80,31 +97,31 @@ func (c *Client) GetNetworkChainID() (string, error) {
 
 // GetBondDenom returns bond denomination for the network.
 func (c *Client) GetBondDenom() (string, error) {
-	route := fmt.Sprintf("custom/%s/%s", stakingTypes.StoreKey, stakingTypes.QueryParameters)
+	route := fmt.Sprintf("custom/%s/%s", stakingtypes.StoreKey, stakingtypes.QueryParameters)
 	bz, _, err := c.cliCtx.QueryWithData(route, nil)
 	if err != nil {
 		return "", err
 	}
 
-	var params stakingTypes.Params
-	c.cdc.MustUnmarshalJSON(bz, &params)
+	var params stakingtypes.Params
+	c.cliCtx.LegacyAmino.MustUnmarshalJSON(bz, &params)
 
 	return params.BondDenom, nil
 }
 
 // GetStatus queries for status on the active chain.
-func (c *Client) GetStatus() (*tmcTypes.ResultStatus, error) {
-	return c.rpcClient.Status()
+func (c *Client) GetStatus() (*tmctypes.ResultStatus, error) {
+	return c.rpcClient.Status(context.Background())
 }
 
 // GetBlock queries for a block with height.
-func (c *Client) GetBlock(height int64) (*tmcTypes.ResultBlock, error) {
-	return c.rpcClient.Block(&height)
+func (c *Client) GetBlock(height int64) (*tmctypes.ResultBlock, error) {
+	return c.rpcClient.Block(context.Background(), &height)
 }
 
 // GetLatestBlockHeight returns the latest block height on the active network.
 func (c *Client) GetLatestBlockHeight() (int64, error) {
-	status, err := c.rpcClient.Status()
+	status, err := c.rpcClient.Status(context.Background())
 	if err != nil {
 		return -1, err
 	}
@@ -114,14 +131,14 @@ func (c *Client) GetLatestBlockHeight() (int64, error) {
 
 // GetTx queries for a single transaction by a hash string in hex format.
 // An error is returned if the transaction does not exist or cannot be queried.
-func (c *Client) GetTx(hash string) (sdkTypes.TxResponse, error) {
-	txResponse, err := sdkUtils.QueryTx(c.cliCtx, hash) // use RPC under the hood
+func (c *Client) GetTx(hash string) (*sdktypes.TxResponse, error) {
+	txResponse, err := authclient.QueryTx(c.cliCtx, hash) // use RPC under the hood
 	if err != nil {
-		return sdkTypes.TxResponse{}, fmt.Errorf("failed to query tx hash: %s", err)
+		return &sdktypes.TxResponse{}, fmt.Errorf("failed to query tx hash: %s", err)
 	}
 
 	if txResponse.Empty() {
-		return sdkTypes.TxResponse{}, fmt.Errorf("tx hash has empty tx response: %s", err)
+		return &sdktypes.TxResponse{}, fmt.Errorf("tx hash has empty tx response: %s", err)
 	}
 
 	return txResponse, nil
@@ -129,195 +146,206 @@ func (c *Client) GetTx(hash string) (sdkTypes.TxResponse, error) {
 
 // GetTendermintTx queries for a transaction by hash.
 // An error is returned if the query fails.
-func (c *Client) GetTendermintTx(hash string) (*tmcTypes.ResultTx, error) {
+func (c *Client) GetTendermintTx(hash string) (*tmctypes.ResultTx, error) {
 	hashRaw, err := hex.DecodeString(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	return c.rpcClient.Tx(hashRaw, false)
+	return c.rpcClient.Tx(context.Background(), hashRaw, false)
 }
 
 // GetAccount checks account type and returns account interface.
-func (c *Client) GetAccount(address string) (exported.Account, error) {
-	accAddr, err := sdkTypes.AccAddressFromBech32(address)
+func (c *Client) GetAccount(address string) (authtypes.AccountI, error) {
+	accAddr, err := sdktypes.AccAddressFromBech32(address)
 	if err != nil {
 		return nil, err
 	}
 
-	acc, err := auth.NewAccountRetriever(c.cliCtx).GetAccount(accAddr)
+	ar := authtypes.AccountRetriever{}
+	acc, err := ar.GetAccount(c.cliCtx, accAddr)
 	if err != nil {
 		return nil, err
 	}
+	// acc, err := auth.NewAccountRetriever(c.cliCtx).GetAccount(accAddr)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	return acc, nil
 }
 
 // GetDelegatorDelegations returns a list of delegations made by a certain delegator address
-func (c *Client) GetDelegatorDelegations(address string) (staking.DelegationResponses, error) {
-	delAddr, err := sdkTypes.AccAddressFromBech32(address)
+func (c *Client) GetDelegatorDelegations(address string) (stakingtypes.DelegationResponses, error) {
+	delAddr, err := sdktypes.AccAddressFromBech32(address)
 	if err != nil {
-		return staking.DelegationResponses{}, err
+		return stakingtypes.DelegationResponses{}, err
 	}
 
-	bz, err := c.cdc.MarshalJSON(staking.NewQueryDelegatorParams(delAddr))
+	bz, err := c.cliCtx.LegacyAmino.MarshalJSON(stakingtypes.NewQueryDelegatorParams(delAddr))
 	if err != nil {
-		return staking.DelegationResponses{}, err
+		return stakingtypes.DelegationResponses{}, err
 	}
 
-	route := fmt.Sprintf("custom/%s/%s", staking.QuerierRoute, staking.QueryDelegatorDelegations)
+	route := fmt.Sprintf("custom/%s/%s", stakingtypes.QuerierRoute, stakingtypes.QueryDelegatorDelegations)
 
 	res, _, err := c.cliCtx.QueryWithData(route, bz)
 	if err != nil {
-		return staking.DelegationResponses{}, err
+		return stakingtypes.DelegationResponses{}, err
 	}
 
-	var delegations staking.DelegationResponses
-	if err := c.cdc.UnmarshalJSON(res, &delegations); err != nil {
-		return staking.DelegationResponses{}, err
+	var delegations stakingtypes.DelegationResponses
+	if err := c.cliCtx.LegacyAmino.UnmarshalJSON(res, &delegations); err != nil {
+		return stakingtypes.DelegationResponses{}, err
 	}
 
 	return delegations, nil
 }
 
 // GetDelegatorUndelegations returns a list of undelegations made by a certain delegator address
-func (c *Client) GetDelegatorUndelegations(address string) (staking.UnbondingDelegations, error) {
-	delAddr, err := sdkTypes.AccAddressFromBech32(address)
+func (c *Client) GetDelegatorUndelegations(address string) (stakingtypes.UnbondingDelegations, error) {
+	delAddr, err := sdktypes.AccAddressFromBech32(address)
 	if err != nil {
-		return staking.UnbondingDelegations{}, err
+		return stakingtypes.UnbondingDelegations{}, err
 	}
 
-	bz, err := c.cdc.MarshalJSON(staking.NewQueryDelegatorParams(delAddr))
+	bz, err := c.cliCtx.LegacyAmino.MarshalJSON(stakingtypes.NewQueryDelegatorParams(delAddr))
 	if err != nil {
-		return staking.UnbondingDelegations{}, err
+		return stakingtypes.UnbondingDelegations{}, err
 	}
 
-	route := fmt.Sprintf("custom/%s/%s", staking.QuerierRoute, staking.QueryDelegatorUnbondingDelegations)
+	route := fmt.Sprintf("custom/%s/%s", stakingtypes.QuerierRoute, stakingtypes.QueryDelegatorUnbondingDelegations)
 
 	res, _, err := c.cliCtx.QueryWithData(route, bz)
 	if err != nil {
-		return staking.UnbondingDelegations{}, err
+		return stakingtypes.UnbondingDelegations{}, err
 	}
 
-	var undelegations staking.UnbondingDelegations
-	if err := c.cdc.UnmarshalJSON(res, &undelegations); err != nil {
-		return staking.UnbondingDelegations{}, err
+	var undelegations stakingtypes.UnbondingDelegations
+	if err := c.cliCtx.LegacyAmino.UnmarshalJSON(res, &undelegations); err != nil {
+		return stakingtypes.UnbondingDelegations{}, err
 	}
 
 	return undelegations, nil
 }
 
 // GetDelegatorTotalRewards returns the total rewards balance from all delegations by a delegator
-func (c *Client) GetDelegatorTotalRewards(address string) (distr.QueryDelegatorTotalRewardsResponse, error) {
-	delAddr, err := sdkTypes.AccAddressFromBech32(address)
+func (c *Client) GetDelegatorTotalRewards(address string) (distributiontypes.QueryDelegatorTotalRewardsResponse, error) {
+	delAddr, err := sdktypes.AccAddressFromBech32(address)
 	if err != nil {
-		return distr.QueryDelegatorTotalRewardsResponse{}, err
+		return distributiontypes.QueryDelegatorTotalRewardsResponse{}, err
 	}
 
-	bz, err := c.cdc.MarshalJSON(distr.NewQueryDelegatorParams(delAddr))
+	bz, err := c.cliCtx.LegacyAmino.MarshalJSON(distributiontypes.NewQueryDelegatorParams(delAddr))
 	if err != nil {
-		return distr.QueryDelegatorTotalRewardsResponse{}, err
+		return distributiontypes.QueryDelegatorTotalRewardsResponse{}, err
 	}
 
-	route := fmt.Sprintf("custom/%s/%s", distr.QuerierRoute, distr.QueryDelegatorTotalRewards)
+	route := fmt.Sprintf("custom/%s/%s", distributiontypes.QuerierRoute, distributiontypes.QueryDelegatorTotalRewards)
 
 	res, _, err := c.cliCtx.QueryWithData(route, bz)
 	if err != nil {
-		return distr.QueryDelegatorTotalRewardsResponse{}, err
+		return distributiontypes.QueryDelegatorTotalRewardsResponse{}, err
 	}
 
-	var totalRewards distr.QueryDelegatorTotalRewardsResponse
-	if err := c.cdc.UnmarshalJSON(res, &totalRewards); err != nil {
-		return distr.QueryDelegatorTotalRewardsResponse{}, err
+	var totalRewards distributiontypes.QueryDelegatorTotalRewardsResponse
+	if err := c.cliCtx.LegacyAmino.UnmarshalJSON(res, &totalRewards); err != nil {
+		return distributiontypes.QueryDelegatorTotalRewardsResponse{}, err
 	}
 
 	return totalRewards, nil
 }
 
 // GetValidatorCommission queries validator's commission and returns the coins with truncated decimals and the change.
-func (c *Client) GetValidatorCommission(address string) (sdkTypes.Coins, error) {
-	valAddr, err := sdkTypes.ValAddressFromBech32(address)
+func (c *Client) GetValidatorCommission(address string) (sdktypes.Coins, error) {
+	valAddr, err := sdktypes.ValAddressFromBech32(address)
 	if err != nil {
-		return sdkTypes.Coins{}, err
+		return sdktypes.Coins{}, err
 	}
 
-	res, err := common.QueryValidatorCommission(c.cliCtx, distr.QuerierRoute, valAddr)
+	res, err := common.QueryValidatorCommission(c.cliCtx, valAddr)
 	if err != nil {
-		return sdkTypes.Coins{}, err
+		return sdktypes.Coins{}, err
 	}
 
-	var valCom distr.ValidatorAccumulatedCommission
-	c.cliCtx.Codec.MustUnmarshalJSON(res, &valCom)
+	var valCom distributiontypes.ValidatorAccumulatedCommission
+	c.cliCtx.LegacyAmino.MustUnmarshalJSON(res, &valCom)
 
-	truncatedCoins, _ := valCom.TruncateDecimal()
+	truncatedCoins, _ := valCom.Commission.TruncateDecimal()
 
 	return truncatedCoins, nil
 }
 
 // BroadcastTx broadcasts transaction to the active network
-func (c *Client) BroadcastTx(signedTx string) (*tmcTypes.ResultBroadcastTxCommit, error) {
-	txByteStr, err := hex.DecodeString(signedTx)
+func (c *Client) BroadcastTx(signedTx string) (*tmctypes.ResultBroadcastTxCommit, error) {
+	txBytes, err := hex.DecodeString(signedTx)
 	if err != nil {
-		return &tmcTypes.ResultBroadcastTxCommit{}, err
+		return &tmctypes.ResultBroadcastTxCommit{}, err
 	}
 
-	var stdTx auth.StdTx
-	err = c.cdc.UnmarshalJSON(txByteStr, &stdTx)
-	if err != nil {
-		return &tmcTypes.ResultBroadcastTxCommit{}, err
-	}
+	// var stdTx sdktypes.Tx
+	// stdTx, err = c.cliCtx.TxConfig.TxJSONDecoder()(signedTxStr)
+	// if err != nil {
+	// 	return &tmctypes.ResultBroadcastTxCommit{}, err
+	// }
 
-	bz, err := c.cdc.MarshalBinaryLengthPrefixed(stdTx)
-	if err != nil {
-		return &tmcTypes.ResultBroadcastTxCommit{}, err
-	}
+	// txBytes, err := c.cliCtx.TxConfig.TxJSONEncoder()(stdTx)
+	// if err != nil {
+	// 	return &tmctypes.ResultBroadcastTxCommit{}, err
+	// }
 
-	return c.rpcClient.BroadcastTxCommit(bz)
+	// BroadcastBlock mode will wait tx
+	// c.cliCtx.WithBroadcastMode(clientflags.BroadcastBlock).BroadcastTx(bz)
+	return c.rpcClient.BroadcastTxCommit(context.Background(), txBytes)
 }
 
 // --------------------
 // REST SERVER APIs
 // --------------------
 
-// GetTxAPIClient queries for a transaction from the REST client and decodes it into a sdkTypes.Tx [Another way to query a transaction.]
+// GetTxAPIClient queries for a transaction from the REST client and decodes it into a sdktypes.Tx [Another way to query a transaction.]
 // if the transaction exists. An error is returned if the tx doesn't exist or
 // decoding fails.
-func (c *Client) GetTxAPIClient(hash string) (txResponse sdkTypes.TxResponse, err error) {
+func (c *Client) GetTxAPIClient(hash string) (txResponse sdktypes.TxResponse, err error) {
 	resp, err := c.apiClient.R().Get("/txs/" + hash)
 	if err != nil {
-		return sdkTypes.TxResponse{}, fmt.Errorf("failed to request tx hash: %s", err)
+		return sdktypes.TxResponse{}, fmt.Errorf("failed to request tx hash: %s", err)
 	}
 
-	if err := c.cdc.UnmarshalJSON(resp.Body(), &txResponse); err != nil {
-		return sdkTypes.TxResponse{}, fmt.Errorf("failed to unmarshal tx hash: %s", err)
+	if err := c.cliCtx.LegacyAmino.UnmarshalJSON(resp.Body(), &txResponse); err != nil {
+		return sdktypes.TxResponse{}, fmt.Errorf("failed to unmarshal tx hash: %s", err)
 	}
 
 	return txResponse, nil
 }
 
 // GetTxs returns result of query the REST Server.
-func (c *Client) GetTxs(hash string, tx *sdkTypes.TxResponse) (err error) {
+func (c *Client) GetTxs(hash string, tx *sdktypes.TxResponse) (err error) {
 	resp, err := c.apiClient.R().Get("/txs/" + hash)
 	if err != nil {
 		return err
 	}
 
-	if err := c.cdc.UnmarshalJSON(resp.Body(), tx); err != nil {
+	if err := c.cliCtx.LegacyAmino.UnmarshalJSON(resp.Body(), tx); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// HandleResponseHeight is general request API from REST Server and
+// RequestWithRestServer is general request API from REST Server and
 // return without any modification
-func (c *Client) HandleResponseHeight(reqParam string) (model.ResponseWithHeight, error) {
+func (c *Client) RequestWithRestServer(reqParam string) ([]byte, error) {
 	resp, err := c.apiClient.R().Get(reqParam)
 	if err != nil {
-		return model.ResponseWithHeight{}, err
+		return nil, err
+		// return model.ResponseWithHeight{}, err
 	}
 
-	return model.ReadRespWithHeight(resp), nil
+	fmt.Println("resp body : ", string(resp.Body()))
+
+	return resp.Body(), nil
+	// return model.ReadRespWithHeight(resp), nil
 }
 
 // GetCoinGeckoMarketData returns current market data from CoinGecko API based upon params

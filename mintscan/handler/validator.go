@@ -1,12 +1,13 @@
 package handler
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"sort"
 	"strconv"
 
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	clienttypes "github.com/cosmostation/cosmostation-cosmos/mintscan/client/types"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/schema"
@@ -297,15 +298,16 @@ func GetValidatorDelegations(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// get all delegations from a validator
-	resp, err := s.client.HandleResponseHeight("/staking/validators/" + val.OperatorAddress + "/delegations")
+	resp, err := s.client.RequestWithRestServer(clienttypes.PrefixStaking + "/validators/" + val.OperatorAddress + "/delegations")
 	if err != nil {
 		zap.L().Error("failed to get delegations from a validator", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
 		return
 	}
 
-	var delegations []*model.ValidatorDelegations
-	err = json.Unmarshal(resp.Result, &delegations)
+	var delegations stakingtypes.QueryValidatorDelegationsResponse
+	err = s.client.GetCliContext().JSONMarshaler.UnmarshalJSON(resp, &delegations)
+	// err = json.Unmarshal(resp, &delegations)
 	if err != nil {
 		zap.L().Error("failed to unmarshal delegations", zap.Error(err))
 		errors.ErrFailedUnmarshalJSON(rw, http.StatusInternalServerError)
@@ -318,15 +320,15 @@ func GetValidatorDelegations(rw http.ResponseWriter, r *http.Request) {
 	uatom := tokens / delegatorShares
 
 	var validatorDelegations []*model.ValidatorDelegations
-	if len(delegations) > 0 {
-		for _, delegation := range delegations {
-			shares, _ := strconv.ParseFloat(delegation.Shares.String(), 64)
+	if len(delegations.DelegationResponses) > 0 {
+		for _, dr := range delegations.DelegationResponses {
+			shares, _ := strconv.ParseFloat(dr.Delegation.Shares.String(), 64)
 			amount := fmt.Sprintf("%f", shares*uatom)
 
 			temp := &model.ValidatorDelegations{
-				DelegatorAddress: delegation.DelegatorAddress,
-				ValidatorAddress: delegation.ValidatorAddress,
-				Shares:           delegation.Shares,
+				DelegatorAddress: dr.Delegation.DelegatorAddress,
+				ValidatorAddress: dr.Delegation.ValidatorAddress,
+				Shares:           dr.Delegation.Shares,
 				Amount:           amount,
 			}
 			validatorDelegations = append(validatorDelegations, temp)
@@ -346,7 +348,7 @@ func GetValidatorDelegations(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	result := &model.ResultValidatorDelegations{
-		TotalDelegatorNum:     len(delegations),
+		TotalDelegatorNum:     len(delegations.DelegationResponses),
 		DelegatorNumChange24H: delegatorNumChange24H,
 		ValidatorDelegations:  validatorDelegations,
 	}
@@ -453,28 +455,33 @@ func GetValidatorEventsTotalCount(rw http.ResponseWriter, r *http.Request) {
 
 // GetRedelegations returns all redelegations from a validator with the given query param
 func GetRedelegations(rw http.ResponseWriter, r *http.Request) {
-	endpoint := "/staking/redelegations?"
+	vars := mux.Vars(r)
+	delAddr := vars["delAddr"]
+	endpoint := clienttypes.PrefixStaking + "/delegators/" + delAddr + "/redelegations?"
 
-	if len(r.URL.Query()["delegator"]) > 0 {
-		endpoint += fmt.Sprintf("delegator=%s&", r.URL.Query()["delegator"][0])
+	if len(r.URL.Query()["src_validator_addr"]) > 0 {
+		endpoint += fmt.Sprintf("src_validator_addr=%s&", r.URL.Query()["src_validator_addr"][0])
 	}
 
-	if len(r.URL.Query()["validator_from"]) > 0 {
-		endpoint += fmt.Sprintf("validator_from=%s&", r.URL.Query()["validator_from"][0])
-	}
-
-	if len(r.URL.Query()["validator_to"]) > 0 {
-		endpoint += fmt.Sprintf("validator_to=%s&", r.URL.Query()["validator_to"][0])
+	if len(r.URL.Query()["dst_validator_addr"]) > 0 {
+		endpoint += fmt.Sprintf("dst_validator_addr=%s&", r.URL.Query()["dst_validator_addr"][0])
 	}
 
 	// get all redelegations from a validator
-	resp, err := s.client.HandleResponseHeight(endpoint)
+	resp, err := s.client.RequestWithRestServer(endpoint)
 	if err != nil {
 		zap.L().Error("failed to get all redelegations from a validator", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
 		return
 	}
 
-	model.Respond(rw, resp)
+	var result stakingtypes.QueryRedelegationsResponse
+	if err = s.client.GetCliContext().JSONMarshaler.UnmarshalJSON(resp, &result); err != nil {
+		zap.L().Error("failed to unmarshal given response", zap.Error(err))
+		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
+		return
+	}
+
+	model.Respond(rw, result)
 	return
 }
