@@ -3,17 +3,18 @@ package exporter
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 
 	ceCodec "github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 
-	sdkTypes "github.com/cosmos/cosmos-sdk/types"
+	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	sdktypestx "github.com/cosmos/cosmos-sdk/types/tx"
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
 // getTxs decodes transactions in a block and return a format of database transaction.
-func (ex *Exporter) getTxs(block *tmctypes.ResultBlock, txResps []*sdkTypes.TxResponse) ([]schema.Transaction, error) {
+func (ex *Exporter) getTxs(block *tmctypes.ResultBlock, txResps []*sdktypes.TxResponse) ([]schema.Transaction, error) {
 	txs := make([]schema.Transaction, 0)
 
 	if len(txResps) <= 0 {
@@ -27,6 +28,9 @@ func (ex *Exporter) getTxs(block *tmctypes.ResultBlock, txResps []*sdkTypes.TxRe
 			return txs, fmt.Errorf("unsupported type")
 		}
 
+		// for _, msg := range getMsgs {
+		// 	msgz, err := ceCodec.AppCodec.MarshalJSON(msg)
+		// }
 		msgsBz, err := ceCodec.AppCodec.MarshalJSON(tx.GetBody())
 		if err != nil {
 			return txs, fmt.Errorf("failed to unmarshal transaction messages: %s", err)
@@ -77,4 +81,26 @@ func (ex *Exporter) getTxs(block *tmctypes.ResultBlock, txResps []*sdkTypes.TxRe
 	}
 
 	return txs, nil
+}
+
+// getTxsChunk decodes transactions in a block and return a format of database transaction.
+func (ex *Exporter) getTxsJSONChunk(txResps []*sdktypes.TxResponse) ([]schema.TransactionJSONChunk, error) {
+	txChunk := make([]schema.TransactionJSONChunk, len(txResps), len(txResps))
+	if len(txResps) <= 0 {
+		return txChunk, nil
+	}
+
+	for i, txResp := range txResps {
+		chunk, err := ceCodec.AppCodec.MarshalJSON(txResp)
+		if err != nil {
+			log.Println(err)
+			return txChunk, fmt.Errorf("failed to marshal tx : %s", err)
+		}
+		txChunk[i].Height = txResp.Height
+		txChunk[i].Chunk = string(chunk)
+		// show result
+		// fmt.Println(jsonString[i])
+	}
+
+	return txChunk, nil
 }

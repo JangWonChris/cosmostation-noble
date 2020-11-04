@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log"
 	"sort"
 	"strconv"
 	"time"
@@ -13,6 +14,10 @@ import (
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
+	bankexported "github.com/cosmos/cosmos-sdk/x/bank/exported"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	tmtypes "github.com/tendermint/tendermint/types"
+
 	// sdkUtils "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -729,4 +734,68 @@ func (c *Client) GetValidatorsIdentities(vals []schema.Validator) (result []sche
 	}
 
 	return result, nil
+}
+
+// GetGenesisAccountFromGenesisState get the genesis account information from genesis state ({NODE_HOME}/config/Genesis.json)
+func (c *Client) GetGenesisAccountFromGenesisState() (accounts []schema.Account, err error) {
+
+	// var accounts []schema.Account
+
+	// genesisFile := os.Getenv("PWD") + "/genesis.json"
+	genesisFile := "/Users/jeonghwan/dev/cosmostation/cosmostation-cosmos/chain-exporter/genesis.json"
+	genDoc, err := tmtypes.GenesisDocFromFile(genesisFile)
+	if err != nil {
+		log.Println(err, "failed to read genesis doc file %s", genesisFile)
+		return
+	}
+	log.Println("genesis_time :", genDoc.GenesisTime)
+	log.Println("chainid :", genDoc.ChainID)
+	log.Println("initial_height :", genDoc.InitialHeight)
+
+	var genesisState map[string]json.RawMessage
+	if err = json.Unmarshal(genDoc.AppState, &genesisState); err != nil {
+		log.Println(err, "failed to unmarshal genesis state")
+		return
+	}
+	// a := genesisState[authtypes.ModuleName]
+	// log.Println(string(a)) //print message that key is auth {...}
+	authGenesisState := authtypes.GetGenesisStateFromAppState(codec.AppCodec, genesisState)
+
+	authAccs := authGenesisState.GetAccounts()
+	NumberOfTotalAccounts := len(authAccs)
+	accountMapper := make(map[string]*schema.Account, NumberOfTotalAccounts)
+	for i, authAcc := range authAccs {
+		var ga authtypes.GenesisAccount
+		codec.AppCodec.UnpackAny(authAcc, &ga)
+		// log.Println(authAcc.GetTypeUrl())
+		// log.Println(ga.GetAddress().String())
+		// log.Println(ga.GetAccountNumber())
+		sAcc := schema.Account{
+			ChainID:        genDoc.ChainID,
+			AccountAddress: ga.GetAddress().String(),
+			AccountNumber:  uint64(i),            //account number is set by specified order in genesis file
+			AccountType:    authAcc.GetTypeUrl(), //type 변경
+			CreationTime:   genDoc.GenesisTime.String(),
+		}
+		accountMapper[ga.GetAddress().String()] = &sAcc
+	}
+
+	balIter := banktypes.GenesisBalancesIterator{}
+	balIter.IterateGenesisBalances(c.cliCtx.JSONMarshaler, genesisState,
+		func(bal bankexported.GenesisBalance) (stop bool) {
+			accAddress := bal.GetAddress()
+			accCoins := bal.GetCoins()
+
+			accountMapper[accAddress.String()].CoinsSpendable = accCoins.AmountOf("umuon").Uint64()
+
+			return false
+		},
+	)
+
+	for _, acc := range accountMapper {
+		accounts = append(accounts, *acc)
+		log.Println(acc)
+	}
+
+	return
 }

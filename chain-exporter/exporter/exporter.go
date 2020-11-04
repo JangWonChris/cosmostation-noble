@@ -6,7 +6,6 @@ import (
 
 	"go.uber.org/zap"
 
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/client"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/db"
@@ -159,13 +158,14 @@ func (ex *Exporter) process(height int64) error {
 	if height == 1 {
 		block.Block.LastCommit.Height = 1
 
-		var genesisAccts authtypes.GenesisAccounts
-		genesisAccts, err = ex.client.GetGenesisAccounts()
-		if err != nil {
-			return fmt.Errorf("failed to get genesis accounts: %s", err)
-		}
+		// var genesisAccts authtypes.GenesisAccounts
+		// genesisAccts, err = ex.client.GetGenesisAccounts()
+		// if err != nil {
+		// 	return fmt.Errorf("failed to get genesis accounts: %s", err)
+		// }
 
-		resultGenesisAccounts, err = ex.getGenesisAccounts(genesisAccts)
+		// resultGenesisAccounts, err = ex.getGenesisAccounts(genesisAccts)
+		resultGenesisAccounts, err = ex.client.GetGenesisAccountFromGenesisState()
 		if err != nil {
 			return fmt.Errorf("failed to get block: %s", err)
 		}
@@ -216,6 +216,11 @@ func (ex *Exporter) process(height int64) error {
 		return fmt.Errorf("failed to get txs: %s", err)
 	}
 
+	resultTxsJSONChunk, err := ex.getTxsJSONChunk(txs)
+	if err != nil {
+		return fmt.Errorf("failed to get txs: %s", err)
+	}
+
 	resultProposals, resultDeposits, resultVotes, err := ex.getGovernance(block, txs)
 	if err != nil {
 		return fmt.Errorf("failed to get governance: %s", err)
@@ -236,6 +241,7 @@ func (ex *Exporter) process(height int64) error {
 		ResultBlock:                       resultBlock,
 		ResultGenesisAccounts:             resultGenesisAccounts,
 		ResultTxs:                         resultTxs,
+		ResultTxsJSONChunk:                resultTxsJSONChunk,
 		ResultEvidence:                    resultEvidence,
 		ResultMissBlocks:                  resultMissBlocks,
 		ResultMissDetailBlocks:            resultMissDetailBlocks,

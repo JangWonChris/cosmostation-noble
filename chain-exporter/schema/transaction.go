@@ -18,6 +18,13 @@ type Transaction struct {
 	Timestamp  string `json:"timestamp" sql:"default:now()"` // format that TxResponse returns
 }
 
+// TransactionJSONChunk has tx information.
+type TransactionJSONChunk struct {
+	ID     int64  `json:"id" sql:",pk"`
+	Height int64  `json:"height"`
+	Chunk  string `json:"chunk" sql:"type:jsonb,notnull"`
+}
+
 // NewTransaction returns a new Transaction.
 func NewTransaction(t Transaction) *Transaction {
 	return &Transaction{

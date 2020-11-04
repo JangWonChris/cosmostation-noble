@@ -70,7 +70,7 @@ func (db *Database) Ping() error {
 func (db *Database) CreateTables() error {
 	for _, table := range []interface{}{(*schema.Account)(nil), (*schema.Block)(nil), (*schema.Evidence)(nil), (*schema.Miss)(nil),
 		(*schema.MissDetail)(nil), (*schema.Proposal)(nil), (*schema.PowerEventHistory)(nil), (*schema.Validator)(nil),
-		(*schema.Transaction)(nil), (*schema.Vote)(nil), (*schema.Deposit)(nil)} {
+		(*schema.Transaction)(nil), (*schema.Vote)(nil), (*schema.Deposit)(nil), (*schema.TransactionJSONChunk)(nil)} {
 
 		// Disable pluralization
 		orm.SetTableNameInflector(func(s string) string {
@@ -504,12 +504,12 @@ func (db *Database) InsertExportedData(e schema.ExportData) error {
 			return fmt.Errorf("failed to insert result block: %s", err)
 		}
 
-		// if len(e.ResultGenesisAccounts) > 0 {
-		// 	err := tx.Insert(&e.ResultGenesisAccounts)
-		// 	if err != nil {
-		// 		return fmt.Errorf("failed to insert result genesis accounts: %s", err)
-		// 	}
-		// }
+		if len(e.ResultGenesisAccounts) > 0 {
+			err := tx.Insert(&e.ResultGenesisAccounts)
+			if err != nil {
+				return fmt.Errorf("failed to insert result genesis accounts: %s", err)
+			}
+		}
 
 		if len(e.ResultAccounts) > 0 {
 			err := db.InsertOrUpdateAccounts(e.ResultAccounts)
@@ -555,6 +555,13 @@ func (db *Database) InsertExportedData(e schema.ExportData) error {
 
 		if len(e.ResultTxs) > 0 {
 			err := tx.Insert(&e.ResultTxs)
+			if err != nil {
+				return fmt.Errorf("failed to insert result txs: %s", err)
+			}
+		}
+
+		if len(e.ResultTxsJSONChunk) > 0 {
+			err := tx.Insert(&e.ResultTxsJSONChunk)
 			if err != nil {
 				return fmt.Errorf("failed to insert result txs: %s", err)
 			}
