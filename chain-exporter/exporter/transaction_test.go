@@ -6,7 +6,6 @@ import (
 	"log"
 	"testing"
 
-	sdkcodec "github.com/cosmos/cosmos-sdk/codec"
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	sdktypestx "github.com/cosmos/cosmos-sdk/types/tx"
 	ceCodec "github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
@@ -15,7 +14,8 @@ import (
 // TestGetTxsChunk decodes transactions in a block and return a format of database transaction.
 func TestGetTxsChunk(t *testing.T) {
 	// 13030, 272247
-	block, err := ex.client.GetBlock(13030)
+	// 122499 (multi msg type)
+	block, err := ex.client.GetBlock(272247)
 	if err != nil {
 		log.Println(err)
 	}
@@ -68,28 +68,40 @@ func JSONStringUnmarshal(jsonString []string) error {
 		fmt.Println("decode:", txResps[i].String())
 	}
 
-	txI := txResps[0].GetTx()
-
-	getMsgs := txI.GetMsgs()
-	b, err := json.Marshal(getMsgs)
-	if err != nil {
-		return err
-	}
-	fmt.Println("GetMsgs.type():", getMsgs[0].Type())
-	fmt.Println("GetMsgs():", txResps[0].GetTx().GetMsgs())
-	fmt.Println("byte():", b)
-	fmt.Println("string():", string(b))
-
-	tx, ok := txI.(*sdktypestx.Tx)
-	if !ok {
-		return nil
-	}
-	getMessages := tx.GetBody().GetMessages()
-	anyb, err := sdkcodec.MarshalAny(ceCodec.EncodingConfig.Marshaler, getMessages[0])
-	if err != nil {
-		return err
-	}
-	fmt.Println("anyb byte:", anyb)
-	fmt.Println("anyb string:", string(anyb))
 	return nil
+}
+
+func TestGetMessage(t *testing.T) {
+	// 13030, 272247
+	// 122499 (multi msg type)
+	block, err := ex.client.GetBlock(122499)
+	if err != nil {
+		log.Println(err)
+	}
+	txResps, err := ex.client.GetTxs(block)
+	if err != nil {
+		log.Println(err)
+	}
+
+	for _, txResp := range txResps {
+		txI := txResp.GetTx()
+		tx, ok := txI.(*sdktypestx.Tx)
+		if !ok {
+			return
+		}
+		getMessages := tx.GetBody().GetMessages()
+		msgjson := make([]json.RawMessage, len(getMessages), len(getMessages))
+		var err error
+		for i, msg := range getMessages {
+			msgjson[i], err = ceCodec.AppCodec.MarshalJSON(msg)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+		}
+		jsonraws, err := json.Marshal(msgjson)
+		fmt.Println(string(jsonraws))
+	}
+
+	return
 }

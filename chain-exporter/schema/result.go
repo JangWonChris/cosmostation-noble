@@ -5,8 +5,8 @@ type ExportData struct {
 	ResultAccounts                    []Account
 	ResultBlock                       Block
 	ResultGenesisAccounts             []Account
-	ResultTxs                         []Transaction
-	ResultTxsJSONChunk                []TransactionJSONChunk
+	ResultTxs                         []TransactionLegacy
+	ResultTxsJSONChunk                []Transaction
 	ResultEvidence                    []Evidence
 	ResultMissBlocks                  []Miss
 	ResultMissDetailBlocks            []MissDetail

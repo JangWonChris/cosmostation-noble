@@ -55,38 +55,38 @@ SELECT COUNT(id) as total_count FROM "power_event_history" WHERE power_event_his
 
 ```shell
 # 트랜잭션 해쉬로 트랜잭션 조회
-SELECT * FROM "transaction" WHERE tx_hash = 'C5D57A1A35CFE4EFB58BE35B220B8FD677BFF4FB839DC4A845FFF8AFE8B660B2';
+SELECT * FROM "transaction_legacy" WHERE tx_hash = 'C5D57A1A35CFE4EFB58BE35B220B8FD677BFF4FB839DC4A845FFF8AFE8B660B2';
 
 # 메시지 타입별 트랜잭션 조회
-SELECT * FROM "transaction" WHERE messages->0->>'type' = 'cosmos-sdk/MsgSend' ORDER BY id DESC LIMIT 10;
-SELECT * FROM "transaction" WHERE messages->0->>'type' = 'cosmos-sdk/MsgMultiSend' ORDER BY id DESC LIMIT 10;
-SELECT * FROM "transaction" WHERE messages->0->>'type' = 'cosmos-sdk/MsgDelegate' ORDER BY id DESC LIMIT 10;
-SELECT * FROM "transaction" WHERE messages->0->>'type' = 'cosmos-sdk/MsgUndelegate' ORDER BY id DESC LIMIT 10;
-SELECT * FROM "transaction" WHERE messages->0->>'type' = 'cosmos-sdk/MsgBeginRedelegate' ORDER BY id DESC LIMIT 10;
-SELECT * FROM "transaction" WHERE messages->0->>'type' = 'cosmos-sdk/MsgCreateValidator' ORDER BY id DESC LIMIT 10;
-SELECT * FROM "transaction" WHERE messages->0->>'type' = 'cosmos-sdk/MsgEditValidator' ORDER BY id DESC LIMIT 10;
-SELECT * FROM "transaction" WHERE messages->0->>'type' = 'cosmos-sdk/MsgSubmitProposal' ORDER BY id DESC LIMIT 10;
-SELECT * FROM "transaction" WHERE messages->0->>'type' = 'cosmos-sdk/MsgVote' ORDER BY id DESC LIMIT 10;
-SELECT * FROM "transaction" WHERE messages->0->>'type' = 'cosmos-sdk/MsgDeposit' ORDER BY id DESC LIMIT 10;
-SELECT * FROM "transaction" WHERE messages->0->>'type' = 'cosmos-sdk/MsgWithdrawValidatorCommission' ORDER BY id DESC LIMIT 10;
-SELECT * FROM "transaction" WHERE messages->0->>'type' = 'pricefeed/MsgPostPrice' LIMIT 10;
+SELECT * FROM "transaction_legacy" WHERE messages->0->>'type' = 'cosmos-sdk/MsgSend' ORDER BY id DESC LIMIT 10;
+SELECT * FROM "transaction_legacy" WHERE messages->0->>'type' = 'cosmos-sdk/MsgMultiSend' ORDER BY id DESC LIMIT 10;
+SELECT * FROM "transaction_legacy" WHERE messages->0->>'type' = 'cosmos-sdk/MsgDelegate' ORDER BY id DESC LIMIT 10;
+SELECT * FROM "transaction_legacy" WHERE messages->0->>'type' = 'cosmos-sdk/MsgUndelegate' ORDER BY id DESC LIMIT 10;
+SELECT * FROM "transaction_legacy" WHERE messages->0->>'type' = 'cosmos-sdk/MsgBeginRedelegate' ORDER BY id DESC LIMIT 10;
+SELECT * FROM "transaction_legacy" WHERE messages->0->>'type' = 'cosmos-sdk/MsgCreateValidator' ORDER BY id DESC LIMIT 10;
+SELECT * FROM "transaction_legacy" WHERE messages->0->>'type' = 'cosmos-sdk/MsgEditValidator' ORDER BY id DESC LIMIT 10;
+SELECT * FROM "transaction_legacy" WHERE messages->0->>'type' = 'cosmos-sdk/MsgSubmitProposal' ORDER BY id DESC LIMIT 10;
+SELECT * FROM "transaction_legacy" WHERE messages->0->>'type' = 'cosmos-sdk/MsgVote' ORDER BY id DESC LIMIT 10;
+SELECT * FROM "transaction_legacy" WHERE messages->0->>'type' = 'cosmos-sdk/MsgDeposit' ORDER BY id DESC LIMIT 10;
+SELECT * FROM "transaction_legacy" WHERE messages->0->>'type' = 'cosmos-sdk/MsgWithdrawValidatorCommission' ORDER BY id DESC LIMIT 10;
+SELECT * FROM "transaction_legacy" WHERE messages->0->>'type' = 'pricefeed/MsgPostPrice' LIMIT 10;
 
 # 메시지 타입 종류별 트랜잭션 조회
-SELECT * FROM "transaction" WHERE messages->0->>'type' LIKE '%cosmos-sdk/%' ORDER BY id DESC LIMIT 50;
-SELECT * FROM "transaction" WHERE messages->0->>'type' LIKE '%bep3/%' ORDER BY id DESC;
-SELECT * FROM "transaction" WHERE messages->0->>'type' LIKE '%cdp/%' ORDER BY id DESC;
-SELECT * FROM "transaction" WHERE messages->0->>'type' LIKE '%pricefeed/%' ORDER BY id DESC;
-SELECT * FROM "transaction" WHERE messages->0->>'type' LIKE '%kava/%' ORDER BY id DESC;
-SELECT * FROM "transaction" WHERE messages->0->>'type' LIKE '%incentive/%' ORDER BY id DESC;
+SELECT * FROM "transaction_legacy" WHERE messages->0->>'type' LIKE '%cosmos-sdk/%' ORDER BY id DESC LIMIT 50;
+SELECT * FROM "transaction_legacy" WHERE messages->0->>'type' LIKE '%bep3/%' ORDER BY id DESC;
+SELECT * FROM "transaction_legacy" WHERE messages->0->>'type' LIKE '%cdp/%' ORDER BY id DESC;
+SELECT * FROM "transaction_legacy" WHERE messages->0->>'type' LIKE '%pricefeed/%' ORDER BY id DESC;
+SELECT * FROM "transaction_legacy" WHERE messages->0->>'type' LIKE '%kava/%' ORDER BY id DESC;
+SELECT * FROM "transaction_legacy" WHERE messages->0->>'type' LIKE '%incentive/%' ORDER BY id DESC;
 
 # 특정 메모가 포함된 트랜잭션 조회 
-SELECT * FROM "transaction" WHERE TIMESTAMP > '2020-07-17T14:20:12Z' AND memo = 'Claim Atomic Swap via Cosmostation Wallet' ORDER BY id DESC;
+SELECT * FROM "transaction_legacy" WHERE TIMESTAMP > '2020-07-17T14:20:12Z' AND memo = 'Claim Atomic Swap via Cosmostation Wallet' ORDER BY id DESC;
 
 # 블록높이 사이에서 발생한 트랜잭션 조회
-SELECT * FROM "transaction" WHERE height BETWEEN 605761 AND 605763 ORDER BY id DESC;
+SELECT * FROM "transaction_legacy" WHERE height BETWEEN 605761 AND 605763 ORDER BY id DESC;
 
 # 특정 날짜 이후 발생한 언본딩 트랜잭션 조회
-SELECT * FROM "transaction" WHERE (messages->0->>'type' = 'cosmos-sdk/MsgUndelegate') AND time > '2020.01.30' ORDER BY id DESC LIMIT 30;
+SELECT * FROM "transaction_legacy" WHERE (messages->0->>'type' = 'cosmos-sdk/MsgUndelegate') AND time > '2020.01.30' ORDER BY id DESC LIMIT 30;
 
 # 특정 계정에서 발생한 트랜잭션 조회 (검증인 주소 포함)
 # MsgSend: from_address, to_address
@@ -96,7 +96,7 @@ SELECT * FROM "transaction" WHERE (messages->0->>'type' = 'cosmos-sdk/MsgUndeleg
 # MsgSubmitProposal: proposer
 # MsgDeposit: depositor
 # MsgVote voter
-SELECT * FROM "transaction" 
+SELECT * FROM "transaction_legacy" 
     WHERE messages->0->'value'->>'from_address' = 'kava140g8fnnl46mlvfhygj3zvjqlku6x0fwuhfj3uf' OR
     messages->0->'value'->>'to_address' = 'kava140g8fnnl46mlvfhygj3zvjqlku6x0fwuhfj3uf' OR
     messages->0->'value'->'inputs'->0->>'address' = 'kava140g8fnnl46mlvfhygj3zvjqlku6x0fwuhfj3uf' OR
@@ -150,7 +150,7 @@ DELETE FROM "block" WHERE height >= 31079;
 DELETE FROM "evidence" WHERE height >= 31079;
 DELETE FROM "miss_detail" WHERE height >= 31079;
 DELETE FROM "miss" WHERE start_height >= 31079;
-DELETE FROM "transaction" WHERE height >= 31079;
+DELETE FROM "transaction_legacy" WHERE height >= 31079;
 DELETE FROM "power_event_history" WHERE height >= 31079;
 DELETE FROM "deposit" WHERE height >= 31079;
 DELETE FROM "vote" WHERE height >= 31079;

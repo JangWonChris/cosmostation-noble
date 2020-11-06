@@ -14,8 +14,8 @@ import (
 )
 
 // getTxs decodes transactions in a block and return a format of database transaction.
-func (ex *Exporter) getTxs(block *tmctypes.ResultBlock, txResps []*sdktypes.TxResponse) ([]schema.Transaction, error) {
-	txs := make([]schema.Transaction, 0)
+func (ex *Exporter) getTxs(block *tmctypes.ResultBlock, txResps []*sdktypes.TxResponse) ([]schema.TransactionLegacy, error) {
+	txs := make([]schema.TransactionLegacy, 0)
 
 	if len(txResps) <= 0 {
 		return txs, nil
@@ -28,24 +28,28 @@ func (ex *Exporter) getTxs(block *tmctypes.ResultBlock, txResps []*sdktypes.TxRe
 			return txs, fmt.Errorf("unsupported type")
 		}
 
-		// for _, msg := range getMsgs {
-		// 	msgz, err := ceCodec.AppCodec.MarshalJSON(msg)
-		// }
-		msgsBz, err := ceCodec.AppCodec.MarshalJSON(tx.GetBody())
+		msgs := tx.GetBody().GetMessages()
+		jsonRaws := make([]json.RawMessage, len(msgs), len(msgs))
+		var err error
+		for i, msg := range msgs {
+			jsonRaws[i], err = ceCodec.AppCodec.MarshalJSON(msg)
+			if err != nil {
+				return txs, fmt.Errorf("failed to marshal message of transaction : %s", err)
+			}
+		}
+		msgsBz, err := json.Marshal(jsonRaws)
 		if err != nil {
-			return txs, fmt.Errorf("failed to unmarshal transaction messages: %s", err)
+			return txs, fmt.Errorf("failed to marshal set of transactions : %s", err)
 		}
 
 		feeBz, err := ceCodec.AppCodec.MarshalJSON(tx.GetAuthInfo().GetFee())
 		if err != nil {
-			return txs, fmt.Errorf("failed to unmarshal tx fee: %s", err)
+			return txs, fmt.Errorf("failed to marshal tx fee: %s", err)
 		}
 
 		type SIG struct {
 			Signatures []byte
 		}
-
-		tx.GetSigners()
 
 		sigs := make([]SIG, len(tx.GetSignatures()), len(tx.GetSignatures()))
 		for i, s := range tx.GetSignatures() {
@@ -54,15 +58,15 @@ func (ex *Exporter) getTxs(block *tmctypes.ResultBlock, txResps []*sdktypes.TxRe
 
 		sigsBz, err := json.Marshal(sigs)
 		if err != nil {
-			return txs, fmt.Errorf("failed to unmarshal tx signatures: %s", err)
+			return txs, fmt.Errorf("failed to marshal tx signatures: %s", err)
 		}
 
 		logsBz, err := json.Marshal(txResp.Logs.String())
 		if err != nil {
-			return txs, fmt.Errorf("failed to unmarshal tx logs: %s", err)
+			return txs, fmt.Errorf("failed to marshal tx logs: %s", err)
 		}
 
-		t := &schema.Transaction{
+		t := &schema.TransactionLegacy{
 			ChainID:    block.Block.ChainID,
 			Height:     txResp.Height,
 			Code:       txResp.Code,
@@ -73,6 +77,7 @@ func (ex *Exporter) getTxs(block *tmctypes.ResultBlock, txResps []*sdktypes.TxRe
 			Fee:        string(feeBz),
 			Signatures: string(sigsBz),
 			Logs:       string(logsBz),
+			RawLog:     txResp.RawLog,
 			Memo:       tx.GetBody().Memo,
 			Timestamp:  txResp.Timestamp,
 		}
@@ -84,8 +89,8 @@ func (ex *Exporter) getTxs(block *tmctypes.ResultBlock, txResps []*sdktypes.TxRe
 }
 
 // getTxsChunk decodes transactions in a block and return a format of database transaction.
-func (ex *Exporter) getTxsJSONChunk(txResps []*sdktypes.TxResponse) ([]schema.TransactionJSONChunk, error) {
-	txChunk := make([]schema.TransactionJSONChunk, len(txResps), len(txResps))
+func (ex *Exporter) getTxsJSONChunk(txResps []*sdktypes.TxResponse) ([]schema.Transaction, error) {
+	txChunk := make([]schema.Transaction, len(txResps), len(txResps))
 	if len(txResps) <= 0 {
 		return txChunk, nil
 	}
@@ -97,6 +102,7 @@ func (ex *Exporter) getTxsJSONChunk(txResps []*sdktypes.TxResponse) ([]schema.Tr
 			return txChunk, fmt.Errorf("failed to marshal tx : %s", err)
 		}
 		txChunk[i].Height = txResp.Height
+		txChunk[i].TxHash = txResp.TxHash
 		txChunk[i].Chunk = string(chunk)
 		// show result
 		// fmt.Println(jsonString[i])
