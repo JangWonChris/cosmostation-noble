@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -41,7 +42,7 @@ func GetTransactions(rw http.ResponseWriter, r *http.Request) {
 
 	if len(txs) <= 0 {
 		zap.L().Debug("found no transactions in database")
-		model.Respond(rw, []schema.Transaction{})
+		model.Respond(rw, []schema.TransactionLegacy{})
 		return
 	}
 
@@ -73,7 +74,10 @@ func GetTransactionsList(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txResp := make([]*model.ResultTx, len(txList.TxHash))
+	txResp := make([]schema.TransactionLegacy, len(txList.TxHash))
+	// txResp := make([]*model.ResultTx, len(txList.TxHash))
+
+	fmt.Println("size : ", len(txResp))
 
 	if len(txResp) == 0 {
 		errors.ErrInvalidFormat(rw, http.StatusBadRequest)
@@ -81,6 +85,7 @@ func GetTransactionsList(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for i, txHashStr := range txList.TxHash {
+		fmt.Println("hash : ", txHashStr)
 
 		txHashStr = strings.ToUpper(txHashStr)
 
@@ -99,8 +104,8 @@ func GetTransactionsList(rw http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		result, _ := model.ParseTransaction(tx)
-		txResp[i] = result
+		// result, _ := model.ParseTransaction(tx)
+		txResp[i] = tx
 	}
 
 	model.Respond(rw, txResp)
@@ -136,9 +141,9 @@ func GetTransaction(rw http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		result, _ := model.ParseTransaction(tx)
+		// result, _ := model.ParseTransaction(tx)
 
-		model.Respond(rw, result)
+		model.Respond(rw, tx)
 		return
 	}
 
@@ -161,9 +166,9 @@ func GetTransaction(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, _ := model.ParseTransaction(tx)
+	// result, _ := model.ParseTransaction(tx)
 
-	model.Respond(rw, result)
+	model.Respond(rw, tx)
 	return
 }
 
@@ -196,9 +201,9 @@ func GetLegacyTransactionFromDB(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, _ := model.ParseTransaction(tx)
+	// result, _ := model.ParseTransaction(tx)
 
-	model.Respond(rw, result)
+	model.Respond(rw, tx)
 	return
 }
 

@@ -401,14 +401,14 @@ func GetAccountTxs(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := model.ParseTransactions(txs)
-	if err != nil {
-		zap.L().Error("failed to parse txs", zap.Error(err))
-		errors.ErrInternalServer(rw, http.StatusInternalServerError)
-		return
-	}
+	// result, err := model.ParseTransactions(txs)
+	// if err != nil {
+	// 	zap.L().Error("failed to parse txs", zap.Error(err))
+	// 	errors.ErrInternalServer(rw, http.StatusInternalServerError)
+	// 	return
+	// }
 
-	model.Respond(rw, result)
+	model.Respond(rw, txs)
 	return
 }
 
@@ -457,14 +457,14 @@ func GetAccountTransferTxs(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := model.ParseTransactions(txs)
-	if err != nil {
-		zap.L().Error("failed to parse txs", zap.Error(err))
-		errors.ErrInternalServer(rw, http.StatusInternalServerError)
-		return
-	}
+	// result, err := model.ParseTransactions(txs)
+	// if err != nil {
+	// 	zap.L().Error("failed to parse txs", zap.Error(err))
+	// 	errors.ErrInternalServer(rw, http.StatusInternalServerError)
+	// 	return
+	// }
 
-	model.Respond(rw, result)
+	model.Respond(rw, txs)
 	return
 }
 
@@ -508,13 +508,13 @@ func GetTxsBetweenDelegatorAndValidator(rw http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	result, err := model.ParseTransactions(txs)
-	if err != nil {
-		zap.L().Error("failed to parse txs", zap.Error(err))
-		errors.ErrInternalServer(rw, http.StatusInternalServerError)
-		return
-	}
+	// result, err := model.ParseTransactions(txs)
+	// if err != nil {
+	// 	zap.L().Error("failed to parse txs", zap.Error(err))
+	// 	errors.ErrInternalServer(rw, http.StatusInternalServerError)
+	// 	return
+	// }
 
-	model.Respond(rw, result)
+	model.Respond(rw, txs)
 	return
 }

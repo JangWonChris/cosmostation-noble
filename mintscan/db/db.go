@@ -435,7 +435,7 @@ func (db *Database) QueryDeposits(id string) (deposits []schema.Deposit, err err
 }
 
 // QueryTransactions queries transactions with pagination params, such as limit, before, after, and offset
-func (db *Database) QueryTransactions(before int, after int, limit int) (txs []schema.Transaction, err error) {
+func (db *Database) QueryTransactions(before int, after int, limit int) (txs []schema.TransactionLegacy, err error) {
 	switch {
 	case before > 0:
 		err = db.Model(&txs).
@@ -457,60 +457,60 @@ func (db *Database) QueryTransactions(before int, after int, limit int) (txs []s
 	}
 
 	if err == pg.ErrNoRows {
-		return []schema.Transaction{}, nil
+		return []schema.TransactionLegacy{}, nil
 	}
 
 	if err != nil {
-		return []schema.Transaction{}, fmt.Errorf("unexpected database error: %s", err)
+		return []schema.TransactionLegacy{}, fmt.Errorf("unexpected database error: %s", err)
 	}
 
 	return txs, nil
 }
 
 // QueryTransactionByID returns transaction information with given id.
-func (db *Database) QueryTransactionByID(id int64) (tx schema.Transaction, err error) {
+func (db *Database) QueryTransactionByID(id int64) (tx schema.TransactionLegacy, err error) {
 	err = db.Model(&tx).
 		Where("id = ?", id).
 		Limit(1).
 		Select()
 
 	if err != nil {
-		return schema.Transaction{}, err
+		return schema.TransactionLegacy{}, err
 	}
 
 	return tx, nil
 }
 
 // QueryTransactionByTxHash returns transaction information with given tx hash.
-func (db *Database) QueryTransactionByTxHash(txHashStr string) (tx schema.Transaction, err error) {
+func (db *Database) QueryTransactionByTxHash(txHashStr string) (tx schema.TransactionLegacy, err error) {
 	err = db.Model(&tx).
 		Where("tx_hash = ?", txHashStr).
 		Limit(1).
 		Select()
 
 	if err != nil {
-		return schema.Transaction{}, err
+		return schema.TransactionLegacy{}, err
 	}
 
 	return tx, nil
 }
 
 // QueryTransactionsByBlockHeight returns transactions that are included in a single block.
-func (db *Database) QueryTransactionsByBlockHeight(height int64) (txs []schema.Transaction, err error) {
+func (db *Database) QueryTransactionsByBlockHeight(height int64) (txs []schema.TransactionLegacy, err error) {
 	err = db.Model(&txs).
 		Column("tx_hash").
 		Where("height = ?", height).
 		Select()
 
 	if err != nil {
-		return []schema.Transaction{}, err
+		return []schema.TransactionLegacy{}, err
 	}
 
 	return txs, nil
 }
 
 // QueryTransactionsByAddr returns all transactions that are created by an account.
-func (db *Database) QueryTransactionsByAddr(accAddr, valAddr string, before, after, limit int) (txs []schema.Transaction, err error) {
+func (db *Database) QueryTransactionsByAddr(accAddr, valAddr string, before, after, limit int) (txs []schema.TransactionLegacy, err error) {
 	// Make sure to use brackets that surround each local operator, otherwise it will return incorrect data.
 	params := "(" + QueryTxParamFromAddress + "'" + accAddr + "'" + " OR " +
 		QueryTxParamToAddress + "'" + accAddr + "'" + " OR " +
@@ -547,14 +547,14 @@ func (db *Database) QueryTransactionsByAddr(accAddr, valAddr string, before, aft
 	}
 
 	if err != nil {
-		return []schema.Transaction{}, err
+		return []schema.TransactionLegacy{}, err
 	}
 
 	return txs, nil
 }
 
 // QueryTransferTransactionsByAddr queries Send / MultiSend transactions that are made by an account
-func (db *Database) QueryTransferTransactionsByAddr(accAddr, denom string, before, after, limit int) (txs []schema.Transaction, err error) {
+func (db *Database) QueryTransferTransactionsByAddr(accAddr, denom string, before, after, limit int) (txs []schema.TransactionLegacy, err error) {
 	params := "(" + QueryTxParamFromAddress + "'" + accAddr + "'" + " AND " + QueryTxParamDenom + "'" + denom + "')" + " OR " +
 		"(" + QueryTxParamToAddress + "'" + accAddr + "'" + " AND " + QueryTxParamDenom + "'" + denom + "')" + " OR " +
 		"(" + QueryTxParamInputsAddress + "'" + accAddr + "'" + " AND " + QueryTxParamDenom + "'" + denom + "')" + " OR " +
@@ -584,14 +584,14 @@ func (db *Database) QueryTransferTransactionsByAddr(accAddr, denom string, befor
 	}
 
 	if err != nil {
-		return []schema.Transaction{}, err
+		return []schema.TransactionLegacy{}, err
 	}
 
 	return txs, nil
 }
 
 // QueryTransactionsBetweenAccountAndValidator queries transactions that are made between an account and his delegated validator
-func (db *Database) QueryTransactionsBetweenAccountAndValidator(address, valAddr string, before, after, limit int) (txs []schema.Transaction, err error) {
+func (db *Database) QueryTransactionsBetweenAccountAndValidator(address, valAddr string, before, after, limit int) (txs []schema.TransactionLegacy, err error) {
 	params := "(" + QueryTxParamValidatorAddress + "'" + valAddr + "'" + " OR " +
 		QueryTxParamValidatorDstAddress + "'" + valAddr + "'" + " OR " +
 		QueryTxParamValidatorSrcAddress + "'" + valAddr + "')" + " AND " +
@@ -621,7 +621,7 @@ func (db *Database) QueryTransactionsBetweenAccountAndValidator(address, valAddr
 	}
 
 	if err != nil {
-		return []schema.Transaction{}, err
+		return []schema.TransactionLegacy{}, err
 	}
 
 	return txs, nil
@@ -629,7 +629,7 @@ func (db *Database) QueryTransactionsBetweenAccountAndValidator(address, valAddr
 
 // QueryTotalTransactionNum queries total number of transactions
 func (db *Database) QueryTotalTransactionNum() int {
-	var tx schema.Transaction
+	var tx schema.TransactionLegacy
 	_ = db.Model(&tx).
 		Order("id DESC").
 		Limit(1).

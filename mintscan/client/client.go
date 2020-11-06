@@ -342,8 +342,6 @@ func (c *Client) RequestWithRestServer(reqParam string) ([]byte, error) {
 		// return model.ResponseWithHeight{}, err
 	}
 
-	fmt.Println("resp body : ", string(resp.Body()))
-
 	return resp.Body(), nil
 	// return model.ReadRespWithHeight(resp), nil
 }

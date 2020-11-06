@@ -121,7 +121,7 @@ func main() {
 				time.Sleep(1 * time.Second)
 				continue
 			}
-			time.Sleep(500 * time.Second)
+			time.Sleep(5 * time.Second)
 		}
 	}()
 
