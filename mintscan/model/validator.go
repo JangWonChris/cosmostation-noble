@@ -14,13 +14,13 @@ const (
 	InactiveValidator = "inactive"
 
 	// BondedValidatorStatus is status code when a validator is live.
-	BondedValidatorStatus = sdk.Bonded
+	BondedValidatorStatus = int(sdk.Bonded)
 
 	// UnbondingValidatorStatus is status code when a validator is not live.
-	UnbondingValidatorStatus = sdk.Unbonding
+	UnbondingValidatorStatus = int(sdk.Unbonding)
 
 	// UnbondedValidatorStatus is status code when a validator is jailed.
-	UnbondedValidatorStatus = sdk.Unbonded
+	UnbondedValidatorStatus = int(sdk.Unbonded)
 
 	// MissingAllBlocks is a number of missing blocks when a validator is in unbonding or unbonded state.
 	MissingAllBlocks = 100
