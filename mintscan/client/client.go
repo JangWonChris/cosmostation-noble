@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/client"
@@ -342,6 +343,10 @@ func (c *Client) RequestWithRestServer(reqParam string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 		// return model.ResponseWithHeight{}, err
+	}
+
+	if resp.StatusCode() != http.StatusOK {
+		return nil, fmt.Errorf("failed to get respond : %s", resp.Status())
 	}
 
 	return resp.Body(), nil

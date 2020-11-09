@@ -139,25 +139,10 @@ func GetDelegatorDelegations(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// delegations := make([]model.Delegations, 0)
-
-	// err = json.Unmarshal(resp, &delegations)
-	// // err = json.Unmarshal(resp.Result, &delegations)
-	// if err != nil {
-	// 	zap.L().Error("failed to unmarshal delegations", zap.Error(err))
-	// 	errors.ErrFailedUnmarshalJSON(rw, http.StatusInternalServerError)
-	// 	return
-	// }
-
 	resultDelegations := make([]model.ResultDelegations, 0)
 
 	if len(ddr.DelegationResponses) > 0 {
 		for _, delegation := range ddr.DelegationResponses {
-			zap.S().Info("deletation.Balance.Denom :", delegation.Balance.Denom)
-			zap.S().Info("deletation.Balance.Amount :", delegation.Balance.Amount)
-			zap.S().Info("deletation.Delegation.DelegatorAddress :", delegation.Delegation.DelegatorAddress)
-			zap.S().Info("deletation.Delegation.ValidatorAddress :", delegation.Delegation.ValidatorAddress)
-			zap.S().Info("deletation.Delegation.Shares.String() :", delegation.Delegation.Shares.String())
 			// Query a delegation reward
 			resp, err := s.client.RequestWithRestServer(clienttypes.PrefixDistribution + "/delegators/" + delegation.Delegation.DelegatorAddress + "/rewards/" + delegation.Delegation.ValidatorAddress)
 			if err != nil {
@@ -173,22 +158,6 @@ func GetDelegatorDelegations(rw http.ResponseWriter, r *http.Request) {
 				errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
 				return
 			}
-
-			// rewardsResp, err := s.client.RequestWithRestServer(clienttypes.PrefixDistribution + "/delegators/" + accAddr + "/rewards/" + delegation.Delegation.ValidatorAddress)
-			// if err != nil {
-			// 	zap.L().Error("failed to get a delegation reward", zap.Error(err))
-			// 	errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
-			// 	return
-			// }
-
-			// var rewards []model.Coin
-			// err = json.Unmarshal(rewardsResp, &rewards)
-			// // err = json.Unmarshal(rewardsResp.Result, &rewards)
-			// if err != nil {
-			// 	zap.L().Error("failed to unmarshal rewards", zap.Error(err))
-			// 	errors.ErrFailedUnmarshalJSON(rw, http.StatusInternalServerError)
-			// 	return
-			// }
 
 			resultRewards := make([]model.Coin, 0)
 
@@ -231,29 +200,6 @@ func GetDelegatorDelegations(rw http.ResponseWriter, r *http.Request) {
 				errors.ErrFailedUnmarshalJSON(rw, http.StatusInternalServerError)
 				return
 			}
-			// Query the information from a single validator
-			// valResp, err := s.client.RequestWithRestServer(clienttypes.PrefixStaking + "/validators/" + delegation.Delegation.ValidatorAddress)
-			// if err != nil {
-			// 	zap.L().Error("failed to get a delegation reward", zap.Error(err))
-			// 	errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
-			// 	return
-			// }
-
-			// var validator model.Validator
-			// err = json.Unmarshal(valResp, &validator)
-			// // err = json.Unmarshal(valResp.Result, &validator)
-			// if err != nil {
-			// 	zap.L().Error("failed to unmarshal validator", zap.Error(err))
-			// 	errors.ErrFailedUnmarshalJSON(rw, http.StatusInternalServerError)
-			// 	return
-			// }
-
-			// Calculate the amount of ukava, which should divide validator's token divide delegator_shares
-			// tokens, _ := strconv.ParseFloat(vr.Validator.Tokens.String(), 64)
-			// delegatorShares, _ := strconv.ParseFloat(vr.Validator.DelegatorShares.String(), 64)
-			// uatom := tokens / delegatorShares
-			// shares, _ := strconv.ParseFloat(delegation.Delegation.Shares.String(), 64)
-			// amount := fmt.Sprintf("%f", shares*uatom)
 
 			temp := &model.ResultDelegations{
 				DelegatorAddress: delegation.Delegation.DelegatorAddress,
@@ -403,13 +349,6 @@ func GetAccountTxs(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// result, err := model.ParseTransactions(txs)
-	// if err != nil {
-	// 	zap.L().Error("failed to parse txs", zap.Error(err))
-	// 	errors.ErrInternalServer(rw, http.StatusInternalServerError)
-	// 	return
-	// }
-
 	model.Respond(rw, txs)
 	return
 }
@@ -459,13 +398,6 @@ func GetAccountTransferTxs(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// result, err := model.ParseTransactions(txs)
-	// if err != nil {
-	// 	zap.L().Error("failed to parse txs", zap.Error(err))
-	// 	errors.ErrInternalServer(rw, http.StatusInternalServerError)
-	// 	return
-	// }
-
 	model.Respond(rw, txs)
 	return
 }
@@ -510,13 +442,6 @@ func GetTxsBetweenDelegatorAndValidator(rw http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// result, err := model.ParseTransactions(txs)
-	// if err != nil {
-	// 	zap.L().Error("failed to parse txs", zap.Error(err))
-	// 	errors.ErrInternalServer(rw, http.StatusInternalServerError)
-	// 	return
-	// }
-
 	model.Respond(rw, txs)
 	return
 }
@@ -560,9 +485,6 @@ func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 	vesting := sdktypes.NewCoin(denom, sdktypes.NewInt(0)) // vesting 된 것 중에 delegatable 한 수량
 	vested := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
 	commission := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
-	// failedVested := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
-	// incentive := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
-	// deposited := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
 
 	account, err := s.client.GetAccount(accAddr)
 	if err != nil {
@@ -572,7 +494,6 @@ func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// available
-
 	coins, err := s.client.GetAccountBalance(accAddr)
 	if err != nil {
 		zap.S().Debugf("failed to get account balance: %s", err)
