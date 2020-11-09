@@ -2,6 +2,8 @@ package model
 
 import (
 	"encoding/json"
+
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/schema"
 )
 
 // TxData defines the structure for transction data list.
@@ -45,80 +47,77 @@ type Log struct {
 	Events   []Event `json:"events"`
 }
 
-// Message defines the structure for transaction message.
-type TxBody struct {
-	Type     string          `json:"type"`
-	Messages json.RawMessage `json:"messages"`
-}
-
 // ParseTransaction receives single transaction from database and return it after unmarshal them.
-// func ParseTransaction(tx schema.TransactionLegacy) (result *ResultTx, err error) {
+func ParseTransaction(tx schema.TransactionLegacy) (result *ResultTx, err error) {
 
-// 	// msgsBz, err := mintscancodec.AppCodec.UnmarshalJSON([]byte(tx.Messages), tx.GetBody())
-// 	var txBody typestx.TxBody
-// 	err = mintscancodec.AppCodec.UnmarshalJSON([]byte(tx.Messages), &txBody)
-// 	if err != nil {
-// 		fmt.Println(err)
-// 	}
-// 	fmt.Println("message json:", tx.Messages)
+	// msgsBz, err := mintscancodec.AppCodec.UnmarshalJSON([]byte(tx.Messages), tx.GetBody())
+	jsonRaws := make([]json.RawMessage, 0)
+	if err := json.Unmarshal([]byte(tx.Messages), &jsonRaws); err != nil {
+		return &ResultTx{}, err
+	}
 
-// 	// fmt.Println(txBody.GetMessages())
-// 	for _, msg := range txBody.GetMessages() {
-// 		_ = msg
-// 		fmt.Println("msg typeurl:", msg.TypeUrl)
-// 		a, ok := msg.GetCachedValue().(sdktypes.Msg)
-// 		if !ok {
-// 			fmt.Println("not sdktypes.Msg")
-// 		}
-// 		fmt.Println(a.String())
-// 		switch aType := a.(type) {
-// 		case *stakingtypes.MsgCreateValidator:
-// 			fmt.Println("aType:", aType)
-// 			fmt.Println("moniker:", aType.Description.Moniker)
-// 		}
-// 	}
+	// var sdkmsgs []sdktypes.Msg
+	// for _, raw := range jsonRaws {
+	// 	err = mintscancodec.AppCodec.UnmarshalJSON(raw, sdkmsgs)
+	// 	err = codectypes.NewAnyWithValue(raw)
+	// }
 
-// 	var jsonraw json.RawMessage
-// 	json.Unmarshal([]byte(tx.Messages), &jsonraw)
+	// fmt.Println(sdkmsgs)
 
-// 	var tb TxBody
-// 	tb.Messages = jsonraw
+	// // fmt.Println(txBody.GetMessages())
+	// for _, msg := range sdkmsgs {
+	// 	_ = msg
+	// 	// fmt.Println("msg typeurl:", msg.TypeUrl)
+	// 	// a, ok := msg.GetCachedValue().(sdktypes.Msg)
+	// 	// if !ok {
+	// 	// 	fmt.Println("not sdktypes.Msg")
+	// 	// }
+	// 	// fmt.Println(a.String())
+	// 	// switch aType := a.(type) {
+	// 	// case *stakingtypes.MsgCreateValidator:
+	// 	// 	fmt.Println("aType:", aType)
+	// 	// 	fmt.Println("moniker:", aType.Description.Moniker)
+	// 	// }
+	// }
 
-// 	// fmt.Println(txBody.GetMemo())
+	var jsonraw json.RawMessage
+	json.Unmarshal([]byte(tx.Messages), &jsonraw)
 
-// 	msgs := make([]Message, 0)
-// 	err = json.Unmarshal([]byte(tx.Messages), &msgs)
-// 	if err != nil {
-// 		return &ResultTx{}, err
-// 	}
+	// fmt.Println(txBody.GetMemo())
 
-// 	var fee *Fee
-// 	err = json.Unmarshal([]byte(tx.Fee), &fee)
-// 	if err != nil {
-// 		return &ResultTx{}, err
-// 	}
+	msgs := make([]Message, 0)
+	err = json.Unmarshal([]byte(tx.Messages), &msgs)
+	if err != nil {
+		return &ResultTx{}, err
+	}
 
-// 	var logs []Log
-// 	err = json.Unmarshal([]byte(tx.Logs), &logs)
-// 	if err != nil {
-// 		return &ResultTx{}, err
-// 	}
+	var fee *Fee
+	err = json.Unmarshal([]byte(tx.Fee), &fee)
+	if err != nil {
+		return &ResultTx{}, err
+	}
 
-// 	result = &ResultTx{
-// 		ID:        tx.ID,
-// 		Height:    tx.Height,
-// 		TxHash:    tx.TxHash,
-// 		Logs:      logs,
-// 		GasWanted: tx.GasWanted,
-// 		GasUsed:   tx.GasUsed,
-// 		Msgs:      tx.Messages,
-// 		Fee:       fee,
-// 		Memo:      tx.Memo,
-// 		Timestamp: tx.Timestamp,
-// 	}
+	var logs []Log
+	err = json.Unmarshal([]byte(tx.Logs), &logs)
+	if err != nil {
+		return &ResultTx{}, err
+	}
 
-// 	return result, nil
-// }
+	result = &ResultTx{
+		ID:        tx.ID,
+		Height:    tx.Height,
+		TxHash:    tx.TxHash,
+		Logs:      logs,
+		GasWanted: tx.GasWanted,
+		GasUsed:   tx.GasUsed,
+		Msgs:      msgs,
+		Fee:       fee,
+		Memo:      tx.Memo,
+		Timestamp: tx.Timestamp,
+	}
+
+	return result, nil
+}
 
 // ParseTransactions receives result transactions from database and return them after unmarshal them.
 // func ParseTransactions(txs []schema.TransactionLegacy) (result []ResultTx, err error) {

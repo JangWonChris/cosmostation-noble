@@ -11,10 +11,12 @@ import (
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/cosmos/cosmos-sdk/x/distribution/client/common"
 	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/codec"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/config"
@@ -407,4 +409,27 @@ func (c *Client) GetCoinMarketChartData(id string, from string, to string) (data
 	}
 
 	return data, nil
+}
+
+// GetAccountBalance returns balances of a given account
+func (c *Client) GetAccountBalance(address string) (*sdktypes.Coin, error) {
+	sdkaddr, err := sdktypes.AccAddressFromBech32(address)
+	if err != nil {
+		return &sdktypes.Coin{}, err
+	}
+	denom, err := c.GetBondDenom()
+	if err != nil {
+		return &sdktypes.Coin{}, err
+	}
+	// jeonghwan umuon을 구해올 방법, 혹은 다른 denom들
+	b := banktypes.NewQueryBalanceRequest(sdkaddr, denom)
+	bankClient := banktypes.NewQueryClient(c.grpcClient)
+	var header metadata.MD
+	bankRes, err := bankClient.Balance(
+		context.Background(),
+		b,
+		grpc.Header(&header), // Also fetch grpc header
+	)
+
+	return bankRes.GetBalance(), nil
 }

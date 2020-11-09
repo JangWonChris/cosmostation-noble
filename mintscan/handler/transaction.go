@@ -105,6 +105,7 @@ func GetTransactionsList(rw http.ResponseWriter, r *http.Request) {
 		}
 
 		// result, _ := model.ParseTransaction(tx)
+		// txResp[i] = result
 		txResp[i] = tx
 	}
 

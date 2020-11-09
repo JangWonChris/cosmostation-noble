@@ -143,6 +143,14 @@ func ErrNotExistValidator(w http.ResponseWriter, statusCode int) {
 	PrintException(w, statusCode, wrapError)
 }
 
+func ErrNotFound(w http.ResponseWriter, statusCode int) {
+	wrapError := WrapError{
+		ErrorCode: NotFound,
+		ErrorMsg:  ErrorCodeToErrorMsg(NotFound),
+	}
+	PrintException(w, statusCode, wrapError)
+}
+
 func ErrFailedConversion(w http.ResponseWriter, statusCode int) {
 	wrapError := WrapError{
 		ErrorCode: FailedConversion,

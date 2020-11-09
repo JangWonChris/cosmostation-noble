@@ -5,9 +5,25 @@ import (
 	"net/http"
 	"time"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/schema"
 )
+
+// ResultTotalBalance defines the structure for total kava balance of a delegator.
+type ResultTotalBalance struct {
+	Total       sdk.Coin `json:"total"`
+	Available   sdk.Coin `json:"available"`
+	Delegated   sdk.Coin `json:"delegated"`
+	Undelegated sdk.Coin `json:"undelegated"`
+	Rewards     sdk.Coin `json:"rewards"`
+	Commission  sdk.Coin `json:"commission"`
+	Vesting     sdk.Coin `json:"vesting"`
+	Vested      sdk.Coin `json:"vested"`
+	// FailedVested sdk.Coin `json:"failed_vested"`
+	// Incentive    sdk.Coin `json:"incentive"`
+	// Deposited    sdk.Coin `json:"deposited"`
+}
 
 // ResultBlock defines the structure for block result response.
 type ResultBlock struct {
@@ -243,12 +259,12 @@ type ResultMarket struct {
 
 // ResultTx defines the structure for txs result response.
 type ResultTx struct {
-	ID     int64  `json:"id"`
-	Height int64  `json:"height"`
-	TxHash string `json:"tx_hash"`
-	Logs   []Log  `json:"logs,omitempty"`
-	// Msgs      []Message `json:"msg,omitempty"`
-	Msgs      string `json:"messages,omitempty"`
+	ID     int64     `json:"id"`
+	Height int64     `json:"height"`
+	TxHash string    `json:"tx_hash"`
+	Logs   []Log     `json:"logs,omitempty"`
+	Msgs   []Message `json:"msg,omitempty"`
+	// Msgs      string `json:"messages,omitempty"`
 	Fee       *Fee   `json:"fee,omitempty"`
 	GasWanted int64  `json:"gas_wanted,omitempty"`
 	GasUsed   int64  `json:"gas_used,omitempty"`

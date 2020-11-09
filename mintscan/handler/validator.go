@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strconv"
 
+	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	clienttypes "github.com/cosmostation/cosmostation-cosmos/mintscan/client/types"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/errors"
@@ -29,10 +30,10 @@ func GetValidators(rw http.ResponseWriter, r *http.Request) {
 
 	switch status {
 	case model.ActiveValidator:
-		vals, _ = s.db.QueryValidatorsByStatus(model.BondedValidatorStatus)
+		vals, _ = s.db.QueryValidatorsByStatus(int(sdktypes.Bonded))
 	case model.InactiveValidator:
-		unbondingVals, _ := s.db.QueryValidatorsByStatus(model.UnbondingValidatorStatus)
-		unbondedVals, _ := s.db.QueryValidatorsByStatus(model.UnbondedValidatorStatus)
+		unbondingVals, _ := s.db.QueryValidatorsByStatus(int(sdktypes.Unbonding))
+		unbondedVals, _ := s.db.QueryValidatorsByStatus(int(sdktypes.Unbonded))
 		vals = append(vals, unbondingVals...)
 		vals = append(vals, unbondedVals...)
 	default:
@@ -65,7 +66,7 @@ func GetValidators(rw http.ResponseWriter, r *http.Request) {
 		// Default is missing the last 100 blocks
 		missBlockCount := model.MissingAllBlocks
 
-		if val.Status == model.BondedValidatorStatus {
+		if val.Status == int(sdktypes.Bonded) {
 			blocks, err := s.db.QueryValidatorUptime(val.Proposer, latestDBHeight-1)
 			if err != nil {
 				zap.S().Errorf("failed to query validator's missing blocks: %s", err)
@@ -138,7 +139,7 @@ func GetValidator(rw http.ResponseWriter, r *http.Request) {
 	// Default is missing the last 100 blocks
 	missBlockCount := model.MissingAllBlocks
 
-	if val.Status == model.BondedValidatorStatus {
+	if val.Status == int(sdktypes.Bonded) {
 		blocks, err := s.db.QueryValidatorUptime(val.Proposer, latestDBHeight-1)
 		if err != nil {
 			zap.S().Errorf("failed to query validator's missing blocks: %s", err)
@@ -447,6 +448,34 @@ func GetValidatorEventsTotalCount(rw http.ResponseWriter, r *http.Request) {
 		Moniker:         val.Moniker,
 		OperatorAddress: val.OperatorAddress,
 		Count:           count,
+	}
+
+	model.Respond(rw, result)
+	return
+}
+
+// GetRedelegationsLegacy returns all redelegations from a validator with the given query param
+func GetRedelegationsLegacy(rw http.ResponseWriter, r *http.Request) {
+	var delAddr string
+	if len(r.URL.Query()["delegator"]) > 0 {
+		delAddr = r.URL.Query()["delegator"][0]
+	}
+
+	endpoint := clienttypes.PrefixStaking + "/delegators/" + delAddr + "/redelegations?"
+
+	// get all redelegations from a validator
+	resp, err := s.client.RequestWithRestServer(endpoint)
+	if err != nil {
+		zap.L().Error("failed to get all redelegations from a validator", zap.Error(err))
+		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
+		return
+	}
+
+	var result stakingtypes.QueryRedelegationsResponse
+	if err = s.client.GetCliContext().JSONMarshaler.UnmarshalJSON(resp, &result); err != nil {
+		zap.L().Error("failed to unmarshal given response", zap.Error(err))
+		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
+		return
 	}
 
 	model.Respond(rw, result)

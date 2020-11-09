@@ -92,12 +92,16 @@ func main() {
 	r.HandleFunc("/staking/delegator/{delAddr}/redelegations", handler.GetRedelegations).Methods("GET")
 	r.HandleFunc("/staking/delegators/{delAddr}/unbonding_delegations", handler.GetDelegatorUnbondingDelegations).Methods("GET")
 
+	// 다음 버전에 업데이트 될 APIs
+	r.HandleFunc("/account/total/balance/{accAddr}", handler.GetTotalBalance).Methods("GET")
+
 	// These APIs will be deprecated in next update.
+	r.HandleFunc("/staking/redelegations", handler.GetRedelegationsLegacy).Methods("GET")                             //staking/delegator/{delAddr}/redelegations 로 변경 됨
 	r.HandleFunc("/account/delegations/rewards/{accAddr}", handler.GetDelegationsRewards).Methods("GET")              // same with distribution delegators rewards
 	r.HandleFunc("/account/balance/{accAddr}", handler.GetAccountBalance).Methods("GET")                              // /account/balances/{accAddr}
 	r.HandleFunc("/account/commission/{accAddr}", handler.GetValidatorCommission).Methods("GET")                      // /account/validator/commission/{accAddr}
-	r.HandleFunc("/account/unbonding_delegations/{accAddr}", handler.GetDelegatorUnbondingDelegations).Methods("GET") //moved to staking
-	r.HandleFunc("/account/unbonding-delegations/{accAddr}", handler.GetDelegatorUnbondingDelegations).Methods("GET") // /acount/unbonding_delegations/{accAddr}
+	r.HandleFunc("/account/unbonding_delegations/{delAddr}", handler.GetDelegatorUnbondingDelegations).Methods("GET") //moved to staking
+	r.HandleFunc("/account/unbonding-delegations/{delAddr}", handler.GetDelegatorUnbondingDelegations).Methods("GET") // /acount/unbonding_delegations/{accAddr}
 	r.HandleFunc("/tx/{hash}", handler.GetLegacyTransactionFromDB).Methods("GET")                                     // /tx?hash={hash}
 	r.HandleFunc("/staking/validator/misses/detail/{address}", handler.GetValidatorUptime).Methods("GET")             // /staking/validator/updatime/{address}
 	r.HandleFunc("/staking/validator/misses/{address}", handler.GetValidatorUptimeRange).Methods("GET")               // /staking/validator/uptime/range/{address}

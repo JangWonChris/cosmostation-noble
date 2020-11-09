@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"net/http"
 
+	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	cosmosvesting "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
@@ -516,5 +518,190 @@ func GetTxsBetweenDelegatorAndValidator(rw http.ResponseWriter, r *http.Request)
 	// }
 
 	model.Respond(rw, txs)
+	return
+}
+
+// GetTotalBalance returns account's kava total, available, vesting, delegated, unbondings, rewards, deposited, incentive, and commussion.
+func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	accAddr := vars["accAddr"]
+
+	err := model.VerifyBech32AccAddr(accAddr)
+	if err != nil {
+		zap.S().Debugf("failed to validate account address: %s", err)
+		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
+		return
+	}
+
+	latestBlock, err := s.client.GetLatestBlockHeight()
+	if err != nil {
+		zap.S().Errorf("failed to get the latest block height: %s", err)
+		return
+	}
+
+	block, err := s.client.GetBlock(latestBlock)
+	if err != nil {
+		zap.S().Errorf("failed to get block information: %s", err)
+		return
+	}
+
+	denom, err := s.client.GetBondDenom()
+	if err != nil {
+		zap.S().Errorf("failed to get staking denom: %s", err)
+		return
+	}
+
+	// Initialize all variables
+	total := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
+	available := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
+	delegated := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
+	undelegated := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
+	rewards := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
+	vesting := sdktypes.NewCoin(denom, sdktypes.NewInt(0)) // vesting 된 것 중에 delegatable 한 수량
+	vested := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
+	commission := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
+	// failedVested := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
+	// incentive := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
+	// deposited := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
+
+	account, err := s.client.GetAccount(accAddr)
+	if err != nil {
+		zap.S().Debugf("failed to get account information: %s", err)
+		errors.ErrNotFound(rw, http.StatusNotFound)
+		return
+	}
+
+	// available
+
+	coins, err := s.client.GetAccountBalance(accAddr)
+	if err != nil {
+		zap.S().Debugf("failed to get account balance: %s", err)
+		errors.ErrNotFound(rw, http.StatusNotFound)
+		return
+	}
+
+	if coins != nil {
+		if coins.Denom == denom {
+			available = available.Add(*coins)
+		}
+	}
+
+	// Delegated
+	delegations, err := s.client.GetDelegatorDelegations(accAddr)
+	if err != nil {
+		zap.S().Errorf("failed to get delegator's delegations: %s", err)
+		return
+	}
+
+	if len(delegations) > 0 {
+		for _, delegation := range delegations {
+			delegated = delegated.Add(delegation.Balance)
+		}
+	}
+
+	// Undelegated
+	undelegations, err := s.client.GetDelegatorUndelegations(accAddr)
+	if err != nil {
+		zap.S().Errorf("failed to get delegator's undelegations: %s", err)
+		return
+	}
+
+	if len(undelegations) > 0 {
+		for _, undelegation := range undelegations {
+			for _, e := range undelegation.Entries {
+				undelegated = undelegated.Add(sdktypes.NewCoin(denom, e.Balance))
+			}
+		}
+	}
+
+	// Rewards
+	totalRewards, err := s.client.GetDelegatorTotalRewards(accAddr)
+	if err != nil {
+		zap.S().Errorf("failed to get get delegator's total rewards: %s", err)
+		return
+	}
+
+	if len(totalRewards.Rewards) > 0 {
+		for _, tr := range totalRewards.Rewards {
+			for _, reward := range tr.Reward {
+				if reward.Denom == denom {
+					truncatedRewards, _ := reward.TruncateDecimal()
+					rewards = rewards.Add(truncatedRewards)
+				}
+			}
+		}
+	}
+
+	valAddr, err := model.ConvertValAddrFromAccAddr(accAddr)
+	if err != nil {
+		zap.S().Errorf("failed to convert validator address from account address: %s", err)
+		return
+	}
+
+	// Commission
+	commissions, err := s.client.GetValidatorCommission(valAddr)
+	if err != nil {
+		zap.S().Errorf("failed to get validator's commission: %s", err)
+		return
+	}
+
+	if len(commissions) > 0 {
+		for _, c := range commissions {
+			commission = commission.Add(c)
+		}
+	}
+
+	// Vesting, vested, failed vested
+	switch account.(type) {
+	case *cosmosvesting.PeriodicVestingAccount:
+		acct := account.(*cosmosvesting.PeriodicVestingAccount)
+
+		vestingCoins := acct.GetVestingCoins(block.Block.Time)
+		vestedCoins := acct.GetVestedCoins(block.Block.Time)
+		delegatedVesting := acct.GetDelegatedVesting()
+
+		// When total vesting amount is greater than or equal to delegated vesting amount, then
+		// there is still a room to delegate. Otherwise, vesting should be zero.
+		if len(vestingCoins) > 0 {
+			if vestingCoins.IsAllGTE(delegatedVesting) {
+				vestingCoins = vestingCoins.Sub(delegatedVesting)
+				for _, vc := range vestingCoins {
+					if vc.Denom == denom {
+						vesting = vesting.Add(vc)
+						available = available.Sub(vc) // available should deduct vesting amount
+					}
+				}
+			}
+		}
+
+		if len(vestedCoins) > 0 {
+			for _, vc := range vestedCoins {
+				if vc.Denom == denom {
+					vested = vested.Add(vc)
+				}
+			}
+		}
+	}
+
+	// Sum up all
+	total = total.Add(available).
+		Add(delegated).
+		Add(undelegated).
+		Add(rewards).
+		Add(commission).
+		Add(vesting)
+
+	result := &model.ResultTotalBalance{
+		Total:       total,
+		Available:   available,
+		Delegated:   delegated,
+		Undelegated: undelegated,
+		Rewards:     rewards,
+		Commission:  commission,
+		Vesting:     vesting,
+		Vested:      vested,
+	}
+
+	model.Respond(rw, result)
 	return
 }
