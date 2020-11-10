@@ -10,6 +10,7 @@ import (
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	grpctypes "github.com/cosmos/cosmos-sdk/types/grpc"
 	sdktypestx "github.com/cosmos/cosmos-sdk/types/tx"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
@@ -143,4 +144,23 @@ func TestParseTxResponse(t *testing.T) {
 	require.NotNil(t, string(feeBz), "Fees")
 	require.NotNil(t, string(sigsBz), "Signatures")
 	require.NotNil(t, string(logsBz), "Logs")
+}
+
+func TestRPCGetAccount(t *testing.T) {
+
+	address := "cosmos1x5wgh6vwye60wv3dtshs9dmqggwfx2ldnqvev0"
+	sdkaddr, err := sdktypes.AccAddressFromBech32(address)
+	require.NoError(t, err)
+
+	accGetter := authtypes.AccountRetriever{}
+	acc, height, err := accGetter.GetAccountWithHeight(cli.cliCtx, sdkaddr)
+	require.NoError(t, err)
+
+	log.Println(acc)
+	log.Println(height)
+
+	b, err := json.Marshal(acc)
+	require.NoError(t, err)
+
+	log.Println(string(b))
 }

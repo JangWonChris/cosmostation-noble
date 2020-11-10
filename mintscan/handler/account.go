@@ -1,16 +1,17 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"sort"
 
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	cosmosvesting "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
+	vestingtypes "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	clienttypes "github.com/cosmostation/cosmostation-cosmos/mintscan/client/types"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
 
@@ -24,45 +25,25 @@ func GetAccount(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	accAddr := vars["accAddr"]
 
-	err := model.VerifyBech32AccAddr(accAddr)
-	if err != nil {
-		zap.L().Debug("failed to validate account address", zap.Error(err))
-		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
-		return
-	}
-
-	resp, err := s.client.RequestWithRestServer(clienttypes.PrefixAuth + "/accounts/" + accAddr)
+	account, err := s.client.GetAccount(accAddr)
 	if err != nil {
 		zap.L().Error("failed to get account information", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
 		return
 	}
 
-	var ar authtypes.QueryAccountResponse
-	if err = s.client.GetCliContext().JSONMarshaler.UnmarshalJSON(resp, &ar); err != nil {
-		zap.L().Error("failed to get unmarshal given response", zap.Error(err))
+	var b []byte
+	switch account := account.(type) {
+	case *authtypes.ModuleAccount, *authtypes.BaseAccount,
+		*vestingtypes.ContinuousVestingAccount, *vestingtypes.DelayedVestingAccount, *vestingtypes.PeriodicVestingAccount:
+		b, err = s.client.GetCliContext().JSONMarshaler.MarshalJSON(account)
+	default:
+		zap.L().Error("unknown account type :", zap.String("info", account.String()), zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
 		return
 	}
 
-	ai, ok := ar.GetAccount().GetCachedValue().(authtypes.AccountI)
-	if !ok {
-		zap.S().Info("Unsupported account type")
-	}
-	switch aType := ai.(type) {
-	case *authtypes.ModuleAccount:
-		zap.S().Info("module account :", aType)
-	case *authtypes.BaseAccount:
-		zap.S().Info("base account :", aType)
-	default:
-		zap.S().Info("Unknown account type :", aType)
-	}
-	// zap.S().Info("account :", ai.GetAddress())
-	// zap.S().Info("account :", ai.GetPubKey())
-	// zap.S().Info("account :", ai.GetAccountNumber())
-	// zap.S().Info("account :", ai.GetSequence())
-
-	model.Respond(rw, ai)
+	model.Respond(rw, b)
 	return
 }
 
@@ -77,23 +58,49 @@ func GetAccountBalance(rw http.ResponseWriter, r *http.Request) {
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
 		return
 	}
+	queryClient := banktypes.NewQueryClient(s.client.GetCliContext())
+	request := banktypes.QueryAllBalancesRequest{Address: accAddr}
+	res, err := queryClient.AllBalances(context.Background(), &request)
 
-	resp, err := s.client.RequestWithRestServer(clienttypes.PrefixBank + "/balances/" + accAddr)
-	if err != nil {
-		zap.L().Error("failed to get account balance", zap.Error(err))
-		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
-		return
-	}
+	//jeonghwan todo :
+	// available 외 필요 자산 추가
 
-	var abr banktypes.QueryAllBalancesResponse
-	if err = s.client.GetCliContext().JSONMarshaler.UnmarshalJSON(resp, &abr); err != nil {
-		zap.L().Error("failed to get unmarshal given response", zap.Error(err))
-		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
-		return
-	}
-
-	model.Respond(rw, &abr)
+	model.Respond(rw, res)
 	return
+}
+
+// By is the type of a "less" function that defines the ordering of its Planet arguments.
+type By func(p1, p2 *distributiontypes.DelegationDelegatorReward) bool
+
+// Sort is a method on the function type, By, that sorts the argument slice according to the function.
+func (by By) Sort(resp []distributiontypes.DelegationDelegatorReward) {
+	ps := &QueryDelegatorTotalRewardsResponseSorter{
+		resp: resp,
+		by:   by, // The Sort method's receiver is the function (closure) that defines the sort order.
+	}
+	sort.Sort(ps)
+}
+
+// no lint
+type QueryDelegatorTotalRewardsResponseSorter struct {
+	resp []distributiontypes.DelegationDelegatorReward
+	by   func(p1, p2 *distributiontypes.DelegationDelegatorReward) bool
+}
+
+// Len is part of sort.Interface.
+func (s *QueryDelegatorTotalRewardsResponseSorter) Len() int {
+	return len(s.resp)
+}
+
+// Swap is part of sort.Interface.
+func (s *QueryDelegatorTotalRewardsResponseSorter) Swap(i, j int) {
+	s.resp[i], s.resp[j] = s.resp[j], s.resp[i]
+	// s.resp.reawrds[i], s.planets[j] = s.planets[j], s.planets[i]
+}
+
+// Less is part of sort.Interface. It is implemented by calling the "by" closure in the sorter.
+func (s *QueryDelegatorTotalRewardsResponseSorter) Less(i, j int) bool {
+	return s.by(&s.resp[i], &s.resp[j])
 }
 
 // GetDelegatorDelegations returns all delegations from a delegator.
@@ -114,7 +121,6 @@ func GetDelegatorDelegations(rw http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 	accAddr := vars["accAddr"]
-	//jeonghwan todo 금요일날 하다가 중단
 	err := model.VerifyBech32AccAddr(accAddr)
 	if err != nil {
 		zap.L().Debug("failed to validate account address", zap.Error(err))
@@ -123,96 +129,105 @@ func GetDelegatorDelegations(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Query all delegations from a delegator
-	// https://lcd-office.cosmostation.io/stargate-4/cosmos/staking/v1beta1/delegations/cosmos1x5wgh6vwye60wv3dtshs9dmqggwfx2ldnqvev0
-	// /cosmos/staking/v1beta1/delegators/{delegator_addr}/validators
-	resp, err := s.client.RequestWithRestServer(clienttypes.PrefixStaking + "/delegations/" + accAddr)
+	queryClient := stakingtypes.NewQueryClient(s.client.GetCliContext())
+	request := stakingtypes.QueryDelegatorDelegationsRequest{DelegatorAddr: accAddr}
+	resps, err := queryClient.DelegatorDelegations(context.Background(), &request)
 	if err != nil {
 		zap.L().Error("failed to get delegators delegations", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
 		return
 	}
 
-	var ddr stakingtypes.QueryDelegatorDelegationsResponse
-	if err = s.client.GetCliContext().JSONMarshaler.UnmarshalJSON(resp, &ddr); err != nil {
-		zap.L().Error("failed to get unmarshal given response", zap.Error(err))
+	rewards := func(p1, p2 *distributiontypes.DelegationDelegatorReward) bool {
+		return p1.ValidatorAddress < p2.ValidatorAddress
+	}
+	distributionQueryClient := distributiontypes.NewQueryClient(s.client.GetCliContext())
+	totalrequest := distributiontypes.QueryDelegationTotalRewardsRequest{DelegatorAddress: accAddr}
+	res2, err2 := distributionQueryClient.DelegationTotalRewards(context.Background(), &totalrequest)
+	if err2 != nil {
+		zap.L().Error("failed to get delegator rewards", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
 		return
 	}
 
+	// test code
+	// 위임자가 위임한 내역 리스트를 모두 뽑는다. (grpc)
+	// 위임자가 위임한 내역의 reward 리스트를 요청 (grpc)
+	// 둘의 어카운트 순서가 일치하면, 해당 내역으로 짬뽕해서 리턴
+	// 아래 결과로만 받을 때는, 소팅이 필요 없어보이고,
+	// vali가 일치하는지만 검사해서 리턴하면 될 것 같다.
+	for _, r := range resps.DelegationResponses {
+		fmt.Println(r)
+	}
+
+	fmt.Println("before sort")
+	for _, r := range res2.Rewards {
+		fmt.Println(r)
+	}
+	By(rewards).Sort(res2.Rewards)
+	fmt.Println("after sort")
+	for _, r := range res2.Rewards {
+		fmt.Println(r)
+	}
+	// end testcode
+
 	resultDelegations := make([]model.ResultDelegations, 0)
+	for _, resp := range resps.DelegationResponses {
+		// Query a delegation reward
+		queryClient := distributiontypes.NewQueryClient(s.client.GetCliContext())
+		request := distributiontypes.QueryDelegationRewardsRequest{DelegatorAddress: resp.Delegation.DelegatorAddress, ValidatorAddress: resp.Delegation.ValidatorAddress}
+		drr, err := queryClient.DelegationRewards(context.Background(), &request)
+		if err != nil {
+			zap.L().Error("failed to get delegator rewards", zap.Error(err))
+			errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
+			return
+		}
 
-	if len(ddr.DelegationResponses) > 0 {
-		for _, delegation := range ddr.DelegationResponses {
-			// Query a delegation reward
-			resp, err := s.client.RequestWithRestServer(clienttypes.PrefixDistribution + "/delegators/" + delegation.Delegation.DelegatorAddress + "/rewards/" + delegation.Delegation.ValidatorAddress)
-			if err != nil {
-				zap.L().Error("failed to get delegator rewards", zap.Error(err))
-				errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
-				return
-			}
+		resultRewards := make([]model.Coin, 0)
 
-			// var dwar distributiontypes.QueryDelegatorTotalRewardsResponse
-			var drr distributiontypes.QueryDelegationRewardsResponse
-			if err = s.client.GetCliContext().JSONMarshaler.UnmarshalJSON(resp, &drr); err != nil {
-				zap.L().Error("failed to get unmarshal given response", zap.Error(err))
-				errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
-				return
-			}
+		denom, err := s.client.GetBondDenom()
+		if err != nil {
+			return
+		}
 
-			resultRewards := make([]model.Coin, 0)
-
-			denom, err := s.client.GetBondDenom()
-			if err != nil {
-				return
-			}
-
-			// Exception: reward is null when the fee of delegator's validator is 100%
-			if len(drr.Rewards) > 0 {
-				for _, reward := range drr.Rewards {
-					tempReward := &model.Coin{
-						Denom:  reward.Denom,
-						Amount: reward.Amount.String(),
-					}
-					resultRewards = append(resultRewards, *tempReward)
-				}
-			} else {
+		// Exception: reward is null when the fee of delegator's validator is 100%
+		if len(drr.Rewards) > 0 {
+			for _, reward := range drr.Rewards {
 				tempReward := &model.Coin{
-					Denom:  denom,
-					Amount: "0",
-					// Amount: sdk.ZeroInt(), //"0" value is modified because cointype is changed from model.coin to sdk.coin
+					Denom:  reward.Denom,
+					Amount: reward.Amount.String(),
 				}
 				resultRewards = append(resultRewards, *tempReward)
 			}
-
-			// 위임한 검증인의 모니커 조회
-			resp, err = s.client.RequestWithRestServer(clienttypes.PrefixStaking + "/validators/" + delegation.Delegation.ValidatorAddress)
-			if err != nil {
-				zap.L().Error("failed to get delegations from a validator", zap.Error(err))
-				errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
-				return
+		} else {
+			tempReward := &model.Coin{
+				Denom:  denom,
+				Amount: "0",
+				// Amount: sdk.ZeroInt(), //"0" value is modified because cointype is changed from model.coin to sdk.coin
 			}
-
-			var vr stakingtypes.QueryValidatorResponse
-			err = s.client.GetCliContext().JSONMarshaler.UnmarshalJSON(resp, &vr)
-			// err = json.Unmarshal(resp, &delegations)
-			if err != nil {
-				zap.L().Error("failed to unmarshal delegations", zap.Error(err))
-				errors.ErrFailedUnmarshalJSON(rw, http.StatusInternalServerError)
-				return
-			}
-
-			temp := &model.ResultDelegations{
-				DelegatorAddress: delegation.Delegation.DelegatorAddress,
-				ValidatorAddress: delegation.Delegation.ValidatorAddress,
-				Moniker:          vr.Validator.Description.Moniker,
-				Shares:           delegation.Delegation.Shares.String(),
-				Balance:          delegation.Balance.Amount.String(),
-				Amount:           delegation.Balance.Amount.String(),
-				// Amount:           amount,
-				Rewards: resultRewards,
-			}
-			resultDelegations = append(resultDelegations, *temp)
+			resultRewards = append(resultRewards, *tempReward)
 		}
+
+		// 위임한 검증인의 모니커 조회
+		stakingQueryClient := stakingtypes.NewQueryClient(s.client.GetCliContext())
+		stakingQueryRequest := stakingtypes.QueryValidatorRequest{ValidatorAddr: resp.Delegation.ValidatorAddress}
+		vr, err := stakingQueryClient.Validator(context.Background(), &stakingQueryRequest)
+		if err != nil {
+			zap.L().Error("failed to get delegations from a validator", zap.Error(err))
+			errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
+			return
+		}
+
+		temp := &model.ResultDelegations{
+			DelegatorAddress: resp.Delegation.DelegatorAddress,
+			ValidatorAddress: resp.Delegation.ValidatorAddress,
+			Moniker:          vr.Validator.Description.Moniker,
+			Shares:           resp.Delegation.Shares.String(),
+			Balance:          resp.Balance.Amount.String(),
+			Amount:           resp.Balance.Amount.String(),
+			Rewards:          resultRewards,
+		}
+		resultDelegations = append(resultDelegations, *temp)
 	}
 
 	model.Respond(rw, resultDelegations)
@@ -221,7 +236,7 @@ func GetDelegatorDelegations(rw http.ResponseWriter, r *http.Request) {
 
 // GetDelegationsRewards returns total amount of rewards from a delegator's delegations.
 func GetDelegationsRewards(rw http.ResponseWriter, r *http.Request) {
-	//jeonghwan
+	//jeonghwan : 안쓰는 함수
 	GetTotalRewardsFromDelegator(rw, r)
 	return
 }
@@ -231,7 +246,6 @@ func GetDelegatorUnbondingDelegations(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	accAddr := vars["delAddr"]
 
-	fmt.Println(accAddr)
 	err := model.VerifyBech32AccAddr(accAddr)
 	if err != nil {
 		zap.L().Debug("failed to validate account address", zap.Error(err))
@@ -239,24 +253,17 @@ func GetDelegatorUnbondingDelegations(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := s.client.RequestWithRestServer(clienttypes.PrefixStaking + "/delegators/" + accAddr + "/unbonding_delegations")
+	queryClient := stakingtypes.NewQueryClient(s.client.GetCliContext())
+	request := stakingtypes.QueryDelegatorUnbondingDelegationsRequest{DelegatorAddr: accAddr}
+	res, err := queryClient.DelegatorUnbondingDelegations(context.Background(), &request)
 	if err != nil {
 		zap.L().Error("failed to get account delegators rewards", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
 		return
 	}
 
-	var dudr stakingtypes.QueryDelegatorUnbondingDelegationsResponse
-	// if err = json.Unmarshal(resp, &dudr); err != nil {
-	if err = s.client.GetCliContext().JSONMarshaler.UnmarshalJSON(resp, &dudr); err != nil {
-		zap.L().Error("failed to get unmarshal given response", zap.Error(err))
-		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
-		return
-	}
-
 	result := make([]*model.UnbondingDelegations, 0)
-
-	for _, u := range dudr.UnbondingResponses {
+	for _, u := range res.UnbondingResponses {
 		val, err := s.db.QueryValidatorByValAddr(u.ValidatorAddress)
 		if err != nil {
 			zap.L().Debug("failed to query validator information", zap.Error(err))
@@ -486,13 +493,6 @@ func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 	vested := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
 	commission := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
 
-	account, err := s.client.GetAccount(accAddr)
-	if err != nil {
-		zap.S().Debugf("failed to get account information: %s", err)
-		errors.ErrNotFound(rw, http.StatusNotFound)
-		return
-	}
-
 	// available
 	coins, err := s.client.GetAccountBalance(accAddr)
 	if err != nil {
@@ -572,10 +572,17 @@ func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	account, err := s.client.GetAccount(accAddr)
+	if err != nil {
+		zap.S().Debugf("failed to get account information: %s", err)
+		errors.ErrNotFound(rw, http.StatusNotFound)
+		return
+	}
+
 	// Vesting, vested, failed vested
 	switch account.(type) {
-	case *cosmosvesting.PeriodicVestingAccount:
-		acct := account.(*cosmosvesting.PeriodicVestingAccount)
+	case *vestingtypes.PeriodicVestingAccount:
+		acct := account.(*vestingtypes.PeriodicVestingAccount)
 
 		vestingCoins := acct.GetVestingCoins(block.Block.Time)
 		vestedCoins := acct.GetVestedCoins(block.Block.Time)

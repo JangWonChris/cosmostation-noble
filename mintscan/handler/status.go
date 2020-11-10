@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -9,7 +10,6 @@ import (
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	clienttypes "github.com/cosmostation/cosmostation-cosmos/mintscan/client/types"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/config"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
 
@@ -43,30 +43,17 @@ func SetStatus() error {
 		return fmt.Errorf("Session is not initialized")
 	}
 
-	poolResp, err := s.client.RequestWithRestServer(clienttypes.PrefixStaking + "/pool")
+	stakingQueryClient := stakingtypes.NewQueryClient(s.client.GetCliContext())
+	pool, err := stakingQueryClient.Pool(context.Background(), &stakingtypes.QueryPoolRequest{})
 	if err != nil {
 		zap.L().Error("failed to get staking pool", zap.Error(err))
 		return err
 	}
 
-	var pool stakingtypes.QueryPoolResponse
-	err = s.client.GetCliContext().JSONMarshaler.UnmarshalJSON(poolResp, &pool)
-	if err != nil {
-		zap.L().Error("failed to unmarshal pool", zap.Error(err))
-		return err
-	}
-
-	tsResp, err := s.client.RequestWithRestServer(clienttypes.PrefixBank + "/supply")
+	bankQueryClient := banktypes.NewQueryClient(s.client.GetCliContext())
+	coins, err := bankQueryClient.TotalSupply(context.Background(), &banktypes.QueryTotalSupplyRequest{})
 	if err != nil {
 		zap.L().Error("failed to get supply total", zap.Error(err))
-		return err
-	}
-
-	var coins banktypes.QueryTotalSupplyResponse
-	err = s.client.GetCliContext().JSONMarshaler.UnmarshalJSON(tsResp, &coins)
-	// err = json.Unmarshal(tsResp, &coins)
-	if err != nil {
-		zap.L().Error("failed to unmarshal coin", zap.Error(err))
 		return err
 	}
 
@@ -103,8 +90,8 @@ func SetStatus() error {
 		TotalValidatorNum:      bondedValsNum + unbondingValsNum + unbondedValsNum,
 		JailedValidatorNum:     unbondingValsNum + unbondedValsNum,
 		UnjailedValidatorNum:   bondedValsNum,
-		TotalSupplyTokens:      coins,
-		TotalCirculatingTokens: coins, // TODO: should be how we discuss with CoinGecko (Total Supply - Vesting Amount)
+		TotalSupplyTokens:      *coins,
+		TotalCirculatingTokens: *coins, // TODO: should be how we discuss with CoinGecko (Total Supply - Vesting Amount)
 		BondedTokens:           bondedTokens,
 		NotBondedTokens:        notBondedTokens,
 		Maintenance:            config.Common.Maintenance,

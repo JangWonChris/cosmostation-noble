@@ -1,10 +1,11 @@
 package handler
 
 import (
+	"context"
 	"net/http"
+	"strconv"
 
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
-	clienttypes "github.com/cosmostation/cosmostation-cosmos/mintscan/client/types"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/schema"
@@ -207,18 +208,17 @@ func GetVotes(rw http.ResponseWriter, r *http.Request) {
 		rv = append(rv, vote)
 	}
 
-	// Query tally information.
-	resp, err := s.client.RequestWithRestServer(clienttypes.PrefixGov + "/proposals/" + id + "/tally")
+	queryClient := govtypes.NewQueryClient(s.client.GetCliContext())
+	proposalID, err := strconv.ParseUint(id, 10, 64)
+	if err != nil {
+		zap.L().Error("failed to convert proposal id ", zap.Error(err))
+		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
+	}
+	request := govtypes.QueryTallyResultRequest{ProposalId: proposalID}
+	res, err := queryClient.TallyResult(context.Background(), &request)
 	if err != nil {
 		zap.L().Error("failed to get tally info", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
-		return
-	}
-
-	var tallyResponse govtypes.QueryTallyResultResponse
-	if err = s.client.GetCliContext().JSONMarshaler.UnmarshalJSON(resp, &tallyResponse); err != nil {
-		zap.L().Error("failed to unmarshal tally", zap.Error(err))
-		errors.ErrFailedUnmarshalJSON(rw, http.StatusInternalServerError)
 		return
 	}
 
@@ -231,10 +231,10 @@ func GetVotes(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	rt := &model.ResultTally{
-		YesAmount:        tallyResponse.Tally.Yes.ToDec().String(),
-		NoAmount:         tallyResponse.Tally.No.String(),
-		AbstainAmount:    tallyResponse.Tally.Abstain.String(),
-		NoWithVetoAmount: tallyResponse.Tally.NoWithVeto.String(),
+		YesAmount:        res.Tally.Yes.ToDec().String(),
+		NoAmount:         res.Tally.No.String(),
+		AbstainAmount:    res.Tally.Abstain.String(),
+		NoWithVetoAmount: res.Tally.NoWithVeto.String(),
 		YesNum:           yes,
 		AbstainNum:       abstain,
 		NoNum:            no,

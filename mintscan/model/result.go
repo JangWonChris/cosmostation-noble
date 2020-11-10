@@ -259,21 +259,27 @@ type ResultMarket struct {
 
 // ResultTx defines the structure for txs result response.
 type ResultTx struct {
-	ID     int64     `json:"id"`
-	Height int64     `json:"height"`
-	TxHash string    `json:"tx_hash"`
-	Logs   []Log     `json:"logs,omitempty"`
-	Msgs   []Message `json:"msg,omitempty"`
-	// Msgs      string `json:"messages,omitempty"`
-	Fee       *Fee   `json:"fee,omitempty"`
-	GasWanted int64  `json:"gas_wanted,omitempty"`
-	GasUsed   int64  `json:"gas_used,omitempty"`
-	Memo      string `json:"memo"`
-	Timestamp string `json:"timestamp"`
+	ID        int64     `json:"id"`
+	Height    int64     `json:"height"`
+	TxHash    string    `json:"tx_hash"`
+	Logs      []Log     `json:"logs,omitempty"`
+	Msgs      []Message `json:"msg,omitempty"`
+	Fee       *Fee      `json:"fee,omitempty"`
+	GasWanted int64     `json:"gas_wanted,omitempty"`
+	GasUsed   int64     `json:"gas_used,omitempty"`
+	Memo      string    `json:"memo"`
+	Timestamp string    `json:"timestamp"`
 }
 
 // Respond responds result of any data type.
 func Respond(w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(data)
+	switch data := data.(type) {
+	case []byte:
+		// fmt.Printf("type : %T\n", data)
+		w.Write(data)
+	default:
+		// fmt.Printf("type : %T\n", data)
+		json.NewEncoder(w).Encode(data)
+	}
 }

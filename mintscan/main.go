@@ -55,33 +55,50 @@ func main() {
 
 	r := mux.NewRouter()
 	r = r.PathPrefix("/v1").Subrouter()
-	r.HandleFunc("/auth/accounts/{accAddr}", handler.GetAccount).Methods("GET")
-	r.HandleFunc("/account/balances/{accAddr}", handler.GetAccountBalance).Methods("GET")
-	r.HandleFunc("/account/delegations/{accAddr}", handler.GetDelegatorDelegations).Methods("GET")
-	r.HandleFunc("/account/validator/commission/{accAddr}", handler.GetValidatorCommission).Methods("GET")
+	// account prefix를 가진 모든 REST API는
+	// account 별 잔액을 조회
+	// account 별 위임 상세 내역
+	// account 별 위임 해제 상세 내역
+	// account 별 tx 상세 내역
+	r.HandleFunc("/auth/accounts/{accAddr}", handler.GetAccount).Methods("GET")                                               //kava에서만 사용중 (vesting account를 뽑기 위해)
+	r.HandleFunc("/account/balances/{accAddr}", handler.GetAccountBalance).Methods("GET")                                     // return all assets of given account
+	r.HandleFunc("/account/validator/commission/{accAddr}", handler.GetValidatorCommission).Methods("GET")                    // 현재 사용중이나 /account/balances에 포함시킬 예정
+	r.HandleFunc("/distribution/delegators/{delAddr}/withdraw_address", handler.GetDelegatorWithdrawalAddress).Methods("GET") //위임 내역을 반환할 때, 같이 포함시킨다
+
+	r.HandleFunc("/account/delegations/{accAddr}", handler.GetDelegatorDelegations).Methods("GET")                    //
+	r.HandleFunc("/account/unbonding_delegations/{delAddr}", handler.GetDelegatorUnbondingDelegations).Methods("GET") //moved to staking
+
+	// 모바일 API
 	r.HandleFunc("/account/txs/{accAddr}", handler.GetAccountTxs).Methods("GET")
 	r.HandleFunc("/account/txs/{accAddr}/{valAddr}", handler.GetTxsBetweenDelegatorAndValidator).Methods("GET")
 	r.HandleFunc("/account/transfer_txs/{accAddr}", handler.GetAccountTransferTxs).Methods("GET")
+
 	r.HandleFunc("/blocks", handler.GetBlocks).Methods("GET")
 	r.HandleFunc("/blocks/{proposer}", handler.GetBlocksByProposer).Methods("GET")
+
+	//사용 안함
 	r.HandleFunc("/distribution/delegators/{delAddr}/rewards", handler.GetTotalRewardsFromDelegator).Methods("GET")
 	r.HandleFunc("/distribution/delegators/{delAddr}/rewards/{valAddr}", handler.GetRewardsBetweenDelegatorAndValidator).Methods("GET")
-	r.HandleFunc("/distribution/delegators/{delAddr}/withdraw_address", handler.GetDelegatorWithdrawalAddress).Methods("GET")
 	r.HandleFunc("/distribution/community_pool", handler.GetCommunityPool).Methods("GET")
+	//end
+
 	r.HandleFunc("/gov/proposals", handler.GetProposals).Methods("GET")
 	r.HandleFunc("/gov/proposal/{proposal_id}", handler.GetProposal).Methods("GET")
 	r.HandleFunc("/gov/proposal/deposits/{proposal_id}", handler.GetDeposits).Methods("GET")
 	r.HandleFunc("/gov/proposal/votes/{proposal_id}", handler.GetVotes).Methods("GET")
+
 	r.HandleFunc("/minting/inflation", handler.GetMintingInflation).Methods("GET")
 	r.HandleFunc("/market/chart", handler.GetCoinMarketChartData).Methods("GET")
 	r.HandleFunc("/market/{id}", handler.GetSimpleCoinPrice).Methods("GET")
 	r.HandleFunc("/stats/market", handler.GetMarketStats).Methods("GET")
 	r.HandleFunc("/stats/network", handler.GetNetworkStats).Methods("GET")
 	r.HandleFunc("/status", handler.GetStatus).Methods("GET")
+
 	r.HandleFunc("/txs", handler.GetTransactions).Methods("GET")
 	r.HandleFunc("/txs", handler.GetTransactionsList).Methods("POST")
 	r.HandleFunc("/tx", handler.GetTransaction).Methods("GET")
 	r.HandleFunc("/tx/broadcast/{signed_tx}", handler.BroadcastTx).Methods("GET")
+
 	r.HandleFunc("/staking/validators", handler.GetValidators).Methods("GET")
 	r.HandleFunc("/staking/validator/{address}", handler.GetValidator).Methods("GET")
 	r.HandleFunc("/staking/validator/uptime/{address}", handler.GetValidatorUptime).Methods("GET")
@@ -100,7 +117,6 @@ func main() {
 	r.HandleFunc("/account/delegations/rewards/{accAddr}", handler.GetDelegationsRewards).Methods("GET")              // same with distribution delegators rewards
 	r.HandleFunc("/account/balance/{accAddr}", handler.GetAccountBalance).Methods("GET")                              // /account/balances/{accAddr}
 	r.HandleFunc("/account/commission/{accAddr}", handler.GetValidatorCommission).Methods("GET")                      // /account/validator/commission/{accAddr}
-	r.HandleFunc("/account/unbonding_delegations/{delAddr}", handler.GetDelegatorUnbondingDelegations).Methods("GET") //moved to staking
 	r.HandleFunc("/account/unbonding-delegations/{delAddr}", handler.GetDelegatorUnbondingDelegations).Methods("GET") // /acount/unbonding_delegations/{accAddr}
 	r.HandleFunc("/tx/{hash}", handler.GetLegacyTransactionFromDB).Methods("GET")                                     // /tx?hash={hash}
 	r.HandleFunc("/staking/validator/misses/detail/{address}", handler.GetValidatorUptime).Methods("GET")             // /staking/validator/updatime/{address}

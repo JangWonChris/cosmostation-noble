@@ -160,20 +160,21 @@ func (c *Client) GetTendermintTx(hash string) (*tmctypes.ResultTx, error) {
 
 // GetAccount checks account type and returns account interface.
 func (c *Client) GetAccount(address string) (authtypes.AccountI, error) {
+	err := model.VerifyBech32AccAddr(address)
+	if err != nil {
+		return nil, err
+	}
+
 	accAddr, err := sdktypes.AccAddressFromBech32(address)
 	if err != nil {
 		return nil, err
 	}
 
 	ar := authtypes.AccountRetriever{}
-	acc, err := ar.GetAccount(c.cliCtx, accAddr)
+	acc, _, err := ar.GetAccountWithHeight(c.cliCtx, accAddr)
 	if err != nil {
 		return nil, err
 	}
-	// acc, err := auth.NewAccountRetriever(c.cliCtx).GetAccount(accAddr)
-	// if err != nil {
-	// 	return nil, err
-	// }
 
 	return acc, nil
 }

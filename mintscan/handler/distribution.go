@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
@@ -16,6 +17,7 @@ import (
 
 // GetTotalRewardsFromDelegator returns delegations rewards between a delegator and a validator.
 func GetTotalRewardsFromDelegator(rw http.ResponseWriter, r *http.Request) {
+	// 사용 안하는 함수
 	vars := mux.Vars(r)
 	delAddr := vars["delAddr"]
 
@@ -47,6 +49,7 @@ func GetTotalRewardsFromDelegator(rw http.ResponseWriter, r *http.Request) {
 
 // GetRewardsBetweenDelegatorAndValidator returns delegations rewards between a delegator and a validator.
 func GetRewardsBetweenDelegatorAndValidator(rw http.ResponseWriter, r *http.Request) {
+	// 사용 안함
 	vars := mux.Vars(r)
 	delAddr := vars["delAddr"]
 	valAddr := vars["valAddr"]
@@ -95,41 +98,29 @@ func GetDelegatorWithdrawalAddress(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := s.client.RequestWithRestServer(clienttypes.PrefixDistribution + "/delegators/" + delAddr + "/withdraw_address")
+	queryClient := distributiontypes.NewQueryClient(s.client.GetCliContext())
+	request := distributiontypes.QueryDelegatorWithdrawAddressRequest{DelegatorAddress: delAddr}
+	res, err := queryClient.DelegatorWithdrawAddress(context.Background(), &request)
 	if err != nil {
 		zap.L().Error("failed to get delegator withdraw address", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
 		return
 	}
 
-	var dwar distributiontypes.QueryDelegatorWithdrawAddressResponse
-	if err = s.client.GetCliContext().JSONMarshaler.UnmarshalJSON(resp, &dwar); err != nil {
-		zap.L().Error("failed to get unmarshal given response", zap.Error(err))
-		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
-		return
-	}
-
-	model.Respond(rw, dwar)
+	model.Respond(rw, res)
 	return
 }
 
 // GetCommunityPool returns current community pool.
 func GetCommunityPool(rw http.ResponseWriter, r *http.Request) {
-	resp, err := s.client.RequestWithRestServer(clienttypes.PrefixDistribution + "/community_pool")
+	queryClient := distributiontypes.NewQueryClient(s.client.GetCliContext())
+	res, err := queryClient.CommunityPool(context.Background(), &distributiontypes.QueryCommunityPoolRequest{})
 	if err != nil {
 		zap.L().Error("failed to get community pool", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
 		return
 	}
 
-	var pool distributiontypes.QueryCommunityPoolResponse
-	if err = s.client.GetCliContext().JSONMarshaler.UnmarshalJSON(resp, &pool); err != nil {
-		// if err := json.Unmarshal(resp, &pool); err != nil {
-		zap.L().Error("failed to get unmarshal pool", zap.Error(err))
-		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
-		return
-	}
-
-	model.Respond(rw, pool)
+	model.Respond(rw, res)
 	return
 }
