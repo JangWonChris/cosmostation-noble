@@ -79,35 +79,35 @@ func TestGetAccountSpendableCoins(t *testing.T) {
 }
 
 func TestGetAccountDelegatedCoins(t *testing.T) {
-	delegations, err := cli.GetDelegatorDelegations("cosmos1clpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9q")
+	resp, err := cli.GetDelegatorDelegations("cosmos1clpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9q")
 	require.NoError(t, err)
 
-	for _, delegation := range delegations {
+	for _, delegation := range resp.DelegationResponses {
 		require.NotNil(t, delegation)
 	}
 }
 
 func TestGetAccountUndelegatedCoins(t *testing.T) {
-	undelegations, err := cli.GetDelegatorUndelegations("cosmos1clpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9q")
+	res, err := cli.GetDelegatorUnbondingDelegations("cosmos1clpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9q")
 	require.NoError(t, err)
 
-	for _, undelegation := range undelegations {
+	for _, undelegation := range res.UnbondingResponses {
 		require.NotNil(t, undelegation)
 	}
 }
 
 func TestGetAccountTotalRewards(t *testing.T) {
-	rewards, err := cli.GetDelegatorTotalRewards("cosmos1clpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9q")
+	rewards, err := cli.GetDelegationTotalRewards("cosmos1clpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9q")
 	require.NoError(t, err)
 
 	require.NotNil(t, rewards)
 }
 
 func TestGetValidatorCommission(t *testing.T) {
-	truncatedValCommission, err := cli.GetValidatorCommission("cosmosvaloper1clpqr4nrk4khgkxj78fcwwh6dl3uw4epsluffn")
+	res, err := cli.GetValidatorCommission("cosmosvaloper1clpqr4nrk4khgkxj78fcwwh6dl3uw4epsluffn")
 	require.NoError(t, err)
 
-	require.NotNil(t, truncatedValCommission)
+	require.NotNil(t, res.Commission)
 }
 
 func TestParseTxResponse(t *testing.T) {

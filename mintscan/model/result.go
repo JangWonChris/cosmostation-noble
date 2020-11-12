@@ -215,10 +215,10 @@ type ResultValidatorDelegations struct {
 }
 
 // ResultRewards defines the structure for rewards result response.
-type ResultRewards struct {
-	Rewards []Rewards `json:"rewards"`
-	Total   []Coin    `json:"total"`
-}
+// type ResultRewards struct {
+// 	Rewards []Rewards `json:"rewards"`
+// 	Total   []Coin    `json:"total"`
+// }
 
 // ResultTally defines the structure for tally result response.
 type ResultTally struct {

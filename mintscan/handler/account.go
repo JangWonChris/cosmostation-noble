@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"sort"
@@ -9,9 +8,7 @@ import (
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	vestingtypes "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
-	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
-	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
 
@@ -24,7 +21,12 @@ import (
 func GetAccount(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	accAddr := vars["accAddr"]
-
+	err := model.VerifyBech32AccAddr(accAddr)
+	if err != nil {
+		zap.L().Debug("failed to validate account address", zap.Error(err))
+		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
+		return
+	}
 	account, err := s.client.GetAccount(accAddr)
 	if err != nil {
 		zap.L().Error("failed to get account information", zap.Error(err))
@@ -47,23 +49,43 @@ func GetAccount(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// GetAccountBalance returns account balance.
-func GetAccountBalance(rw http.ResponseWriter, r *http.Request) {
+// GetBalance returns account balance.
+func GetBalance(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	accAddr := vars["accAddr"]
-
 	err := model.VerifyBech32AccAddr(accAddr)
 	if err != nil {
 		zap.L().Debug("failed to validate account address", zap.Error(err))
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
 		return
 	}
-	queryClient := banktypes.NewQueryClient(s.client.GetCliContext())
-	request := banktypes.QueryAllBalancesRequest{Address: accAddr}
-	res, err := queryClient.AllBalances(context.Background(), &request)
+	res, err := s.client.GetBalance(accAddr)
+	if err != nil {
+		zap.L().Debug("failed to get account balance", zap.Error(err))
+		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
+		return
+	}
 
-	//jeonghwan todo :
-	// available 외 필요 자산 추가
+	model.Respond(rw, res)
+	return
+}
+
+// GetAllBalances returns account balance.
+func GetAllBalances(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	accAddr := vars["accAddr"]
+	err := model.VerifyBech32AccAddr(accAddr)
+	if err != nil {
+		zap.L().Debug("failed to validate account address", zap.Error(err))
+		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
+		return
+	}
+	res, err := s.client.GetAllBalances(accAddr)
+	if err != nil {
+		zap.L().Debug("failed to get all account balances", zap.Error(err))
+		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
+		return
+	}
 
 	model.Respond(rw, res)
 	return
@@ -129,9 +151,7 @@ func GetDelegatorDelegations(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Query all delegations from a delegator
-	queryClient := stakingtypes.NewQueryClient(s.client.GetCliContext())
-	request := stakingtypes.QueryDelegatorDelegationsRequest{DelegatorAddr: accAddr}
-	resps, err := queryClient.DelegatorDelegations(context.Background(), &request)
+	resps, err := s.client.GetDelegatorDelegations(accAddr)
 	if err != nil {
 		zap.L().Error("failed to get delegators delegations", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -141,9 +161,7 @@ func GetDelegatorDelegations(rw http.ResponseWriter, r *http.Request) {
 	rewards := func(p1, p2 *distributiontypes.DelegationDelegatorReward) bool {
 		return p1.ValidatorAddress < p2.ValidatorAddress
 	}
-	distributionQueryClient := distributiontypes.NewQueryClient(s.client.GetCliContext())
-	totalrequest := distributiontypes.QueryDelegationTotalRewardsRequest{DelegatorAddress: accAddr}
-	res2, err2 := distributionQueryClient.DelegationTotalRewards(context.Background(), &totalrequest)
+	res2, err2 := s.client.GetDelegationTotalRewards(accAddr)
 	if err2 != nil {
 		zap.L().Error("failed to get delegator rewards", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -174,9 +192,7 @@ func GetDelegatorDelegations(rw http.ResponseWriter, r *http.Request) {
 	resultDelegations := make([]model.ResultDelegations, 0)
 	for _, resp := range resps.DelegationResponses {
 		// Query a delegation reward
-		queryClient := distributiontypes.NewQueryClient(s.client.GetCliContext())
-		request := distributiontypes.QueryDelegationRewardsRequest{DelegatorAddress: resp.Delegation.DelegatorAddress, ValidatorAddress: resp.Delegation.ValidatorAddress}
-		drr, err := queryClient.DelegationRewards(context.Background(), &request)
+		drr, err := s.client.GetDelegationRewards(resp.Delegation.DelegatorAddress, resp.Delegation.ValidatorAddress)
 		if err != nil {
 			zap.L().Error("failed to get delegator rewards", zap.Error(err))
 			errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -209,9 +225,7 @@ func GetDelegatorDelegations(rw http.ResponseWriter, r *http.Request) {
 		}
 
 		// 위임한 검증인의 모니커 조회
-		stakingQueryClient := stakingtypes.NewQueryClient(s.client.GetCliContext())
-		stakingQueryRequest := stakingtypes.QueryValidatorRequest{ValidatorAddr: resp.Delegation.ValidatorAddress}
-		vr, err := stakingQueryClient.Validator(context.Background(), &stakingQueryRequest)
+		vr, err := s.client.GetValidator(resp.Delegation.ValidatorAddress)
 		if err != nil {
 			zap.L().Error("failed to get delegations from a validator", zap.Error(err))
 			errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -234,13 +248,6 @@ func GetDelegatorDelegations(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// GetDelegationsRewards returns total amount of rewards from a delegator's delegations.
-func GetDelegationsRewards(rw http.ResponseWriter, r *http.Request) {
-	//jeonghwan : 안쓰는 함수
-	GetTotalRewardsFromDelegator(rw, r)
-	return
-}
-
 // GetDelegatorUnbondingDelegations returns unbonding delegations from a delegator
 func GetDelegatorUnbondingDelegations(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -253,9 +260,7 @@ func GetDelegatorUnbondingDelegations(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	queryClient := stakingtypes.NewQueryClient(s.client.GetCliContext())
-	request := stakingtypes.QueryDelegatorUnbondingDelegationsRequest{DelegatorAddr: accAddr}
-	res, err := queryClient.DelegatorUnbondingDelegations(context.Background(), &request)
+	res, err := s.client.GetDelegatorUnbondingDelegations(accAddr)
 	if err != nil {
 		zap.L().Error("failed to get account delegators rewards", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -270,10 +275,11 @@ func GetDelegatorUnbondingDelegations(rw http.ResponseWriter, r *http.Request) {
 		}
 
 		temp := &model.UnbondingDelegations{
-			DelegatorAddress: u.DelegatorAddress,
-			ValidatorAddress: u.ValidatorAddress,
-			Moniker:          val.Moniker,
-			Entries:          u.Entries,
+			UnbondingDelegation: u,
+			// DelegatorAddress: u.DelegatorAddress,
+			// ValidatorAddress: u.ValidatorAddress,
+			// Entries:          u.Entries,
+			Moniker: val.Moniker,
 		}
 
 		result = append(result, temp)
@@ -316,6 +322,12 @@ func GetAccountTxs(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	accAddr := vars["accAddr"]
 
+	err := model.VerifyBech32AccAddr(accAddr)
+	if err != nil {
+		zap.L().Debug("failed to validate account address", zap.Error(err))
+		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
+		return
+	}
 	before, after, limit, err := model.ParseHTTPArgsWithBeforeAfterLimit(r, model.DefaultBefore, model.DefaultAfter, model.DefaultLimit)
 	if err != nil {
 		zap.S().Debug("failed to parse HTTP args ", zap.Error(err))
@@ -326,13 +338,6 @@ func GetAccountTxs(rw http.ResponseWriter, r *http.Request) {
 	if limit > 100 {
 		zap.S().Debug("failed to query with this limit ", zap.Int("request limit", limit))
 		errors.ErrOverMaxLimit(rw, http.StatusUnauthorized)
-		return
-	}
-
-	err = model.VerifyBech32AccAddr(accAddr)
-	if err != nil {
-		zap.L().Debug("failed to validate account address", zap.Error(err))
-		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
 		return
 	}
 
@@ -365,11 +370,16 @@ func GetAccountTransferTxs(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	accAddr := vars["accAddr"]
 
+	err := model.VerifyBech32AccAddr(accAddr)
+	if err != nil {
+		zap.L().Debug("failed to validate account address", zap.Error(err))
+		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
+		return
+	}
 	before, after, limit, err := model.ParseHTTPArgsWithBeforeAfterLimit(r, model.DefaultBefore, model.DefaultAfter, model.DefaultLimit)
 	if err != nil {
 		zap.S().Debug("failed to parse HTTP args ", zap.Error(err))
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "request is invalid")
-		return
 	}
 
 	if limit > 100 {
@@ -391,13 +401,6 @@ func GetAccountTransferTxs(rw http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err = model.VerifyBech32AccAddr(accAddr)
-	if err != nil {
-		zap.L().Debug("failed to validate account address", zap.Error(err))
-		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
-		return
-	}
-
 	txs, err := s.db.QueryTransferTransactionsByAddr(accAddr, denom, before, after, limit)
 	if err != nil {
 		zap.L().Error("failed to query txs", zap.Error(err))
@@ -415,20 +418,7 @@ func GetTxsBetweenDelegatorAndValidator(rw http.ResponseWriter, r *http.Request)
 	accAddr := vars["accAddr"]
 	valAddr := vars["valAddr"]
 
-	before, after, limit, err := model.ParseHTTPArgsWithBeforeAfterLimit(r, model.DefaultBefore, model.DefaultAfter, model.DefaultLimit)
-	if err != nil {
-		zap.S().Debug("failed to parse HTTP args ", zap.Error(err))
-		errors.ErrInvalidParam(rw, http.StatusBadRequest, "request is invalid")
-		return
-	}
-
-	if limit > 100 {
-		zap.S().Debug("failed to query with this limit ", zap.Int("request limit", limit))
-		errors.ErrOverMaxLimit(rw, http.StatusUnauthorized)
-		return
-	}
-
-	err = model.VerifyBech32AccAddr(accAddr)
+	err := model.VerifyBech32AccAddr(accAddr)
 	if err != nil {
 		zap.L().Debug("failed to validate account address", zap.Error(err))
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
@@ -439,6 +429,19 @@ func GetTxsBetweenDelegatorAndValidator(rw http.ResponseWriter, r *http.Request)
 	if err != nil {
 		zap.L().Debug("failed to validate validator address", zap.Error(err))
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "validator address is invalid")
+		return
+	}
+
+	before, after, limit, err := model.ParseHTTPArgsWithBeforeAfterLimit(r, model.DefaultBefore, model.DefaultAfter, model.DefaultLimit)
+	if err != nil {
+		zap.S().Debug("failed to parse HTTP args ", zap.Error(err))
+		errors.ErrInvalidParam(rw, http.StatusBadRequest, "request is invalid")
+		return
+	}
+
+	if limit > 100 {
+		zap.S().Debug("failed to query with this limit ", zap.Int("request limit", limit))
+		errors.ErrOverMaxLimit(rw, http.StatusUnauthorized)
 		return
 	}
 
@@ -453,7 +456,7 @@ func GetTxsBetweenDelegatorAndValidator(rw http.ResponseWriter, r *http.Request)
 	return
 }
 
-// GetTotalBalance returns account's kava total, available, vesting, delegated, unbondings, rewards, deposited, incentive, and commussion.
+// GetTotalBalance returns account's total, available, vesting, delegated, unbondings, rewards, deposited, incentive, and commission for staking denom.
 func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	accAddr := vars["accAddr"]
@@ -462,18 +465,6 @@ func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		zap.S().Debugf("failed to validate account address: %s", err)
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
-		return
-	}
-
-	latestBlock, err := s.client.GetLatestBlockHeight()
-	if err != nil {
-		zap.S().Errorf("failed to get the latest block height: %s", err)
-		return
-	}
-
-	block, err := s.client.GetBlock(latestBlock)
-	if err != nil {
-		zap.S().Errorf("failed to get block information: %s", err)
 		return
 	}
 
@@ -494,61 +485,212 @@ func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 	commission := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
 
 	// available
-	coins, err := s.client.GetAccountBalance(accAddr)
+	coins, err := s.client.GetBalance(accAddr)
 	if err != nil {
 		zap.S().Debugf("failed to get account balance: %s", err)
 		errors.ErrNotFound(rw, http.StatusNotFound)
 		return
 	}
-
+	// jeonghwan
+	// coins nil check가 필요한지, getbalance를 리턴 받을 때, available로 받으면 안되는지 확인 필요
 	if coins != nil {
-		if coins.Denom == denom {
-			available = available.Add(*coins)
-		}
+		available = available.Add(*coins)
 	}
 
 	// Delegated
-	delegations, err := s.client.GetDelegatorDelegations(accAddr)
+	delegationsResp, err := s.client.GetDelegatorDelegations(accAddr)
 	if err != nil {
 		zap.S().Errorf("failed to get delegator's delegations: %s", err)
 		return
 	}
-
-	if len(delegations) > 0 {
-		for _, delegation := range delegations {
-			delegated = delegated.Add(delegation.Balance)
-		}
+	for _, delegation := range delegationsResp.DelegationResponses {
+		delegated = delegated.Add(delegation.Balance)
 	}
 
 	// Undelegated
-	undelegations, err := s.client.GetDelegatorUndelegations(accAddr)
+	undelegationsResp, err := s.client.GetDelegatorUnbondingDelegations(accAddr)
 	if err != nil {
 		zap.S().Errorf("failed to get delegator's undelegations: %s", err)
 		return
 	}
-
-	if len(undelegations) > 0 {
-		for _, undelegation := range undelegations {
-			for _, e := range undelegation.Entries {
-				undelegated = undelegated.Add(sdktypes.NewCoin(denom, e.Balance))
-			}
+	for _, undelegation := range undelegationsResp.UnbondingResponses {
+		for _, e := range undelegation.Entries {
+			undelegated = undelegated.Add(sdktypes.NewCoin(denom, e.Balance))
 		}
 	}
 
 	// Rewards
-	totalRewards, err := s.client.GetDelegatorTotalRewards(accAddr)
+	totalRewardsResp, err := s.client.GetDelegationTotalRewards(accAddr)
 	if err != nil {
 		zap.S().Errorf("failed to get get delegator's total rewards: %s", err)
 		return
 	}
+	totalDecs, _ := totalRewardsResp.Total.TruncateDecimal()
+	for _, reward := range totalDecs {
+		if reward.Denom == denom {
+			rewards = rewards.Add(reward)
+			// 특정 denom에 대한 합계를 구하고 나머지는 사용하지 않음
+			break
+		}
+	}
 
-	if len(totalRewards.Rewards) > 0 {
-		for _, tr := range totalRewards.Rewards {
-			for _, reward := range tr.Reward {
-				if reward.Denom == denom {
-					truncatedRewards, _ := reward.TruncateDecimal()
-					rewards = rewards.Add(truncatedRewards)
+	valAddr, err := model.ConvertValAddrFromAccAddr(accAddr)
+	if err != nil {
+		zap.S().Errorf("failed to convert validator address from account address: %s", err)
+		return
+	}
+	// Commission
+	commissionsResp, err := s.client.GetValidatorCommission(valAddr)
+	if err != nil {
+		zap.S().Errorf("failed to get validator's commission: %s", err)
+		return
+	}
+	for _, c := range commissionsResp.Commission {
+		truncatedCoin, _ := c.TruncateDecimal()
+		commission = commission.Add(truncatedCoin)
+	}
+
+	account, err := s.client.GetAccount(accAddr)
+	if err != nil {
+		zap.S().Debugf("failed to get account information: %s", err)
+		errors.ErrNotFound(rw, http.StatusNotFound)
+		return
+	}
+
+	latestBlock, err := s.client.GetLatestBlockHeight()
+	if err != nil {
+		zap.S().Errorf("failed to get the latest block height: %s", err)
+		return
+	}
+	block, err := s.client.GetBlock(latestBlock)
+	if err != nil {
+		zap.S().Errorf("failed to get block information: %s", err)
+		return
+	}
+	// Vesting, vested
+	switch acct := account.(type) {
+	case *vestingtypes.PeriodicVestingAccount:
+		vestingCoins := acct.GetVestingCoins(block.Block.Time)
+		vestedCoins := acct.GetVestedCoins(block.Block.Time)
+		delegatedVesting := acct.GetDelegatedVesting()
+
+		// When total vesting amount is greater than or equal to delegated vesting amount, then
+		// there is still a room to delegate. Otherwise, vesting should be zero.
+		if len(vestingCoins) > 0 {
+			if vestingCoins.IsAllGTE(delegatedVesting) {
+				vestingCoins = vestingCoins.Sub(delegatedVesting)
+				for _, vc := range vestingCoins {
+					if vc.Denom == denom {
+						vesting = vesting.Add(vc)
+						available = available.Sub(vc) // available should deduct vesting amount
+					}
 				}
+			}
+		}
+
+		if len(vestedCoins) > 0 {
+			for _, vc := range vestedCoins {
+				if vc.Denom == denom {
+					vested = vested.Add(vc)
+				}
+			}
+		}
+	}
+
+	// Sum up all
+	total = total.Add(available).
+		Add(delegated).
+		Add(undelegated).
+		Add(rewards).
+		Add(commission).
+		Add(vesting)
+
+	result := &model.ResultTotalBalance{
+		Total:       total,
+		Available:   available,
+		Delegated:   delegated,
+		Undelegated: undelegated,
+		Rewards:     rewards,
+		Commission:  commission,
+		Vesting:     vesting,
+		Vested:      vested,
+	}
+
+	model.Respond(rw, result)
+	return
+}
+
+// GetTotalAllBalances returns account's total, available, vesting, delegated, unbondings, rewards, deposited, incentive, and commission.
+func GetTotalAllBalances(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	accAddr := vars["accAddr"]
+
+	err := model.VerifyBech32AccAddr(accAddr)
+	if err != nil {
+		zap.S().Debugf("failed to validate account address: %s", err)
+		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
+		return
+	}
+
+	denom, err := s.client.GetBondDenom()
+	if err != nil {
+		zap.S().Errorf("failed to get staking denom: %s", err)
+		return
+	}
+
+	// Initialize all variables
+	total := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
+	available := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
+	delegated := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
+	undelegated := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
+	rewards := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
+	vesting := sdktypes.NewCoin(denom, sdktypes.NewInt(0)) // vesting 된 것 중에 delegatable 한 수량
+	vested := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
+	commission := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
+
+	// available
+	availableCoins, err := s.client.GetAllBalances(accAddr)
+	if err != nil {
+		zap.S().Debugf("failed to get account balance: %s", err)
+		errors.ErrNotFound(rw, http.StatusNotFound)
+		return
+	}
+	_ = availableCoins
+
+	// Delegated
+	delegationsResp, err := s.client.GetDelegatorDelegations(accAddr)
+	if err != nil {
+		zap.S().Errorf("failed to get delegator's delegations: %s", err)
+		return
+	}
+	for _, delegation := range delegationsResp.DelegationResponses {
+		delegated = delegated.Add(delegation.Balance)
+	}
+
+	// Undelegated
+	undelegationsResp, err := s.client.GetDelegatorUnbondingDelegations(accAddr)
+	if err != nil {
+		zap.S().Errorf("failed to get delegator's undelegations: %s", err)
+		return
+	}
+	for _, undelegation := range undelegationsResp.UnbondingResponses {
+		for _, e := range undelegation.Entries {
+			undelegated = undelegated.Add(sdktypes.NewCoin(denom, e.Balance))
+		}
+	}
+
+	// Rewards
+	totalRewardsResp, err := s.client.GetDelegationTotalRewards(accAddr)
+	if err != nil {
+		zap.S().Errorf("failed to get get delegator's total rewards: %s", err)
+		return
+	}
+	// rewards, _ := totalRewardsResp.Total.TruncateDecimal()
+	for _, tr := range totalRewardsResp.Rewards {
+		for _, reward := range tr.Reward {
+			if reward.Denom == denom {
+				truncatedRewards, _ := reward.TruncateDecimal()
+				rewards = rewards.Add(truncatedRewards)
 			}
 		}
 	}
@@ -560,16 +702,14 @@ func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Commission
-	commissions, err := s.client.GetValidatorCommission(valAddr)
+	commissionsResp, err := s.client.GetValidatorCommission(valAddr)
 	if err != nil {
 		zap.S().Errorf("failed to get validator's commission: %s", err)
 		return
 	}
-
-	if len(commissions) > 0 {
-		for _, c := range commissions {
-			commission = commission.Add(c)
-		}
+	for _, c := range commissionsResp.Commission {
+		truncatedCoin, _ := c.TruncateDecimal()
+		commission = commission.Add(truncatedCoin)
 	}
 
 	account, err := s.client.GetAccount(accAddr)
@@ -579,11 +719,19 @@ func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Vesting, vested, failed vested
-	switch account.(type) {
+	latestBlock, err := s.client.GetLatestBlockHeight()
+	if err != nil {
+		zap.S().Errorf("failed to get the latest block height: %s", err)
+		return
+	}
+	block, err := s.client.GetBlock(latestBlock)
+	if err != nil {
+		zap.S().Errorf("failed to get block information: %s", err)
+		return
+	}
+	// Vesting, vested
+	switch acct := account.(type) {
 	case *vestingtypes.PeriodicVestingAccount:
-		acct := account.(*vestingtypes.PeriodicVestingAccount)
-
 		vestingCoins := acct.GetVestingCoins(block.Block.Time)
 		vestedCoins := acct.GetVestedCoins(block.Block.Time)
 		delegatedVesting := acct.GetDelegatedVesting()

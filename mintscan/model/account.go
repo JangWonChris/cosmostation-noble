@@ -5,36 +5,17 @@ import (
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
-// Delegations defines the structure for delegations.
-type Delegations struct {
-	DelegatorAddress string `json:"delegator_address"`
-	ValidatorAddress string `json:"validator_address"`
-	Shares           string `json:"shares"`
-	Balance          string `json:"balance"`
-	// Balance          Coin   `json:"balance"` // for next update
-}
-
-// Rewards defines the structure for rewards.
-type Rewards struct {
-	ValidatorAddress string `json:"validator_address"`
-	Reward           []Coin `json:"reward"`
-}
-
 // UnbondingDelegations defines the structure for unbonding delegations.
 type UnbondingDelegations struct {
-	DelegatorAddress string `json:"delegator_address"`
-	ValidatorAddress string `json:"validator_address"`
-	Moniker          string `json:"moniker"`
-	Entries          []stakingtypes.UnbondingDelegationEntry
-	// Entries          []struct {
-	// 	CreationHeight string `json:"creation_height"`
-	// 	CompletionTime string `json:"completion_time"`
-	// 	InitialBalance string `json:"initial_balance"`
-	// 	Balance        string `json:"balance"`
-	// } `json:"entries"`
+	stakingtypes.UnbondingDelegation
+	// DelegatorAddress string                                  `json:"delegator_address"`
+	// ValidatorAddress string                                  `json:"validator_address"`
+	// Entries          []stakingtypes.UnbondingDelegationEntry `json:"entries"`
+	Moniker string `json:"moniker"`
 }
 
 // ModuleAccount defines the structure for module account information.
+// 향후 사용할 수 있어서 삭제 안함(Jeonghwan)
 type ModuleAccount struct {
 	Address       string    `json:"address"`
 	AccountNumber uint64    `json:"account_number"`

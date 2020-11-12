@@ -61,7 +61,7 @@ func main() {
 	// account 별 위임 해제 상세 내역
 	// account 별 tx 상세 내역
 	r.HandleFunc("/auth/accounts/{accAddr}", handler.GetAccount).Methods("GET")                                               //kava에서만 사용중 (vesting account를 뽑기 위해)
-	r.HandleFunc("/account/balances/{accAddr}", handler.GetAccountBalance).Methods("GET")                                     // return all assets of given account
+	r.HandleFunc("/account/balances/{accAddr}", handler.GetBalance).Methods("GET")                                            // return all assets of given account
 	r.HandleFunc("/account/validator/commission/{accAddr}", handler.GetValidatorCommission).Methods("GET")                    // 현재 사용중이나 /account/balances에 포함시킬 예정
 	r.HandleFunc("/distribution/delegators/{delAddr}/withdraw_address", handler.GetDelegatorWithdrawalAddress).Methods("GET") //위임 내역을 반환할 때, 같이 포함시킨다
 
@@ -76,9 +76,7 @@ func main() {
 	r.HandleFunc("/blocks", handler.GetBlocks).Methods("GET")
 	r.HandleFunc("/blocks/{proposer}", handler.GetBlocksByProposer).Methods("GET")
 
-	//사용 안함
-	r.HandleFunc("/distribution/delegators/{delAddr}/rewards", handler.GetTotalRewardsFromDelegator).Methods("GET")
-	r.HandleFunc("/distribution/delegators/{delAddr}/rewards/{valAddr}", handler.GetRewardsBetweenDelegatorAndValidator).Methods("GET")
+	//사용 안하는 중
 	r.HandleFunc("/distribution/community_pool", handler.GetCommunityPool).Methods("GET")
 	//end
 
@@ -114,13 +112,10 @@ func main() {
 
 	// These APIs will be deprecated in next update.
 	r.HandleFunc("/staking/redelegations", handler.GetRedelegationsLegacy).Methods("GET")                             //staking/delegator/{delAddr}/redelegations 로 변경 됨
-	r.HandleFunc("/account/delegations/rewards/{accAddr}", handler.GetDelegationsRewards).Methods("GET")              // same with distribution delegators rewards
-	r.HandleFunc("/account/balance/{accAddr}", handler.GetAccountBalance).Methods("GET")                              // /account/balances/{accAddr}
+	r.HandleFunc("/account/balance/{accAddr}", handler.GetBalance).Methods("GET")                                     // /account/balances/{accAddr}
 	r.HandleFunc("/account/commission/{accAddr}", handler.GetValidatorCommission).Methods("GET")                      // /account/validator/commission/{accAddr}
 	r.HandleFunc("/account/unbonding-delegations/{delAddr}", handler.GetDelegatorUnbondingDelegations).Methods("GET") // /acount/unbonding_delegations/{accAddr}
 	r.HandleFunc("/tx/{hash}", handler.GetLegacyTransactionFromDB).Methods("GET")                                     // /tx?hash={hash}
-	r.HandleFunc("/staking/validator/misses/detail/{address}", handler.GetValidatorUptime).Methods("GET")             // /staking/validator/updatime/{address}
-	r.HandleFunc("/staking/validator/misses/{address}", handler.GetValidatorUptimeRange).Methods("GET")               // /staking/validator/uptime/range/{address}
 
 	// These APIs will need to be added in next update.
 	// r.HandleFunc("/module/accounts", handler.GetModuleAccounts).Methods("GET")

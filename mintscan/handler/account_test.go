@@ -61,3 +61,19 @@ func TestModuleAccounts(t *testing.T) {
 		require.NotNil(t, acc.GetPermissions(), "Module Account Permissions")
 	}
 }
+
+func TestKindOfBalance(t *testing.T) {
+	address := "cosmos1x5wgh6vwye60wv3dtshs9dmqggwfx2ldnqvev0"
+	coin, err := iclient.GetBalance(address)
+	require.NoError(t, err)
+	fmt.Println("getbalance :", coin.Denom)
+	fmt.Println("getbalance :", coin.Amount)
+
+	coins, err := iclient.GetAllBalances(address)
+	require.NoError(t, err)
+
+	for _, coin := range coins {
+		fmt.Println("getallbalances :", coin.Denom)
+		fmt.Println("getallbalances :", coin.Amount)
+	}
+}

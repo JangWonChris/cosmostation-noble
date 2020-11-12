@@ -9,7 +9,6 @@ import (
 
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	clienttypes "github.com/cosmostation/cosmostation-cosmos/mintscan/client/types"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/schema"
@@ -397,6 +396,7 @@ func GetValidatorPowerHistoryEvents(rw http.ResponseWriter, r *http.Request) {
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
 		return
 	}
+	fmt.Println(len(events))
 
 	result := make([]*model.ResultPowerEventHistory, 0)
 
@@ -452,24 +452,14 @@ func GetRedelegationsLegacy(rw http.ResponseWriter, r *http.Request) {
 		delAddr = r.URL.Query()["delegator"][0]
 	}
 
-	endpoint := clienttypes.PrefixStaking + "/delegators/" + delAddr + "/redelegations?"
-
-	// get all redelegations from a validator
-	resp, err := s.client.RequestWithRestServer(endpoint)
+	res, err := s.client.GetRedelegations(delAddr, "", "")
 	if err != nil {
 		zap.L().Error("failed to get all redelegations from a validator", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
 		return
 	}
 
-	var result stakingtypes.QueryRedelegationsResponse
-	if err = s.client.GetCliContext().JSONMarshaler.UnmarshalJSON(resp, &result); err != nil {
-		zap.L().Error("failed to unmarshal given response", zap.Error(err))
-		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
-		return
-	}
-
-	model.Respond(rw, result)
+	model.Respond(rw, res)
 	return
 }
 
@@ -487,9 +477,7 @@ func GetRedelegations(rw http.ResponseWriter, r *http.Request) {
 	if len(r.URL.Query()["dst_validator_addr"]) > 0 {
 		dstValidatorAddress = r.URL.Query()["dst_validator_addr"][0]
 	}
-	queryClient := stakingtypes.NewQueryClient(s.client.GetCliContext())
-	request := stakingtypes.QueryRedelegationsRequest{DelegatorAddr: delAddr, SrcValidatorAddr: srcValidatorAddress, DstValidatorAddr: dstValidatorAddress}
-	res, err := queryClient.Redelegations(context.Background(), &request)
+	res, err := s.client.GetRedelegations(delAddr, srcValidatorAddress, dstValidatorAddress)
 	if err != nil {
 		zap.L().Error("failed to get all redelegations from a validator", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
