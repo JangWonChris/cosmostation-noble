@@ -6,9 +6,11 @@ import (
 	"log"
 	"testing"
 
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	sdktypestx "github.com/cosmos/cosmos-sdk/types/tx"
 	ceCodec "github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
+	"github.com/stretchr/testify/require"
 )
 
 // TestGetTxsChunk decodes transactions in a block and return a format of database transaction.
@@ -104,4 +106,26 @@ func TestGetMessage(t *testing.T) {
 	}
 
 	return
+}
+
+func TestUnmarshalMessageString(t *testing.T) {
+	msgStr := "[{\"@type\": \"/cosmos.staking.v1beta1.MsgDelegate\", \"amount\": {\"denom\": \"umuon\", \"amount\": \"18044801\"}, \"delegator_address\": \"cosmos10fyfu7fl78f88a7zhcwu72wk3hjlzdm83yr09k\", \"validator_address\": \"cosmosvaloper10fyfu7fl78f88a7zhcwu72wk3hjlzdm85sh6f9\"}]"
+
+	var jsonRaws []json.RawMessage
+	json.Unmarshal([]byte(msgStr), &jsonRaws)
+
+	for _, raw := range jsonRaws {
+		fmt.Println(string(raw))
+		var any codectypes.Any
+		ceCodec.AppCodec.UnmarshalJSON(raw, &any)
+		fmt.Println(any.TypeUrl)
+		// any.GetCachedValue().(type)
+		fmt.Println(any.GetCachedValue())
+		b, err := json.Marshal(any)
+		require.NoError(t, err)
+		fmt.Println(string(any.Value))
+
+		fmt.Println(string(b))
+	}
+
 }

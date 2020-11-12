@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
@@ -13,11 +12,6 @@ import (
 
 // GetBaseAccountTotalAsset returns total available, rewards, commission, delegations, and undelegations from a delegator.
 func (c *Client) GetBaseAccountTotalAsset(address string) (sdktypes.Coin, sdktypes.Coin, sdktypes.Coin, sdktypes.Coin, sdktypes.Coin, error) {
-	// account, err := c.GetAccount(address)
-	// if err != nil {
-	// 	return sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, err
-	// }
-
 	denom, err := c.GetBondDenom()
 	if err != nil {
 		return sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, err
@@ -33,7 +27,7 @@ func (c *Client) GetBaseAccountTotalAsset(address string) (sdktypes.Coin, sdktyp
 	if err != nil {
 		return sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, err
 	}
-	// jeonghwan umuon을 구해올 방법, 혹은 다른 denom들
+
 	b := banktypes.NewQueryBalanceRequest(sdkaddr, denom)
 	bankClient := banktypes.NewQueryClient(c.grpcClient)
 	var header metadata.MD
@@ -43,18 +37,8 @@ func (c *Client) GetBaseAccountTotalAsset(address string) (sdktypes.Coin, sdktyp
 		grpc.Header(&header), // Also fetch grpc header
 	)
 	if bankRes.GetBalance() != nil {
-		fmt.Println(*bankRes.GetBalance())
 		spendable = spendable.Add(*bankRes.GetBalance())
 	}
-	// banktypes.GetGenesisStateFromAppState(c.cliCtx.JSONMarshaler, appState map[string]json.RawMessage)
-	// Get total spendable coins.
-	// if len(account.GetCoins()) > 0 {
-	// 	for _, coin := range account.GetCoins() {
-	// 		if coin.Denom == denom {
-	// 			spendable = spendable.Add(coin)
-	// 		}
-	// 	}
-	// }
 
 	// Get total delegated coins.
 	delegations, err := c.GetDelegatorDelegations(address)

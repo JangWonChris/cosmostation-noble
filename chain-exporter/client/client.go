@@ -738,9 +738,6 @@ func (c *Client) GetValidatorsIdentities(vals []schema.Validator) (result []sche
 
 // GetGenesisAccountFromGenesisState get the genesis account information from genesis state ({NODE_HOME}/config/Genesis.json)
 func (c *Client) GetGenesisAccountFromGenesisState() (accounts []schema.Account, err error) {
-
-	// var accounts []schema.Account
-
 	// genesisFile := os.Getenv("PWD") + "/genesis.json"
 	genesisFile := "/Users/jeonghwan/dev/cosmostation/cosmostation-cosmos/chain-exporter/genesis.json"
 	genDoc, err := tmtypes.GenesisDocFromFile(genesisFile)
@@ -748,9 +745,6 @@ func (c *Client) GetGenesisAccountFromGenesisState() (accounts []schema.Account,
 		log.Println(err, "failed to read genesis doc file %s", genesisFile)
 		return
 	}
-	log.Println("genesis_time :", genDoc.GenesisTime)
-	log.Println("chainid :", genDoc.ChainID)
-	log.Println("initial_height :", genDoc.InitialHeight)
 
 	var genesisState map[string]json.RawMessage
 	if err = json.Unmarshal(genDoc.AppState, &genesisState); err != nil {
@@ -767,9 +761,6 @@ func (c *Client) GetGenesisAccountFromGenesisState() (accounts []schema.Account,
 	for i, authAcc := range authAccs {
 		var ga authtypes.GenesisAccount
 		codec.AppCodec.UnpackAny(authAcc, &ga)
-		// log.Println(authAcc.GetTypeUrl())
-		// log.Println(ga.GetAddress().String())
-		// log.Println(ga.GetAccountNumber())
 		sAcc := schema.Account{
 			ChainID:        genDoc.ChainID,
 			AccountAddress: ga.GetAddress().String(),
