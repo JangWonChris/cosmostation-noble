@@ -8,6 +8,7 @@ import (
 // RequestWithRestServer is general request API from REST Server and
 // return without any modification
 func (c *Client) RequestWithRestServer(reqParam string) ([]byte, error) {
+	// deprecated function, do not use for querying any with rest-server
 	resp, err := c.apiClient.R().Get(reqParam)
 	if err != nil {
 		return nil, err

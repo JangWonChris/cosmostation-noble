@@ -37,6 +37,7 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 
 	resty "github.com/go-resty/resty/v2"
+	tmconfig "github.com/tendermint/tendermint/config"
 	rpcclient "github.com/tendermint/tendermint/rpc/client"
 	rpc "github.com/tendermint/tendermint/rpc/client/http"
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
@@ -730,7 +731,8 @@ func (c *Client) GetValidatorsIdentities(vals []schema.Validator) (result []sche
 // GetGenesisAccountFromGenesisState get the genesis account information from genesis state ({NODE_HOME}/config/Genesis.json)
 func (c *Client) GetGenesisAccountFromGenesisState() (accounts []schema.Account, err error) {
 	// genesisFile := os.Getenv("PWD") + "/genesis.json"
-	genesisFile := "/Users/jeonghwan/dev/cosmostation/cosmostation-cosmos/chain-exporter/genesis.json"
+	genesisFile := tmconfig.DefaultBaseConfig().GenesisFile()
+	// genesisFile := "/Users/jeonghwan/dev/cosmostation/cosmostation-cosmos/chain-exporter/genesis.json"
 	genDoc, err := tmtypes.GenesisDocFromFile(genesisFile)
 	if err != nil {
 		log.Println(err, "failed to read genesis doc file %s", genesisFile)

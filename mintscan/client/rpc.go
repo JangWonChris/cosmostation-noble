@@ -55,6 +55,8 @@ func (c *Client) BroadcastTx(signedTx string) (*tmctypes.ResultBroadcastTxCommit
 		return &tmctypes.ResultBroadcastTxCommit{}, err
 	}
 
+	//todo : jeonghwan
+
 	// var stdTx sdktypes.Tx
 	// stdTx, err = c.cliCtx.TxConfig.TxJSONDecoder()(signedTxStr)
 	// if err != nil {
