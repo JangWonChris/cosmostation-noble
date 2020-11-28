@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"time"
@@ -730,8 +732,10 @@ func (c *Client) GetValidatorsIdentities(vals []schema.Validator) (result []sche
 
 // GetGenesisAccountFromGenesisState get the genesis account information from genesis state ({NODE_HOME}/config/Genesis.json)
 func (c *Client) GetGenesisAccountFromGenesisState() (accounts []schema.Account, err error) {
+
 	// genesisFile := os.Getenv("PWD") + "/genesis.json"
-	genesisFile := tmconfig.DefaultBaseConfig().GenesisFile()
+	baseConfig := tmconfig.DefaultBaseConfig()
+	genesisFile := filepath.Join(os.Getenv("HOME"), baseConfig.Genesis)
 	// genesisFile := "/Users/jeonghwan/dev/cosmostation/cosmostation-cosmos/chain-exporter/genesis.json"
 	genDoc, err := tmtypes.GenesisDocFromFile(genesisFile)
 	if err != nil {
