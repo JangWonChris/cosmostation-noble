@@ -15,6 +15,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client"
 	sdkclient "github.com/cosmos/cosmos-sdk/client"
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
+	gaia "github.com/cosmos/gaia/app"
 
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
 	bankexported "github.com/cosmos/cosmos-sdk/x/bank/exported"
@@ -735,7 +736,7 @@ func (c *Client) GetGenesisAccountFromGenesisState() (accounts []schema.Account,
 
 	// genesisFile := os.Getenv("PWD") + "/genesis.json"
 	baseConfig := tmconfig.DefaultBaseConfig()
-	genesisFile := filepath.Join(os.Getenv("HOME"), baseConfig.Genesis)
+	genesisFile := filepath.Join(os.Getenv("HOME"), gaia.DefaultNodeHome, baseConfig.Genesis)
 	// genesisFile := "/Users/jeonghwan/dev/cosmostation/cosmostation-cosmos/chain-exporter/genesis.json"
 	genDoc, err := tmtypes.GenesisDocFromFile(genesisFile)
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -12,8 +13,10 @@ import (
 	bankexported "github.com/cosmos/cosmos-sdk/x/bank/exported"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
+	gaia "github.com/cosmos/gaia/app"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
+	tmconfig "github.com/tendermint/tendermint/config"
 	tmtypes "github.com/tendermint/tendermint/types"
 )
 
@@ -21,7 +24,10 @@ func TestGetGenesisAccount(t *testing.T) {
 
 	var accounts []schema.Account
 	// genesisFile := os.Getenv("PWD") + "/genesis.json"
-	genesisFile := "/Users/jeonghwan/dev/cosmostation/cosmostation-cosmos/chain-exporter/genesis.json"
+	baseConfig := tmconfig.DefaultBaseConfig()
+	genesisFile := filepath.Join(os.Getenv("HOME"), gaia.DefaultNodeHome, baseConfig.Genesis)
+	// genesisFile := "/Users/jeonghwan/dev/cosmostation/cosmostation-cosmos/chain-exporter/genesis.json"
+	log.Println("genesis file path :", genesisFile)
 	genDoc, err := tmtypes.GenesisDocFromFile(genesisFile)
 	if err != nil {
 		log.Println(err, "failed to read genesis doc file %s", genesisFile)
