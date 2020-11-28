@@ -11,15 +11,15 @@ type Account struct {
 	AccountAddress    string    `json:"account_address"`
 	AccountNumber     uint64    `json:"account_number" sql:"default:0"`
 	AccountType       string    `json:"account_type"`
-	CoinsTotal        uint64    `json:"coins_total" sql:"default:0"`
-	CoinsSpendable    uint64    `json:"coins_spendable" sql:"default:0"`
-	CoinsDelegated    uint64    `json:"coins_delegated" sql:"default:0"`
-	CoinsUndelegated  uint64    `json:"coins_undelegated" sql:"default:0" sql:"default:0"`
-	CoinsRewards      uint64    `json:"coins_rewards"`
-	CoinsCommission   uint64    `json:"coins_commission" sql:"default:0"`
-	CoinsVesting      uint64    `json:"coins_vesting" sql:"default:0"`
-	CoinsVested       uint64    `json:"coins_vested" sql:"default:0"`
-	CoinsFailedVested uint64    `json:"coins_failed_vested" sql:"default:0"`
+	CoinsTotal        string    `json:"coins_total" sql:"type:numeric(255), default:0"`
+	CoinsSpendable    string    `json:"coins_spendable" sql:"type:numeric(255), default:0"`
+	CoinsDelegated    string    `json:"coins_delegated" sql:"type:numeric(255), default:0"`
+	CoinsUndelegated  string    `json:"coins_undelegated" sql:"type:numeric(255), default:0"`
+	CoinsRewards      string    `json:"coins_rewards" sql:"type:numeric(255), default:0"`
+	CoinsCommission   string    `json:"coins_commission" sql:"type:numeric(255), default:0"`
+	CoinsVesting      string    `json:"coins_vesting" sql:"type:numeric(255), default:0"`
+	CoinsVested       string    `json:"coins_vested" sql:"type:numeric(255), default:0"`
+	CoinsFailedVested string    `json:"coins_failed_vested" sql:"type:numeric(255), default:0"`
 	LastTx            string    `json:"tx"`
 	LastTxTime        string    `json:"last_tx_time"`
 	CreationTime      string    `json:"creation_time"`

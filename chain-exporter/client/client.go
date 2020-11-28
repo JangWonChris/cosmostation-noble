@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/client"
+	sdkclient "github.com/cosmos/cosmos-sdk/client"
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
@@ -21,6 +22,7 @@ import (
 	// sdkUtils "github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	authvestingtypes "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
 
 	"github.com/cosmos/cosmos-sdk/x/distribution/client/common"
 
@@ -55,14 +57,6 @@ type Client struct {
 // NewClient creates a new client with the given configuration and
 // return Client struct. An error is returned if it fails.
 func NewClient(nodeCfg config.Node, keyBaseURL string) (*Client, error) {
-	cliCtx := client.Context{}.
-		WithNodeURI(nodeCfg.RPCNode).
-		WithJSONMarshaler(codec.EncodingConfig.Marshaler).
-		WithLegacyAmino(codec.EncodingConfig.Amino).
-		WithTxConfig(codec.EncodingConfig.TxConfig).
-		WithInterfaceRegistry(codec.EncodingConfig.InterfaceRegistry).
-		WithAccountRetriever(authtypes.AccountRetriever{})
-
 	grpcClient, err := grpc.Dial(nodeCfg.GRPCEndpoint,
 		grpc.WithBlock(),
 		grpc.WithTimeout(time.Second*10),
@@ -84,7 +78,21 @@ func NewClient(nodeCfg config.Node, keyBaseURL string) (*Client, error) {
 		SetHostURL(keyBaseURL).
 		SetTimeout(time.Duration(5 * time.Second))
 
+	cliCtx := client.Context{}.
+		WithNodeURI(nodeCfg.RPCNode).
+		WithJSONMarshaler(codec.EncodingConfig.Marshaler).
+		WithLegacyAmino(codec.EncodingConfig.Amino).
+		WithTxConfig(codec.EncodingConfig.TxConfig).
+		WithInterfaceRegistry(codec.EncodingConfig.InterfaceRegistry).
+		WithClient(rpcClient). //tendermint-rc6 에서 추가하지 않으면, 기본 offline mode로 지정이 된다.
+		WithAccountRetriever(authtypes.AccountRetriever{})
+
 	return &Client{cliCtx, grpcClient, rpcClient, apiClient, keyBaseClient}, nil
+}
+
+// GetGRPCConn returns client object
+func (c *Client) GetGRPCConn() *grpc.ClientConn {
+	return c.grpcClient
 }
 
 // Close close the connection
@@ -230,7 +238,7 @@ func (c *Client) GetTx(hash string) (*sdktypes.TxResponse, error) {
 }
 
 // GetAccount checks account type and returns account interface.
-func (c *Client) GetAccount(address string) (authtypes.AccountI, error) {
+func (c *Client) GetAccount(address string) (sdkclient.Account, error) {
 	accAddr, err := sdktypes.AccAddressFromBech32(address)
 	if err != nil {
 		return nil, err
@@ -241,23 +249,6 @@ func (c *Client) GetAccount(address string) (authtypes.AccountI, error) {
 	if err != nil {
 		return nil, err
 	}
-	// acc, err := auth.NewAccountRetriever(c.cliCtx).GetAccount(accAddr)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// jeonghwan : need grpc
-	// queryClient := authtypes.NewQueryClient(c.cliCtx)
-	// res, err := queryClient.Account(context.Background(), &authtypes.QueryAccountRequest{Address: accAddr.String()})
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// out, err := c.cliCtx.LegacyAmino.MarshalJSON(res.Account)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// var acc authtypes.AccountI
-	// c.cliCtx.LegacyAmino.UnmarshalJSON(out, &acc)
 
 	return acc, nil
 }
@@ -754,6 +745,8 @@ func (c *Client) GetGenesisAccountFromGenesisState() (accounts []schema.Account,
 	// a := genesisState[authtypes.ModuleName]
 	// log.Println(string(a)) //print message that key is auth {...}
 	authGenesisState := authtypes.GetGenesisStateFromAppState(codec.AppCodec, genesisState)
+	stakingGenesisState := stakingtypes.GetGenesisStateFromAppState(codec.AppCodec, genesisState)
+	bondDenom := stakingGenesisState.GetParams().BondDenom
 
 	authAccs := authGenesisState.GetAccounts()
 	NumberOfTotalAccounts := len(authAccs)
@@ -761,12 +754,35 @@ func (c *Client) GetGenesisAccountFromGenesisState() (accounts []schema.Account,
 	for i, authAcc := range authAccs {
 		var ga authtypes.GenesisAccount
 		codec.AppCodec.UnpackAny(authAcc, &ga)
+		switch ga := ga.(type) {
+		case *authtypes.BaseAccount:
+		case *authvestingtypes.DelayedVestingAccount:
+			log.Println("DelayedVestingAccount", ga.String())
+			log.Println("delegated Free :", ga.GetDelegatedFree())
+			log.Println("delegated vesting :", ga.GetDelegatedVesting())
+			log.Println("vested coins:", ga.GetVestedCoins(time.Now()))
+			log.Println("vesting coins :", ga.GetVestingCoins(time.Now()))
+			log.Println("original vesting :", ga.GetOriginalVesting())
+		case *authvestingtypes.ContinuousVestingAccount:
+			log.Println("ContinuousVestingAccount", ga.String())
+		case *authvestingtypes.PeriodicVestingAccount:
+			log.Println("PeriodicVestingAccount", ga.String())
+		}
 		sAcc := schema.Account{
-			ChainID:        genDoc.ChainID,
-			AccountAddress: ga.GetAddress().String(),
-			AccountNumber:  uint64(i),            //account number is set by specified order in genesis file
-			AccountType:    authAcc.GetTypeUrl(), //type 변경
-			CreationTime:   genDoc.GenesisTime.String(),
+			ChainID:           genDoc.ChainID,
+			AccountAddress:    ga.GetAddress().String(),
+			AccountNumber:     uint64(i),            //account number is set by specified order in genesis file
+			AccountType:       authAcc.GetTypeUrl(), //type 변경
+			CoinsTotal:        "0",
+			CoinsSpendable:    "0",
+			CoinsDelegated:    "0",
+			CoinsRewards:      "0",
+			CoinsCommission:   "0",
+			CoinsUndelegated:  "0",
+			CoinsFailedVested: "0",
+			CoinsVested:       "0",
+			CoinsVesting:      "0",
+			CreationTime:      genDoc.GenesisTime.String(),
 		}
 		accountMapper[ga.GetAddress().String()] = &sAcc
 	}
@@ -777,8 +793,8 @@ func (c *Client) GetGenesisAccountFromGenesisState() (accounts []schema.Account,
 			accAddress := bal.GetAddress()
 			accCoins := bal.GetCoins()
 
-			accountMapper[accAddress.String()].CoinsSpendable = accCoins.AmountOf("umuon").Uint64()
-
+			// accountMapper[accAddress.String()].CoinsSpendable = *accCoins.AmountOf(bondDenom).BigInt()
+			accountMapper[accAddress.String()].CoinsSpendable = accCoins.AmountOf(bondDenom).String()
 			return false
 		},
 	)
@@ -786,6 +802,7 @@ func (c *Client) GetGenesisAccountFromGenesisState() (accounts []schema.Account,
 	for _, acc := range accountMapper {
 		accounts = append(accounts, *acc)
 		log.Println(acc)
+		log.Println(acc.CoinsSpendable)
 	}
 
 	return

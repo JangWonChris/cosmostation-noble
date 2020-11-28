@@ -21,21 +21,22 @@ var (
 
 const (
 	// Define PostgreSQL database indexes to improve the speed of data retrieval operations on a database tables.
-	indexAccountAddress           = "CREATE INDEX accunt_account_address_idx ON account USING btree(account_address);"
-	indexBlockHeight              = "CREATE INDEX block_height_idx ON block USING btree(height);"
-	indexValidatorRank            = "CREATE INDEX validator_rank_idx ON validator USING btree(rank);"
-	indexValidatorStatus          = "CREATE INDEX validator_status_idx ON validator USING btree(status);"
-	indexPowerEventHistoryHeight  = "CREATE INDEX power_event_history_height_idx ON power_event_history USING btree(height);"
-	indexMissStartHeight          = "CREATE INDEX miss_start_height_idx ON miss USING btree(start_height);"
-	indexMissEndHeight            = "CREATE INDEX miss_end_height_idx ON miss USING btree(end_height);"
-	indexMissDetailHeight         = "CREATE INDEX miss_detail_height_idx ON miss_detail USING btree(height);"
-	indexTransactionLegacyHeight  = "CREATE INDEX transaction_height_idx ON transaction_legacy USING btree(height);"
-	indexTransactionLegacyChainID = "CREATE INDEX transaction_chain_id_idx ON transaction_legacy USING btree(chain_id);"
-	indexTransactionLegacyHash    = "CREATE INDEX transaction_tx_hash_idx ON transaction_legacy USING btree(tx_hash);"
-	indexTransactionHeight        = "CREATE INDEX transaction_height_idx ON transaction_legacy USING btree(height);"
-	indexTransactionHash          = "CREATE INDEX transaction_tx_hash_idx ON transaction USING btree(tx_hash);"
-	indexTransactionDetailHash    = "CREATE INDEX transaction_tx_hash_idx ON transaction_detail USING btree(tx_hash);"
-	indexTransactionDetailMsgType = "CREATE INDEX transaction_msg_type_idx ON transaction_detail USING btree(msg_type);"
+	indexAccountAddress            = "CREATE INDEX accunt_account_address_idx ON account USING btree(account_address);"
+	indexBlockHeight               = "CREATE INDEX block_height_idx ON block USING btree(height);"
+	indexValidatorRank             = "CREATE INDEX validator_rank_idx ON validator USING btree(rank);"
+	indexValidatorStatus           = "CREATE INDEX validator_status_idx ON validator USING btree(status);"
+	indexPowerEventHistoryHeight   = "CREATE INDEX power_event_history_height_idx ON power_event_history USING btree(height);"
+	indexMissStartHeight           = "CREATE INDEX miss_start_height_idx ON miss USING btree(start_height);"
+	indexMissEndHeight             = "CREATE INDEX miss_end_height_idx ON miss USING btree(end_height);"
+	indexMissDetailHeight          = "CREATE INDEX miss_detail_height_idx ON miss_detail USING btree(height);"
+	indexTransactionLegacyHeight   = "CREATE INDEX transaction_height_idx ON transaction_legacy USING btree(height);"
+	indexTransactionLegacyChainID  = "CREATE INDEX transaction_chain_id_idx ON transaction_legacy USING btree(chain_id);"
+	indexTransactionLegacyHash     = "CREATE INDEX transaction_tx_hash_idx ON transaction_legacy USING btree(tx_hash);"
+	indexTransactionHeight         = "CREATE INDEX transaction_height_idx ON transaction_legacy USING btree(height);"
+	indexTransactionHash           = "CREATE INDEX transaction_tx_hash_idx ON transaction USING btree(tx_hash);"
+	indexTransactionDetailHash     = "CREATE INDEX transaction_tx_hash_idx ON transaction_detail USING btree(tx_hash);"
+	indexTransactionDetailMsgType  = "CREATE INDEX transaction_msg_type_idx ON transaction_detail USING btree(msg_type);"
+	indexTransactionMessageAccount = "CREATE INDEX transaction_account_address_idx ON transaction_message USING btree(account_address);"
 )
 
 // Database implements a wrapper of golang ORM with focus on PostgreSQL.
@@ -84,6 +85,7 @@ func (db *Database) CreateTables() error {
 		(*schema.TransactionLegacy)(nil),
 		(*schema.Transaction)(nil),
 		(*schema.TransactionDetail)(nil),
+		(*schema.TransactionMessage)(nil),
 		(*schema.Vote)(nil),
 		(*schema.Deposit)(nil)} {
 
@@ -543,6 +545,7 @@ func (db *Database) InsertExportedData(e schema.ExportData) error {
 		}
 
 		if len(e.ResultAccounts) > 0 {
+			fmt.Println("reulst account :", e.ResultAccounts)
 			err := db.InsertOrUpdateAccounts(e.ResultAccounts)
 			if err != nil {
 				return fmt.Errorf("failed to insert result accounts: %s", err)
@@ -595,6 +598,13 @@ func (db *Database) InsertExportedData(e schema.ExportData) error {
 			err := tx.Insert(&e.ResultTxsJSONChunk)
 			if err != nil {
 				return fmt.Errorf("failed to insert result txs json chunk: %s", err)
+			}
+		}
+
+		if len(e.ResultTxsMessages) > 0 {
+			err := tx.Insert(&e.ResultTxsMessages)
+			if err != nil {
+				return fmt.Errorf("failed to insert result txs message: %s", err)
 			}
 		}
 

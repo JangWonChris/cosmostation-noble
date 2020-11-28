@@ -10,6 +10,15 @@ import (
 
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	sdktypestx "github.com/cosmos/cosmos-sdk/types/tx"
+	authvestingtypes "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	crisistypes "github.com/cosmos/cosmos-sdk/x/crisis/types"
+	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
+	evidencetypes "github.com/cosmos/cosmos-sdk/x/evidence/types"
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
+	transfertypes "github.com/cosmos/cosmos-sdk/x/ibc/applications/transfer/types"
+	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
@@ -109,4 +118,117 @@ func (ex *Exporter) getTxsJSONChunk(txResps []*sdktypes.TxResponse) ([]schema.Tr
 	}
 
 	return txChunk, nil
+}
+
+func (ex *Exporter) extractAccount(txResps []*sdktypes.TxResponse) (tms []schema.TransactionMessage, err error) {
+	// 별도의 스키마 필요
+	// id, account, hash, timestamp(불필요, 조인하면 되기 때문)
+	// id, tx_hash(id는 불가능, db에 저장할 때 알 수 없음)
+	if len(txResps) <= 0 {
+		return nil, nil
+	}
+
+	for _, txResp := range txResps {
+		msgs := txResp.GetTx().GetMsgs()
+
+		txHash := txResp.TxHash
+		accounts := make([]string, 0)
+
+		for _, msg := range msgs {
+			switch msg := msg.(type) {
+			case *authvestingtypes.MsgCreateVestingAccount:
+				fmt.Printf("Type : %T\n", msg)
+				accounts = append(accounts, msg.FromAddress, msg.ToAddress)
+			case *banktypes.MsgSend:
+				fmt.Printf("Type : %T\n", msg)
+				accounts = append(accounts, msg.FromAddress, msg.ToAddress)
+			case *banktypes.MsgMultiSend:
+				fmt.Printf("Type : %T\n", msg)
+				fmt.Println(msg)
+				// 추가 필요
+			case *crisistypes.MsgVerifyInvariant:
+				fmt.Printf("Type : %T\n", msg)
+				fmt.Println(msg.Sender)
+				accounts = append(accounts, msg.Sender)
+			case *distributiontypes.MsgSetWithdrawAddress:
+				fmt.Printf("Type : %T\n", msg)
+				accounts = append(accounts, msg.DelegatorAddress)
+			case *distributiontypes.MsgWithdrawDelegatorReward:
+				fmt.Printf("Type : %T\n", msg)
+				accounts = append(accounts, msg.DelegatorAddress, msg.ValidatorAddress)
+			case *distributiontypes.MsgWithdrawValidatorCommission:
+				fmt.Printf("Type : %T\n", msg)
+				accounts = append(accounts, msg.ValidatorAddress)
+			case *distributiontypes.MsgFundCommunityPool:
+				fmt.Printf("Type : %T\n", msg)
+				accounts = append(accounts, msg.Depositor)
+
+			case *evidencetypes.MsgSubmitEvidence:
+				fmt.Printf("Type : %T\n", msg)
+				accounts = append(accounts, msg.Submitter)
+
+			case *govtypes.MsgSubmitProposal:
+				fmt.Printf("Type : %T\n", msg)
+				accounts = append(accounts, msg.Proposer)
+
+			case *govtypes.MsgVote:
+				fmt.Printf("Type : %T\n", msg)
+				accounts = append(accounts, msg.Voter)
+			case *govtypes.MsgDeposit:
+				fmt.Printf("Type : %T\n", msg)
+				accounts = append(accounts, msg.Depositor)
+
+			case *slashingtypes.MsgUnjail:
+				fmt.Printf("Type : %T\n", msg)
+				accounts = append(accounts, msg.ValidatorAddr)
+
+			case *stakingtypes.MsgCreateValidator:
+				fmt.Printf("Type : %T\n", msg)
+				accounts = append(accounts, msg.DelegatorAddress, msg.ValidatorAddress)
+			case *stakingtypes.MsgEditValidator:
+				fmt.Printf("Type : %T\n", msg)
+				accounts = append(accounts, msg.ValidatorAddress)
+			case *stakingtypes.MsgDelegate:
+				fmt.Printf("Type : %T\n", msg)
+				accounts = append(accounts, msg.DelegatorAddress, msg.ValidatorAddress)
+			case *stakingtypes.MsgBeginRedelegate:
+				fmt.Printf("Type : %T\n", msg)
+				accounts = append(accounts, msg.DelegatorAddress, msg.ValidatorSrcAddress, msg.ValidatorDstAddress)
+			case *stakingtypes.MsgUndelegate:
+				fmt.Printf("Type : %T\n", msg)
+				accounts = append(accounts, msg.DelegatorAddress, msg.ValidatorAddress)
+
+				//ibc transaction 추가/보완 필요
+			case *transfertypes.MsgTransfer:
+				fmt.Printf("Type : %T\n", msg)
+				log.Println(msg.Sender)
+				log.Println(msg.Receiver) //체인 밖 주소이므로 필요 없을 것 같다.
+				accounts = append(accounts, msg.Sender)
+
+			//client, connection, channel은 별도로 얘기가 필요하다.
+
+			default:
+				fmt.Printf("Undefined Type : %T\n", msg)
+			}
+
+		} // end msgs for loop
+
+		// 하나의 Tx에서 발생한 모든 어카운트를 수집했으므로, 슬라이스로 저장한다.
+		sub, err := getAccountSlice(txHash, accounts...)
+		if err != nil {
+			return nil, err
+		}
+		tms = append(tms, sub...)
+
+	} // 모든 tx 완료
+	return tms, nil
+}
+
+func getAccountSlice(txHash string, accounts ...string) (tms []schema.TransactionMessage, err error) {
+	tms = make([]schema.TransactionMessage, len(accounts), len(accounts))
+	for i, acc := range accounts {
+		tms[i].TxHash = txHash
+		tms[i].AccountAddress = acc
+	}
+	return tms, nil
 }

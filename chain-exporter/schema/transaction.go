@@ -44,6 +44,13 @@ type Transaction struct {
 	Chunk  string `json:"chunk" sql:"type:jsonb,notnull"`
 }
 
+// TransactionMessage has account by each tx msg
+type TransactionMessage struct {
+	ID             int64  `json:"id" sql:",pk"`
+	TxHash         string `json:"tx_hash"  sql:",default:false,notnull"`
+	AccountAddress string `json:"account_address"`
+}
+
 // NewTransaction returns a new TransactionLegacy.
 func NewTransaction(t TransactionLegacy) *TransactionLegacy {
 	return &TransactionLegacy{

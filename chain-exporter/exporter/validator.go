@@ -50,7 +50,7 @@ func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*
 				peh := &schema.PowerEventHistory{
 					IDValidator:          highestIDValidatorNum + 1,
 					Height:               tx.Height,
-					Proposer:             m.Pubkey, //jeonghwan : pubkey로부터 address 구하는 인터페이스가 string으로 변경 됨
+					Proposer:             m.Pubkey.String(), //jeonghwan : pubkey로부터 address 구하는 인터페이스가 string으로 변경 됨
 					VotingPower:          newVotingPowerAmount,
 					NewVotingPowerAmount: newVotingPowerAmount,
 					NewVotingPowerDenom:  m.Value.Denom,

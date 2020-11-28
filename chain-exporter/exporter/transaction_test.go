@@ -15,9 +15,10 @@ import (
 
 // TestGetTxsChunk decodes transactions in a block and return a format of database transaction.
 func TestGetTxsChunk(t *testing.T) {
+	require.NotNil(t, ex.client)
 	// 13030, 272247
 	// 122499 (multi msg type)
-	block, err := ex.client.GetBlock(272247)
+	block, err := ex.client.GetBlock(13030)
 	if err != nil {
 		log.Println(err)
 	}
@@ -25,6 +26,10 @@ func TestGetTxsChunk(t *testing.T) {
 	if err != nil {
 		log.Println(err)
 	}
+
+	tms, err := ex.extractAccount(txResps)
+	log.Println(tms)
+	return
 
 	// assume that following expression is for inserting db
 	jsonString, err := InsertJSONStringToDB(txResps)

@@ -5,6 +5,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
+	sdkclient "github.com/cosmos/cosmos-sdk/client"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	authvestingtypes "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
@@ -55,7 +56,7 @@ func (ex *Exporter) getAccounts(block *tmctypes.ResultBlock, txResps []*sdk.TxRe
 					return []schema.Account{}, err
 				}
 
-				exportedAccts := []authtypes.AccountI{
+				exportedAccts := []sdkclient.Account{
 					fromAcct, toAcct,
 				}
 
@@ -69,7 +70,7 @@ func (ex *Exporter) getAccounts(block *tmctypes.ResultBlock, txResps []*sdk.TxRe
 
 				// msgMultiSend := m.(bank.MsgMultiSend)
 
-				var exportedAccts []authtypes.AccountI
+				var exportedAccts []sdkclient.Account
 
 				for _, input := range m.Inputs {
 					inputAcct, err := ex.client.GetAccount(input.Address)
@@ -114,7 +115,7 @@ func (ex *Exporter) getAccounts(block *tmctypes.ResultBlock, txResps []*sdk.TxRe
 					return []schema.Account{}, err
 				}
 
-				exportedAccts := []authtypes.AccountI{
+				exportedAccts := []sdkclient.Account{
 					delegatorAddr, valAddr,
 				}
 
@@ -143,7 +144,7 @@ func (ex *Exporter) getAccounts(block *tmctypes.ResultBlock, txResps []*sdk.TxRe
 					return []schema.Account{}, err
 				}
 
-				exportedAccts := []authtypes.AccountI{
+				exportedAccts := []sdkclient.Account{
 					delegatorAddr, valAddr,
 				}
 
@@ -182,7 +183,7 @@ func (ex *Exporter) getAccounts(block *tmctypes.ResultBlock, txResps []*sdk.TxRe
 					return []schema.Account{}, err
 				}
 
-				exportedAccts := []authtypes.AccountI{
+				exportedAccts := []sdkclient.Account{
 					delegatorAddr, srcAddr, dstAddr,
 				}
 
@@ -200,7 +201,7 @@ func (ex *Exporter) getAccounts(block *tmctypes.ResultBlock, txResps []*sdk.TxRe
 	return accounts, nil
 }
 
-func (ex *Exporter) getAccountAllAssets(exportedAccts []authtypes.AccountI, txHashStr, txTime string) (accounts []schema.Account, err error) {
+func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHashStr, txTime string) (accounts []schema.Account, err error) {
 	chainID, err := ex.client.GetNetworkChainID()
 	if err != nil {
 		return []schema.Account{}, err
@@ -243,19 +244,22 @@ func (ex *Exporter) getAccountAllAssets(exportedAccts []authtypes.AccountI, txHa
 				Add(commission)
 
 			acct := &schema.Account{
-				ChainID:          chainID,
-				AccountAddress:   acc.Address,
-				AccountNumber:    acc.AccountNumber,
-				AccountType:      types.BaseAccount,
-				CoinsTotal:       total.Amount.Uint64(),
-				CoinsSpendable:   spendable.Amount.Uint64(),
-				CoinsRewards:     rewards.Amount.Uint64(),
-				CoinsCommission:  commission.Amount.Uint64(),
-				CoinsDelegated:   delegated.Amount.Uint64(),
-				CoinsUndelegated: undelegated.Amount.Uint64(),
-				LastTx:           txHashStr,
-				LastTxTime:       txTime,
-				CreationTime:     block.Block.Time.String(),
+				ChainID:           chainID,
+				AccountAddress:    acc.Address,
+				AccountNumber:     acc.AccountNumber,
+				AccountType:       types.BaseAccount,
+				CoinsTotal:        total.Amount.String(),
+				CoinsSpendable:    spendable.Amount.String(),
+				CoinsRewards:      rewards.Amount.String(),
+				CoinsCommission:   commission.Amount.String(),
+				CoinsDelegated:    delegated.Amount.String(),
+				CoinsUndelegated:  undelegated.Amount.String(),
+				CoinsVested:       "0",
+				CoinsVesting:      "0",
+				CoinsFailedVested: "0",
+				LastTx:            txHashStr,
+				LastTxTime:        txTime,
+				CreationTime:      block.Block.Time.String(),
 			}
 
 			accounts = append(accounts, *acct)
@@ -280,19 +284,22 @@ func (ex *Exporter) getAccountAllAssets(exportedAccts []authtypes.AccountI, txHa
 				Add(commission)
 
 			acct := &schema.Account{
-				ChainID:          chainID,
-				AccountAddress:   acc.GetAddress().String(),
-				AccountNumber:    acc.GetAccountNumber(),
-				AccountType:      types.ModuleAccount,
-				CoinsTotal:       total.Amount.Uint64(),
-				CoinsSpendable:   spendable.Amount.Uint64(),
-				CoinsRewards:     rewards.Amount.Uint64(),
-				CoinsCommission:  commission.Amount.Uint64(),
-				CoinsDelegated:   delegated.Amount.Uint64(),
-				CoinsUndelegated: undelegated.Amount.Uint64(),
-				LastTx:           txHashStr,
-				LastTxTime:       txTime,
-				CreationTime:     block.Block.Time.String(),
+				ChainID:           chainID,
+				AccountAddress:    acc.GetAddress().String(),
+				AccountNumber:     acc.GetAccountNumber(),
+				AccountType:       types.ModuleAccount,
+				CoinsTotal:        total.Amount.String(),
+				CoinsSpendable:    spendable.Amount.String(),
+				CoinsRewards:      rewards.Amount.String(),
+				CoinsCommission:   commission.Amount.String(),
+				CoinsDelegated:    delegated.Amount.String(),
+				CoinsUndelegated:  undelegated.Amount.String(),
+				CoinsVested:       "0",
+				CoinsVesting:      "0",
+				CoinsFailedVested: "0",
+				LastTx:            txHashStr,
+				LastTxTime:        txTime,
+				CreationTime:      block.Block.Time.String(),
 			}
 
 			accounts = append(accounts, *acct)
@@ -346,21 +353,22 @@ func (ex *Exporter) getAccountAllAssets(exportedAccts []authtypes.AccountI, txHa
 				Add(vesting)
 
 			acct := &schema.Account{
-				ChainID:          chainID,
-				AccountAddress:   acc.Address,
-				AccountNumber:    acc.AccountNumber,
-				AccountType:      types.PeriodicVestingAccount,
-				CoinsTotal:       total.Amount.Uint64(),
-				CoinsSpendable:   spendable.Amount.Uint64(),
-				CoinsRewards:     rewards.Amount.Uint64(),
-				CoinsCommission:  commission.Amount.Uint64(),
-				CoinsDelegated:   delegated.Amount.Uint64(),
-				CoinsUndelegated: undelegated.Amount.Uint64(),
-				CoinsVesting:     vesting.Amount.Uint64(),
-				CoinsVested:      vested.Amount.Uint64(),
-				LastTx:           txHashStr,
-				LastTxTime:       txTime,
-				CreationTime:     block.Block.Time.String(),
+				ChainID:           chainID,
+				AccountAddress:    acc.Address,
+				AccountNumber:     acc.AccountNumber,
+				AccountType:       types.PeriodicVestingAccount,
+				CoinsTotal:        total.Amount.String(),
+				CoinsSpendable:    spendable.Amount.String(),
+				CoinsRewards:      rewards.Amount.String(),
+				CoinsCommission:   commission.Amount.String(),
+				CoinsDelegated:    delegated.Amount.String(),
+				CoinsUndelegated:  undelegated.Amount.String(),
+				CoinsVested:       "0",
+				CoinsVesting:      "0",
+				CoinsFailedVested: "0",
+				LastTx:            txHashStr,
+				LastTxTime:        txTime,
+				CreationTime:      block.Block.Time.String(),
 			}
 
 			accounts = append(accounts, *acct)

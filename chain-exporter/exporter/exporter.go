@@ -221,6 +221,11 @@ func (ex *Exporter) process(height int64) error {
 		return fmt.Errorf("failed to get txs: %s", err)
 	}
 
+	resultTxsMessages, err := ex.extractAccount(txs)
+	if err != nil {
+		return fmt.Errorf("failed to get account by each tx message: %s", err)
+	}
+
 	resultProposals, resultDeposits, resultVotes, err := ex.getGovernance(block, txs)
 	if err != nil {
 		return fmt.Errorf("failed to get governance: %s", err)
@@ -242,6 +247,7 @@ func (ex *Exporter) process(height int64) error {
 		ResultGenesisAccounts:             resultGenesisAccounts,
 		ResultTxs:                         resultTxs,
 		ResultTxsJSONChunk:                resultTxsJSONChunk,
+		ResultTxsMessages:                 resultTxsMessages,
 		ResultEvidence:                    resultEvidence,
 		ResultMissBlocks:                  resultMissBlocks,
 		ResultMissDetailBlocks:            resultMissDetailBlocks,
