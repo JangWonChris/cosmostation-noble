@@ -25,7 +25,7 @@ func TestGetGenesisAccount(t *testing.T) {
 	var accounts []schema.Account
 	// genesisFile := os.Getenv("PWD") + "/genesis.json"
 	baseConfig := tmconfig.DefaultBaseConfig()
-	genesisFile := filepath.Join(os.Getenv("HOME"), gaia.DefaultNodeHome, baseConfig.Genesis)
+	genesisFile := filepath.Join(gaia.DefaultNodeHome, baseConfig.Genesis)
 	// genesisFile := "/Users/jeonghwan/dev/cosmostation/cosmostation-cosmos/chain-exporter/genesis.json"
 	log.Println("genesis file path :", genesisFile)
 	genDoc, err := tmtypes.GenesisDocFromFile(genesisFile)

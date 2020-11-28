@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -736,7 +735,7 @@ func (c *Client) GetGenesisAccountFromGenesisState() (accounts []schema.Account,
 
 	// genesisFile := os.Getenv("PWD") + "/genesis.json"
 	baseConfig := tmconfig.DefaultBaseConfig()
-	genesisFile := filepath.Join(os.Getenv("HOME"), gaia.DefaultNodeHome, baseConfig.Genesis)
+	genesisFile := filepath.Join(gaia.DefaultNodeHome, baseConfig.Genesis)
 	// genesisFile := "/Users/jeonghwan/dev/cosmostation/cosmostation-cosmos/chain-exporter/genesis.json"
 	genDoc, err := tmtypes.GenesisDocFromFile(genesisFile)
 	if err != nil {
