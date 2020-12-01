@@ -314,7 +314,7 @@ func (ex *Exporter) getEvidence(block *tmctypes.ResultBlock) ([]schema.Evidence,
 // saveValidators parses all validators which are in three different status
 // bonded, unbonding, unbonded and save them in database.
 func (ex *Exporter) saveValidators() {
-	bondedVals, err := ex.client.GetBondedValidators()
+	bondedVals, err := ex.client.GetValidatorsByStatus(stakingtypes.Bonded)
 	if err != nil {
 		zap.S().Errorf("failed to get bonded validators: %s", err)
 		return
@@ -327,7 +327,7 @@ func (ex *Exporter) saveValidators() {
 		return
 	}
 
-	unbondingVals, err := ex.client.GetUnbondingValidators()
+	unbondingVals, err := ex.client.GetValidatorsByStatus(stakingtypes.Unbonding)
 	if err != nil {
 		zap.S().Errorf("failed to get unbonding validators: %s", err)
 		return
@@ -348,7 +348,7 @@ func (ex *Exporter) saveValidators() {
 		}
 	}
 
-	unbondedVals, err := ex.client.GetUnbondedValidators()
+	unbondedVals, err := ex.client.GetValidatorsByStatus(stakingtypes.Unbonded)
 	if err != nil {
 		zap.S().Errorf("failed to get unbonded validators: %s", err)
 		return

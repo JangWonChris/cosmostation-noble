@@ -41,28 +41,24 @@ func (c *Client) GetBaseAccountTotalAsset(address string) (sdktypes.Coin, sdktyp
 	}
 
 	// Get total delegated coins.
-	delegations, err := c.GetDelegatorDelegations(address)
+	delegatorDelegationsResp, err := c.GetDelegatorDelegations(address)
 	if err != nil {
 		return sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, err
 	}
 
-	if len(delegations) > 0 {
-		for _, delegation := range delegations {
-			delegated = delegated.Add(delegation.Balance)
-		}
+	for _, delegation := range delegatorDelegationsResp.DelegationResponses {
+		delegated = delegated.Add(delegation.Balance)
 	}
 
 	// Get total undelegated coins.
-	undelegations, err := c.GetDelegatorUndelegations(address)
+	unbondingDelegationsResp, err := c.GetDelegatorUnbondingDelegations(address)
 	if err != nil {
 		return sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, err
 	}
 
-	if len(undelegations) > 0 {
-		for _, undelegation := range undelegations {
-			for _, e := range undelegation.Entries {
-				undelegated = undelegated.Add(sdktypes.NewCoin(denom, e.Balance))
-			}
+	for _, undelegation := range unbondingDelegationsResp.UnbondingResponses {
+		for _, e := range undelegation.Entries {
+			undelegated = undelegated.Add(sdktypes.NewCoin(denom, e.Balance))
 		}
 	}
 

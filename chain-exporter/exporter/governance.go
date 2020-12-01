@@ -68,7 +68,7 @@ func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txResp []*sdkType
 				}
 
 				p := schema.NewProposal(schema.Proposal{
-					ID:                   int64(proposalID),
+					ID:                   proposalID,
 					TxHash:               tx.TxHash,
 					Proposer:             m.Proposer,
 					InitialDepositAmount: initialDepositAmount,

@@ -4,7 +4,7 @@ import "time"
 
 // Proposal has proposal information.
 type Proposal struct {
-	ID                   int64     `json:"proposal_id" sql:",pk"`
+	ID                   uint64    `json:"proposal_id" sql:",pk"`
 	TxHash               string    `json:"tx_hash" sql:",unique"`
 	Proposer             string    `json:"proposer" sql:"default:null"`
 	Title                string    `json:"title"`
@@ -17,8 +17,8 @@ type Proposal struct {
 	NoWithVeto           string    `json:"no_with_veto"`
 	InitialDepositAmount string    `json:"initial_deposit_amount" sql:"default:null"`
 	InitialDepositDenom  string    `json:"initial_deposit_denom" sql:"default:null"`
-	TotalDepositAmount   string    `json:"total_deposit_amount"`
-	TotalDepositDenom    string    `json:"total_deposit_denom"`
+	TotalDepositAmount   []string  `json:"total_deposit_amount"`
+	TotalDepositDenom    []string  `json:"total_deposit_denom"`
 	SubmitTime           time.Time `json:"submit_time"`
 	DepositEndtime       time.Time `json:"deposit_end_time" sql:"deposit_end_time"`
 	VotingStartTime      time.Time `json:"voting_start_time"`

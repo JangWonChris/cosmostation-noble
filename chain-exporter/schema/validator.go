@@ -18,7 +18,7 @@ type Validator struct {
 	Identity             string    `json:"identity"`
 	Website              string    `json:"website"`
 	Details              string    `json:"details"`
-	UnbondingHeight      string    `json:"unbonding_height"`
+	UnbondingHeight      int64     `json:"unbonding_height"`
 	UnbondingTime        time.Time `json:"unbonding_time" sql:"default:null"`
 	CommissionRate       string    `json:"rate"`
 	CommissionMaxRate    string    `json:"max_rate"`

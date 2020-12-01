@@ -28,14 +28,6 @@ type Client struct {
 // NewClient creates a new client with the given configuration and
 // return Client struct. An error is returned if it fails.
 func NewClient(nodeCfg config.NodeConfig, marketCfg config.MarketConfig) (*Client, error) {
-	cliCtx := client.Context{}.
-		WithNodeURI(nodeCfg.RPCNode).
-		WithJSONMarshaler(codec.EncodingConfig.Marshaler).
-		WithLegacyAmino(codec.EncodingConfig.Amino).
-		WithTxConfig(codec.EncodingConfig.TxConfig).
-		WithInterfaceRegistry(codec.EncodingConfig.InterfaceRegistry).
-		WithAccountRetriever(authtypes.AccountRetriever{})
-
 	grpcClient, err := grpc.Dial(nodeCfg.GRPCEndpoint,
 		grpc.WithBlock(),
 		grpc.WithTimeout(time.Second*10),
@@ -56,6 +48,15 @@ func NewClient(nodeCfg config.NodeConfig, marketCfg config.MarketConfig) (*Clien
 	coinGeckoClient := resty.New().
 		SetHostURL(marketCfg.CoinGeckoEndpoint).
 		SetTimeout(time.Duration(10 * time.Second))
+
+	cliCtx := client.Context{}.
+		WithNodeURI(nodeCfg.RPCNode).
+		WithJSONMarshaler(codec.EncodingConfig.Marshaler).
+		WithLegacyAmino(codec.EncodingConfig.Amino).
+		WithTxConfig(codec.EncodingConfig.TxConfig).
+		WithInterfaceRegistry(codec.EncodingConfig.InterfaceRegistry).
+		WithClient(rpcClient). //tendermint-rc6 에서 추가하지 않으면, 기본 offline mode로 지정이 된다.
+		WithAccountRetriever(authtypes.AccountRetriever{})
 
 	return &Client{cliCtx, grpcClient, rpcClient, apiClient, coinGeckoClient}, nil
 }

@@ -6,11 +6,14 @@ import (
 	"os"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	grpctypes "github.com/cosmos/cosmos-sdk/types/grpc"
 	sdktypestx "github.com/cosmos/cosmos-sdk/types/tx"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -162,4 +165,40 @@ func TestGetTx(t *testing.T) {
 			log.Println(i, t)
 		}
 	}
+}
+
+func TestValidatorByStatus(t *testing.T) {
+	// this is return empty result
+	// v, err := cli.GetValidatorsByStatus(stakingtypes.Bonded)
+	// require.NoError(t, err)
+	// log.Println(v)
+
+	// stakingtypes에 정의 됨
+	// 0: "BOND_STATUS_UNSPECIFIED",
+	// 1: "BOND_STATUS_UNBONDED",
+	// 2: "BOND_STATUS_UNBONDING",
+	// 3: "BOND_STATUS_BONDED",
+
+	bonded := stakingtypes.BondStatus_name[int32(stakingtypes.Bonded)]
+	// unbonded := stakingtypes.BondStatus_name[int32(stakingtypes.Unbonded)]
+	// unbonding := stakingtypes.BondStatus_name[int32(stakingtypes.Unbonding)]
+
+	queryClient := stakingtypes.NewQueryClient(cli.grpcClient)
+	request := stakingtypes.QueryValidatorsRequest{Status: bonded}
+	resp, err := queryClient.Validators(context.Background(), &request)
+	require.NoError(t, err)
+	log.Println("bonded :", len(resp.Validators))
+	consAddr, err := resp.Validators[0].GetConsAddr()
+	require.NoError(t, err)
+	log.Println("consaddr :", consAddr)
+
+	// request = stakingtypes.QueryValidatorsRequest{Status: unbonded}
+	// resp, err = queryClient.Validators(context.Background(), &request)
+	// require.NoError(t, err)
+	// log.Println("unbonded :", len(resp.Validators))
+
+	// request = stakingtypes.QueryValidatorsRequest{Status: unbonding}
+	// resp, err = queryClient.Validators(context.Background(), &request)
+	// require.NoError(t, err)
+	// log.Println("unboding :", len(resp.Validators))
 }

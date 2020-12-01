@@ -165,7 +165,7 @@ func (ex *Exporter) process(height int64) error {
 		// }
 
 		// resultGenesisAccounts, err = ex.getGenesisAccounts(genesisAccts)
-		resultGenesisAccounts, err = ex.client.GetGenesisAccountFromGenesisState()
+		resultGenesisAccounts, err = ex.GetGenesisAccountFromGenesisState()
 		if err != nil {
 			return fmt.Errorf("failed to get block: %s", err)
 		}

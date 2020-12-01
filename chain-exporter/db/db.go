@@ -373,7 +373,7 @@ func (db *Database) ExistAccount(address string) (exist bool, err error) {
 }
 
 // ExistProposal queries to find if the proposal id exists in database.
-func (db *Database) ExistProposal(proposalID int64) (exist bool, err error) {
+func (db *Database) ExistProposal(proposalID uint64) (exist bool, err error) {
 	exist, err = db.Model(&schema.Proposal{}).
 		Where("id = ?", proposalID).
 		Exists()
