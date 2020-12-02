@@ -34,6 +34,44 @@ func (c *Client) GetProposals() (result []schema.Proposal, err error) {
 	}
 
 	for _, proposal := range resp.Proposals {
+		var contentI govtypes.Content
+		err = codec.AppCodec.UnpackAny(proposal.Content, &contentI)
+		if err != nil {
+			log.Println(err)
+		}
+
+		// kind of proposals
+		// distributiontypes.CommunityPoolSpendProposal
+		// govtypes.TextProposal
+		// ibccoretypes.ClientUpdateProposal
+		// paramstypes.ParameterChangeProposal
+		// upgradetypes.SoftwareUpgradeProposal
+		// upgradetypes.CancelSoftwareUpgradeProposal
+		var proposalType string
+		switch i := contentI.(type) {
+		case *govtypes.TextProposal:
+			log.Printf("concrete type : %T\n", i)
+			proposalType = i.ProposalType()
+		case *distributiontypes.CommunityPoolSpendProposal:
+			log.Printf("concrete type : %T\n", i)
+			proposalType = i.ProposalType()
+		case *ibccoretypes.ClientUpdateProposal:
+			log.Printf("concrete type : %T\n", i)
+			proposalType = i.ProposalType()
+		case *paramstypesproposal.ParameterChangeProposal:
+			log.Printf("concrete type : %T\n", i)
+			proposalType = i.ProposalType()
+		case *upgradetypes.SoftwareUpgradeProposal:
+			log.Printf("concrete type : %T\n", i)
+			proposalType = i.ProposalType()
+		case *upgradetypes.CancelSoftwareUpgradeProposal:
+			log.Printf("concrete type : %T\n", i)
+			proposalType = i.ProposalType()
+		default:
+			log.Printf("type : %T\n", i)
+			log.Println("default")
+		}
+
 		totalDepositAmount := make([]string, len(proposal.TotalDeposit))
 		totalDepositDenom := make([]string, len(proposal.TotalDeposit))
 		for i, td := range proposal.TotalDeposit {
@@ -48,53 +86,11 @@ func (c *Client) GetProposals() (result []schema.Proposal, err error) {
 		}
 		tally := tallyResultResp.Tally
 
-		// desp := proposal.GetContent().GetDescription()
-		// log.Println("desp :", proposal)
-		log.Println("proposal.GetContent() : ", proposal.GetContent())
-		log.Println("proposal.Content(any) :", proposal.Content)
-
-		var contentI govtypes.Content
-		err = codec.AppCodec.UnpackAny(proposal.Content, &contentI)
-		if err != nil {
-			log.Println(err)
-		}
-		log.Println("UnpackAny :", contentI)
-
-		switch i := contentI.(type) {
-		case *govtypes.TextProposal:
-			log.Println(i.Title)
-			log.Println(i.Description)
-		case *distributiontypes.CommunityPoolSpendProposal:
-			log.Println(i.Title)
-			log.Println(i.Description)
-		case *ibccoretypes.ClientUpdateProposal:
-			log.Println(i.Title)
-			log.Println(i.Description)
-		case *paramstypesproposal.ParameterChangeProposal:
-			log.Println(i.Title)
-			log.Println(i.Description)
-		case *upgradetypes.SoftwareUpgradeProposal:
-			log.Println(i.Title)
-			log.Println(i.Description)
-		case *upgradetypes.CancelSoftwareUpgradeProposal:
-			log.Println(i.Title)
-			log.Println(i.Description)
-		default:
-			log.Println("default")
-		}
-		// kind of proposals
-		// distributiontypes.CommunityPoolSpendProposal
-		// govtypes.TextProposal
-		// ibccoretypes.ClientUpdateProposal
-		// paramstypes.ParameterChangeProposal
-		// upgradetypes.SoftwareUpgradeProposal
-		// upgradetypes.CancelSoftwareUpgradeProposal
-
 		p := schema.NewProposal(schema.Proposal{
 			ID:           proposal.ProposalId,
 			Title:        proposal.GetTitle(),
-			Description:  "content description nil",
-			ProposalType: "proposaltype nil",
+			Description:  contentI.GetDescription(),
+			ProposalType: proposalType,
 			// Description:        proposal.GetContent().GetDescription(),
 			// ProposalType:       proposal.GetContent().ProposalType(),
 			ProposalStatus:     proposal.Status.String(),
@@ -112,63 +108,6 @@ func (c *Client) GetProposals() (result []schema.Proposal, err error) {
 
 		result = append(result, *p)
 	}
-
-	// resp, err := c.apiClient.R().Get("/gov/proposals")
-	// if err != nil {
-	// 	return []schema.Proposal{}, fmt.Errorf("failed to request gov proposals: %s", err)
-	// }
-
-	// var proposals []types.Proposal
-	// err = json.Unmarshal(types.ReadRespWithHeight(resp).Result, &proposals)
-	// if err != nil {
-	// 	return []schema.Proposal{}, fmt.Errorf("failed to unmarshal gov proposals: %s", err)
-	// }
-
-	// if len(proposals) <= 0 {
-	// 	return []schema.Proposal{}, nil
-	// }
-
-	// for _, proposal := range proposals {
-	// 	proposalID, _ := strconv.ParseInt(proposal.ID, 10, 64)
-
-	// 	var totalDepositAmount string
-	// 	var totalDepositDenom string
-	// 	if proposal.TotalDeposit != nil {
-	// 		totalDepositAmount = proposal.TotalDeposit[0].Amount
-	// 		totalDepositDenom = proposal.TotalDeposit[0].Denom
-	// 	}
-
-	// 	resp, err := c.apiClient.R().Get("/gov/proposals/" + proposal.ID + "/tally")
-	// 	if err != nil {
-	// 		return []schema.Proposal{}, fmt.Errorf("failed to request gov tally: %s", err)
-	// 	}
-
-	// 	var tally types.Tally
-	// 	err = json.Unmarshal(types.ReadRespWithHeight(resp).Result, &tally)
-	// 	if err != nil {
-	// 		return []schema.Proposal{}, fmt.Errorf("failed to unmarshal gov tally: %s", err)
-	// 	}
-
-	// 	p := schema.NewProposal(schema.Proposal{
-	// 		ID:                 proposalID,
-	// 		Title:              proposal.Content.Value.Title,
-	// 		Description:        proposal.Content.Value.Description,
-	// 		ProposalType:       proposal.Content.Type,
-	// 		ProposalStatus:     proposal.ProposalStatus,
-	// 		Yes:                tally.Yes,
-	// 		Abstain:            tally.Abstain,
-	// 		No:                 tally.No,
-	// 		NoWithVeto:         tally.NoWithVeto,
-	// 		SubmitTime:         proposal.SubmitTime,
-	// 		DepositEndtime:     proposal.DepositEndTime,
-	// 		TotalDepositAmount: totalDepositAmount,
-	// 		TotalDepositDenom:  totalDepositDenom,
-	// 		VotingStartTime:    proposal.VotingStartTime,
-	// 		VotingEndTime:      proposal.VotingEndTime,
-	// 	})
-
-	// 	result = append(result, *p)
-	// }
 
 	return result, nil
 }

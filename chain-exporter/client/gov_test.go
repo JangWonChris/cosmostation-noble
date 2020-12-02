@@ -1,7 +1,6 @@
 package client
 
 import (
-	"log"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -10,7 +9,5 @@ import (
 func TestGetProposals(t *testing.T) {
 	resp, err := cli.GetProposals()
 	require.NoError(t, err)
-
-	log.Println(resp)
-
+	t.Log(resp)
 }
