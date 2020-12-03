@@ -177,8 +177,6 @@ func (ex *Exporter) process(height int64) error {
 		}
 	}
 
-	fmt.Println("lastcommit height :", block.Block.LastCommit.Height)
-
 	var prevBlock *tmctypes.ResultBlock
 	var vals *tmctypes.ResultValidators
 	if block.Block.LastCommit.Height != 0 {
