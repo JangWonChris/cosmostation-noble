@@ -1,22 +1,128 @@
 package exporter
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
+	"path/filepath"
+	"time"
 
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 	"go.uber.org/zap"
 
+	//gaia
+	gaia "github.com/cosmos/gaia/app"
+
+	//cosmos-sdk
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	authvestingtypes "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
+	bankexported "github.com/cosmos/cosmos-sdk/x/bank/exported"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+
+	//tendermint
+	tmconfig "github.com/tendermint/tendermint/config"
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
+	tmtypes "github.com/tendermint/tendermint/types"
 )
 
 const (
 	// startingHeight is used to extract genesis accounts and parse their assets.
 	startingHeight = int64(1)
 )
+
+// GetGenesisStateFromGenesisFile get the genesis account information from genesis state ({NODE_HOME}/config/Genesis.json)
+func (ex *Exporter) GetGenesisStateFromGenesisFile(genesisPath string) (accounts []schema.Account, err error) {
+
+	// genesisFile := os.Getenv("PWD") + "/genesis.json"
+	baseConfig := tmconfig.DefaultBaseConfig()
+	genesisFile := filepath.Join(gaia.DefaultNodeHome, baseConfig.Genesis)
+
+	if genesisPath == "" {
+		genesisPath = genesisFile
+	}
+	// genesisFile := "/Users/jeonghwan/dev/cosmostation/cosmostation-cosmos/chain-exporter/genesis.json"
+	genDoc, err := tmtypes.GenesisDocFromFile(genesisPath)
+	if err != nil {
+		log.Println(err, "failed to read genesis doc file %s", genesisPath)
+		return
+	}
+
+	var genesisState map[string]json.RawMessage
+	if err = json.Unmarshal(genDoc.AppState, &genesisState); err != nil {
+		log.Println(err, "failed to unmarshal genesis state")
+		return
+	}
+	// a := genesisState[authtypes.ModuleName]
+	// log.Println(string(a)) //print message that key is auth {...}
+	authGenesisState := authtypes.GetGenesisStateFromAppState(codec.AppCodec, genesisState)
+	stakingGenesisState := stakingtypes.GetGenesisStateFromAppState(codec.AppCodec, genesisState)
+	bondDenom := stakingGenesisState.GetParams().BondDenom
+
+	authAccs := authGenesisState.GetAccounts()
+	NumberOfTotalAccounts := len(authAccs)
+	accountMapper := make(map[string]*schema.Account, NumberOfTotalAccounts)
+	for i, authAcc := range authAccs {
+		var ga authtypes.GenesisAccount
+		codec.AppCodec.UnpackAny(authAcc, &ga)
+		switch ga := ga.(type) {
+		case *authtypes.BaseAccount:
+		case *authvestingtypes.DelayedVestingAccount:
+			log.Println("DelayedVestingAccount", ga.String())
+			log.Println("delegated Free :", ga.GetDelegatedFree())
+			log.Println("delegated vesting :", ga.GetDelegatedVesting())
+			log.Println("vested coins:", ga.GetVestedCoins(time.Now()))
+			log.Println("vesting coins :", ga.GetVestingCoins(time.Now()))
+			log.Println("original vesting :", ga.GetOriginalVesting())
+		case *authvestingtypes.ContinuousVestingAccount:
+			log.Println("ContinuousVestingAccount", ga.String())
+		case *authvestingtypes.PeriodicVestingAccount:
+			log.Println("PeriodicVestingAccount", ga.String())
+		}
+		sAcc := schema.Account{
+			ChainID:           genDoc.ChainID,
+			AccountAddress:    ga.GetAddress().String(),
+			AccountNumber:     uint64(i),            //account number is set by specified order in genesis file
+			AccountType:       authAcc.GetTypeUrl(), //type 변경
+			CoinsTotal:        "0",
+			CoinsSpendable:    "0",
+			CoinsDelegated:    "0",
+			CoinsRewards:      "0",
+			CoinsCommission:   "0",
+			CoinsUndelegated:  "0",
+			CoinsFailedVested: "0",
+			CoinsVested:       "0",
+			CoinsVesting:      "0",
+			CreationTime:      genDoc.GenesisTime.String(),
+		}
+		accountMapper[ga.GetAddress().String()] = &sAcc
+	}
+
+	balIter := banktypes.GenesisBalancesIterator{}
+	balIter.IterateGenesisBalances(codec.AppCodec, genesisState,
+		func(bal bankexported.GenesisBalance) (stop bool) {
+			accAddress := bal.GetAddress()
+			accCoins := bal.GetCoins()
+
+			// accountMapper[accAddress.String()].CoinsSpendable = *accCoins.AmountOf(bondDenom).BigInt()
+			accountMapper[accAddress.String()].CoinsSpendable = accCoins.AmountOf(bondDenom).String()
+			return false
+		},
+	)
+
+	for _, acc := range accountMapper {
+		accounts = append(accounts, *acc)
+		log.Println(acc)
+		log.Println(acc.CoinsSpendable)
+	}
+
+	ex.db.InsertGenesisAccount(accounts)
+
+	return
+}
 
 func (ex *Exporter) getGenesisAccounts(genesisAccts authtypes.GenesisAccounts) (accounts []schema.Account, err error) {
 	chainID, err := ex.client.GetNetworkChainID()

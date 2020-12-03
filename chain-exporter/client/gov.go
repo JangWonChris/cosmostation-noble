@@ -50,26 +50,19 @@ func (c *Client) GetProposals() (result []schema.Proposal, err error) {
 		var proposalType string
 		switch i := contentI.(type) {
 		case *govtypes.TextProposal:
-			log.Printf("concrete type : %T\n", i)
 			proposalType = i.ProposalType()
 		case *distributiontypes.CommunityPoolSpendProposal:
-			log.Printf("concrete type : %T\n", i)
 			proposalType = i.ProposalType()
 		case *ibccoretypes.ClientUpdateProposal:
-			log.Printf("concrete type : %T\n", i)
 			proposalType = i.ProposalType()
 		case *paramstypesproposal.ParameterChangeProposal:
-			log.Printf("concrete type : %T\n", i)
 			proposalType = i.ProposalType()
 		case *upgradetypes.SoftwareUpgradeProposal:
-			log.Printf("concrete type : %T\n", i)
 			proposalType = i.ProposalType()
 		case *upgradetypes.CancelSoftwareUpgradeProposal:
-			log.Printf("concrete type : %T\n", i)
 			proposalType = i.ProposalType()
 		default:
-			log.Printf("type : %T\n", i)
-			log.Println("default")
+			log.Printf("unrecognized type : %T\n", i)
 		}
 
 		totalDepositAmount := make([]string, len(proposal.TotalDeposit))

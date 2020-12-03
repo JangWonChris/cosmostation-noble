@@ -711,10 +711,10 @@ func (db *Database) UpdateValidatorsKeyBaseURL(vals []schema.Validator) (bool, e
 }
 
 // InsertGenesisAccount insert the given genesis accounts using Copy command, it will faster than insert
-func (db *Database) InsertGenesisAccount(e schema.ExportData) error {
+func (db *Database) InsertGenesisAccount(acc []schema.Account) error {
 	err := db.RunInTransaction(func(tx *pg.Tx) error {
-		if len(e.ResultGenesisAccounts) > 0 {
-			err := tx.Insert(&e.ResultGenesisAccounts)
+		if len(acc) > 0 {
+			err := tx.Insert(&acc)
 			if err != nil {
 				return fmt.Errorf("failed to insert result genesis accounts: %s", err)
 			}

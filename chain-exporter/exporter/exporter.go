@@ -11,6 +11,7 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/db"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
+	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
 var (
@@ -61,7 +62,7 @@ func NewExporter() *Exporter {
 }
 
 // Start starts to synchronize blockchain data
-func (ex *Exporter) Start() {
+func (ex *Exporter) Start(initialHeight int64) {
 	zap.S().Info("Starting Chain Exporter...")
 	zap.S().Infof("Network Type: %s | Version: %s | Commit: %s", ex.config.Node.NetworkType, Version, Commit)
 
@@ -78,7 +79,7 @@ func (ex *Exporter) Start() {
 	go func() {
 		for {
 			zap.S().Info("start - sync blockchain")
-			err := ex.sync()
+			err := ex.sync(initialHeight)
 			if err != nil {
 				zap.S().Infof("error - sync blockchain: %s\n", err)
 			}
@@ -119,7 +120,7 @@ func (ex *Exporter) Start() {
 
 // sync compares block height between the height saved in your database and
 // the latest block height on the active chain and calls process to start ingesting data.
-func (ex *Exporter) sync() error {
+func (ex *Exporter) sync(initialHeight int64) error {
 	// Query latest block height saved in database
 	dbHeight, err := ex.db.QueryLatestBlockHeight()
 	if dbHeight == -1 {
@@ -130,6 +131,11 @@ func (ex *Exporter) sync() error {
 	latestBlockHeight, err := ex.client.GetLatestBlockHeight()
 	if latestBlockHeight == -1 {
 		return fmt.Errorf("failed to query the latest block height on the active network: %s", err)
+	}
+
+	if dbHeight == 0 && initialHeight != 0 {
+		dbHeight = initialHeight - 1
+		zap.S().Info("initial Height set : ", initialHeight)
 	}
 
 	// Ingest all blocks up to the latest height
@@ -165,20 +171,26 @@ func (ex *Exporter) process(height int64) error {
 		// }
 
 		// resultGenesisAccounts, err = ex.getGenesisAccounts(genesisAccts)
-		resultGenesisAccounts, err = ex.GetGenesisAccountFromGenesisState()
+		resultGenesisAccounts, err = ex.GetGenesisStateFromGenesisFile("")
 		if err != nil {
 			return fmt.Errorf("failed to get block: %s", err)
 		}
 	}
 
-	prevBlock, err := ex.client.GetBlock(block.Block.LastCommit.Height)
-	if err != nil {
-		return fmt.Errorf("failed to query previous block: %s", err)
-	}
+	fmt.Println("lastcommit height :", block.Block.LastCommit.Height)
 
-	vals, err := ex.client.GetValidators(block.Block.LastCommit.Height, types.DefaultQueryValidatorsPage, types.DefaultQueryValidatorsPerPage)
-	if err != nil {
-		return fmt.Errorf("failed to query validators: %s", err)
+	var prevBlock *tmctypes.ResultBlock
+	var vals *tmctypes.ResultValidators
+	if block.Block.LastCommit.Height != 0 {
+		prevBlock, err = ex.client.GetBlock(block.Block.LastCommit.Height)
+		if err != nil {
+			return fmt.Errorf("failed to query previous block: %s", err)
+		}
+
+		vals, err = ex.client.GetValidators(block.Block.LastCommit.Height, types.DefaultQueryValidatorsPage, types.DefaultQueryValidatorsPerPage)
+		if err != nil {
+			return fmt.Errorf("failed to query validators: %s", err)
+		}
 	}
 
 	txs, err := ex.client.GetTxs(block)
@@ -201,9 +213,13 @@ func (ex *Exporter) process(height int64) error {
 		return fmt.Errorf("failed to get accounts: %s", err)
 	}
 
-	resultMissBlocks, resultAccumulatedMissBlocks, resultMissDetailBlocks, err := ex.getValidatorsUptime(prevBlock, block, vals)
-	if err != nil {
-		return fmt.Errorf("failed to get missing blocks: %s", err)
+	var resultMissBlocks, resultAccumulatedMissBlocks []schema.Miss
+	var resultMissDetailBlocks []schema.MissDetail
+	if prevBlock != nil {
+		resultMissBlocks, resultAccumulatedMissBlocks, resultMissDetailBlocks, err = ex.getValidatorsUptime(prevBlock, block, vals)
+		if err != nil {
+			return fmt.Errorf("failed to get missing blocks: %s", err)
+		}
 	}
 
 	resultEvidence, err := ex.getEvidence(block)
