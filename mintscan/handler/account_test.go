@@ -34,7 +34,7 @@ func TestMain(m *testing.M) {
 
 func TestModuleAccounts(t *testing.T) {
 	tmdb := tdb.NewMemDB()
-	gapp := app.NewGaiaApp(tlog.NewTMLogger(tlog.NewSyncWriter(os.Stdout)), tmdb, nil, true, map[int64]bool{}, "", uint(1), codec.EncodingConfig)
+	gapp := app.NewGaiaApp(tlog.NewTMLogger(tlog.NewSyncWriter(os.Stdout)), tmdb, nil, true, map[int64]bool{}, "", uint(1), codec.EncodingConfig, nil)
 	// sapp := simapp.NewSimApp(tlog.NewTMLogger(tlog.NewSyncWriter(os.Stdout)), tmdb, nil, true, 0)
 
 	modAccAddrs := gapp.ModuleAccountAddrs()

@@ -7,7 +7,7 @@
 ### 개선된 기능 (Improvements)
 
 - model.repond() 함수에서 interface{}를 전달 받았을 때, []byte 형 타입이면, json encode를 하지 않도록 변경
-- model.validator.go 에 있던 bonded, unbonded, unbonding status 상수 삭제 : sdktypes.Bonded, sdktypes.Unbonding, sdktypes.Unbonded 변수를 int형으로 type cast하여 사용하도록 변경
+- model.validator.go 에 있던 bonded, unbonded, unbonding status 상수 삭제 : stakingtypes.Bonded, stakingtypes.Unbonding, stakingtypes.Unbonded 변수를 int형으로 type cast하여 사용하도록 변경
 - 모든 rest-server 질의를 걷어내고(폐기 예정인 API제외) 모두 GRPC 질의로 변경
 
 ### 수정된 버그 (Bug fixes)

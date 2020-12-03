@@ -36,11 +36,18 @@ func GetAccount(rw http.ResponseWriter, r *http.Request) {
 
 	var b []byte
 	switch account := account.(type) {
-	case *authtypes.ModuleAccount, *authtypes.BaseAccount,
-		*vestingtypes.ContinuousVestingAccount, *vestingtypes.DelayedVestingAccount, *vestingtypes.PeriodicVestingAccount:
+	case *authtypes.ModuleAccount:
+		b, err = s.client.GetCliContext().JSONMarshaler.MarshalJSON(account)
+	case *authtypes.BaseAccount:
+		b, err = s.client.GetCliContext().JSONMarshaler.MarshalJSON(account)
+	case *vestingtypes.ContinuousVestingAccount:
+		b, err = s.client.GetCliContext().JSONMarshaler.MarshalJSON(account)
+	case *vestingtypes.DelayedVestingAccount:
+		b, err = s.client.GetCliContext().JSONMarshaler.MarshalJSON(account)
+	case *vestingtypes.PeriodicVestingAccount:
 		b, err = s.client.GetCliContext().JSONMarshaler.MarshalJSON(account)
 	default:
-		zap.L().Error("unknown account type :", zap.String("info", account.String()), zap.Error(err))
+		zap.L().Error("unknown account type :", zap.String("info", account.GetAddress().String()), zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
 		return
 	}

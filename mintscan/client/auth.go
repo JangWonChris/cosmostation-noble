@@ -3,6 +3,7 @@ package client
 import (
 	"fmt"
 
+	"github.com/cosmos/cosmos-sdk/client"
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -29,7 +30,7 @@ func (c *Client) GetAuthQueryClient() authtypes.QueryClient {
 }
 
 // GetAccount checks account type and returns account interface.
-func (c *Client) GetAccount(address string) (authtypes.AccountI, error) {
+func (c *Client) GetAccount(address string) (client.Account, error) {
 	accAddr, err := sdktypes.AccAddressFromBech32(address)
 	if err != nil {
 		return nil, err

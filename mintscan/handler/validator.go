@@ -7,7 +7,6 @@ import (
 	"sort"
 	"strconv"
 
-	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
@@ -30,10 +29,10 @@ func GetValidators(rw http.ResponseWriter, r *http.Request) {
 
 	switch status {
 	case model.ActiveValidator:
-		vals, _ = s.db.QueryValidatorsByStatus(int(sdktypes.Bonded))
+		vals, _ = s.db.QueryValidatorsByStatus(int(stakingtypes.Bonded))
 	case model.InactiveValidator:
-		unbondingVals, _ := s.db.QueryValidatorsByStatus(int(sdktypes.Unbonding))
-		unbondedVals, _ := s.db.QueryValidatorsByStatus(int(sdktypes.Unbonded))
+		unbondingVals, _ := s.db.QueryValidatorsByStatus(int(stakingtypes.Unbonding))
+		unbondedVals, _ := s.db.QueryValidatorsByStatus(int(stakingtypes.Unbonded))
 		vals = append(vals, unbondingVals...)
 		vals = append(vals, unbondedVals...)
 	default:
@@ -66,7 +65,7 @@ func GetValidators(rw http.ResponseWriter, r *http.Request) {
 		// Default is missing the last 100 blocks
 		missBlockCount := model.MissingAllBlocks
 
-		if val.Status == int(sdktypes.Bonded) {
+		if val.Status == int(stakingtypes.Bonded) {
 			blocks, err := s.db.QueryValidatorUptime(val.Proposer, latestDBHeight-1)
 			if err != nil {
 				zap.S().Errorf("failed to query validator's missing blocks: %s", err)
@@ -139,7 +138,7 @@ func GetValidator(rw http.ResponseWriter, r *http.Request) {
 	// Default is missing the last 100 blocks
 	missBlockCount := model.MissingAllBlocks
 
-	if val.Status == int(sdktypes.Bonded) {
+	if val.Status == int(stakingtypes.Bonded) {
 		blocks, err := s.db.QueryValidatorUptime(val.Proposer, latestDBHeight-1)
 		if err != nil {
 			zap.S().Errorf("failed to query validator's missing blocks: %s", err)

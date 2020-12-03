@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"sync"
 
-	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/config"
@@ -59,9 +58,9 @@ func SetStatus() error {
 
 	notBondedTokens, _ := strconv.ParseFloat(pool.Pool.NotBondedTokens.String(), 64)
 	bondedTokens, _ := strconv.ParseFloat(pool.Pool.BondedTokens.String(), 64)
-	bondedValsNum, _ := s.db.CountValidatorNumByStatus(int(sdktypes.Bonded))
-	unbondingValsNum, _ := s.db.CountValidatorNumByStatus(int(sdktypes.Unbonding))
-	unbondedValsNum, _ := s.db.CountValidatorNumByStatus(int(sdktypes.Unbonded))
+	bondedValsNum, _ := s.db.CountValidatorNumByStatus(int(stakingtypes.Bonded))
+	unbondingValsNum, _ := s.db.CountValidatorNumByStatus(int(stakingtypes.Unbonding))
+	unbondedValsNum, _ := s.db.CountValidatorNumByStatus(int(stakingtypes.Unbonded))
 	totalTxsNum := s.db.QueryTotalTransactionNum()
 
 	status, err := s.client.GetStatus()
