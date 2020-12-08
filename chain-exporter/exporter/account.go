@@ -379,6 +379,75 @@ func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHas
 
 			accounts = append(accounts, *acct)
 
+		case *authvestingtypes.DelayedVestingAccount:
+			zap.S().Infof("Account type: %s | Account: %s", types.DelayedVestingAccount, account.GetAddress().String())
+
+			acc := account.(*authvestingtypes.DelayedVestingAccount)
+
+			spendable, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(acc.GetAddress().String())
+			if err != nil {
+				return []schema.Account{}, err
+			}
+
+			vesting := sdk.NewCoin(denom, sdk.NewInt(0))
+			vested := sdk.NewCoin(denom, sdk.NewInt(0))
+
+			vestingCoins := acc.GetVestingCoins(block.Block.Time)
+			vestedCoins := acc.GetVestedCoins(block.Block.Time)
+			delegatedVesting := acc.GetDelegatedVesting()
+
+			// When total vesting amount is greater than or equal to delegated vesting amount, then
+			// there is still a room to delegate. Otherwise, vesting should be zero.
+			if len(vestingCoins) > 0 {
+				if vestingCoins.IsAllGTE(delegatedVesting) {
+					vestingCoins = vestingCoins.Sub(delegatedVesting)
+					for _, vc := range vestingCoins {
+						if vc.Denom == denom {
+							vesting = vesting.Add(vc)
+						}
+					}
+				}
+			}
+
+			if len(vestedCoins) > 0 {
+				for _, vc := range vestedCoins {
+					if vc.Denom == denom {
+						vested = vested.Add(vc)
+					}
+				}
+			}
+
+			total := sdk.NewCoin(denom, sdk.NewInt(0))
+
+			// Sum up all coins that exist in an account.
+			total = total.Add(spendable).
+				Add(delegated).
+				Add(undelegated).
+				Add(rewards).
+				Add(commission).
+				Add(vesting)
+
+			acct := &schema.Account{
+				ChainID:           chainID,
+				AccountAddress:    acc.Address,
+				AccountNumber:     acc.AccountNumber,
+				AccountType:       types.DelayedVestingAccount,
+				CoinsTotal:        total.Amount.String(),
+				CoinsSpendable:    spendable.Amount.String(),
+				CoinsRewards:      rewards.Amount.String(),
+				CoinsCommission:   commission.Amount.String(),
+				CoinsDelegated:    delegated.Amount.String(),
+				CoinsUndelegated:  undelegated.Amount.String(),
+				CoinsVested:       "0",
+				CoinsVesting:      "0",
+				CoinsFailedVested: "0",
+				LastTx:            txHashStr,
+				LastTxTime:        txTime,
+				CreationTime:      block.Block.Time.String(),
+			}
+
+			accounts = append(accounts, *acct)
+
 		default:
 			return []schema.Account{}, fmt.Errorf("unrecognized account type: %T", account)
 		}

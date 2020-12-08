@@ -12,4 +12,7 @@ const (
 
 	// PeriodicVestingAccount is periodic vesting account.
 	PeriodicVestingAccount = "PeriodicVestingAccount"
+
+	// DelayedVestingAccount is periodic vesting account.
+	DelayedVestingAccount = "DelayedVestingAccount"
 )
