@@ -139,17 +139,23 @@ func (ex *Exporter) extractAccount(txResps []*sdktypes.TxResponse) (tms []schema
 			case *authvestingtypes.MsgCreateVestingAccount:
 				fmt.Printf("Type : %T\n", msg)
 				accounts = append(accounts, msg.FromAddress, msg.ToAddress)
+
+				//bank
 			case *banktypes.MsgSend:
 				fmt.Printf("Type : %T\n", msg)
 				accounts = append(accounts, msg.FromAddress, msg.ToAddress)
 			case *banktypes.MsgMultiSend:
+				// 추가 필요
 				fmt.Printf("Type : %T\n", msg)
 				fmt.Println(msg)
-				// 추가 필요
+
+				//crisis
 			case *crisistypes.MsgVerifyInvariant:
 				fmt.Printf("Type : %T\n", msg)
 				fmt.Println(msg.Sender)
 				accounts = append(accounts, msg.Sender)
+
+				//distribution
 			case *distributiontypes.MsgSetWithdrawAddress:
 				fmt.Printf("Type : %T\n", msg)
 				accounts = append(accounts, msg.DelegatorAddress)
@@ -163,14 +169,15 @@ func (ex *Exporter) extractAccount(txResps []*sdktypes.TxResponse) (tms []schema
 				fmt.Printf("Type : %T\n", msg)
 				accounts = append(accounts, msg.Depositor)
 
+				//evidence
 			case *evidencetypes.MsgSubmitEvidence:
 				fmt.Printf("Type : %T\n", msg)
 				accounts = append(accounts, msg.Submitter)
 
+				//gov
 			case *govtypes.MsgSubmitProposal:
 				fmt.Printf("Type : %T\n", msg)
 				accounts = append(accounts, msg.Proposer)
-
 			case *govtypes.MsgVote:
 				fmt.Printf("Type : %T\n", msg)
 				accounts = append(accounts, msg.Voter)
@@ -178,10 +185,12 @@ func (ex *Exporter) extractAccount(txResps []*sdktypes.TxResponse) (tms []schema
 				fmt.Printf("Type : %T\n", msg)
 				accounts = append(accounts, msg.Depositor)
 
+				//slashing
 			case *slashingtypes.MsgUnjail:
 				fmt.Printf("Type : %T\n", msg)
 				accounts = append(accounts, msg.ValidatorAddr)
 
+				//staking
 			case *stakingtypes.MsgCreateValidator:
 				fmt.Printf("Type : %T\n", msg)
 				accounts = append(accounts, msg.DelegatorAddress, msg.ValidatorAddress)

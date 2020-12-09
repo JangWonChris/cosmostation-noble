@@ -229,11 +229,11 @@ func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHas
 	}
 
 	for _, account := range exportedAccts {
-		switch account.(type) {
+		switch acc := account.(type) {
 		case *authtypes.BaseAccount:
 			zap.S().Infof("Account type: %s | Account: %s", types.BaseAccount, account.GetAddress())
 
-			acc := account.(*authtypes.BaseAccount)
+			// acc := account.(*authtypes.BaseAccount)
 
 			spendable, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(acc.GetAddress().String())
 			if err != nil {
@@ -273,7 +273,7 @@ func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHas
 		case *authtypes.ModuleAccount:
 			zap.S().Infof("Account type: %s | Account: %s", types.ModuleAccount, account.GetAddress().String())
 
-			acc := account.(authtypes.ModuleAccountI)
+			// acc := account.(authtypes.ModuleAccountI)
 
 			spendable, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(acc.GetAddress().String())
 			if err != nil {
@@ -313,7 +313,7 @@ func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHas
 		case *authvestingtypes.PeriodicVestingAccount:
 			zap.S().Infof("Account type: %s | Account: %s", types.PeriodicVestingAccount, account.GetAddress().String())
 
-			acc := account.(*authvestingtypes.PeriodicVestingAccount)
+			// acc := account.(*authvestingtypes.PeriodicVestingAccount)
 
 			spendable, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(acc.GetAddress().String())
 			if err != nil {
@@ -382,7 +382,7 @@ func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHas
 		case *authvestingtypes.DelayedVestingAccount:
 			zap.S().Infof("Account type: %s | Account: %s", types.DelayedVestingAccount, account.GetAddress().String())
 
-			acc := account.(*authvestingtypes.DelayedVestingAccount)
+			// acc := account.(*authvestingtypes.DelayedVestingAccount)
 
 			spendable, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(acc.GetAddress().String())
 			if err != nil {

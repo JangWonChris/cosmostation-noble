@@ -16,18 +16,23 @@ func main() {
 
 	flag.Parse()
 
-	if *gPath == "" {
-		zap.S().Fatal("genesis-file-path must be defined")
-		os.Exit(1)
-	}
-
 	log.Println(*gPath)
 	log.Println(*parse)
 	log.Println(*initialHeight)
+
+	// parse인데, path가 같이 안나오면 오류
+	// 2안 parse 옵션이 있고, path가 없으면 default path를 알아서 잡고, 오류 시 프로그램 종료
+	// if *parse && *gPath == "" {
+	// 	log.Fatal("genesis-file-path must be defined")
+	// 	os.Exit(1)
+	// }
+
 	exporter := exporter.NewExporter()
 
 	if *parse {
-		exporter.GetGenesisStateFromGenesisFile(*gPath)
+		if err := exporter.GetGenesisStateFromGenesisFile(*gPath); err != nil {
+			os.Exit(1)
+		}
 		zap.S().Info("parse complete")
 	}
 

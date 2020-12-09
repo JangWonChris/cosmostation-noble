@@ -6,6 +6,7 @@ import (
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )

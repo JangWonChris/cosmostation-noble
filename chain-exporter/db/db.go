@@ -537,13 +537,6 @@ func (db *Database) InsertExportedData(e schema.ExportData) error {
 			return fmt.Errorf("failed to insert result block: %s", err)
 		}
 
-		if len(e.ResultGenesisAccounts) > 0 {
-			err := tx.Insert(&e.ResultGenesisAccounts)
-			if err != nil {
-				return fmt.Errorf("failed to insert result genesis accounts: %s", err)
-			}
-		}
-
 		if len(e.ResultAccounts) > 0 {
 			fmt.Println("reulst account :", e.ResultAccounts)
 			err := db.InsertOrUpdateAccounts(e.ResultAccounts)

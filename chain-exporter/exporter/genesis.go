@@ -35,8 +35,7 @@ const (
 )
 
 // GetGenesisStateFromGenesisFile get the genesis account information from genesis state ({NODE_HOME}/config/Genesis.json)
-func (ex *Exporter) GetGenesisStateFromGenesisFile(genesisPath string) (accounts []schema.Account, err error) {
-
+func (ex *Exporter) GetGenesisStateFromGenesisFile(genesisPath string) (err error) {
 	// genesisFile := os.Getenv("PWD") + "/genesis.json"
 	baseConfig := tmconfig.DefaultBaseConfig()
 	genesisFile := filepath.Join(gaia.DefaultNodeHome, baseConfig.Genesis)
@@ -113,10 +112,10 @@ func (ex *Exporter) GetGenesisStateFromGenesisFile(genesisPath string) (accounts
 		},
 	)
 
+	var accounts []schema.Account
 	for _, acc := range accountMapper {
 		accounts = append(accounts, *acc)
-		log.Println(acc)
-		log.Println(acc.CoinsSpendable)
+		// log.Println(acc)
 	}
 
 	ex.db.InsertGenesisAccount(accounts)
@@ -124,6 +123,7 @@ func (ex *Exporter) GetGenesisStateFromGenesisFile(genesisPath string) (accounts
 	return
 }
 
+// deprecated
 func (ex *Exporter) getGenesisAccounts(genesisAccts authtypes.GenesisAccounts) (accounts []schema.Account, err error) {
 	chainID, err := ex.client.GetNetworkChainID()
 	if err != nil {
@@ -172,13 +172,7 @@ func (ex *Exporter) getGenesisAccounts(genesisAccts authtypes.GenesisAccounts) (
 				CoinsCommission:  commission.Amount.String(),
 				CoinsDelegated:   delegated.Amount.String(),
 				CoinsUndelegated: undelegated.Amount.String(),
-				// CoinsTotal:       *total.Amount.BigInt(),
-				// CoinsSpendable:   *spendable.Amount.BigInt(),
-				// CoinsRewards:     *rewards.Amount.BigInt(),
-				// CoinsCommission:  *commission.Amount.BigInt(),
-				// CoinsDelegated:   *delegated.Amount.BigInt(),
-				// CoinsUndelegated: *undelegated.Amount.BigInt(),
-				CreationTime: block.Block.Time.String(),
+				CreationTime:     block.Block.Time.String(),
 			}
 
 			accounts = append(accounts, *acct)
@@ -213,13 +207,7 @@ func (ex *Exporter) getGenesisAccounts(genesisAccts authtypes.GenesisAccounts) (
 				CoinsCommission:  commission.Amount.String(),
 				CoinsDelegated:   delegated.Amount.String(),
 				CoinsUndelegated: undelegated.Amount.String(),
-				// CoinsTotal:       *total.Amount.BigInt(),
-				// CoinsSpendable:   *spendable.Amount.BigInt(),
-				// CoinsRewards:     *rewards.Amount.BigInt(),
-				// CoinsCommission:  *commission.Amount.BigInt(),
-				// CoinsDelegated:   *delegated.Amount.BigInt(),
-				// CoinsUndelegated: *undelegated.Amount.BigInt(),
-				CreationTime: block.Block.Time.String(),
+				CreationTime:     block.Block.Time.String(),
 			}
 
 			accounts = append(accounts, *acct)
@@ -283,15 +271,7 @@ func (ex *Exporter) getGenesisAccounts(genesisAccts authtypes.GenesisAccounts) (
 				CoinsCommission:  commission.Amount.String(),
 				CoinsDelegated:   delegated.Amount.String(),
 				CoinsUndelegated: undelegated.Amount.String(),
-				// CoinsTotal:       *total.Amount.BigInt(),
-				// CoinsSpendable:   *spendable.Amount.BigInt(),
-				// CoinsRewards:     *rewards.Amount.BigInt(),
-				// CoinsCommission:  *commission.Amount.BigInt(),
-				// CoinsDelegated:   *delegated.Amount.BigInt(),
-				// CoinsUndelegated: *undelegated.Amount.BigInt(),
-				// CoinsVesting:     *vesting.Amount.BigInt(),
-				// CoinsVested:      *vested.Amount.BigInt(),
-				CreationTime: block.Block.Time.String(),
+				CreationTime:     block.Block.Time.String(),
 			}
 
 			accounts = append(accounts, *acct)
@@ -306,8 +286,7 @@ func (ex *Exporter) getGenesisAccounts(genesisAccts authtypes.GenesisAccounts) (
 
 // getGenesisValidatorsSet returns validator set in genesis.
 func (ex *Exporter) getGenesisValidatorsSet(block *tmctypes.ResultBlock, vals *tmctypes.ResultValidators) ([]schema.PowerEventHistory, error) {
-	genesisValsSet := make([]schema.PowerEventHistory, 0)
-
+	// Get genesis validator set (block height 1).
 	if block.Block.Height != 1 {
 		return []schema.PowerEventHistory{}, nil
 	}
@@ -317,7 +296,10 @@ func (ex *Exporter) getGenesisValidatorsSet(block *tmctypes.ResultBlock, vals *t
 		return []schema.PowerEventHistory{}, err
 	}
 
-	// Get genesis validator set (block height 1).
+	if vals == nil {
+		return []schema.PowerEventHistory{}, nil
+	}
+	genesisValsSet := make([]schema.PowerEventHistory, 0)
 	for i, val := range vals.Validators {
 		gvs := schema.NewPowerEventHistoryForGenesisValidatorSet(schema.PowerEventHistory{
 			IDValidator:          i + 1,

@@ -158,27 +158,12 @@ func (ex *Exporter) process(height int64) error {
 		return fmt.Errorf("failed to query block: %s", err)
 	}
 
-	// First block has no previous block and no pre-commits.
-	// Handle this to save first block information
-	var resultGenesisAccounts []schema.Account
-	if height == 1 {
-		block.Block.LastCommit.Height = 1
-
-		// var genesisAccts authtypes.GenesisAccounts
-		// genesisAccts, err = ex.client.GetGenesisAccounts()
-		// if err != nil {
-		// 	return fmt.Errorf("failed to get genesis accounts: %s", err)
-		// }
-
-		// resultGenesisAccounts, err = ex.getGenesisAccounts(genesisAccts)
-		resultGenesisAccounts, err = ex.GetGenesisStateFromGenesisFile("")
-		if err != nil {
-			return fmt.Errorf("failed to get block: %s", err)
-		}
-	}
-
 	var prevBlock *tmctypes.ResultBlock
 	var vals *tmctypes.ResultValidators
+	var resultGenesisValidatorsSet []schema.PowerEventHistory
+	var resultMissBlocks, resultAccumulatedMissBlocks []schema.Miss
+	var resultMissDetailBlocks []schema.MissDetail
+
 	if block.Block.LastCommit.Height != 0 {
 		prevBlock, err = ex.client.GetBlock(block.Block.LastCommit.Height)
 		if err != nil {
@@ -188,6 +173,15 @@ func (ex *Exporter) process(height int64) error {
 		vals, err = ex.client.GetValidators(block.Block.LastCommit.Height, types.DefaultQueryValidatorsPage, types.DefaultQueryValidatorsPerPage)
 		if err != nil {
 			return fmt.Errorf("failed to query validators: %s", err)
+		}
+
+		resultGenesisValidatorsSet, err = ex.getGenesisValidatorsSet(block, vals)
+		if err != nil {
+			return fmt.Errorf("failed to get genesis validator set: %s", err)
+		}
+		resultMissBlocks, resultAccumulatedMissBlocks, resultMissDetailBlocks, err = ex.getValidatorsUptime(prevBlock, block, vals)
+		if err != nil {
+			return fmt.Errorf("failed to get missing blocks: %s", err)
 		}
 	}
 
@@ -201,23 +195,9 @@ func (ex *Exporter) process(height int64) error {
 		return fmt.Errorf("failed to get block: %s", err)
 	}
 
-	resultGenesisValidatorsSet, err := ex.getGenesisValidatorsSet(block, vals)
-	if err != nil {
-		return fmt.Errorf("failed to get genesis validator set: %s", err)
-	}
-
 	resultAccounts, err := ex.getAccounts(block, txs)
 	if err != nil {
 		return fmt.Errorf("failed to get accounts: %s", err)
-	}
-
-	var resultMissBlocks, resultAccumulatedMissBlocks []schema.Miss
-	var resultMissDetailBlocks []schema.MissDetail
-	if prevBlock != nil {
-		resultMissBlocks, resultAccumulatedMissBlocks, resultMissDetailBlocks, err = ex.getValidatorsUptime(prevBlock, block, vals)
-		if err != nil {
-			return fmt.Errorf("failed to get missing blocks: %s", err)
-		}
 	}
 
 	resultEvidence, err := ex.getEvidence(block)
@@ -258,7 +238,6 @@ func (ex *Exporter) process(height int64) error {
 	err = ex.db.InsertExportedData(schema.ExportData{
 		ResultAccounts:                    resultAccounts,
 		ResultBlock:                       resultBlock,
-		ResultGenesisAccounts:             resultGenesisAccounts,
 		ResultTxs:                         resultTxs,
 		ResultTxsJSONChunk:                resultTxsJSONChunk,
 		ResultTxsMessages:                 resultTxsMessages,

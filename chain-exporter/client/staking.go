@@ -14,6 +14,10 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
+
+	//grpc
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // GetStakingQueryClient returns a object of queryClient
@@ -114,6 +118,10 @@ func (c *Client) GetDelegatorDelegations(address string) (*stakingtypes.QueryDel
 	request := stakingtypes.QueryDelegatorDelegationsRequest{DelegatorAddr: address}
 	res, err := queryClient.DelegatorDelegations(context.Background(), &request)
 	if err != nil {
+		s := status.Convert(err)
+		if s.Code() == codes.NotFound {
+			return &stakingtypes.QueryDelegatorDelegationsResponse{}, nil
+		}
 		return nil, err
 	}
 
