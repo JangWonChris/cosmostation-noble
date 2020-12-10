@@ -15,6 +15,22 @@ func (c *Client) GetAuthQueryClient() authtypes.QueryClient {
 	return authtypes.NewQueryClient(c.grpcClient)
 }
 
+// GetAccount checks account type and returns account interface.
+func (c *Client) GetAccount(address string) (sdkclient.Account, error) {
+	accAddr, err := sdktypes.AccAddressFromBech32(address)
+	if err != nil {
+		return nil, err
+	}
+
+	ar := authtypes.AccountRetriever{}
+	acc, _, err := ar.GetAccountWithHeight(c.cliCtx, accAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	return acc, nil
+}
+
 // GetTx queries for a single transaction by a hash string in hex format.
 // An error is returned if the transaction does not exist or cannot be queried.
 func (c *Client) GetTx(hash string) (*sdktypes.TxResponse, error) {
@@ -49,20 +65,4 @@ func (c *Client) GetTxs(block *tmctypes.ResultBlock) ([]*sdktypes.TxResponse, er
 	}
 
 	return txResponses, nil
-}
-
-// GetAccount checks account type and returns account interface.
-func (c *Client) GetAccount(address string) (sdkclient.Account, error) {
-	accAddr, err := sdktypes.AccAddressFromBech32(address)
-	if err != nil {
-		return nil, err
-	}
-
-	ar := authtypes.AccountRetriever{}
-	acc, _, err := ar.GetAccountWithHeight(c.cliCtx, accAddr)
-	if err != nil {
-		return nil, err
-	}
-
-	return acc, nil
 }

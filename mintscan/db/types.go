@@ -20,5 +20,6 @@ const (
 	QueryTxParamValidatorCommission = "messages->0->>'type' = 'cosmos-sdk/MsgWithdrawValidatorCommission'"
 
 	// Param that are used for selecting particular coin denomination.
-	QueryTxParamDenom = "messages->0->'value'->'amount'->0->>'denom' = "
+	// QueryTxParamDenom = "messages->0->'value'->'amount'->0->>'denom' = "
+	QueryTxParamDenom = "messages->0->'amount'->0->>'denom' = "
 )

@@ -14,7 +14,7 @@ type ExportData struct {
 	ResultAccumulatedMissBlocks       []Miss
 	ResultProposals                   []Proposal
 	ResultDeposits                    []Deposit
-	ReusltVotes                       []Vote
+	ResultVotes                       []Vote
 	ResultGenesisValidatorsSet        []PowerEventHistory
 	ResultValidatorsPowerEventHistory []PowerEventHistory
 }
@@ -32,7 +32,7 @@ func NewExportData(e ExportData) *ExportData {
 		ResultAccumulatedMissBlocks:       e.ResultAccumulatedMissBlocks,
 		ResultProposals:                   e.ResultProposals,
 		ResultDeposits:                    e.ResultDeposits,
-		ReusltVotes:                       e.ReusltVotes,
+		ResultVotes:                       e.ResultVotes,
 		ResultGenesisValidatorsSet:        e.ResultGenesisValidatorsSet,
 		ResultValidatorsPowerEventHistory: e.ResultValidatorsPowerEventHistory,
 	}

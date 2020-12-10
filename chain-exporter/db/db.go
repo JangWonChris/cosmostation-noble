@@ -530,15 +530,16 @@ func (db *Database) InsertOrUpdateValidators(vals []schema.Validator) error {
 
 // InsertExportedData saves exported blockchain data
 // if function returns an error transaction is rollbacked, otherwise transaction is committed.
-func (db *Database) InsertExportedData(e schema.ExportData) error {
+func (db *Database) InsertExportedData(e *schema.ExportData) error {
 	err := db.RunInTransaction(func(tx *pg.Tx) error {
-		err := tx.Insert(&e.ResultBlock)
-		if err != nil {
-			return fmt.Errorf("failed to insert result block: %s", err)
+		if e.ResultBlock.BlockHash != "" {
+			err := tx.Insert(&e.ResultBlock)
+			if err != nil {
+				return fmt.Errorf("failed to insert result block: %s", err)
+			}
 		}
 
 		if len(e.ResultAccounts) > 0 {
-			fmt.Println("reulst account :", e.ResultAccounts)
 			err := db.InsertOrUpdateAccounts(e.ResultAccounts)
 			if err != nil {
 				return fmt.Errorf("failed to insert result accounts: %s", err)
@@ -650,8 +651,8 @@ func (db *Database) InsertExportedData(e schema.ExportData) error {
 			}
 		}
 
-		if len(e.ReusltVotes) > 0 {
-			for _, rv := range e.ReusltVotes {
+		if len(e.ResultVotes) > 0 {
+			for _, rv := range e.ResultVotes {
 				ok, _ := db.ExistVote(rv.ProposalID, rv.Voter)
 				if !ok {
 					err := tx.Insert(&rv)

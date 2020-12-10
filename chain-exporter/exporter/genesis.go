@@ -64,7 +64,7 @@ func (ex *Exporter) GetGenesisStateFromGenesisFile(genesisPath string) (err erro
 	authAccs := authGenesisState.GetAccounts()
 	NumberOfTotalAccounts := len(authAccs)
 	accountMapper := make(map[string]*schema.Account, NumberOfTotalAccounts)
-	for i, authAcc := range authAccs {
+	for _, authAcc := range authAccs {
 		var ga authtypes.GenesisAccount
 		codec.AppCodec.UnpackAny(authAcc, &ga)
 		switch ga := ga.(type) {
@@ -84,8 +84,8 @@ func (ex *Exporter) GetGenesisStateFromGenesisFile(genesisPath string) (err erro
 		sAcc := schema.Account{
 			ChainID:           genDoc.ChainID,
 			AccountAddress:    ga.GetAddress().String(),
-			AccountNumber:     uint64(i),            //account number is set by specified order in genesis file
-			AccountType:       authAcc.GetTypeUrl(), //type 변경
+			AccountNumber:     ga.GetAccountNumber(), //account number is set by specified order in genesis file
+			AccountType:       authAcc.GetTypeUrl(),  //type 변경
 			CoinsTotal:        "0",
 			CoinsSpendable:    "0",
 			CoinsDelegated:    "0",

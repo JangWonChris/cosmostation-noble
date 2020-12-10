@@ -2,6 +2,7 @@ package exporter
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"go.uber.org/zap"
@@ -11,7 +12,6 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/db"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
-	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
 var (
@@ -62,7 +62,7 @@ func NewExporter() *Exporter {
 }
 
 // Start starts to synchronize blockchain data
-func (ex *Exporter) Start(initialHeight int64) {
+func (ex *Exporter) Start(initialHeight int64, chunkOnly bool) {
 	zap.S().Info("Starting Chain Exporter...")
 	zap.S().Infof("Network Type: %s | Version: %s | Commit: %s", ex.config.Node.NetworkType, Version, Commit)
 
@@ -79,7 +79,7 @@ func (ex *Exporter) Start(initialHeight int64) {
 	go func() {
 		for {
 			zap.S().Info("start - sync blockchain")
-			err := ex.sync(initialHeight)
+			err := ex.sync(initialHeight, chunkOnly)
 			if err != nil {
 				zap.S().Infof("error - sync blockchain: %s\n", err)
 			}
@@ -120,7 +120,7 @@ func (ex *Exporter) Start(initialHeight int64) {
 
 // sync compares block height between the height saved in your database and
 // the latest block height on the active chain and calls process to start ingesting data.
-func (ex *Exporter) sync(initialHeight int64) error {
+func (ex *Exporter) sync(initialHeight int64, chunkOnly bool) error {
 	// Query latest block height saved in database
 	dbHeight, err := ex.db.QueryLatestBlockHeight()
 	if dbHeight == -1 {
@@ -140,7 +140,7 @@ func (ex *Exporter) sync(initialHeight int64) error {
 
 	// Ingest all blocks up to the latest height
 	for i := dbHeight + 1; i <= latestBlockHeight; i++ {
-		err = ex.process(i)
+		err = ex.process(i, chunkOnly)
 		if err != nil {
 			return err
 		}
@@ -152,105 +152,125 @@ func (ex *Exporter) sync(initialHeight int64) error {
 
 // process ingests chain data, such as block, transaction, validator, evidence information and
 // save them in database.
-func (ex *Exporter) process(height int64) error {
+func (ex *Exporter) process(height int64, chunkOnly bool) error {
 	block, err := ex.client.GetBlock(height)
 	if err != nil {
 		return fmt.Errorf("failed to query block: %s", err)
 	}
 
-	var prevBlock *tmctypes.ResultBlock
-	var vals *tmctypes.ResultValidators
-	var resultGenesisValidatorsSet []schema.PowerEventHistory
-	var resultMissBlocks, resultAccumulatedMissBlocks []schema.Miss
-	var resultMissDetailBlocks []schema.MissDetail
+	exportData := new(schema.ExportData)
 
-	if block.Block.LastCommit.Height != 0 {
-		prevBlock, err = ex.client.GetBlock(block.Block.LastCommit.Height)
-		if err != nil {
-			return fmt.Errorf("failed to query previous block: %s", err)
-		}
+	// var prevBlock *tmctypes.ResultBlock
+	// var vals *tmctypes.ResultValidators
+	// var resultBlock schema.Block
+	// var resultAccounts []schema.Account
+	// var resultEvidence []schema.Evidence
+	// var resultTxs []schema.TransactionLegacy
+	// var resultTxsMessages []schema.TransactionMessage
+	// var resultProposals []schema.Proposal
+	// var resultDeposits []schema.Deposit
+	// var resultVotes []schema.Vote
+	// var resultValidatorsPowerEventHistory []schema.PowerEventHistory
+	// var resultGenesisValidatorsSet []schema.PowerEventHistory
+	// var resultMissBlocks, resultAccumulatedMissBlocks []schema.Miss
+	// var resultMissDetailBlocks []schema.MissDetail
 
-		vals, err = ex.client.GetValidators(block.Block.LastCommit.Height, types.DefaultQueryValidatorsPage, types.DefaultQueryValidatorsPerPage)
-		if err != nil {
-			return fmt.Errorf("failed to query validators: %s", err)
-		}
-
-		resultGenesisValidatorsSet, err = ex.getGenesisValidatorsSet(block, vals)
-		if err != nil {
-			return fmt.Errorf("failed to get genesis validator set: %s", err)
-		}
-		resultMissBlocks, resultAccumulatedMissBlocks, resultMissDetailBlocks, err = ex.getValidatorsUptime(prevBlock, block, vals)
-		if err != nil {
-			return fmt.Errorf("failed to get missing blocks: %s", err)
-		}
-	}
+	// block chunk
 
 	txs, err := ex.client.GetTxs(block)
 	if err != nil {
 		return fmt.Errorf("failed to get transactions for block: %s", err)
 	}
 
-	resultBlock, err := ex.getBlock(block)
-	if err != nil {
-		return fmt.Errorf("failed to get block: %s", err)
-	}
-
-	resultAccounts, err := ex.getAccounts(block, txs)
-	if err != nil {
-		return fmt.Errorf("failed to get accounts: %s", err)
-	}
-
-	resultEvidence, err := ex.getEvidence(block)
-	if err != nil {
-		return fmt.Errorf("failed to get evidence: %s", err)
-	}
-
-	resultTxs, err := ex.getTxs(block, txs)
+	exportData.ResultTxsJSONChunk, err = ex.getTxsJSONChunk(txs)
 	if err != nil {
 		return fmt.Errorf("failed to get txs: %s", err)
 	}
 
-	resultTxsJSONChunk, err := ex.getTxsJSONChunk(txs)
-	if err != nil {
-		return fmt.Errorf("failed to get txs: %s", err)
+	if !chunkOnly {
+
+		log.Println("!chunkOnly test")
+
+		if block.Block.LastCommit.Height != 0 {
+			prevBlock, err := ex.client.GetBlock(block.Block.LastCommit.Height)
+			if err != nil {
+				return fmt.Errorf("failed to query previous block: %s", err)
+			}
+
+			vals, err := ex.client.GetValidators(block.Block.LastCommit.Height, types.DefaultQueryValidatorsPage, types.DefaultQueryValidatorsPerPage)
+			if err != nil {
+				return fmt.Errorf("failed to query validators: %s", err)
+			}
+
+			exportData.ResultGenesisValidatorsSet, err = ex.getGenesisValidatorsSet(block, vals)
+			if err != nil {
+				return fmt.Errorf("failed to get genesis validator set: %s", err)
+			}
+			exportData.ResultMissBlocks, exportData.ResultAccumulatedMissBlocks, exportData.ResultMissDetailBlocks, err = ex.getValidatorsUptime(prevBlock, block, vals)
+			if err != nil {
+				return fmt.Errorf("failed to get missing blocks: %s", err)
+			}
+		}
+
+		exportData.ResultBlock, err = ex.getBlock(block)
+		if err != nil {
+			return fmt.Errorf("failed to get block: %s", err)
+		}
+
+		exportData.ResultAccounts, err = ex.getAccounts(block, txs)
+		if err != nil {
+			return fmt.Errorf("failed to get accounts: %s", err)
+		}
+
+		exportData.ResultEvidence, err = ex.getEvidence(block)
+		if err != nil {
+			return fmt.Errorf("failed to get evidence: %s", err)
+		}
+
+		exportData.ResultTxs, err = ex.getTxs(block, txs)
+		if err != nil {
+			return fmt.Errorf("failed to get txs: %s", err)
+		}
+
+		exportData.ResultTxsMessages, err = ex.extractAccount(txs)
+		if err != nil {
+			return fmt.Errorf("failed to get account by each tx message: %s", err)
+		}
+
+		exportData.ResultProposals, exportData.ResultDeposits, exportData.ResultVotes, err = ex.getGovernance(block, txs)
+		if err != nil {
+			return fmt.Errorf("failed to get governance: %s", err)
+		}
+
+		exportData.ResultValidatorsPowerEventHistory, err = ex.getPowerEventHistory(block, txs)
+		if err != nil {
+			return fmt.Errorf("failed to get transactions: %s", err)
+		}
+
+		// TODO: is this right place to be?
+		if ex.config.Alarm.Switch {
+			ex.handlePushNotification(block, txs)
+		}
 	}
 
-	resultTxsMessages, err := ex.extractAccount(txs)
-	if err != nil {
-		return fmt.Errorf("failed to get account by each tx message: %s", err)
-	}
+	err = ex.db.InsertExportedData(exportData)
 
-	resultProposals, resultDeposits, resultVotes, err := ex.getGovernance(block, txs)
-	if err != nil {
-		return fmt.Errorf("failed to get governance: %s", err)
-	}
-
-	resultValidatorsPowerEventHistory, err := ex.getPowerEventHistory(block, txs)
-	if err != nil {
-		return fmt.Errorf("failed to get transactions: %s", err)
-	}
-
-	// TODO: is this right place to be?
-	if ex.config.Alarm.Switch {
-		ex.handlePushNotification(block, txs)
-	}
-
-	err = ex.db.InsertExportedData(schema.ExportData{
-		ResultAccounts:                    resultAccounts,
-		ResultBlock:                       resultBlock,
-		ResultTxs:                         resultTxs,
-		ResultTxsJSONChunk:                resultTxsJSONChunk,
-		ResultTxsMessages:                 resultTxsMessages,
-		ResultEvidence:                    resultEvidence,
-		ResultMissBlocks:                  resultMissBlocks,
-		ResultMissDetailBlocks:            resultMissDetailBlocks,
-		ResultAccumulatedMissBlocks:       resultAccumulatedMissBlocks,
-		ResultProposals:                   resultProposals,
-		ResultDeposits:                    resultDeposits,
-		ReusltVotes:                       resultVotes,
-		ResultGenesisValidatorsSet:        resultGenesisValidatorsSet,
-		ResultValidatorsPowerEventHistory: resultValidatorsPowerEventHistory,
-	})
+	// err = ex.db.InsertExportedData(schema.ExportData{
+	// 	ResultAccounts:                    resultAccounts,
+	// 	ResultBlock:                       resultBlock,
+	// 	ResultTxs:                         resultTxs,
+	// 	ResultTxsJSONChunk:                resultTxsJSONChunk,
+	// 	ResultTxsMessages:                 resultTxsMessages,
+	// 	ResultEvidence:                    resultEvidence,
+	// 	ResultMissBlocks:                  resultMissBlocks,
+	// 	ResultMissDetailBlocks:            resultMissDetailBlocks,
+	// 	ResultAccumulatedMissBlocks:       resultAccumulatedMissBlocks,
+	// 	ResultProposals:                   resultProposals,
+	// 	ResultDeposits:                    resultDeposits,
+	// 	ResultVotes:                       resultVotes,
+	// 	ResultGenesisValidatorsSet:        resultGenesisValidatorsSet,
+	// 	ResultValidatorsPowerEventHistory: resultValidatorsPowerEventHistory,
+	// })
 
 	if err != nil {
 		return err
