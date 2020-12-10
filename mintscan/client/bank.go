@@ -21,6 +21,9 @@ func (c *Client) GetBalance(address string) (*sdktypes.Coin, error) {
 	bankClient := c.GetBankQueryClient()
 	request := banktypes.QueryBalanceRequest{Address: address, Denom: denom}
 	bankRes, err := bankClient.Balance(context.Background(), &request)
+	if err != nil {
+		return nil, err
+	}
 
 	return bankRes.GetBalance(), nil
 }

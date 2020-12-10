@@ -532,14 +532,17 @@ func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 		zap.S().Errorf("failed to get get delegator's total rewards: %s", err)
 		return
 	}
-	totalDecs, _ := totalRewardsResp.Total.TruncateDecimal()
-	for _, reward := range totalDecs {
-		if reward.Denom == denom {
-			rewards = rewards.Add(reward)
-			// 특정 denom에 대한 합계를 구하고 나머지는 사용하지 않음
-			break
-		}
+	if totalRewardsResp != nil {
+		rewards = rewards.Add(sdktypes.NewCoin(denom, totalRewardsResp.Total.AmountOf(denom).TruncateInt()))
 	}
+	// totalDecs, _ := totalRewardsResp.Total.TruncateDecimal()
+	// for _, reward := range totalDecs {
+	// 	if reward.Denom == denom {
+	// 		rewards = rewards.Add(reward)
+	// 		// 특정 denom에 대한 합계를 구하고 나머지는 사용하지 않음
+	// 		break
+	// 	}
+	// }
 
 	valAddr, err := model.ConvertValAddrFromAccAddr(accAddr)
 	if err != nil {

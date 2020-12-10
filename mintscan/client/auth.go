@@ -3,11 +3,33 @@ package client
 import (
 	"fmt"
 
-	"github.com/cosmos/cosmos-sdk/client"
+	sdkclient "github.com/cosmos/cosmos-sdk/client"
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	authclient "github.com/cosmos/cosmos-sdk/x/auth/client"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
+
+// GetAuthQueryClient returns a object of queryClient
+func (c *Client) GetAuthQueryClient() authtypes.QueryClient {
+	return authtypes.NewQueryClient(c.grpcClient)
+}
+
+// GetAccount checks account type and returns account interface.
+func (c *Client) GetAccount(address string) (sdkclient.Account, error) {
+	accAddr, err := sdktypes.AccAddressFromBech32(address)
+	if err != nil {
+		return nil, err
+	}
+
+	ar := authtypes.AccountRetriever{}
+	acc, _, err := ar.GetAccountWithHeight(c.cliCtx, accAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	return acc, nil
+}
 
 // GetTx queries for a single transaction by a hash string in hex format.
 // An error is returned if the transaction does not exist or cannot be queried.
@@ -24,23 +46,23 @@ func (c *Client) GetTx(hash string) (*sdktypes.TxResponse, error) {
 	return txResponse, nil
 }
 
-// GetAuthQueryClient returns a object of queryClient
-func (c *Client) GetAuthQueryClient() authtypes.QueryClient {
-	return authtypes.NewQueryClient(c.grpcClient)
-}
+// GetTxs queries for all the transactions in a block.
+// Transactions are returned in the sdktypes.TxResponse format which internally contains an sdktypes.Tx.
+func (c *Client) GetTxs(block *tmctypes.ResultBlock) ([]*sdktypes.TxResponse, error) {
+	txResponses := make([]*sdktypes.TxResponse, len(block.Block.Txs), len(block.Block.Txs))
 
-// GetAccount checks account type and returns account interface.
-func (c *Client) GetAccount(address string) (client.Account, error) {
-	accAddr, err := sdktypes.AccAddressFromBech32(address)
-	if err != nil {
-		return nil, err
+	if len(block.Block.Txs) <= 0 {
+		return txResponses, nil
 	}
 
-	ar := authtypes.AccountRetriever{}
-	acc, _, err := ar.GetAccountWithHeight(c.cliCtx, accAddr)
-	if err != nil {
-		return nil, err
+	for i, tx := range block.Block.Txs {
+		txResponse, err := c.GetTx(fmt.Sprintf("%X", tx.Hash()))
+		if err != nil {
+			return nil, err
+		}
+
+		txResponses[i] = txResponse
 	}
 
-	return acc, nil
+	return txResponses, nil
 }
