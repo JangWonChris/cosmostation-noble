@@ -6,7 +6,6 @@ type ExportData struct {
 	ResultBlock    Block
 	// ResultGenesisAccounts             []Account
 	ResultTxs                         []TransactionLegacy
-	ResultTxsJSONChunk                []Transaction
 	ResultTxsMessages                 []TransactionMessage
 	ResultEvidence                    []Evidence
 	ResultMissBlocks                  []Miss
@@ -17,6 +16,10 @@ type ExportData struct {
 	ResultVotes                       []Vote
 	ResultGenesisValidatorsSet        []PowerEventHistory
 	ResultValidatorsPowerEventHistory []PowerEventHistory
+}
+
+type ExportRawData struct {
+	ResultTxsJSONChunk []Transaction
 }
 
 // NewExportData returns a new ExportData.

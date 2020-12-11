@@ -3,15 +3,18 @@ package exporter
 import (
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"go.uber.org/zap"
 
+	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/client"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/db"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
+	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
 var (
@@ -27,6 +30,7 @@ type Exporter struct {
 	config *config.Config
 	client *client.Client
 	db     *db.Database
+	rawdb  *db.RawDatabase
 }
 
 // NewExporter returns new Exporter instance
@@ -48,21 +52,29 @@ func NewExporter() *Exporter {
 
 	// Create connection with PostgreSQL database and
 	// Ping database to verify connection is success.
-	db := db.Connect(&config.DB)
-	err = db.Ping()
+	database := db.Connect(&config.DB)
+	err = database.Ping()
+	if err != nil {
+		zap.L().Error("failed to ping database", zap.Error(err))
+		return &Exporter{}
+	}
+
+	rawdb := db.RawDBConnect(&config.RAWDB)
+	err = rawdb.Ping()
 	if err != nil {
 		zap.L().Error("failed to ping database", zap.Error(err))
 		return &Exporter{}
 	}
 
 	// Create database tables if not exist already
-	db.CreateTables()
+	database.CreateTables()
+	rawdb.CreateTables()
 
-	return &Exporter{config, client, db}
+	return &Exporter{config, client, database, rawdb}
 }
 
 // Start starts to synchronize blockchain data
-func (ex *Exporter) Start(initialHeight int64, chunkOnly bool) {
+func (ex *Exporter) Start(initialHeight int64, op int) {
 	zap.S().Info("Starting Chain Exporter...")
 	zap.S().Infof("Network Type: %s | Version: %s | Commit: %s", ex.config.Node.NetworkType, Version, Commit)
 
@@ -79,7 +91,7 @@ func (ex *Exporter) Start(initialHeight int64, chunkOnly bool) {
 	go func() {
 		for {
 			zap.S().Info("start - sync blockchain")
-			err := ex.sync(initialHeight, chunkOnly)
+			err := ex.sync(initialHeight, op)
 			if err != nil {
 				zap.S().Infof("error - sync blockchain: %s\n", err)
 			}
@@ -120,9 +132,13 @@ func (ex *Exporter) Start(initialHeight int64, chunkOnly bool) {
 
 // sync compares block height between the height saved in your database and
 // the latest block height on the active chain and calls process to start ingesting data.
-func (ex *Exporter) sync(initialHeight int64, chunkOnly bool) error {
+func (ex *Exporter) sync(initialHeight int64, op int) error {
 	// Query latest block height saved in database
 	dbHeight, err := ex.db.QueryLatestBlockHeight()
+	if dbHeight == -1 {
+		return fmt.Errorf("unexpected error in database: %s", err)
+	}
+	rawDBHeight, err := ex.rawdb.QueryLatestBlockHeight()
 	if dbHeight == -1 {
 		return fmt.Errorf("unexpected error in database: %s", err)
 	}
@@ -135,28 +151,77 @@ func (ex *Exporter) sync(initialHeight int64, chunkOnly bool) error {
 
 	if dbHeight == 0 && initialHeight != 0 {
 		dbHeight = initialHeight - 1
+		rawDBHeight = initialHeight - 1
 		zap.S().Info("initial Height set : ", initialHeight)
 	}
 
-	// Ingest all blocks up to the latest height
-	for i := dbHeight + 1; i <= latestBlockHeight; i++ {
-		err = ex.process(i, chunkOnly)
-		if err != nil {
-			return err
-		}
-		zap.S().Infof("synced block %d/%d", i, latestBlockHeight)
+	beginHeight := dbHeight
+	if dbHeight > rawDBHeight || op == RAW_MODE {
+		beginHeight = rawDBHeight
 	}
 
+	log.Printf("dbHeight %d, rawHeight %d \n", dbHeight, rawDBHeight)
+
+	for i := beginHeight + 1; i <= latestBlockHeight; i++ {
+		block, err := ex.client.GetBlock(i)
+		if err != nil {
+			return fmt.Errorf("failed to query block: %s", err)
+		}
+		txs, err := ex.client.GetTxs(block)
+		if err != nil {
+			return fmt.Errorf("failed to get transactions for block: %s", err)
+		}
+		switch op {
+		case BASIC_MODE:
+			if i > dbHeight {
+				err = ex.process(block, txs, op)
+				if err != nil {
+					return err
+				}
+				zap.S().Infof("synced block %d/%d", i, latestBlockHeight)
+			}
+			fallthrough //continue to case RAW_MODE
+		case RAW_MODE:
+			// Ingest all blocks up to the latest height
+			if i > rawDBHeight {
+				err = ex.rawProcess(block, txs, op)
+				if err != nil {
+					return err
+				}
+				zap.S().Infof("synced raw block %d/%d", i, latestBlockHeight)
+			}
+		case REFINE_MODE:
+			// query block and tx with given height to get raw block, txs from database
+			// unmarshal block, tx
+			// err = ex.process(block, txs, op)
+			// if err != nil {
+			// 	return err
+			// }
+			// zap.S().Infof("synced block %d/%d", i, latestBlockHeight)
+		default:
+			zap.S().Info("unknown mode = ", op)
+			os.Exit(1)
+		}
+	}
 	return nil
+}
+
+func (ex *Exporter) rawProcess(block *tmctypes.ResultBlock, txs []*sdktypes.TxResponse, op int) (err error) {
+	exportRawData := new(schema.ExportRawData)
+
+	// raw mode 용 endpoint가 별도로 필요함
+	// block chunk + transaction chunk
+	exportRawData.ResultTxsJSONChunk, err = ex.getTxsJSONChunk(txs)
+	if err != nil {
+		return fmt.Errorf("failed to get txs: %s", err)
+	}
+	return ex.rawdb.InsertExportedData(exportRawData)
 }
 
 // process ingests chain data, such as block, transaction, validator, evidence information and
 // save them in database.
-func (ex *Exporter) process(height int64, chunkOnly bool) error {
-	block, err := ex.client.GetBlock(height)
-	if err != nil {
-		return fmt.Errorf("failed to query block: %s", err)
-	}
+func (ex *Exporter) process(block *tmctypes.ResultBlock, txs []*sdktypes.TxResponse, op int) (err error) {
+	// func (ex *Exporter) process(height int64, op int) error {
 
 	exportData := new(schema.ExportData)
 
@@ -175,85 +240,68 @@ func (ex *Exporter) process(height int64, chunkOnly bool) error {
 	// var resultMissBlocks, resultAccumulatedMissBlocks []schema.Miss
 	// var resultMissDetailBlocks []schema.MissDetail
 
-	// block chunk
+	if block.Block.LastCommit.Height != 0 {
+		prevBlock, err := ex.client.GetBlock(block.Block.LastCommit.Height)
+		if err != nil {
+			return fmt.Errorf("failed to query previous block: %s", err)
+		}
 
-	txs, err := ex.client.GetTxs(block)
-	if err != nil {
-		return fmt.Errorf("failed to get transactions for block: %s", err)
+		vals, err := ex.client.GetValidators(block.Block.LastCommit.Height, types.DefaultQueryValidatorsPage, types.DefaultQueryValidatorsPerPage)
+		if err != nil {
+			return fmt.Errorf("failed to query validators: %s", err)
+		}
+
+		exportData.ResultGenesisValidatorsSet, err = ex.getGenesisValidatorsSet(block, vals)
+		if err != nil {
+			return fmt.Errorf("failed to get genesis validator set: %s", err)
+		}
+		exportData.ResultMissBlocks, exportData.ResultAccumulatedMissBlocks, exportData.ResultMissDetailBlocks, err = ex.getValidatorsUptime(prevBlock, block, vals)
+		if err != nil {
+			return fmt.Errorf("failed to get missing blocks: %s", err)
+		}
 	}
 
-	exportData.ResultTxsJSONChunk, err = ex.getTxsJSONChunk(txs)
+	exportData.ResultBlock, err = ex.getBlock(block)
+	if err != nil {
+		return fmt.Errorf("failed to get block: %s", err)
+	}
+
+	exportData.ResultAccounts, err = ex.getAccounts(block, txs)
+	if err != nil {
+		return fmt.Errorf("failed to get accounts: %s", err)
+	}
+
+	exportData.ResultEvidence, err = ex.getEvidence(block)
+	if err != nil {
+		return fmt.Errorf("failed to get evidence: %s", err)
+	}
+
+	exportData.ResultTxs, err = ex.getTxs(block, txs)
 	if err != nil {
 		return fmt.Errorf("failed to get txs: %s", err)
 	}
 
-	if !chunkOnly {
-
-		log.Println("!chunkOnly test")
-
-		if block.Block.LastCommit.Height != 0 {
-			prevBlock, err := ex.client.GetBlock(block.Block.LastCommit.Height)
-			if err != nil {
-				return fmt.Errorf("failed to query previous block: %s", err)
-			}
-
-			vals, err := ex.client.GetValidators(block.Block.LastCommit.Height, types.DefaultQueryValidatorsPage, types.DefaultQueryValidatorsPerPage)
-			if err != nil {
-				return fmt.Errorf("failed to query validators: %s", err)
-			}
-
-			exportData.ResultGenesisValidatorsSet, err = ex.getGenesisValidatorsSet(block, vals)
-			if err != nil {
-				return fmt.Errorf("failed to get genesis validator set: %s", err)
-			}
-			exportData.ResultMissBlocks, exportData.ResultAccumulatedMissBlocks, exportData.ResultMissDetailBlocks, err = ex.getValidatorsUptime(prevBlock, block, vals)
-			if err != nil {
-				return fmt.Errorf("failed to get missing blocks: %s", err)
-			}
-		}
-
-		exportData.ResultBlock, err = ex.getBlock(block)
-		if err != nil {
-			return fmt.Errorf("failed to get block: %s", err)
-		}
-
-		exportData.ResultAccounts, err = ex.getAccounts(block, txs)
-		if err != nil {
-			return fmt.Errorf("failed to get accounts: %s", err)
-		}
-
-		exportData.ResultEvidence, err = ex.getEvidence(block)
-		if err != nil {
-			return fmt.Errorf("failed to get evidence: %s", err)
-		}
-
-		exportData.ResultTxs, err = ex.getTxs(block, txs)
-		if err != nil {
-			return fmt.Errorf("failed to get txs: %s", err)
-		}
-
-		exportData.ResultTxsMessages, err = ex.extractAccount(txs)
-		if err != nil {
-			return fmt.Errorf("failed to get account by each tx message: %s", err)
-		}
-
-		exportData.ResultProposals, exportData.ResultDeposits, exportData.ResultVotes, err = ex.getGovernance(block, txs)
-		if err != nil {
-			return fmt.Errorf("failed to get governance: %s", err)
-		}
-
-		exportData.ResultValidatorsPowerEventHistory, err = ex.getPowerEventHistory(block, txs)
-		if err != nil {
-			return fmt.Errorf("failed to get transactions: %s", err)
-		}
-
-		// TODO: is this right place to be?
-		if ex.config.Alarm.Switch {
-			ex.handlePushNotification(block, txs)
-		}
+	exportData.ResultTxsMessages, err = ex.extractAccount(txs)
+	if err != nil {
+		return fmt.Errorf("failed to get account by each tx message: %s", err)
 	}
 
-	err = ex.db.InsertExportedData(exportData)
+	exportData.ResultProposals, exportData.ResultDeposits, exportData.ResultVotes, err = ex.getGovernance(block, txs)
+	if err != nil {
+		return fmt.Errorf("failed to get governance: %s", err)
+	}
+
+	exportData.ResultValidatorsPowerEventHistory, err = ex.getPowerEventHistory(block, txs)
+	if err != nil {
+		return fmt.Errorf("failed to get transactions: %s", err)
+	}
+
+	// TODO: is this right place to be?
+	if ex.config.Alarm.Switch {
+		ex.handlePushNotification(block, txs)
+	}
+
+	return ex.db.InsertExportedData(exportData)
 
 	// err = ex.db.InsertExportedData(schema.ExportData{
 	// 	ResultAccounts:                    resultAccounts,
@@ -272,9 +320,9 @@ func (ex *Exporter) process(height int64, chunkOnly bool) error {
 	// 	ResultValidatorsPowerEventHistory: resultValidatorsPowerEventHistory,
 	// })
 
-	if err != nil {
-		return err
-	}
+	// if err != nil {
+	// 	return err
+	// }
 
-	return nil
+	// return nil
 }

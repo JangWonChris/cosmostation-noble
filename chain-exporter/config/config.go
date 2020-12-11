@@ -12,6 +12,7 @@ import (
 type Config struct {
 	Node       Node     `mapstructure:"node"`
 	DB         Database `mapstructure:"database"`
+	RAWDB      Database `mapstructure:"raw_database"`
 	Alarm      Alarm    `mapstructure:"alarm"`
 	KeybaseURL string   `mapstructure:"keybase_url"`
 }
