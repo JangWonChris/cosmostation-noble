@@ -127,7 +127,7 @@ func (ex *Exporter) Start(initialHeight int64, op int) {
 	zap.S().Infof("shutdown signal received")
 }
 
-func (ex *Exporter) Refine() error {
+func (ex *Exporter) Refine(op int) error {
 	// Query latest block height saved in database
 	srcDBHeight, err := ex.rawdb.QueryLatestBlockHeight()
 	if srcDBHeight == -1 {
@@ -154,7 +154,7 @@ func (ex *Exporter) Refine() error {
 			var txs []*sdktypes.TxResponse
 			if b.NumTxs != 0 {
 				txs = make([]*sdktypes.TxResponse, b.NumTxs)
-				zap.S().Info("height : ", b.Height, "num_txs : ", b.NumTxs)
+				zap.S().Info("height : ", b.Height, ", num_txs : ", b.NumTxs)
 				ts, err := ex.rawdb.GetRawTransactions(b.Height)
 				if err != nil {
 					return err
@@ -168,7 +168,7 @@ func (ex *Exporter) Refine() error {
 				}
 
 			}
-			ex.process(block, txs)
+			ex.process(block, txs, op)
 		}
 
 		i += int64(len(bs))
@@ -221,7 +221,7 @@ func (ex *Exporter) sync(initialHeight int64, op int) error {
 		switch op {
 		case BASIC_MODE:
 			if i > dbHeight {
-				err = ex.process(block, txs)
+				err = ex.process(block, txs, op)
 				if err != nil {
 					return err
 				}
@@ -260,7 +260,7 @@ func (ex *Exporter) rawProcess(block *tmctypes.ResultBlock, txs []*sdktypes.TxRe
 
 // process ingests chain data, such as block, transaction, validator, evidence information and
 // save them in database.
-func (ex *Exporter) process(block *tmctypes.ResultBlock, txs []*sdktypes.TxResponse) (err error) {
+func (ex *Exporter) process(block *tmctypes.ResultBlock, txs []*sdktypes.TxResponse, op int) (err error) {
 	exportData := new(schema.ExportData)
 
 	exportData.ResultBlock, err = ex.getBlock(block)
@@ -268,36 +268,48 @@ func (ex *Exporter) process(block *tmctypes.ResultBlock, txs []*sdktypes.TxRespo
 		return fmt.Errorf("failed to get block: %s", err)
 	}
 
-	exportData.ResultEvidence, err = ex.getEvidence(block)
-	if err != nil {
-		return fmt.Errorf("failed to get evidence: %s", err)
-	}
-
-	if block.Block.LastCommit.Height != 0 {
-		prevBlock, err := ex.client.GetBlock(block.Block.LastCommit.Height)
+	if op != REFINE_MODE {
+		exportData.ResultEvidence, err = ex.getEvidence(block)
 		if err != nil {
-			return fmt.Errorf("failed to query previous block: %s", err)
+			return fmt.Errorf("failed to get evidence: %s", err)
 		}
 
-		vals, err := ex.client.GetValidators(block.Block.LastCommit.Height, types.DefaultQueryValidatorsPage, types.DefaultQueryValidatorsPerPage)
-		if err != nil {
-			return fmt.Errorf("failed to query validators: %s", err)
-		}
+		if block.Block.LastCommit.Height != 0 {
+			prevBlock, err := ex.client.GetBlock(block.Block.LastCommit.Height)
+			if err != nil {
+				return fmt.Errorf("failed to query previous block: %s", err)
+			}
 
-		exportData.ResultGenesisValidatorsSet, err = ex.getGenesisValidatorsSet(block, vals)
-		if err != nil {
-			return fmt.Errorf("failed to get genesis validator set: %s", err)
-		}
-		exportData.ResultMissBlocks, exportData.ResultAccumulatedMissBlocks, exportData.ResultMissDetailBlocks, err = ex.getValidatorsUptime(prevBlock, block, vals)
-		if err != nil {
-			return fmt.Errorf("failed to get missing blocks: %s", err)
+			vals, err := ex.client.GetValidators(block.Block.LastCommit.Height, types.DefaultQueryValidatorsPage, types.DefaultQueryValidatorsPerPage)
+			if err != nil {
+				return fmt.Errorf("failed to query validators: %s", err)
+			}
+
+			exportData.ResultGenesisValidatorsSet, err = ex.getGenesisValidatorsSet(block, vals)
+			if err != nil {
+				return fmt.Errorf("failed to get genesis validator set: %s", err)
+			}
+			exportData.ResultMissBlocks, exportData.ResultAccumulatedMissBlocks, exportData.ResultMissDetailBlocks, err = ex.getValidatorsUptime(prevBlock, block, vals)
+			if err != nil {
+				return fmt.Errorf("failed to get missing blocks: %s", err)
+			}
 		}
 	}
 
 	if exportData.ResultBlock.NumTxs > 0 {
-		exportData.ResultAccounts, err = ex.getAccounts(block, txs)
-		if err != nil {
-			return fmt.Errorf("failed to get accounts: %s", err)
+		if op != REFINE_MODE {
+			exportData.ResultAccounts, err = ex.getAccounts(block, txs)
+			if err != nil {
+				return fmt.Errorf("failed to get accounts: %s", err)
+			}
+			exportData.ResultProposals, exportData.ResultDeposits, exportData.ResultVotes, err = ex.getGovernance(block, txs)
+			if err != nil {
+				return fmt.Errorf("failed to get governance: %s", err)
+			}
+			exportData.ResultValidatorsPowerEventHistory, err = ex.getPowerEventHistory(block, txs)
+			if err != nil {
+				return fmt.Errorf("failed to get transactions: %s", err)
+			}
 		}
 		exportData.ResultTxs, err = ex.getTxs(block, txs)
 		if err != nil {
@@ -306,14 +318,6 @@ func (ex *Exporter) process(block *tmctypes.ResultBlock, txs []*sdktypes.TxRespo
 		exportData.ResultTxsMessages, err = ex.transactionAccount(txs)
 		if err != nil {
 			return fmt.Errorf("failed to get account by each tx message: %s", err)
-		}
-		exportData.ResultProposals, exportData.ResultDeposits, exportData.ResultVotes, err = ex.getGovernance(block, txs)
-		if err != nil {
-			return fmt.Errorf("failed to get governance: %s", err)
-		}
-		exportData.ResultValidatorsPowerEventHistory, err = ex.getPowerEventHistory(block, txs)
-		if err != nil {
-			return fmt.Errorf("failed to get transactions: %s", err)
 		}
 	}
 

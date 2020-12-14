@@ -47,7 +47,7 @@ func main() {
 	}
 
 	if op == exporter.REFINE_MODE {
-		if err := ex.Refine(); err != nil {
+		if err := ex.Refine(op); err != nil {
 			os.Exit(1)
 		}
 		zap.S().Info("refine successfully complete")
