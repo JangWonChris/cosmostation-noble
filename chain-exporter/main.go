@@ -10,14 +10,7 @@ import (
 )
 
 func main() {
-	/*
-		chain-exporter
-			-mode=basic (default)
-			-mode=raw
-			-mode=refine
-			-mode=genesis
-	*/
-	mode := flag.String("mode", "basic", "chain-exporter mode \n basic : default, will store current chain status\n raw : will only store jsonRawMessage of block and transaction to database\n refine : refine new data from database the legacy chain stored\n genesis : extract genesis state from the given file")
+	mode := flag.String("mode", "basic", "chain-exporter mode \n  - basic : default, will store current chain status\n  - raw : will only store jsonRawMessage of block and transaction to database\n  - refine : refine new data from database the legacy chain stored\n  - genesis : extract genesis state from the given file")
 	initialHeight := flag.Int64("initial-height", 0, "initial height of chain-exporter to sync")
 	genesisFilePath := flag.String("genesis-file-path", "", "absolute path of genesis.json")
 
@@ -54,11 +47,10 @@ func main() {
 	}
 
 	if op == exporter.REFINE_MODE {
-		ex.Refine()
-		// if err := ex.GetGenesisStateFromGenesisFile(*genesisFilePath); err != nil {
-		// 	os.Exit(1)
-		// }
-		zap.S().Info("refine complete")
+		if err := ex.Refine(); err != nil {
+			os.Exit(1)
+		}
+		zap.S().Info("refine successfully complete")
 		os.Exit(0)
 	}
 
