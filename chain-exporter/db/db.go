@@ -84,7 +84,7 @@ func (db *Database) CreateTables() error {
 		(*schema.Validator)(nil),
 		(*schema.TransactionLegacy)(nil),
 		(*schema.TransactionDetail)(nil),
-		(*schema.TransactionMessage)(nil),
+		(*schema.TransactionAccount)(nil),
 		(*schema.Vote)(nil),
 		(*schema.Deposit)(nil)} {
 

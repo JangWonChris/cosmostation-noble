@@ -98,8 +98,8 @@ func (ex *Exporter) getTxs(block *tmctypes.ResultBlock, txResps []*sdktypes.TxRe
 }
 
 // getTxsChunk decodes transactions in a block and return a format of database transaction.
-func (ex *Exporter) getTxsJSONChunk(txResps []*sdktypes.TxResponse) ([]schema.Transaction, error) {
-	txChunk := make([]schema.Transaction, len(txResps), len(txResps))
+func (ex *Exporter) getTxsJSONChunk(block *tmctypes.ResultBlock, txResps []*sdktypes.TxResponse) ([]schema.RawTransaction, error) {
+	txChunk := make([]schema.RawTransaction, len(txResps), len(txResps))
 	if len(txResps) <= 0 {
 		return txChunk, nil
 	}
@@ -110,6 +110,7 @@ func (ex *Exporter) getTxsJSONChunk(txResps []*sdktypes.TxResponse) ([]schema.Tr
 			log.Println(err)
 			return txChunk, fmt.Errorf("failed to marshal tx : %s", err)
 		}
+		txChunk[i].ChainID = block.Block.ChainID
 		txChunk[i].Height = txResp.Height
 		txChunk[i].TxHash = txResp.TxHash
 		txChunk[i].Chunk = string(chunk)
@@ -120,7 +121,7 @@ func (ex *Exporter) getTxsJSONChunk(txResps []*sdktypes.TxResponse) ([]schema.Tr
 	return txChunk, nil
 }
 
-func (ex *Exporter) extractAccount(txResps []*sdktypes.TxResponse) (tms []schema.TransactionMessage, err error) {
+func (ex *Exporter) transactionAccount(txResps []*sdktypes.TxResponse) (tms []schema.TransactionAccount, err error) {
 	// 별도의 스키마 필요
 	// id, account, hash, timestamp(불필요, 조인하면 되기 때문)
 	// id, tx_hash(id는 불가능, db에 저장할 때 알 수 없음)
@@ -233,8 +234,8 @@ func (ex *Exporter) extractAccount(txResps []*sdktypes.TxResponse) (tms []schema
 	return tms, nil
 }
 
-func getAccountSlice(txHash string, accounts ...string) (tms []schema.TransactionMessage, err error) {
-	tms = make([]schema.TransactionMessage, len(accounts), len(accounts))
+func getAccountSlice(txHash string, accounts ...string) (tms []schema.TransactionAccount, err error) {
+	tms = make([]schema.TransactionAccount, len(accounts), len(accounts))
 	for i, acc := range accounts {
 		tms[i].TxHash = txHash
 		tms[i].AccountAddress = acc

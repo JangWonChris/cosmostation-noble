@@ -15,6 +15,16 @@ type Block struct {
 	Timestamp     time.Time `json:"timestamp" sql:"default:now()"`
 }
 
+// Transaction has tx information.
+type RawBlock struct {
+	ID        int64  `json:"id" sql:",pk"`
+	ChainID   string `json:"chain_id" sql:",notnull"`
+	Height    int64  `json:"height" sql:",notnull"`
+	BlockHash string `json:"block_hash" sql:",unique"`
+	NumTxs    int64  `json:"num_txs" sql:"default:0"`
+	Chunk     string `json:"chunk" sql:"type:jsonb,notnull"`
+}
+
 // NewBlock returns a new Block.
 // Note that TotalTxs param is removed indefinitely from block header in new tendermint version v0.33.+ (Marko).
 func NewBlock(b Block) *Block {

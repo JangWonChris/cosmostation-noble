@@ -27,7 +27,7 @@ func TestGetTxsChunk(t *testing.T) {
 		log.Println(err)
 	}
 
-	tms, err := ex.extractAccount(txResps)
+	tms, err := ex.transactionAccount(txResps)
 	log.Println(tms)
 	return
 

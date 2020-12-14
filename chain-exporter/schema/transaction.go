@@ -36,16 +36,17 @@ type TransactionDetail struct {
 	Timestamp  string `json:"timestamp" sql:"default:now()"` // format that TxResponse returns
 }
 
-// Transaction has tx information.
-type Transaction struct {
-	ID     int64  `json:"id" sql:",pk"`
-	Height int64  `json:"height"`
-	TxHash string `json:"tx_hash"  sql:",default:false,notnull"`
-	Chunk  string `json:"chunk" sql:"type:jsonb,notnull"`
+// RawTransaction has tx information.
+type RawTransaction struct {
+	ID      int64  `json:"id" sql:",pk"`
+	ChainID string `json:"chain_id" sql:",notnull"`
+	Height  int64  `json:"height" sql:",notnull"`
+	TxHash  string `json:"tx_hash"  sql:",notnull"`
+	Chunk   string `json:"chunk" sql:"type:jsonb,notnull"`
 }
 
-// TransactionMessage has account by each tx msg
-type TransactionMessage struct {
+// TransactionAccount has account by each tx msg
+type TransactionAccount struct {
 	ID             int64  `json:"id" sql:",pk"`
 	TxHash         string `json:"tx_hash"  sql:",default:false,notnull"`
 	AccountAddress string `json:"account_address"`

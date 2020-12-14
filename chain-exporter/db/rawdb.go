@@ -50,7 +50,8 @@ func (db *RawDatabase) Ping() error {
 // CreateTables creates database tables using ORM (Object Relational Mapper).
 func (db *RawDatabase) CreateTables() error {
 	for _, table := range []interface{}{
-		(*schema.Transaction)(nil)} {
+		(*schema.RawBlock)(nil),
+		(*schema.RawTransaction)(nil)} {
 
 		// Disable pluralization
 		orm.SetTableNameInflector(func(s string) string {
@@ -81,11 +82,11 @@ func (db *RawDatabase) CreateTables() error {
 // Create B-Tree indexes to reduce the cost of lookup queries
 func (db *RawDatabase) createIndexes() error {
 	db.RunInTransaction(func(tx *pg.Tx) error {
-		_, err := db.Model(schema.Transaction{}).Exec(indexTransactionHeight)
+		_, err := db.Model(schema.RawTransaction{}).Exec(indexTransactionHeight)
 		if err != nil {
 			return fmt.Errorf("failed to create tx hash index: %s", err)
 		}
-		_, err = db.Model(schema.Transaction{}).Exec(indexTransactionHash)
+		_, err = db.Model(schema.RawTransaction{}).Exec(indexTransactionHash)
 		if err != nil {
 			return fmt.Errorf("failed to create tx hash index: %s", err)
 		}
@@ -100,12 +101,12 @@ func (db *RawDatabase) createIndexes() error {
 // if function returns an error transaction is rollbacked, otherwise transaction is committed.
 func (db *RawDatabase) InsertExportedData(e *schema.ExportRawData) error {
 	err := db.RunInTransaction(func(tx *pg.Tx) error {
-		// if e.ResultBlock.BlockHash != "" {
-		// 	err := tx.Insert(&e.ResultBlock)
-		// 	if err != nil {
-		// 		return fmt.Errorf("failed to insert result block: %s", err)
-		// 	}
-		// }
+		if e.ResultBlockJSONChunk.BlockHash != "" {
+			err := tx.Insert(&e.ResultBlockJSONChunk)
+			if err != nil {
+				return fmt.Errorf("failed to insert result block: %s", err)
+			}
+		}
 
 		if len(e.ResultTxsJSONChunk) > 0 {
 			err := tx.Insert(&e.ResultTxsJSONChunk)
@@ -127,8 +128,8 @@ func (db *RawDatabase) InsertExportedData(e *schema.ExportRawData) error {
 
 // QueryLatestBlockHeight queries latest block height in database
 func (db *RawDatabase) QueryLatestBlockHeight() (int64, error) {
-	var tx schema.Transaction
-	err := db.Model(&tx).
+	var b schema.RawBlock
+	err := db.Model(&b).
 		Order("height DESC").
 		Limit(1).
 		Select()
@@ -143,5 +144,34 @@ func (db *RawDatabase) QueryLatestBlockHeight() (int64, error) {
 		return -1, err
 	}
 
-	return tx.Height, nil
+	return b.Height, nil
+}
+
+// QueryLatestBlockHeight queries latest block height in database
+func (db *RawDatabase) GetRawBlock(height int64) ([]schema.RawBlock, error) {
+	var b []schema.RawBlock
+	err := db.Model(&b).
+		Where("height >= ?", height).
+		Order("height ASC").
+		Limit(100).
+		Select()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return b, nil
+}
+
+func (db *RawDatabase) GetRawTransactions(height int64) ([]schema.RawTransaction, error) {
+	var txs []schema.RawTransaction
+	err := db.Model(&txs).
+		Where("height = ?", height).
+		Select()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return txs, nil
 }

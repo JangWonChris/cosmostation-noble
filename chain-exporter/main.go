@@ -53,5 +53,14 @@ func main() {
 		os.Exit(0)
 	}
 
+	if op == exporter.REFINE_MODE {
+		ex.Refine()
+		// if err := ex.GetGenesisStateFromGenesisFile(*genesisFilePath); err != nil {
+		// 	os.Exit(1)
+		// }
+		zap.S().Info("refine complete")
+		os.Exit(0)
+	}
+
 	ex.Start(*initialHeight, op)
 }

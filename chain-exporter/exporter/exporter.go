@@ -1,8 +1,8 @@
 package exporter
 
 import (
+	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"time"
 
@@ -10,6 +10,7 @@ import (
 
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/client"
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/db"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
@@ -81,12 +82,11 @@ func (ex *Exporter) Start(initialHeight int64, op int) {
 	//close grpc
 	defer ex.client.Close()
 
-	// Store data initially
-	ex.saveValidators()
-	ex.saveProposals()
+	tick7Sec := time.NewTicker(time.Second * 7)
+	tick20Min := time.NewTicker(time.Minute * 20)
 
-	restServerCh := make(chan string)
-	keybaseCh := make(chan string)
+	done := make(chan struct{})
+	defer close(done)
 
 	go func() {
 		for {
@@ -101,33 +101,80 @@ func (ex *Exporter) Start(initialHeight int64, op int) {
 		}
 	}()
 
-	go func() {
-		for {
-			time.Sleep(7 * time.Second)
-			restServerCh <- "sync governance and validators via LCD"
-		}
-	}()
-
-	go func() {
-		for {
-			time.Sleep(20 * time.Minute)
-			keybaseCh <- "sync validators keybase identities"
-		}
-	}()
-
-	for {
-		select {
-		case msg1 := <-restServerCh:
-			zap.S().Infof("start - %s", msg1)
+	if op == BASIC_MODE {
+		go func() {
 			ex.saveValidators()
 			ex.saveProposals()
-			zap.S().Infof("finish - %s", msg1)
-		case msg2 := <-keybaseCh:
-			zap.S().Infof("start - %s", msg2)
-			ex.saveValidatorsIdentities()
-			zap.S().Infof("finish - %s", msg2)
-		}
+			for {
+				select {
+				case <-tick7Sec.C:
+					zap.S().Infof("start sync governance and validators")
+					ex.saveValidators()
+					ex.saveProposals()
+					zap.S().Infof("finish sync governance and validators")
+				case <-tick20Min.C:
+					zap.S().Infof("start sync validators keybase identities")
+					ex.saveValidatorsIdentities()
+					zap.S().Infof("finish sync validators keybase identities")
+				case <-done:
+					return
+				}
+			}
+		}()
 	}
+
+	<-done // implement gracefully shutdown when signal received
+	zap.S().Infof("shutdown signal received")
+}
+
+func (ex *Exporter) Refine() error {
+	// Query latest block height saved in database
+	srcDBHeight, err := ex.rawdb.QueryLatestBlockHeight()
+	if srcDBHeight == -1 {
+		return fmt.Errorf("unexpected error in database: %s", err)
+	}
+	dstDBHeight, err := ex.db.QueryLatestBlockHeight()
+	if dstDBHeight == -1 {
+		return fmt.Errorf("unexpected error in database: %s", err)
+	}
+
+	zap.S().Infof("src db %d, dst db %d \n", srcDBHeight, dstDBHeight)
+
+	for i := dstDBHeight + 1; i <= srcDBHeight; {
+		zap.S().Info("working height : ", i)
+		bs, err := ex.rawdb.GetRawBlock(i)
+		if err != nil {
+			return err
+		}
+		for _, b := range bs {
+			block := new(tmctypes.ResultBlock)
+			if err := json.Unmarshal([]byte(b.Chunk), &block); err != nil {
+				return err
+			}
+			var txs []*sdktypes.TxResponse
+			if b.NumTxs != 0 {
+				txs = make([]*sdktypes.TxResponse, b.NumTxs)
+				zap.S().Info("height : ", b.Height, "num_txs : ", b.NumTxs)
+				ts, err := ex.rawdb.GetRawTransactions(b.Height)
+				if err != nil {
+					return err
+				}
+				for i, t := range ts {
+					tx := new(sdktypes.TxResponse)
+					if err := codec.AppCodec.UnmarshalJSON([]byte(t.Chunk), tx); err != nil {
+						return err
+					}
+					txs[i] = tx
+				}
+
+			}
+			ex.process(block, txs)
+		}
+
+		i += int64(len(bs))
+	}
+	return nil
+
 }
 
 // sync compares block height between the height saved in your database and
@@ -139,7 +186,7 @@ func (ex *Exporter) sync(initialHeight int64, op int) error {
 		return fmt.Errorf("unexpected error in database: %s", err)
 	}
 	rawDBHeight, err := ex.rawdb.QueryLatestBlockHeight()
-	if dbHeight == -1 {
+	if rawDBHeight == -1 {
 		return fmt.Errorf("unexpected error in database: %s", err)
 	}
 
@@ -160,7 +207,7 @@ func (ex *Exporter) sync(initialHeight int64, op int) error {
 		beginHeight = rawDBHeight
 	}
 
-	log.Printf("dbHeight %d, rawHeight %d \n", dbHeight, rawDBHeight)
+	zap.S().Infof("dbHeight %d, rawHeight %d \n", dbHeight, rawDBHeight)
 
 	for i := beginHeight + 1; i <= latestBlockHeight; i++ {
 		block, err := ex.client.GetBlock(i)
@@ -174,44 +221,37 @@ func (ex *Exporter) sync(initialHeight int64, op int) error {
 		switch op {
 		case BASIC_MODE:
 			if i > dbHeight {
-				err = ex.process(block, txs, op)
+				err = ex.process(block, txs)
 				if err != nil {
 					return err
 				}
-				zap.S().Infof("synced block %d/%d", i, latestBlockHeight)
 			}
 			fallthrough //continue to case RAW_MODE
 		case RAW_MODE:
-			// Ingest all blocks up to the latest height
 			if i > rawDBHeight {
-				err = ex.rawProcess(block, txs, op)
+				err = ex.rawProcess(block, txs)
 				if err != nil {
 					return err
 				}
-				zap.S().Infof("synced raw block %d/%d", i, latestBlockHeight)
 			}
 		case REFINE_MODE:
-			// query block and tx with given height to get raw block, txs from database
-			// unmarshal block, tx
-			// err = ex.process(block, txs, op)
-			// if err != nil {
-			// 	return err
-			// }
-			// zap.S().Infof("synced block %d/%d", i, latestBlockHeight)
 		default:
 			zap.S().Info("unknown mode = ", op)
 			os.Exit(1)
 		}
+		zap.S().Infof("synced block %d/%d", i, latestBlockHeight)
 	}
 	return nil
 }
 
-func (ex *Exporter) rawProcess(block *tmctypes.ResultBlock, txs []*sdktypes.TxResponse, op int) (err error) {
+func (ex *Exporter) rawProcess(block *tmctypes.ResultBlock, txs []*sdktypes.TxResponse) (err error) {
 	exportRawData := new(schema.ExportRawData)
 
-	// raw mode 용 endpoint가 별도로 필요함
-	// block chunk + transaction chunk
-	exportRawData.ResultTxsJSONChunk, err = ex.getTxsJSONChunk(txs)
+	exportRawData.ResultBlockJSONChunk, err = ex.getBlockJSONChunk(block)
+	if err != nil {
+		return fmt.Errorf("failed to get block: %s", err)
+	}
+	exportRawData.ResultTxsJSONChunk, err = ex.getTxsJSONChunk(block, txs)
 	if err != nil {
 		return fmt.Errorf("failed to get txs: %s", err)
 	}
@@ -220,25 +260,18 @@ func (ex *Exporter) rawProcess(block *tmctypes.ResultBlock, txs []*sdktypes.TxRe
 
 // process ingests chain data, such as block, transaction, validator, evidence information and
 // save them in database.
-func (ex *Exporter) process(block *tmctypes.ResultBlock, txs []*sdktypes.TxResponse, op int) (err error) {
-	// func (ex *Exporter) process(height int64, op int) error {
-
+func (ex *Exporter) process(block *tmctypes.ResultBlock, txs []*sdktypes.TxResponse) (err error) {
 	exportData := new(schema.ExportData)
 
-	// var prevBlock *tmctypes.ResultBlock
-	// var vals *tmctypes.ResultValidators
-	// var resultBlock schema.Block
-	// var resultAccounts []schema.Account
-	// var resultEvidence []schema.Evidence
-	// var resultTxs []schema.TransactionLegacy
-	// var resultTxsMessages []schema.TransactionMessage
-	// var resultProposals []schema.Proposal
-	// var resultDeposits []schema.Deposit
-	// var resultVotes []schema.Vote
-	// var resultValidatorsPowerEventHistory []schema.PowerEventHistory
-	// var resultGenesisValidatorsSet []schema.PowerEventHistory
-	// var resultMissBlocks, resultAccumulatedMissBlocks []schema.Miss
-	// var resultMissDetailBlocks []schema.MissDetail
+	exportData.ResultBlock, err = ex.getBlock(block)
+	if err != nil {
+		return fmt.Errorf("failed to get block: %s", err)
+	}
+
+	exportData.ResultEvidence, err = ex.getEvidence(block)
+	if err != nil {
+		return fmt.Errorf("failed to get evidence: %s", err)
+	}
 
 	if block.Block.LastCommit.Height != 0 {
 		prevBlock, err := ex.client.GetBlock(block.Block.LastCommit.Height)
@@ -261,39 +294,27 @@ func (ex *Exporter) process(block *tmctypes.ResultBlock, txs []*sdktypes.TxRespo
 		}
 	}
 
-	exportData.ResultBlock, err = ex.getBlock(block)
-	if err != nil {
-		return fmt.Errorf("failed to get block: %s", err)
-	}
-
-	exportData.ResultAccounts, err = ex.getAccounts(block, txs)
-	if err != nil {
-		return fmt.Errorf("failed to get accounts: %s", err)
-	}
-
-	exportData.ResultEvidence, err = ex.getEvidence(block)
-	if err != nil {
-		return fmt.Errorf("failed to get evidence: %s", err)
-	}
-
-	exportData.ResultTxs, err = ex.getTxs(block, txs)
-	if err != nil {
-		return fmt.Errorf("failed to get txs: %s", err)
-	}
-
-	exportData.ResultTxsMessages, err = ex.extractAccount(txs)
-	if err != nil {
-		return fmt.Errorf("failed to get account by each tx message: %s", err)
-	}
-
-	exportData.ResultProposals, exportData.ResultDeposits, exportData.ResultVotes, err = ex.getGovernance(block, txs)
-	if err != nil {
-		return fmt.Errorf("failed to get governance: %s", err)
-	}
-
-	exportData.ResultValidatorsPowerEventHistory, err = ex.getPowerEventHistory(block, txs)
-	if err != nil {
-		return fmt.Errorf("failed to get transactions: %s", err)
+	if exportData.ResultBlock.NumTxs > 0 {
+		exportData.ResultAccounts, err = ex.getAccounts(block, txs)
+		if err != nil {
+			return fmt.Errorf("failed to get accounts: %s", err)
+		}
+		exportData.ResultTxs, err = ex.getTxs(block, txs)
+		if err != nil {
+			return fmt.Errorf("failed to get txs: %s", err)
+		}
+		exportData.ResultTxsMessages, err = ex.transactionAccount(txs)
+		if err != nil {
+			return fmt.Errorf("failed to get account by each tx message: %s", err)
+		}
+		exportData.ResultProposals, exportData.ResultDeposits, exportData.ResultVotes, err = ex.getGovernance(block, txs)
+		if err != nil {
+			return fmt.Errorf("failed to get governance: %s", err)
+		}
+		exportData.ResultValidatorsPowerEventHistory, err = ex.getPowerEventHistory(block, txs)
+		if err != nil {
+			return fmt.Errorf("failed to get transactions: %s", err)
+		}
 	}
 
 	// TODO: is this right place to be?
@@ -302,27 +323,4 @@ func (ex *Exporter) process(block *tmctypes.ResultBlock, txs []*sdktypes.TxRespo
 	}
 
 	return ex.db.InsertExportedData(exportData)
-
-	// err = ex.db.InsertExportedData(schema.ExportData{
-	// 	ResultAccounts:                    resultAccounts,
-	// 	ResultBlock:                       resultBlock,
-	// 	ResultTxs:                         resultTxs,
-	// 	ResultTxsJSONChunk:                resultTxsJSONChunk,
-	// 	ResultTxsMessages:                 resultTxsMessages,
-	// 	ResultEvidence:                    resultEvidence,
-	// 	ResultMissBlocks:                  resultMissBlocks,
-	// 	ResultMissDetailBlocks:            resultMissDetailBlocks,
-	// 	ResultAccumulatedMissBlocks:       resultAccumulatedMissBlocks,
-	// 	ResultProposals:                   resultProposals,
-	// 	ResultDeposits:                    resultDeposits,
-	// 	ResultVotes:                       resultVotes,
-	// 	ResultGenesisValidatorsSet:        resultGenesisValidatorsSet,
-	// 	ResultValidatorsPowerEventHistory: resultValidatorsPowerEventHistory,
-	// })
-
-	// if err != nil {
-	// 	return err
-	// }
-
-	// return nil
 }
