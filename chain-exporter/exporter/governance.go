@@ -26,7 +26,7 @@ func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txResp []*sdkType
 	for _, tx := range txResp {
 		// Other than code equals to 0, it is failed transaction.
 		if tx.Code != 0 {
-			return proposals, deposits, votes, nil
+			continue
 		}
 
 		// stdTx, ok := tx.Tx.(auth.StdTx)

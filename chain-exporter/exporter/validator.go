@@ -24,7 +24,7 @@ func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*
 	for _, tx := range txResp {
 		// Other than code equals to 0, it is failed transaction.
 		if tx.Code != 0 {
-			return powerEventHistory, nil
+			continue
 		}
 
 		msgs := tx.GetTx().GetMsgs()
