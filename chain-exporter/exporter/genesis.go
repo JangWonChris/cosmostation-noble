@@ -13,7 +13,7 @@ import (
 	"go.uber.org/zap"
 
 	//gaia
-	gaia "github.com/cosmos/gaia/app"
+	gaia "github.com/cosmos/gaia/v3/app"
 
 	//cosmos-sdk
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -115,7 +115,7 @@ func (ex *Exporter) GetGenesisStateFromGenesisFile(genesisPath string) (err erro
 	var accounts []schema.Account
 	for _, acc := range accountMapper {
 		accounts = append(accounts, *acc)
-		// log.Println(acc)
+		log.Println(acc)
 	}
 
 	ex.db.InsertGenesisAccount(accounts)
