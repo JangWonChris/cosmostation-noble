@@ -9,9 +9,10 @@ import (
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	"github.com/cosmos/gaia/app"
+	app "github.com/cosmos/gaia/v3/app"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/client"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/db"
+	"github.com/cosmostation/mintscan-backend-library/codec"
 	mintscanconfig "github.com/cosmostation/mintscan-backend-library/config"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/tendermint/crypto"
@@ -32,10 +33,16 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+type gaiaInit struct{}
+
+func (g gaiaInit) Get(s string) interface{} {
+	return false
+}
+
 func TestModuleAccounts(t *testing.T) {
 	tmdb := tdb.NewMemDB()
-	// gapp := app.NewGaiaApp(tlog.NewTMLogger(tlog.NewSyncWriter(os.Stdout)), tmdb, nil, true, map[int64]bool{}, "", uint(1), codec.EncodingConfig, nil)
-	gapp := app.NewGaiaApp(tlog.NewTMLogger(tlog.NewSyncWriter(os.Stdout)), tmdb, nil, true, uint(1))
+	gapp := app.NewGaiaApp(tlog.NewTMLogger(tlog.NewSyncWriter(os.Stdout)), tmdb, nil, true, map[int64]bool{}, "", uint(1), codec.EncodingConfig, gaiaInit{})
+	// gapp := app.NewGaiaApp(tlog.NewTMLogger(tlog.NewSyncWriter(os.Stdout)), tmdb, nil, true, uint(1))
 	// sapp := simapp.NewSimApp(tlog.NewTMLogger(tlog.NewSyncWriter(os.Stdout)), tmdb, nil, true, 0)
 
 	modAccAddrs := gapp.ModuleAccountAddrs()
