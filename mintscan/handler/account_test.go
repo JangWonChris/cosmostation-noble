@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -10,9 +11,8 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmos/gaia/app"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/client"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/codec"
-	mintscanconfig "github.com/cosmostation/cosmostation-cosmos/mintscan/config"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/db"
+	mintscanconfig "github.com/cosmostation/mintscan-backend-library/config"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/tendermint/crypto"
 
@@ -26,15 +26,16 @@ var idb *db.Database
 
 func TestMain(m *testing.M) {
 	config := mintscanconfig.ParseConfig()
-	iclient, _ = client.NewClient(config.Node, config.Market)
-	idb = db.Connect(config.DB)
+	iclient = client.NewClient(&config.Client)
+	idb = db.Connect(&config.DB)
 
 	os.Exit(m.Run())
 }
 
 func TestModuleAccounts(t *testing.T) {
 	tmdb := tdb.NewMemDB()
-	gapp := app.NewGaiaApp(tlog.NewTMLogger(tlog.NewSyncWriter(os.Stdout)), tmdb, nil, true, map[int64]bool{}, "", uint(1), codec.EncodingConfig, nil)
+	// gapp := app.NewGaiaApp(tlog.NewTMLogger(tlog.NewSyncWriter(os.Stdout)), tmdb, nil, true, map[int64]bool{}, "", uint(1), codec.EncodingConfig, nil)
+	gapp := app.NewGaiaApp(tlog.NewTMLogger(tlog.NewSyncWriter(os.Stdout)), tmdb, nil, true, uint(1))
 	// sapp := simapp.NewSimApp(tlog.NewTMLogger(tlog.NewSyncWriter(os.Stdout)), tmdb, nil, true, 0)
 
 	modAccAddrs := gapp.ModuleAccountAddrs()
@@ -48,7 +49,7 @@ func TestModuleAccounts(t *testing.T) {
 		require.Equal(t, true, permission)
 		t.Log(mAccAddr)
 		t.Log(permission)
-		account, err := iclient.GetAccount(mAccAddr)
+		account, err := iclient.CliCtx.GetAccount(mAccAddr)
 		t.Log(account)
 		require.NoError(t, err)
 
@@ -64,12 +65,13 @@ func TestModuleAccounts(t *testing.T) {
 
 func TestKindOfBalance(t *testing.T) {
 	address := "cosmos1x5wgh6vwye60wv3dtshs9dmqggwfx2ldnqvev0"
-	coin, err := iclient.GetBalance(address)
+	ctx := context.Background()
+	coin, err := iclient.GRPC.GetBalance(ctx, "umuon", address)
 	require.NoError(t, err)
 	fmt.Println("getbalance :", coin.Denom)
 	fmt.Println("getbalance :", coin.Amount)
 
-	coins, err := iclient.GetAllBalances(address)
+	coins, err := iclient.GRPC.GetAllBalances(ctx, address, 100)
 	require.NoError(t, err)
 
 	for _, coin := range coins {

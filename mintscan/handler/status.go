@@ -9,7 +9,6 @@ import (
 
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/config"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
 
 	"go.uber.org/zap"
@@ -42,14 +41,14 @@ func SetStatus() error {
 		return fmt.Errorf("Session is not initialized")
 	}
 
-	stakingQueryClient := stakingtypes.NewQueryClient(s.client.GetCliContext())
+	stakingQueryClient := stakingtypes.NewQueryClient(s.client.GetCLIContext())
 	pool, err := stakingQueryClient.Pool(context.Background(), &stakingtypes.QueryPoolRequest{})
 	if err != nil {
 		zap.L().Error("failed to get staking pool", zap.Error(err))
 		return err
 	}
 
-	bankQueryClient := banktypes.NewQueryClient(s.client.GetCliContext())
+	bankQueryClient := banktypes.NewQueryClient(s.client.GetCLIContext())
 	coins, err := bankQueryClient.TotalSupply(context.Background(), &banktypes.QueryTotalSupplyRequest{})
 	if err != nil {
 		zap.L().Error("failed to get supply total", zap.Error(err))
@@ -58,12 +57,12 @@ func SetStatus() error {
 
 	notBondedTokens, _ := strconv.ParseFloat(pool.Pool.NotBondedTokens.String(), 64)
 	bondedTokens, _ := strconv.ParseFloat(pool.Pool.BondedTokens.String(), 64)
-	bondedValsNum, _ := s.db.CountValidatorNumByStatus(int(stakingtypes.Bonded))
-	unbondingValsNum, _ := s.db.CountValidatorNumByStatus(int(stakingtypes.Unbonding))
-	unbondedValsNum, _ := s.db.CountValidatorNumByStatus(int(stakingtypes.Unbonded))
+	bondedValsNum, _ := s.db.CountValidatorsByStatus(int(stakingtypes.Bonded))
+	unbondingValsNum, _ := s.db.CountValidatorsByStatus(int(stakingtypes.Unbonding))
+	unbondedValsNum, _ := s.db.CountValidatorsByStatus(int(stakingtypes.Unbonded))
 	totalTxsNum := s.db.QueryTotalTransactionNum()
 
-	status, err := s.client.GetStatus()
+	status, err := s.client.RPC.GetStatus()
 	if err != nil {
 		zap.L().Error("failed to get chain status", zap.Error(err))
 		return err
@@ -93,7 +92,6 @@ func SetStatus() error {
 		TotalCirculatingTokens: *coins, // TODO: should be how we discuss with CoinGecko (Total Supply - Vesting Amount)
 		BondedTokens:           bondedTokens,
 		NotBondedTokens:        notBondedTokens,
-		Maintenance:            config.Common.Maintenance,
 		Timestamp:              status.SyncInfo.LatestBlockTime,
 	}
 	mu.Unlock()

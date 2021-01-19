@@ -10,7 +10,7 @@ import (
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/schema"
+	"github.com/cosmostation/mintscan-backend-library/db/schema"
 
 	"github.com/gorilla/mux"
 
@@ -25,7 +25,7 @@ func GetValidators(rw http.ResponseWriter, r *http.Request) {
 		status = r.URL.Query()["status"][0]
 	}
 
-	vals := make([]*schema.Validator, 0)
+	vals := make([]schema.Validator, 0)
 
 	switch status {
 	case model.ActiveValidator:
@@ -82,19 +82,21 @@ func GetValidators(rw http.ResponseWriter, r *http.Request) {
 		}
 
 		val := &model.ResultValidator{
-			Rank:                 val.Rank,
-			AccountAddress:       val.Address,
-			OperatorAddress:      val.OperatorAddress,
-			ConsensusPubkey:      val.ConsensusPubkey,
-			Jailed:               val.Jailed,
-			Status:               val.Status,
-			Tokens:               val.Tokens,
-			DelegatorShares:      val.DelegatorShares,
-			Moniker:              val.Moniker,
-			Identity:             val.Identity,
-			Website:              val.Website,
-			Details:              val.Details,
-			UnbondingHeight:      val.UnbondingHeight,
+			Rank:            val.Rank,
+			AccountAddress:  val.Address,
+			OperatorAddress: val.OperatorAddress,
+			ConsensusPubkey: val.ConsensusPubkey,
+			Jailed:          val.Jailed,
+			Status:          val.Status,
+			Tokens:          val.Tokens,
+			DelegatorShares: val.DelegatorShares,
+			Moniker:         val.Moniker,
+			Identity:        val.Identity,
+			Website:         val.Website,
+			Details:         val.Details,
+			// UnbondingHeight:      val.UnbondingHeight,
+			//jeonghwan 문자열로 되있는데, 숫자로 바꿔도 무관?
+			UnbondingHeight:      fmt.Sprintf("%d", val.UnbondingHeight),
 			UnbondingTime:        val.UnbondingTime,
 			CommissionRate:       val.CommissionRate,
 			CommissionMaxRate:    val.CommissionMaxRate,
@@ -116,7 +118,7 @@ func GetValidator(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	address := vars["address"]
 
-	val, err := s.db.QueryValidatorByAny(address)
+	val, err := s.db.QueryValidatorByAnyAddr(address)
 	if err != nil {
 		zap.S().Errorf("failed to query validator information: %s", err)
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -158,21 +160,22 @@ func GetValidator(rw http.ResponseWriter, r *http.Request) {
 	powerEventHistory, _ := s.db.QueryValidatorBondedInfo(val.Proposer)
 
 	result := &model.ResultValidatorDetail{
-		Rank:                 val.Rank,
-		AccountAddress:       val.Address,
-		OperatorAddress:      val.OperatorAddress,
-		ConsensusPubkey:      val.ConsensusPubkey,
-		BondedHeight:         powerEventHistory.Height,
-		BondedTime:           powerEventHistory.Timestamp,
-		Jailed:               val.Jailed,
-		Status:               val.Status,
-		Tokens:               val.Tokens,
-		DelegatorShares:      val.DelegatorShares,
-		Moniker:              val.Moniker,
-		Identity:             val.Identity,
-		Website:              val.Website,
-		Details:              val.Details,
-		UnbondingHeight:      val.UnbondingHeight,
+		Rank:            val.Rank,
+		AccountAddress:  val.Address,
+		OperatorAddress: val.OperatorAddress,
+		ConsensusPubkey: val.ConsensusPubkey,
+		BondedHeight:    powerEventHistory.Height,
+		BondedTime:      powerEventHistory.Timestamp,
+		Jailed:          val.Jailed,
+		Status:          val.Status,
+		Tokens:          val.Tokens,
+		DelegatorShares: val.DelegatorShares,
+		Moniker:         val.Moniker,
+		Identity:        val.Identity,
+		Website:         val.Website,
+		Details:         val.Details,
+		//jeonghwan 문자열로 되있는데, 숫자로 바꿔도 무관?
+		UnbondingHeight:      fmt.Sprintf("%d", val.UnbondingHeight),
 		UnbondingTime:        val.UnbondingTime,
 		CommissionRate:       val.CommissionRate,
 		CommissionMaxRate:    val.CommissionMaxRate,
@@ -196,7 +199,7 @@ func GetValidatorUptime(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	address := vars["address"]
 
-	val, err := s.db.QueryValidatorByAny(address)
+	val, err := s.db.QueryValidatorByAnyAddr(address)
 	if err != nil {
 		zap.S().Errorf("failed to query validator information: %s", err)
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -250,7 +253,7 @@ func GetValidatorUptimeRange(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	address := vars["address"]
 
-	val, err := s.db.QueryValidatorByAny(address)
+	val, err := s.db.QueryValidatorByAnyAddr(address)
 	if err != nil {
 		zap.L().Debug("failed to query validator info", zap.Error(err))
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -290,14 +293,14 @@ func GetValidatorDelegations(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	address := vars["address"]
 
-	val, err := s.db.QueryValidatorByAny(address)
+	val, err := s.db.QueryValidatorByAnyAddr(address)
 	if err != nil {
 		zap.L().Error("failed to query validator info", zap.Error(err))
 		errors.ErrNotExist(rw, http.StatusNotFound)
 		return
 	}
 
-	queryClient := stakingtypes.NewQueryClient(s.client.GetCliContext())
+	queryClient := stakingtypes.NewQueryClient(s.client.GetCLIContext())
 	request := stakingtypes.QueryValidatorDelegationsRequest{ValidatorAddr: val.OperatorAddress}
 	res, err := queryClient.ValidatorDelegations(context.Background(), &request)
 	if err != nil {
@@ -365,7 +368,7 @@ func GetValidatorPowerHistoryEvents(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	val, err := s.db.QueryValidatorByAny(address)
+	val, err := s.db.QueryValidatorByAnyAddr(address)
 	if err != nil {
 		zap.S().Errorf("failed to query validator information: %s", err)
 		return
@@ -421,7 +424,7 @@ func GetValidatorEventsTotalCount(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	address := vars["address"]
 
-	val, err := s.db.QueryValidatorByAny(address)
+	val, err := s.db.QueryValidatorByAnyAddr(address)
 	if err != nil {
 		zap.S().Errorf("failed to query validator information: %s", err)
 		return
@@ -432,7 +435,7 @@ func GetValidatorEventsTotalCount(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	count, _ := s.db.CountValidatorPowerEvents(val.Proposer)
+	count, _ := s.db.CountPowerEventHistoryTransactions(val.Proposer)
 
 	result := &model.ResultVotingPowerHistoryCount{
 		Moniker:         val.Moniker,
@@ -451,7 +454,7 @@ func GetRedelegationsLegacy(rw http.ResponseWriter, r *http.Request) {
 		delAddr = r.URL.Query()["delegator"][0]
 	}
 
-	res, err := s.client.GetRedelegations(delAddr, "", "")
+	res, err := s.client.GRPC.GetRedelegations(r.Context(), delAddr, "", "")
 	if err != nil {
 		zap.L().Error("failed to get all redelegations from a validator", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -476,7 +479,7 @@ func GetRedelegations(rw http.ResponseWriter, r *http.Request) {
 	if len(r.URL.Query()["dst_validator_addr"]) > 0 {
 		dstValidatorAddress = r.URL.Query()["dst_validator_addr"][0]
 	}
-	res, err := s.client.GetRedelegations(delAddr, srcValidatorAddress, dstValidatorAddress)
+	res, err := s.client.GRPC.GetRedelegations(r.Context(), delAddr, srcValidatorAddress, dstValidatorAddress)
 	if err != nil {
 		zap.L().Error("failed to get all redelegations from a validator", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)

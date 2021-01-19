@@ -11,7 +11,10 @@ import (
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/schema"
+
+	// "github.com/cosmostation/mintscan-backend-library/db/schema"
+	// mbl
+	"github.com/cosmostation/mintscan-backend-library/db/schema"
 
 	"github.com/gorilla/mux"
 
@@ -42,7 +45,7 @@ func GetTransactions(rw http.ResponseWriter, r *http.Request) {
 
 	if len(txs) <= 0 {
 		zap.L().Debug("found no transactions in database")
-		model.Respond(rw, []schema.TransactionLegacy{})
+		model.Respond(rw, []schema.Transaction{})
 		return
 	}
 
@@ -74,7 +77,7 @@ func GetTransactionsList(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txResp := make([]schema.TransactionLegacy, len(txList.TxHash))
+	txResp := make([]schema.Transaction, len(txList.TxHash))
 	// txResp := make([]*model.ResultTx, len(txList.TxHash))
 
 	fmt.Println("size : ", len(txResp))
@@ -224,14 +227,14 @@ func GetLegacyTransaction(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := s.client.GetTx(txHashStr)
+	resp, err := s.client.CliCtx.GetTx(txHashStr)
 	if err != nil {
 		zap.L().Error("failed to get tx hash info", zap.Error(err))
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
 		return
 	}
 
-	rest.PostProcessResponseBare(rw, s.client.GetCliContext(), resp) // codec marshalling
+	rest.PostProcessResponseBare(rw, s.client.GetCLIContext(), resp) // codec marshalling
 	return
 }
 
@@ -243,8 +246,8 @@ func BroadcastTx(rw http.ResponseWriter, r *http.Request) {
 	if strings.Contains(signedTx, "0x") {
 		signedTx = signedTx[2:]
 	}
-
-	result, err := s.client.BroadcastTx(signedTx)
+	// jeonghwan 오류
+	result, err := s.client.CliCtx.BroadcastTx([]byte(signedTx))
 	if err != nil {
 		zap.L().Error("failed to broadcast transaction", zap.Error(err))
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)

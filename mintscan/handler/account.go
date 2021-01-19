@@ -17,6 +17,10 @@ import (
 	"github.com/gorilla/mux"
 )
 
+var (
+	pageLimit = uint64(100)
+)
+
 // GetAccount returns general account information.
 func GetAccount(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -27,7 +31,7 @@ func GetAccount(rw http.ResponseWriter, r *http.Request) {
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
 		return
 	}
-	account, err := s.client.GetAccount(accAddr)
+	account, err := s.client.CliCtx.GetAccount(accAddr)
 	if err != nil {
 		zap.L().Error("failed to get account information", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -37,15 +41,15 @@ func GetAccount(rw http.ResponseWriter, r *http.Request) {
 	var b []byte
 	switch account := account.(type) {
 	case *authtypes.ModuleAccount:
-		b, err = s.client.GetCliContext().JSONMarshaler.MarshalJSON(account)
+		b, err = s.client.GetCLIContext().JSONMarshaler.MarshalJSON(account)
 	case *authtypes.BaseAccount:
-		b, err = s.client.GetCliContext().JSONMarshaler.MarshalJSON(account)
+		b, err = s.client.GetCLIContext().JSONMarshaler.MarshalJSON(account)
 	case *vestingtypes.ContinuousVestingAccount:
-		b, err = s.client.GetCliContext().JSONMarshaler.MarshalJSON(account)
+		b, err = s.client.GetCLIContext().JSONMarshaler.MarshalJSON(account)
 	case *vestingtypes.DelayedVestingAccount:
-		b, err = s.client.GetCliContext().JSONMarshaler.MarshalJSON(account)
+		b, err = s.client.GetCLIContext().JSONMarshaler.MarshalJSON(account)
 	case *vestingtypes.PeriodicVestingAccount:
-		b, err = s.client.GetCliContext().JSONMarshaler.MarshalJSON(account)
+		b, err = s.client.GetCLIContext().JSONMarshaler.MarshalJSON(account)
 	default:
 		zap.L().Error("unknown account type :", zap.String("info", account.GetAddress().String()), zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -66,7 +70,13 @@ func GetBalance(rw http.ResponseWriter, r *http.Request) {
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
 		return
 	}
-	res, err := s.client.GetBalance(accAddr)
+	denom, err := s.client.GRPC.GetBondDenom(r.Context())
+	if err != nil {
+		zap.L().Debug("failed to get account balance", zap.Error(err))
+		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
+		return
+	}
+	res, err := s.client.GRPC.GetBalance(r.Context(), denom, accAddr)
 	if err != nil {
 		zap.L().Debug("failed to get account balance", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -87,7 +97,7 @@ func GetAllBalances(rw http.ResponseWriter, r *http.Request) {
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
 		return
 	}
-	res, err := s.client.GetAllBalances(accAddr)
+	res, err := s.client.GRPC.GetAllBalances(r.Context(), accAddr, pageLimit)
 	if err != nil {
 		zap.L().Debug("failed to get all account balances", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -158,7 +168,7 @@ func GetDelegatorDelegations(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Query all delegations from a delegator
-	resps, err := s.client.GetDelegatorDelegations(accAddr)
+	resps, err := s.client.GRPC.GetDelegatorDelegations(r.Context(), accAddr, pageLimit)
 	if err != nil {
 		zap.L().Error("failed to get delegators delegations", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -168,7 +178,7 @@ func GetDelegatorDelegations(rw http.ResponseWriter, r *http.Request) {
 	rewards := func(p1, p2 *distributiontypes.DelegationDelegatorReward) bool {
 		return p1.ValidatorAddress < p2.ValidatorAddress
 	}
-	res2, err2 := s.client.GetDelegationTotalRewards(accAddr)
+	res2, err2 := s.client.GRPC.GetDelegationTotalRewards(r.Context(), accAddr)
 	if err2 != nil {
 		zap.L().Error("failed to get delegator rewards", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -199,7 +209,7 @@ func GetDelegatorDelegations(rw http.ResponseWriter, r *http.Request) {
 	resultDelegations := make([]model.ResultDelegations, 0)
 	for _, resp := range resps.DelegationResponses {
 		// Query a delegation reward
-		drr, err := s.client.GetDelegationRewards(resp.Delegation.DelegatorAddress, resp.Delegation.ValidatorAddress)
+		drr, err := s.client.GRPC.GetDelegationRewards(r.Context(), resp.Delegation.DelegatorAddress, resp.Delegation.ValidatorAddress)
 		if err != nil {
 			zap.L().Error("failed to get delegator rewards", zap.Error(err))
 			errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -208,14 +218,14 @@ func GetDelegatorDelegations(rw http.ResponseWriter, r *http.Request) {
 
 		resultRewards := make([]model.Coin, 0)
 
-		denom, err := s.client.GetBondDenom()
+		denom, err := s.client.GRPC.GetBondDenom(r.Context())
 		if err != nil {
 			return
 		}
 
 		// Exception: reward is null when the fee of delegator's validator is 100%
-		if len(drr.Rewards) > 0 {
-			for _, reward := range drr.Rewards {
+		if len(drr) > 0 {
+			for _, reward := range drr {
 				tempReward := &model.Coin{
 					Denom:  reward.Denom,
 					Amount: reward.Amount.String(),
@@ -232,7 +242,7 @@ func GetDelegatorDelegations(rw http.ResponseWriter, r *http.Request) {
 		}
 
 		// 위임한 검증인의 모니커 조회
-		vr, err := s.client.GetValidator(resp.Delegation.ValidatorAddress)
+		vr, err := s.client.GRPC.GetValidator(r.Context(), resp.Delegation.ValidatorAddress)
 		if err != nil {
 			zap.L().Error("failed to get delegations from a validator", zap.Error(err))
 			errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -242,7 +252,7 @@ func GetDelegatorDelegations(rw http.ResponseWriter, r *http.Request) {
 		temp := &model.ResultDelegations{
 			DelegatorAddress: resp.Delegation.DelegatorAddress,
 			ValidatorAddress: resp.Delegation.ValidatorAddress,
-			Moniker:          vr.Validator.Description.Moniker,
+			Moniker:          vr.Description.Moniker,
 			Shares:           resp.Delegation.Shares.String(),
 			Balance:          resp.Balance.Amount.String(),
 			Amount:           resp.Balance.Amount.String(),
@@ -267,7 +277,7 @@ func GetDelegatorUnbondingDelegations(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := s.client.GetDelegatorUnbondingDelegations(accAddr)
+	res, err := s.client.GRPC.GetDelegatorUnbondingDelegations(r.Context(), accAddr, pageLimit)
 	if err != nil {
 		zap.L().Error("failed to get account delegators rewards", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -315,7 +325,7 @@ func GetValidatorCommission(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	comm, err := s.client.GetValidatorCommission(valAddr)
+	comm, err := s.client.GRPC.GetValidatorCommission(r.Context(), valAddr)
 	if err != nil {
 		zap.L().Error("failed to get validator commission", zap.Error(err))
 	}
@@ -402,7 +412,7 @@ func GetAccountTransferTxs(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if denom == "" {
-		denom, err = s.client.GetBondDenom()
+		denom, err = s.client.GRPC.GetBondDenom(r.Context())
 		if err != nil {
 			return
 		}
@@ -475,7 +485,7 @@ func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	denom, err := s.client.GetBondDenom()
+	denom, err := s.client.GRPC.GetBondDenom(r.Context())
 	if err != nil {
 		zap.S().Errorf("failed to get staking denom: %s", err)
 		return
@@ -492,7 +502,7 @@ func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 	commission := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
 
 	// available
-	coins, err := s.client.GetBalance(accAddr)
+	coins, err := s.client.GRPC.GetBalance(r.Context(), denom, accAddr)
 	if err != nil {
 		zap.S().Debugf("failed to get account balance: %s", err)
 		errors.ErrNotFound(rw, http.StatusNotFound)
@@ -505,7 +515,7 @@ func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Delegated
-	delegationsResp, err := s.client.GetDelegatorDelegations(accAddr)
+	delegationsResp, err := s.client.GRPC.GetDelegatorDelegations(r.Context(), accAddr, pageLimit)
 	if err != nil {
 		zap.S().Errorf("failed to get delegator's delegations: %s", err)
 		return
@@ -515,7 +525,7 @@ func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Undelegated
-	undelegationsResp, err := s.client.GetDelegatorUnbondingDelegations(accAddr)
+	undelegationsResp, err := s.client.GRPC.GetDelegatorUnbondingDelegations(r.Context(), accAddr, pageLimit)
 	if err != nil {
 		zap.S().Errorf("failed to get delegator's undelegations: %s", err)
 		return
@@ -527,7 +537,7 @@ func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Rewards
-	totalRewardsResp, err := s.client.GetDelegationTotalRewards(accAddr)
+	totalRewardsResp, err := s.client.GRPC.GetDelegationTotalRewards(r.Context(), accAddr)
 	if err != nil {
 		zap.S().Errorf("failed to get get delegator's total rewards: %s", err)
 		return
@@ -550,7 +560,7 @@ func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Commission
-	commissionsResp, err := s.client.GetValidatorCommission(valAddr)
+	commissionsResp, err := s.client.GRPC.GetValidatorCommission(r.Context(), valAddr)
 	if err != nil {
 		zap.S().Errorf("failed to get validator's commission: %s", err)
 		return
@@ -560,19 +570,19 @@ func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 		commission = commission.Add(truncatedCoin)
 	}
 
-	account, err := s.client.GetAccount(accAddr)
+	account, err := s.client.CliCtx.GetAccount(accAddr)
 	if err != nil {
 		zap.S().Debugf("failed to get account information: %s", err)
 		errors.ErrNotFound(rw, http.StatusNotFound)
 		return
 	}
 
-	latestBlock, err := s.client.GetLatestBlockHeight()
+	latestBlock, err := s.client.RPC.GetLatestBlockHeight()
 	if err != nil {
 		zap.S().Errorf("failed to get the latest block height: %s", err)
 		return
 	}
-	block, err := s.client.GetBlock(latestBlock)
+	block, err := s.client.RPC.GetBlock(latestBlock)
 	if err != nil {
 		zap.S().Errorf("failed to get block information: %s", err)
 		return
@@ -642,7 +652,7 @@ func GetTotalAllBalances(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	denom, err := s.client.GetBondDenom()
+	denom, err := s.client.GRPC.GetBondDenom(r.Context())
 	if err != nil {
 		zap.S().Errorf("failed to get staking denom: %s", err)
 		return
@@ -659,7 +669,7 @@ func GetTotalAllBalances(rw http.ResponseWriter, r *http.Request) {
 	commission := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
 
 	// available
-	availableCoins, err := s.client.GetAllBalances(accAddr)
+	availableCoins, err := s.client.GRPC.GetAllBalances(r.Context(), accAddr, pageLimit)
 	if err != nil {
 		zap.S().Debugf("failed to get account balance: %s", err)
 		errors.ErrNotFound(rw, http.StatusNotFound)
@@ -668,7 +678,7 @@ func GetTotalAllBalances(rw http.ResponseWriter, r *http.Request) {
 	_ = availableCoins
 
 	// Delegated
-	delegationsResp, err := s.client.GetDelegatorDelegations(accAddr)
+	delegationsResp, err := s.client.GRPC.GetDelegatorDelegations(r.Context(), accAddr, pageLimit)
 	if err != nil {
 		zap.S().Errorf("failed to get delegator's delegations: %s", err)
 		return
@@ -678,7 +688,7 @@ func GetTotalAllBalances(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Undelegated
-	undelegationsResp, err := s.client.GetDelegatorUnbondingDelegations(accAddr)
+	undelegationsResp, err := s.client.GRPC.GetDelegatorUnbondingDelegations(r.Context(), accAddr, pageLimit)
 	if err != nil {
 		zap.S().Errorf("failed to get delegator's undelegations: %s", err)
 		return
@@ -690,7 +700,7 @@ func GetTotalAllBalances(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Rewards
-	totalRewardsResp, err := s.client.GetDelegationTotalRewards(accAddr)
+	totalRewardsResp, err := s.client.GRPC.GetDelegationTotalRewards(r.Context(), accAddr)
 	if err != nil {
 		zap.S().Errorf("failed to get get delegator's total rewards: %s", err)
 		return
@@ -712,7 +722,7 @@ func GetTotalAllBalances(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Commission
-	commissionsResp, err := s.client.GetValidatorCommission(valAddr)
+	commissionsResp, err := s.client.GRPC.GetValidatorCommission(r.Context(), valAddr)
 	if err != nil {
 		zap.S().Errorf("failed to get validator's commission: %s", err)
 		return
@@ -722,19 +732,19 @@ func GetTotalAllBalances(rw http.ResponseWriter, r *http.Request) {
 		commission = commission.Add(truncatedCoin)
 	}
 
-	account, err := s.client.GetAccount(accAddr)
+	account, err := s.client.CliCtx.GetAccount(accAddr)
 	if err != nil {
 		zap.S().Debugf("failed to get account information: %s", err)
 		errors.ErrNotFound(rw, http.StatusNotFound)
 		return
 	}
 
-	latestBlock, err := s.client.GetLatestBlockHeight()
+	latestBlock, err := s.client.RPC.GetLatestBlockHeight()
 	if err != nil {
 		zap.S().Errorf("failed to get the latest block height: %s", err)
 		return
 	}
-	block, err := s.client.GetBlock(latestBlock)
+	block, err := s.client.RPC.GetBlock(latestBlock)
 	if err != nil {
 		zap.S().Errorf("failed to get block information: %s", err)
 		return

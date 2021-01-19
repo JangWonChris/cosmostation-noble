@@ -25,7 +25,7 @@ func GetDelegatorWithdrawalAddress(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	queryClient := distributiontypes.NewQueryClient(s.client.GetCliContext())
+	queryClient := distributiontypes.NewQueryClient(s.client.GetCLIContext())
 	request := distributiontypes.QueryDelegatorWithdrawAddressRequest{DelegatorAddress: delAddr}
 	res, err := queryClient.DelegatorWithdrawAddress(context.Background(), &request)
 	if err != nil {
@@ -40,7 +40,7 @@ func GetDelegatorWithdrawalAddress(rw http.ResponseWriter, r *http.Request) {
 
 // GetCommunityPool returns current community pool.
 func GetCommunityPool(rw http.ResponseWriter, r *http.Request) {
-	queryClient := distributiontypes.NewQueryClient(s.client.GetCliContext())
+	queryClient := distributiontypes.NewQueryClient(s.client.GetCLIContext())
 	res, err := queryClient.CommunityPool(context.Background(), &distributiontypes.QueryCommunityPoolRequest{})
 	if err != nil {
 		zap.L().Error("failed to get community pool", zap.Error(err))

@@ -8,7 +8,7 @@ import (
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/schema"
+	"github.com/cosmostation/mintscan-backend-library/db/schema"
 
 	"github.com/gorilla/mux"
 
@@ -36,7 +36,7 @@ func GetProposals(rw http.ResponseWriter, r *http.Request) {
 	result := make([]*model.ResultProposal, 0)
 
 	for _, p := range proposals {
-		val, err := s.db.QueryValidatorByAny(p.Proposer)
+		val, err := s.db.QueryValidatorByAnyAddr(p.Proposer)
 		if err != nil {
 			zap.S().Errorf("failed to query validator information: %s", err)
 			return
@@ -86,7 +86,7 @@ func GetProposal(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Error doesn't need to be handled since any accoount can propose proposal
-	val, err := s.db.QueryValidatorByAny(p.Proposer)
+	val, err := s.db.QueryValidatorByAnyAddr(p.Proposer)
 	if err != nil {
 		zap.S().Errorf("failed to query validator information: %s", err)
 		return
@@ -142,7 +142,7 @@ func GetDeposits(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, d := range deposits {
-		val, err := s.db.QueryValidatorByAny(d.Depositor)
+		val, err := s.db.QueryValidatorByAnyAddr(d.Depositor)
 		if err != nil {
 			zap.S().Errorf("failed to query validator information: %s", err)
 			return
@@ -191,7 +191,7 @@ func GetVotes(rw http.ResponseWriter, r *http.Request) {
 	rv := make([]*model.Votes, 0)
 
 	for _, v := range votes {
-		val, err := s.db.QueryValidatorByAny(v.Voter)
+		val, err := s.db.QueryValidatorByAnyAddr(v.Voter)
 		if err != nil {
 			zap.S().Errorf("failed to query validator information: %s", err)
 			return
@@ -208,7 +208,7 @@ func GetVotes(rw http.ResponseWriter, r *http.Request) {
 		rv = append(rv, vote)
 	}
 
-	queryClient := govtypes.NewQueryClient(s.client.GetCliContext())
+	queryClient := govtypes.NewQueryClient(s.client.GetCLIContext())
 	proposalID, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
 		zap.L().Error("failed to convert proposal id ", zap.Error(err))

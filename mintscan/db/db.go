@@ -1,136 +1,122 @@
 package db
 
 import (
-	"fmt"
-	"strings"
-	"time"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/config"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/schema"
-	"go.uber.org/zap"
+	// "github.com/cosmostation/mintscan-backend-library/config"
+
+	// "github.com/cosmostation/mintscan-backend-library/db/schema"
+
+	"github.com/cosmostation/mintscan-backend-library/config"
+	ldb "github.com/cosmostation/mintscan-backend-library/db"
+	"github.com/cosmostation/mintscan-backend-library/db/schema"
 
 	"github.com/go-pg/pg"
-	"github.com/go-pg/pg/orm"
 )
 
 // Database implements a wrapper of golang ORM with focus on PostgreSQL.
 type Database struct {
-	*pg.DB
+	*ldb.Database
 }
 
 // Connect opens a database connections with the given database connection info from config.
-func Connect(cfg config.DBConfig) *Database {
-	db := pg.Connect(&pg.Options{
-		Addr:         cfg.Host + ":" + cfg.Port,
-		User:         cfg.User,
-		Password:     cfg.Password,
-		Database:     cfg.Table,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
-	})
-
-	// Disable pluralization
-	orm.SetTableNameInflector(func(s string) string {
-		return s
-	})
+func Connect(config *config.DatabaseConfig) *Database {
+	db := ldb.Connect(config)
 
 	return &Database{db}
 }
 
 // Ping returns a database connection handle or an error if the connection fails.
-func (db *Database) Ping() error {
-	_, err := db.Exec("SELECT 1")
-	if err != nil {
-		return err
-	}
+// func (db *Database) Ping() error {
+// 	_, err := db.Exec("SELECT 1")
+// 	if err != nil {
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 // --------------------
 // Query
 // --------------------
 
 // QueryBlocks returns blocks information with given parameters.
-func (db *Database) QueryBlocks(before, after int, limit int) (blocks []schema.Block, err error) {
-	switch {
-	case before > 0:
-		err = db.Model(&blocks).
-			Where("height < ?", before).
-			Limit(limit).
-			Order("id DESC").
-			Select()
-	case after >= 0:
-		err = db.Model(&blocks).
-			Where("height > ?", after).
-			Limit(limit).
-			Order("id ASC").
-			Select()
-	default:
-		err = db.Model(&blocks).
-			Limit(limit).
-			Order("id DESC").
-			Select()
-	}
+// func (db *Database) QueryBlocks(before, after int, limit int) (blocks []schema.Block, err error) {
+// 	switch {
+// 	case before > 0:
+// 		err = db.Model(&blocks).
+// 			Where("height < ?", before).
+// 			Limit(limit).
+// 			Order("id DESC").
+// 			Select()
+// 	case after >= 0:
+// 		err = db.Model(&blocks).
+// 			Where("height > ?", after).
+// 			Limit(limit).
+// 			Order("id ASC").
+// 			Select()
+// 	default:
+// 		err = db.Model(&blocks).
+// 			Limit(limit).
+// 			Order("id DESC").
+// 			Select()
+// 	}
 
-	if err != nil {
-		return []schema.Block{}, err
-	}
+// 	if err != nil {
+// 		return []schema.Block{}, err
+// 	}
 
-	return blocks, nil
-}
+// 	return blocks, nil
+// }
 
 // QueryBlocksByProposer returns blocks by proposer
-func (db *Database) QueryBlocksByProposer(address string, before, after, limit int) (blocks []schema.Block, err error) {
-	switch {
-	case before > 0:
-		err = db.Model(&blocks).
-			Where("proposer = ? AND height < ?", address, before).
-			Limit(limit).
-			Order("height DESC").
-			Select()
-	case after > 0:
-		err = db.Model(&blocks).
-			Where("proposer = ? AND height > ?", address, after).
-			Limit(limit).
-			Order("height ASC").
-			Select()
-	default:
-		err = db.Model(&blocks).
-			Where("proposer = ?", address).
-			Limit(limit).
-			Order("id DESC").
-			Select()
-	}
+// func (db *Database) QueryBlocksByProposer(address string, before, after, limit int) (blocks []schema.Block, err error) {
+// 	switch {
+// 	case before > 0:
+// 		err = db.Model(&blocks).
+// 			Where("proposer = ? AND height < ?", address, before).
+// 			Limit(limit).
+// 			Order("height DESC").
+// 			Select()
+// 	case after > 0:
+// 		err = db.Model(&blocks).
+// 			Where("proposer = ? AND height > ?", address, after).
+// 			Limit(limit).
+// 			Order("height ASC").
+// 			Select()
+// 	default:
+// 		err = db.Model(&blocks).
+// 			Where("proposer = ?", address).
+// 			Limit(limit).
+// 			Order("id DESC").
+// 			Select()
+// 	}
 
-	if err != nil {
-		return []schema.Block{}, err
-	}
+// 	if err != nil {
+// 		return []schema.Block{}, err
+// 	}
 
-	return blocks, nil
-}
+// 	return blocks, nil
+// }
 
 // QueryLatestBlockHeight returns the latest block height in database.
 // return 0 if there is not row in result set and -1 for any type of database errors.
-func (db *Database) QueryLatestBlockHeight() (int64, error) {
-	var block schema.Block
-	err := db.Model(&block).
-		Order("height DESC").
-		Limit(1).
-		Select()
+// func (db *Database) QueryLatestBlockHeight() (int64, error) {
+// 	var block schema.Block
+// 	err := db.Model(&block).
+// 		Order("height DESC").
+// 		Limit(1).
+// 		Select()
 
-	if err == pg.ErrNoRows {
-		return 0, nil
-	}
+// 	if err == pg.ErrNoRows {
+// 		return 0, nil
+// 	}
 
-	if err != nil {
-		return -1, err
-	}
+// 	if err != nil {
+// 		return -1, err
+// 	}
 
-	return block.Height, nil
-}
+// 	return block.Height, nil
+// }
 
 // QueryLastestTwoBlocks returns lastest two blocks for blocktime calculation.
 func (db *Database) QueryLastestTwoBlocks() (blocks []schema.Block, err error) {
@@ -147,105 +133,105 @@ func (db *Database) QueryLastestTwoBlocks() (blocks []schema.Block, err error) {
 }
 
 // QueryValidatorUptime returns how many missing blocks a validator misses in detail.
-func (db *Database) QueryValidatorUptime(address string, latestHeight int64) (misses []schema.MissDetail, err error) {
-	count := int(100)
+// func (db *Database) QueryValidatorUptime(address string, latestHeight int64) (misses []schema.MissDetail, err error) {
+// 	count := int(100)
 
-	err = db.Model(&misses).
-		Where("address = ? AND height BETWEEN ? AND ?", address, int(latestHeight)-99, latestHeight).
-		Limit(count).
-		Order("height DESC").
-		Select()
+// 	err = db.Model(&misses).
+// 		Where("address = ? AND height BETWEEN ? AND ?", address, int(latestHeight)-99, latestHeight).
+// 		Limit(count).
+// 		Order("height DESC").
+// 		Select()
 
-	if err == pg.ErrNoRows {
-		return []schema.MissDetail{}, nil
-	}
+// 	if err == pg.ErrNoRows {
+// 		return []schema.MissDetail{}, nil
+// 	}
 
-	if err != nil {
-		return []schema.MissDetail{}, err
-	}
+// 	if err != nil {
+// 		return []schema.MissDetail{}, err
+// 	}
 
-	return misses, nil
-}
+// 	return misses, nil
+// }
 
 // QueryValidatorUptimeRange returns a range of missing blocks a validator misses.
-func (db *Database) QueryValidatorUptimeRange(address string) (misses []schema.Miss, err error) {
-	err = db.Model(&misses).
-		Where("address = ?", address).
-		Limit(model.DefaultLimit).
-		Order("start_height DESC").
-		Select()
+// func (db *Database) QueryValidatorUptimeRange(address string) (misses []schema.Miss, err error) {
+// 	err = db.Model(&misses).
+// 		Where("address = ?", address).
+// 		Limit(model.DefaultLimit).
+// 		Order("start_height DESC").
+// 		Select()
 
-	if err == pg.ErrNoRows {
-		return []schema.Miss{}, nil
-	}
+// 	if err == pg.ErrNoRows {
+// 		return []schema.Miss{}, nil
+// 	}
 
-	if err != nil {
-		return []schema.Miss{}, err
-	}
+// 	if err != nil {
+// 		return []schema.Miss{}, err
+// 	}
 
-	return misses, nil
-}
+// 	return misses, nil
+// }
 
 // QueryVotes returns all vote information.
-func (db *Database) QueryVotes(id string) (votes []schema.Vote, err error) {
-	err = db.Model(&votes).
-		Where("proposal_id = ?", id).
-		Order("id DESC").
-		Select()
+// func (db *Database) QueryVotes(id string) (votes []schema.Vote, err error) {
+// 	err = db.Model(&votes).
+// 		Where("proposal_id = ?", id).
+// 		Order("id DESC").
+// 		Select()
 
-	if err != nil {
-		return []schema.Vote{}, err
-	}
+// 	if err != nil {
+// 		return []schema.Vote{}, err
+// 	}
 
-	return votes, nil
-}
+// 	return votes, nil
+// }
 
 // QueryVoteOptions queries all vote options for the proposal
-func (db *Database) QueryVoteOptions(id string) (yes, no, noWithVeto, abstain int, err error) {
-	var oc []struct {
-		Option string
-		Count  int
-	}
-	err = db.Model(&schema.Vote{}).
-		Column("vote.option").
-		ColumnExpr("count(option) AS count").
-		Where("proposal_id = ?", id).
-		Group("option").
-		Select(&oc)
-	if err != nil {
-		return yes, no, noWithVeto, abstain, err
-	}
+// func (db *Database) QueryVoteOptions(id string) (yes, no, noWithVeto, abstain int, err error) {
+// 	var oc []struct {
+// 		Option string
+// 		Count  int
+// 	}
+// 	err = db.Model(&schema.Vote{}).
+// 		Column("vote.option").
+// 		ColumnExpr("count(option) AS count").
+// 		Where("proposal_id = ?", id).
+// 		Group("option").
+// 		Select(&oc)
+// 	if err != nil {
+// 		return yes, no, noWithVeto, abstain, err
+// 	}
 
-	for _, e := range oc {
-		switch e.Option {
-		case model.YES:
-			yes = e.Count
-		case model.NO:
-			no = e.Count
-		case model.NOWITHVETO:
-			noWithVeto = e.Count
-		case model.ABSTAIN:
-			abstain = e.Count
-		default:
-			zap.S().Errorf("Unknown option type\n")
-		}
-	}
+// 	for _, e := range oc {
+// 		switch e.Option {
+// 		case model.YES:
+// 			yes = e.Count
+// 		case model.NO:
+// 			no = e.Count
+// 		case model.NOWITHVETO:
+// 			noWithVeto = e.Count
+// 		case model.ABSTAIN:
+// 			abstain = e.Count
+// 		default:
+// 			zap.S().Errorf("Unknown option type\n")
+// 		}
+// 	}
 
-	return yes, no, noWithVeto, abstain, nil
-}
+// 	return yes, no, noWithVeto, abstain, nil
+// }
 
 // QueryValidators returns all validators.
-func (db *Database) QueryValidators() (validators []*schema.Validator, err error) {
-	err = db.Model(&validators).
-		Order("id ASC").
-		Select()
+// func (db *Database) QueryValidators() (validators []*schema.Validator, err error) {
+// 	err = db.Model(&validators).
+// 		Order("id ASC").
+// 		Select()
 
-	if err != nil {
-		return []*schema.Validator{}, err
-	}
+// 	if err != nil {
+// 		return []*schema.Validator{}, err
+// 	}
 
-	return validators, nil
-}
+// 	return validators, nil
+// }
 
 // QueryValidatorByID returns a validator by querying with validator id.
 // Validator id is determined by their voting power when chain exporter aggregates validator power event data.
@@ -270,40 +256,40 @@ func (db *Database) QueryValidatorByID(address string) (int, error) {
 }
 
 // QueryValidatorByValAddr returns a validator by querying with validator operator address.
-func (db *Database) QueryValidatorByValAddr(valAddr string) (validator schema.Validator, err error) {
-	err = db.Model(&validator).
-		Where("operator_address = ?", valAddr).
-		Limit(1).
-		Select()
+// func (db *Database) QueryValidatorByValAddr(valAddr string) (validator schema.Validator, err error) {
+// 	err = db.Model(&validator).
+// 		Where("operator_address = ?", valAddr).
+// 		Limit(1).
+// 		Select()
 
-	if err == pg.ErrNoRows {
-		return schema.Validator{}, nil
-	}
+// 	if err == pg.ErrNoRows {
+// 		return schema.Validator{}, nil
+// 	}
 
-	if err != nil {
-		return schema.Validator{}, err
-	}
+// 	if err != nil {
+// 		return schema.Validator{}, err
+// 	}
 
-	return validator, nil
-}
+// 	return validator, nil
+// }
 
 // QueryValidatorsByStatus returns a validator by querying with bonding status.
-func (db *Database) QueryValidatorsByStatus(status int) (validators []*schema.Validator, err error) {
-	err = db.Model(&validators).
-		Where("status = ?", status).
-		Order("id ASC").
-		Select()
+// func (db *Database) QueryValidatorsByStatus(status int) (validators []*schema.Validator, err error) {
+// 	err = db.Model(&validators).
+// 		Where("status = ?", status).
+// 		Order("id ASC").
+// 		Select()
 
-	if err == pg.ErrNoRows {
-		return []*schema.Validator{}, nil
-	}
+// 	if err == pg.ErrNoRows {
+// 		return []*schema.Validator{}, nil
+// 	}
 
-	if err != nil {
-		return []*schema.Validator{}, err
-	}
+// 	if err != nil {
+// 		return []*schema.Validator{}, err
+// 	}
 
-	return validators, nil
-}
+// 	return validators, nil
+// }
 
 // QueryValidatorBondedInfo returns a validator's bonded information.
 func (db *Database) QueryValidatorBondedInfo(address string) (peh schema.PowerEventHistory, err error) {
@@ -322,195 +308,195 @@ func (db *Database) QueryValidatorBondedInfo(address string) (peh schema.PowerEv
 }
 
 // QueryValidatorVotingPowerEventHistory returns validator's power events with given parameters.
-func (db *Database) QueryValidatorVotingPowerEventHistory(validatorID, before, after, limit int) (peh []schema.PowerEventHistory, err error) {
-	switch {
-	case before > 0:
-		err = db.Model(&peh).
-			Where("id_validator = ? AND height < ?", validatorID, before).
-			Limit(limit).
-			Order("id DESC").
-			Select()
-	case after > 0:
-		err = db.Model(&peh).
-			Where("id_validator = ? AND height > ?", validatorID, after).
-			Limit(limit).
-			Order("id ASC").
-			Select()
-	default:
-		err = db.Model(&peh).
-			Where("id_validator = ?", validatorID).
-			Limit(limit).
-			Order("id DESC").
-			Select()
-	}
+// func (db *Database) QueryValidatorVotingPowerEventHistory(validatorID, before, after, limit int) (peh []schema.PowerEventHistory, err error) {
+// 	switch {
+// 	case before > 0:
+// 		err = db.Model(&peh).
+// 			Where("id_validator = ? AND height < ?", validatorID, before).
+// 			Limit(limit).
+// 			Order("id DESC").
+// 			Select()
+// 	case after > 0:
+// 		err = db.Model(&peh).
+// 			Where("id_validator = ? AND height > ?", validatorID, after).
+// 			Limit(limit).
+// 			Order("id ASC").
+// 			Select()
+// 	default:
+// 		err = db.Model(&peh).
+// 			Where("id_validator = ?", validatorID).
+// 			Limit(limit).
+// 			Order("id DESC").
+// 			Select()
+// 	}
 
-	if err == pg.ErrNoRows {
-		return []schema.PowerEventHistory{}, nil
-	}
+// 	if err == pg.ErrNoRows {
+// 		return []schema.PowerEventHistory{}, nil
+// 	}
 
-	if err != nil {
-		return []schema.PowerEventHistory{}, err
-	}
+// 	if err != nil {
+// 		return []schema.PowerEventHistory{}, err
+// 	}
 
-	return peh, nil
-}
+// 	return peh, nil
+// }
 
-// QueryValidatorByAny queries validator information by any type of input address.
-func (db *Database) QueryValidatorByAny(address string) (val schema.Validator, err error) {
-	switch {
-	case strings.HasPrefix(address, sdk.GetConfig().GetBech32ValidatorPubPrefix()): // Bech32 prefix for validator public key
-		err = db.Model(&val).
-			Where("consensus_pubkey = ?", address).
-			Limit(1).
-			Select()
-	case strings.HasPrefix(address, sdk.GetConfig().GetBech32ValidatorAddrPrefix()): // Bech32 prefix for validator address
-		err = db.Model(&val).
-			Where("operator_address = ?", address).
-			Limit(1).
-			Select()
-	case strings.HasPrefix(address, sdk.GetConfig().GetBech32AccountAddrPrefix()): // Bech32 prefix for account address
-		err = db.Model(&val).
-			Where("address = ?", address).
-			Limit(1).
-			Select()
-	case len(address) == 40: // Validator consensus address in hex
-		address := strings.ToUpper(address)
-		err = db.Model(&val).
-			Where("proposer = ?", address).
-			Limit(1).
-			Select()
-	default:
-		err = db.Model(&val).
-			Where("moniker = ?", address). // Validator moniker
-			Limit(1).
-			Select()
-	}
+// QueryValidatorByAnyAddr queries validator information by any type of input address.
+// func (db *Database) QueryValidatorByAnyAddr(address string) (val schema.Validator, err error) {
+// 	switch {
+// 	case strings.HasPrefix(address, sdk.GetConfig().GetBech32ValidatorPubPrefix()): // Bech32 prefix for validator public key
+// 		err = db.Model(&val).
+// 			Where("consensus_pubkey = ?", address).
+// 			Limit(1).
+// 			Select()
+// 	case strings.HasPrefix(address, sdk.GetConfig().GetBech32ValidatorAddrPrefix()): // Bech32 prefix for validator address
+// 		err = db.Model(&val).
+// 			Where("operator_address = ?", address).
+// 			Limit(1).
+// 			Select()
+// 	case strings.HasPrefix(address, sdk.GetConfig().GetBech32AccountAddrPrefix()): // Bech32 prefix for account address
+// 		err = db.Model(&val).
+// 			Where("address = ?", address).
+// 			Limit(1).
+// 			Select()
+// 	case len(address) == 40: // Validator consensus address in hex
+// 		address := strings.ToUpper(address)
+// 		err = db.Model(&val).
+// 			Where("proposer = ?", address).
+// 			Limit(1).
+// 			Select()
+// 	default:
+// 		err = db.Model(&val).
+// 			Where("moniker = ?", address). // Validator moniker
+// 			Limit(1).
+// 			Select()
+// 	}
 
-	if err == pg.ErrNoRows {
-		return schema.Validator{}, nil
-	}
+// 	if err == pg.ErrNoRows {
+// 		return schema.Validator{}, nil
+// 	}
 
-	if err != nil {
-		return schema.Validator{}, err
-	}
+// 	if err != nil {
+// 		return schema.Validator{}, err
+// 	}
 
-	return val, nil
-}
+// 	return val, nil
+// }
 
 // QueryProposals returns proposals.
-func (db *Database) QueryProposals() (proposals []schema.Proposal, err error) {
-	err = db.Model(&proposals).Select()
-	if err != nil {
-		return []schema.Proposal{}, err
-	}
+// func (db *Database) QueryProposals() (proposals []schema.Proposal, err error) {
+// 	err = db.Model(&proposals).Select()
+// 	if err != nil {
+// 		return []schema.Proposal{}, err
+// 	}
 
-	return proposals, nil
-}
+// 	return proposals, nil
+// }
 
 // QueryProposal returns a proposal.
-func (db *Database) QueryProposal(id string) (proposal schema.Proposal, err error) {
-	err = db.Model(&proposal).
-		Where("id = ?", id).
-		Select()
+// func (db *Database) QueryProposal(id string) (proposal schema.Proposal, err error) {
+// 	err = db.Model(&proposal).
+// 		Where("id = ?", id).
+// 		Select()
 
-	if err != nil {
-		return schema.Proposal{}, err
-	}
+// 	if err != nil {
+// 		return schema.Proposal{}, err
+// 	}
 
-	return proposal, nil
-}
+// 	return proposal, nil
+// }
 
 // QueryDeposits returns all deposit information.
-func (db *Database) QueryDeposits(id string) (deposits []schema.Deposit, err error) {
-	err = db.Model(&deposits).
-		Where("proposal_id = ?", id).
-		Order("id DESC").
-		Select()
+// func (db *Database) QueryDeposits(id string) (deposits []schema.Deposit, err error) {
+// 	err = db.Model(&deposits).
+// 		Where("proposal_id = ?", id).
+// 		Order("id DESC").
+// 		Select()
 
-	if err != nil {
-		return []schema.Deposit{}, err
-	}
+// 	if err != nil {
+// 		return []schema.Deposit{}, err
+// 	}
 
-	return deposits, nil
-}
+// 	return deposits, nil
+// }
 
 // QueryTransactions queries transactions with pagination params, such as limit, before, after, and offset
-func (db *Database) QueryTransactions(before int, after int, limit int) (txs []schema.TransactionLegacy, err error) {
-	switch {
-	case before > 0:
-		err = db.Model(&txs).
-			Where("id < ?", before).
-			Limit(limit).
-			Order("id DESC").
-			Select()
-	case after > 0:
-		err = db.Model(&txs).
-			Where("id > ?", after).
-			Limit(limit).
-			Order("id ASC").
-			Select()
-	default:
-		err = db.Model(&txs).
-			Limit(limit).
-			Order("id DESC").
-			Select()
-	}
+// func (db *Database) QueryTransactions(before int, after int, limit int) (txs []schema.Transaction, err error) {
+// 	switch {
+// 	case before > 0:
+// 		err = db.Model(&txs).
+// 			Where("id < ?", before).
+// 			Limit(limit).
+// 			Order("id DESC").
+// 			Select()
+// 	case after > 0:
+// 		err = db.Model(&txs).
+// 			Where("id > ?", after).
+// 			Limit(limit).
+// 			Order("id ASC").
+// 			Select()
+// 	default:
+// 		err = db.Model(&txs).
+// 			Limit(limit).
+// 			Order("id DESC").
+// 			Select()
+// 	}
 
-	if err == pg.ErrNoRows {
-		return []schema.TransactionLegacy{}, nil
-	}
+// 	if err == pg.ErrNoRows {
+// 		return []schema.Transaction{}, nil
+// 	}
 
-	if err != nil {
-		return []schema.TransactionLegacy{}, fmt.Errorf("unexpected database error: %s", err)
-	}
+// 	if err != nil {
+// 		return []schema.Transaction{}, fmt.Errorf("unexpected database error: %s", err)
+// 	}
 
-	return txs, nil
-}
+// 	return txs, nil
+// }
 
 // QueryTransactionByID returns transaction information with given id.
-func (db *Database) QueryTransactionByID(id int64) (tx schema.TransactionLegacy, err error) {
-	err = db.Model(&tx).
-		Where("id = ?", id).
-		Limit(1).
-		Select()
+// func (db *Database) QueryTransactionByID(id int64) (tx schema.Transaction, err error) {
+// 	err = db.Model(&tx).
+// 		Where("id = ?", id).
+// 		Limit(1).
+// 		Select()
 
-	if err != nil {
-		return schema.TransactionLegacy{}, err
-	}
+// 	if err != nil {
+// 		return schema.Transaction{}, err
+// 	}
 
-	return tx, nil
-}
+// 	return tx, nil
+// }
 
 // QueryTransactionByTxHash returns transaction information with given tx hash.
-func (db *Database) QueryTransactionByTxHash(txHashStr string) (tx schema.TransactionLegacy, err error) {
-	err = db.Model(&tx).
-		Where("tx_hash = ?", txHashStr).
-		Limit(1).
-		Select()
+// func (db *Database) QueryTransactionByTxHash(txHashStr string) (tx schema.Transaction, err error) {
+// 	err = db.Model(&tx).
+// 		Where("tx_hash = ?", txHashStr).
+// 		Limit(1).
+// 		Select()
 
-	if err != nil {
-		return schema.TransactionLegacy{}, err
-	}
+// 	if err != nil {
+// 		return schema.Transaction{}, err
+// 	}
 
-	return tx, nil
-}
+// 	return tx, nil
+// }
 
-// QueryTransactionsByBlockHeight returns transactions that are included in a single block.
-func (db *Database) QueryTransactionsByBlockHeight(height int64) (txs []schema.TransactionLegacy, err error) {
-	err = db.Model(&txs).
-		Column("tx_hash").
-		Where("height = ?", height).
-		Select()
+// QueryTransactionsInBlockHeight returns transactions that are included in a single block.
+// func (db *Database) QueryTransactionsInBlockHeight(height int64) (txs []schema.Transaction, err error) {
+// 	err = db.Model(&txs).
+// 		Column("tx_hash").
+// 		Where("height = ?", height).
+// 		Select()
 
-	if err != nil {
-		return []schema.TransactionLegacy{}, err
-	}
+// 	if err != nil {
+// 		return []schema.Transaction{}, err
+// 	}
 
-	return txs, nil
-}
+// 	return txs, nil
+// }
 
 // QueryTransactionsByAddr returns all transactions that are created by an account.
-func (db *Database) QueryTransactionsByAddr(accAddr, valAddr string, before, after, limit int) (txs []schema.TransactionLegacy, err error) {
+func (db *Database) QueryTransactionsByAddr(accAddr, valAddr string, before, after, limit int) (txs []schema.Transaction, err error) {
 	// Make sure to use brackets that surround each local operator, otherwise it will return incorrect data.
 	params := "(" + QueryTxParamFromAddress + "'" + accAddr + "'" + " OR " +
 		QueryTxParamToAddress + "'" + accAddr + "'" + " OR " +
@@ -547,14 +533,14 @@ func (db *Database) QueryTransactionsByAddr(accAddr, valAddr string, before, aft
 	}
 
 	if err != nil {
-		return []schema.TransactionLegacy{}, err
+		return []schema.Transaction{}, err
 	}
 
 	return txs, nil
 }
 
 // QueryTransferTransactionsByAddr queries Send / MultiSend transactions that are made by an account
-func (db *Database) QueryTransferTransactionsByAddr(accAddr, denom string, before, after, limit int) (txs []schema.TransactionLegacy, err error) {
+func (db *Database) QueryTransferTransactionsByAddr(accAddr, denom string, before, after, limit int) (txs []schema.Transaction, err error) {
 	params := "(" + QueryTxParamFromAddress + "'" + accAddr + "'" + " AND " + QueryTxParamDenom + "'" + denom + "')" + " OR " +
 		"(" + QueryTxParamToAddress + "'" + accAddr + "'" + " AND " + QueryTxParamDenom + "'" + denom + "')" + " OR " +
 		"(" + QueryTxParamInputsAddress + "'" + accAddr + "'" + " AND " + QueryTxParamDenom + "'" + denom + "')" + " OR " +
@@ -584,14 +570,14 @@ func (db *Database) QueryTransferTransactionsByAddr(accAddr, denom string, befor
 	}
 
 	if err != nil {
-		return []schema.TransactionLegacy{}, err
+		return []schema.Transaction{}, err
 	}
 
 	return txs, nil
 }
 
 // QueryTransactionsBetweenAccountAndValidator queries transactions that are made between an account and his delegated validator
-func (db *Database) QueryTransactionsBetweenAccountAndValidator(address, valAddr string, before, after, limit int) (txs []schema.TransactionLegacy, err error) {
+func (db *Database) QueryTransactionsBetweenAccountAndValidator(address, valAddr string, before, after, limit int) (txs []schema.Transaction, err error) {
 	params := "(" + QueryTxParamValidatorAddress + "'" + valAddr + "'" + " OR " +
 		QueryTxParamValidatorDstAddress + "'" + valAddr + "'" + " OR " +
 		QueryTxParamValidatorSrcAddress + "'" + valAddr + "')" + " AND " +
@@ -621,95 +607,95 @@ func (db *Database) QueryTransactionsBetweenAccountAndValidator(address, valAddr
 	}
 
 	if err != nil {
-		return []schema.TransactionLegacy{}, err
+		return []schema.Transaction{}, err
 	}
 
 	return txs, nil
 }
 
 // QueryTotalTransactionNum queries total number of transactions
-func (db *Database) QueryTotalTransactionNum() int {
-	var tx schema.TransactionLegacy
-	_ = db.Model(&tx).
-		Order("id DESC").
-		Limit(1).
-		Select()
+// func (db *Database) QueryTotalTransactionNum() int {
+// 	var tx schema.Transaction
+// 	_ = db.Model(&tx).
+// 		Order("id DESC").
+// 		Limit(1).
+// 		Select()
 
-	return int(tx.ID)
-}
+// 	return int(tx.ID)
+// }
 
 // QueryValidatorStats1D returns validator statistics from 1 day validator stats table.
-func (db *Database) QueryValidatorStats1D(address string, limit int) ([]schema.StatsValidators1D, error) {
-	statsValidators24H := make([]schema.StatsValidators1D, 0)
-	_ = db.Model(&statsValidators24H).
-		Where("proposer = ?", address).
-		Order("id DESC").
-		Limit(limit).
-		Select()
+// func (db *Database) QueryValidatorStats1D(address string, limit int) ([]schema.StatsValidators1D, error) {
+// 	statsValidators24H := make([]schema.StatsValidators1D, 0)
+// 	_ = db.Model(&statsValidators24H).
+// 		Where("proposer = ?", address).
+// 		Order("id DESC").
+// 		Limit(limit).
+// 		Select()
 
-	return statsValidators24H, nil
-}
+// 	return statsValidators24H, nil
+// }
 
 // QueryPriceFromMarketStat5M returns market data from 5 minutes makret stats table.
-func (db *Database) QueryPriceFromMarketStat5M() (data schema.StatsMarket5M, err error) {
-	err = db.Model(&data).
-		Order("id DESC").
-		Limit(1).
-		Select()
+// func (db *Database) QueryPriceFromMarketStat5M() (data schema.StatsMarket5M, err error) {
+// 	err = db.Model(&data).
+// 		Order("id DESC").
+// 		Limit(1).
+// 		Select()
 
-	if err != nil {
-		return schema.StatsMarket5M{}, err
-	}
+// 	if err != nil {
+// 		return schema.StatsMarket5M{}, err
+// 	}
 
-	return data, nil
-}
+// 	return data, nil
+// }
 
 // QueryPricesFromMarketStat1H returns market statistics from 1 hour makret stats table.
-func (db *Database) QueryPricesFromMarketStat1H(limit int) (stats []schema.StatsMarket1H, err error) {
-	err = db.Model(&stats).
-		Order("id DESC").
-		Limit(limit).
-		Select()
+// func (db *Database) QueryPricesFromMarketStat1H(limit int) (stats []schema.StatsMarket1H, err error) {
+// 	err = db.Model(&stats).
+// 		Order("id DESC").
+// 		Limit(limit).
+// 		Select()
 
-	if err != nil {
-		return []schema.StatsMarket1H{}, err
-	}
+// 	if err != nil {
+// 		return []schema.StatsMarket1H{}, err
+// 	}
 
-	return stats, nil
-}
+// 	return stats, nil
+// }
 
 // QueryNetworkStats1H returns network statistics from 1 hour network stats table.
-func (db *Database) QueryNetworkStats1H(limit int) ([]schema.StatsNetwork1H, error) {
-	var networkStats []schema.StatsNetwork1H
-	err := db.Model(&networkStats).
-		Order("id DESC").
-		Limit(limit).
-		Select()
+// func (db *Database) QueryNetworkStats1H(limit int) ([]schema.StatsNetwork1H, error) {
+// 	var networkStats []schema.StatsNetwork1H
+// 	err := db.Model(&networkStats).
+// 		Order("id DESC").
+// 		Limit(limit).
+// 		Select()
 
-	if err != nil {
-		return networkStats, err
-	}
+// 	if err != nil {
+// 		return networkStats, err
+// 	}
 
-	return networkStats, nil
-}
+// 	return networkStats, nil
+// }
 
-// QueryNetworkStats1D returns 1 day network statistics.
-func (db *Database) QueryNetworkStats1D(limit int) (stats []schema.StatsNetwork1D, err error) {
-	err = db.Model(&stats).
-		Order("id DESC").
-		Limit(limit).
-		Select()
+// // QueryNetworkStats1D returns 1 day network statistics.
+// func (db *Database) QueryNetworkStats1D(limit int) (stats []schema.StatsNetwork1D, err error) {
+// 	err = db.Model(&stats).
+// 		Order("id DESC").
+// 		Limit(limit).
+// 		Select()
 
-	if err == pg.ErrNoRows {
-		return []schema.StatsNetwork1D{}, nil
-	}
+// 	if err == pg.ErrNoRows {
+// 		return []schema.StatsNetwork1D{}, nil
+// 	}
 
-	if err != nil {
-		return []schema.StatsNetwork1D{}, err
-	}
+// 	if err != nil {
+// 		return []schema.StatsNetwork1D{}, err
+// 	}
 
-	return stats, nil
-}
+// 	return stats, nil
+// }
 
 // QueryBondedRateIn1D return bonded rate in network from 1 day network stats table.
 func (db *Database) QueryBondedRateIn1D() ([]schema.StatsNetwork1D, error) {
@@ -730,69 +716,69 @@ func (db *Database) QueryBondedRateIn1D() ([]schema.StatsNetwork1D, error) {
 // Count
 // --------------------
 
-// CountProposedBlocks counts how many proposed blocks made by a proposer.
-func (db *Database) CountProposedBlocks(proposer string) (int, error) {
-	var block schema.Block
-	count, err := db.Model(&block).
-		Where("proposer = ?", proposer).
-		Count()
+// CountProposedBlocksByProposer counts how many proposed blocks made by a proposer.
+// func (db *Database) CountProposedBlocksByProposer(proposer string) (int, error) {
+// 	var block schema.Block
+// 	count, err := db.Model(&block).
+// 		Where("proposer = ?", proposer).
+// 		Count()
 
-	if err != nil {
-		return -1, err
-	}
+// 	if err != nil {
+// 		return -1, err
+// 	}
 
-	return count, nil
-}
+// 	return count, nil
+// }
 
-// CountValidatorNumByStatus counts a number of validators by their bonding status.
-func (db *Database) CountValidatorNumByStatus(status int) (int, error) {
-	var val schema.Validator
-	num, err := db.Model(&val).
-		Where("status = ?", status).
-		Count()
+// CountValidatorsByStatus counts a number of validators by their bonding status.
+// func (db *Database) CountValidatorsByStatus(status int) (int, error) {
+// 	var val schema.Validator
+// 	num, err := db.Model(&val).
+// 		Where("status = ?", status).
+// 		Count()
 
-	if err != nil {
-		return -1, err
-	}
+// 	if err != nil {
+// 		return -1, err
+// 	}
 
-	return num, nil
-}
+// 	return num, nil
+// }
 
-// CountValidatorPowerEvents counts validator's power event history transactions.
-func (db *Database) CountValidatorPowerEvents(proposer string) (int, error) {
-	var peh schema.PowerEventHistory
-	num, err := db.Model(&peh).
-		Where("proposer = ?", proposer).
-		Count()
+// CountPowerEventHistoryTransactions counts validator's power event history transactions.
+// func (db *Database) CountPowerEventHistoryTransactions(proposer string) (int, error) {
+// 	var peh schema.PowerEventHistory
+// 	num, err := db.Model(&peh).
+// 		Where("proposer = ?", proposer).
+// 		Count()
 
-	if err != nil {
-		return -1, err
-	}
+// 	if err != nil {
+// 		return -1, err
+// 	}
 
-	return num, nil
-}
+// 	return num, nil
+// }
 
 // CountMarketStats1H counts network statistics.
-func (db *Database) CountMarketStats1H() (int, error) {
-	var market schema.StatsMarket1H
-	num, err := db.Model(&market).Count()
-	if err != nil {
-		return -1, err
-	}
+// func (db *Database) CountMarketStats1H() (int, error) {
+// 	var market schema.StatsMarket1H
+// 	num, err := db.Model(&market).Count()
+// 	if err != nil {
+// 		return -1, err
+// 	}
 
-	return num, nil
-}
+// 	return num, nil
+// }
 
 // CountNetworkStats1H counts network statistics.
-func (db *Database) CountNetworkStats1H() (int, error) {
-	var network schema.StatsNetwork1H
-	num, err := db.Model(&network).Count()
-	if err != nil {
-		return -1, err
-	}
+// func (db *Database) CountNetworkStats1H() (int, error) {
+// 	var network schema.StatsNetwork1H
+// 	num, err := db.Model(&network).Count()
+// 	if err != nil {
+// 		return -1, err
+// 	}
 
-	return num, nil
-}
+// 	return num, nil
+// }
 
 // --------------------
 // Exist

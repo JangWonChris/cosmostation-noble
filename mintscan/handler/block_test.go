@@ -31,7 +31,7 @@ func TestGetBlocksByProposerNew(t *testing.T) {
 	for _, b := range rb {
 		var txData model.TxData
 		if b.NumTxs > 0 {
-			txs, err := idb.QueryTransactionsByBlockHeight(b.Height)
+			txs, err := idb.QueryTransactionsInBlockHeight(b.Height)
 			if err != nil {
 				zap.L().Error("failed to query transactions in a block", zap.Error(err))
 				return

@@ -3,6 +3,7 @@ package types
 // "github.com/tendermint/tendermint/libs/bech32"
 
 // SetAppConfig creates a new config instance for the SDK configuration.
+//안써도 지우지 않는 이유는 다른 네트워크에서 이 함수를 사용하기 때문임
 func SetAppConfig() {
 	// 	config := sdk.GetConfig()
 	// 	SetBech32AddressPrefixes(config)

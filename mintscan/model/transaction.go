@@ -3,7 +3,7 @@ package model
 import (
 	"encoding/json"
 
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/schema"
+	"github.com/cosmostation/mintscan-backend-library/db/schema"
 )
 
 // TxData defines the structure for transction data list.
@@ -48,7 +48,7 @@ type Log struct {
 }
 
 // ParseTransaction receives single transaction from database and return it after unmarshal them.
-func ParseTransaction(tx schema.TransactionLegacy) (result *ResultTx, err error) {
+func ParseTransaction(tx schema.Transaction) (result *ResultTx, err error) {
 
 	// msgsBz, err := mintscancodec.AppCodec.UnmarshalJSON([]byte(tx.Messages), tx.GetBody())
 	jsonRaws := make([]json.RawMessage, 0)
@@ -120,7 +120,7 @@ func ParseTransaction(tx schema.TransactionLegacy) (result *ResultTx, err error)
 }
 
 // ParseTransactions receives result transactions from database and return them after unmarshal them.
-// func ParseTransactions(txs []schema.TransactionLegacy) (result []ResultTx, err error) {
+// func ParseTransactions(txs []schema.Transaction) (result []ResultTx, err error) {
 // 	for _, tx := range txs {
 // 		msgs := make([]Message, 0)
 // 		err = json.Unmarshal([]byte(tx.Messages), &msgs)

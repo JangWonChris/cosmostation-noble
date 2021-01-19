@@ -24,7 +24,7 @@ func GetSimpleCoinPrice(rw http.ResponseWriter, r *http.Request) {
 		coinID = model.Cosmos
 	}
 
-	result, err := s.client.GetCoinGeckoCoinPrice(coinID)
+	result, err := s.client.GetCoinGeckoSimpleCoinPrice(coinID)
 	if err != nil {
 		zap.L().Error("failed to query validator by proposer", zap.Error(err))
 		return

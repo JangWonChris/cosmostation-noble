@@ -7,7 +7,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/schema"
+	"github.com/cosmostation/mintscan-backend-library/db/schema"
 )
 
 // ResultTotalBalance defines the structure for total kava balance of a delegator.
@@ -55,7 +55,7 @@ type ResultDelegations struct {
 
 // ResultProposal defines the structure for proposal result response.
 type ResultProposal struct {
-	ProposalID           int64     `json:"proposal_id"`
+	ProposalID           uint64    `json:"proposal_id"`
 	TxHash               string    `json:"tx_hash"`
 	Proposer             string    `json:"proposer" sql:"default:null"`
 	Moniker              string    `json:"moniker" sql:"default:null"`
@@ -69,8 +69,8 @@ type ResultProposal struct {
 	NoWithVeto           string    `json:"no_with_veto"`
 	InitialDepositAmount string    `json:"initial_deposit_amount" sql:"default:null"`
 	InitialDepositDenom  string    `json:"initial_deposit_denom" sql:"default:null"`
-	TotalDepositAmount   string    `json:"total_deposit_amount"`
-	TotalDepositDenom    string    `json:"total_deposit_denom"`
+	TotalDepositAmount   []string  `json:"total_deposit_amount"`
+	TotalDepositDenom    []string  `json:"total_deposit_denom"`
 	SubmitTime           time.Time `json:"submit_time"`
 	DepositEndtime       time.Time `json:"deposit_end_time" sql:"deposit_end_time"`
 	VotingStartTime      time.Time `json:"voting_start_time"`
@@ -110,7 +110,6 @@ type ResultStatus struct {
 	TotalCirculatingTokens banktypes.QueryTotalSupplyResponse `json:"total_circulating_tokens"`
 	BondedTokens           float64                            `json:"bonded_tokens"`
 	NotBondedTokens        float64                            `json:"not_bonded_tokens"`
-	Maintenance            bool                               `json:"maintenance"`
 	Timestamp              time.Time                          `json:"timestamp"`
 }
 
@@ -247,7 +246,7 @@ type ResultDeposit struct {
 type ResultMarket struct {
 	Price             float64   `json:"price"`
 	Currency          string    `json:"currency"`
-	MarketCapRank     uint8     `json:"market_cap_rank"`
+	MarketCapRank     uint      `json:"market_cap_rank"`
 	PercentChange1H   float64   `json:"percent_change_1h"`
 	PercentChange24H  float64   `json:"percent_change_24h"`
 	PercentChange7D   float64   `json:"percent_change_7d"`

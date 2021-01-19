@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/config"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/schema"
+	"github.com/cosmostation/mintscan-backend-library/config"
+	"github.com/cosmostation/mintscan-backend-library/db/schema"
 
 	"github.com/go-pg/pg"
 )
@@ -16,7 +16,7 @@ var db *Database
 
 func TestMain(m *testing.M) {
 	config := config.ParseConfig()
-	db = Connect(config.DB)
+	db = Connect(&config.DB)
 
 	os.Exit(m.Run())
 }

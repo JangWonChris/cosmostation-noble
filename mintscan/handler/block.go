@@ -5,7 +5,7 @@ import (
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/schema"
+	"github.com/cosmostation/mintscan-backend-library/db/schema"
 
 	"github.com/gorilla/mux"
 
@@ -36,13 +36,13 @@ func GetBlocks(rw http.ResponseWriter, r *http.Request) {
 	result := make([]*model.ResultBlock, 0)
 
 	for _, block := range blocks {
-		validator, err := s.db.QueryValidatorByAny(block.Proposer)
+		validator, err := s.db.QueryValidatorByAnyAddr(block.Proposer)
 		if err != nil {
 			zap.S().Error("failed to query validator by proposer", zap.Error(err))
 			return
 		}
 
-		txs, err := s.db.QueryTransactionsByBlockHeight(block.Height)
+		txs, err := s.db.QueryTransactionsInBlockHeight(block.Height)
 		if err != nil {
 			zap.L().Error("failed to query txs", zap.Error(err))
 			errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -93,7 +93,7 @@ func GetBlocksByProposer(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Query validator information by any type of bech32 address, even moniker.
-	val, err := s.db.QueryValidatorByAny(proposer)
+	val, err := s.db.QueryValidatorByAnyAddr(proposer)
 	if err != nil {
 		zap.S().Errorf("failed to query validator information: %s", err)
 		return
@@ -116,7 +116,7 @@ func GetBlocksByProposer(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	totalNum, err := s.db.CountProposedBlocks(val.Proposer)
+	totalNum, err := s.db.CountProposedBlocksByProposer(val.Proposer)
 	if err != nil {
 		zap.L().Error("failed to count proposed blocks by proposer", zap.Error(err))
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -126,14 +126,14 @@ func GetBlocksByProposer(rw http.ResponseWriter, r *http.Request) {
 	result := make([]*model.ResultBlock, 0)
 
 	for _, b := range blocks {
-		val, err := s.db.QueryValidatorByAny(b.Proposer)
+		val, err := s.db.QueryValidatorByAnyAddr(b.Proposer)
 		if err != nil {
 			zap.L().Error("failed to query validator", zap.Error(err))
 			errors.ErrInternalServer(rw, http.StatusInternalServerError)
 			return
 		}
 
-		txs, err := s.db.QueryTransactionsByBlockHeight(b.Height)
+		txs, err := s.db.QueryTransactionsInBlockHeight(b.Height)
 		if err != nil {
 			zap.L().Error("failed to query transactions in a block", zap.Error(err))
 			errors.ErrInternalServer(rw, http.StatusInternalServerError)

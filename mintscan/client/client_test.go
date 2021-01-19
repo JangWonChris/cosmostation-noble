@@ -16,14 +16,14 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
-	mintscanconfig "github.com/cosmostation/cosmostation-cosmos/mintscan/config"
+	mintscanconfig "github.com/cosmostation/mintscan-backend-library/config"
 )
 
 var cli *Client
 
 func TestMain(m *testing.M) {
 	config := mintscanconfig.ParseConfig()
-	cli, _ = NewClient(config.Node, config.Market)
+	cli = NewClient(&config.Client)
 
 	os.Exit(m.Run())
 }
@@ -60,7 +60,7 @@ func TestGetAccountSpendableCoins(t *testing.T) {
 
 	b := banktypes.NewQueryBalanceRequest(sdkaddr, "umuon")
 	log.Println(b)
-	bankClient := banktypes.NewQueryClient(cli.grpcClient)
+	bankClient := cli.GRPC.GetBankQueryClient()
 	var header metadata.MD
 	blockHeight := header.Get(grpctypes.GRPCBlockHeightHeader)
 	bankRes, err := bankClient.Balance(
@@ -122,10 +122,10 @@ func TestParseTxResponse(t *testing.T) {
 	tx, ok := txI.(*sdktypestx.Tx)
 	require.Equal(t, false, !ok, "unsupported type")
 
-	msgsBz, err := cli.cliCtx.JSONMarshaler.MarshalJSON(tx.GetBody())
+	msgsBz, err := cli.CliCtx.JSONMarshaler.MarshalJSON(tx.GetBody())
 	require.NoError(t, err, "failed to unmarshal transaction messages")
 
-	feeBz, err := cli.cliCtx.JSONMarshaler.MarshalJSON(tx.GetAuthInfo().GetFee())
+	feeBz, err := cli.CliCtx.JSONMarshaler.MarshalJSON(tx.GetAuthInfo().GetFee())
 	require.NoError(t, err, "failed to unmarshal tx fee")
 
 	logsBz, err := json.Marshal(txResponse.Logs)
@@ -153,7 +153,7 @@ func TestRPCGetAccount(t *testing.T) {
 	require.NoError(t, err)
 
 	accGetter := authtypes.AccountRetriever{}
-	acc, height, err := accGetter.GetAccountWithHeight(cli.cliCtx, sdkaddr)
+	acc, height, err := accGetter.GetAccountWithHeight(cli.GetCLIContext(), sdkaddr)
 	require.NoError(t, err)
 
 	log.Println(acc)

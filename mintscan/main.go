@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/client"
-	cfg "github.com/cosmostation/cosmostation-cosmos/mintscan/config"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/db"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/handler"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/log"
+	cfg "github.com/cosmostation/mintscan-backend-library/config"
 
 	"go.uber.org/zap"
 
@@ -38,16 +38,12 @@ func main() {
 
 	// Create new client with node configruation.
 	// Client is used for requesting any type of network data from RPC full node and REST Server.
-	client, err := client.NewClient(config.Node, config.Market)
-	if err != nil {
-		zap.L().Error("failed to create new client", zap.Error(err))
-		return
-	}
+	client := client.NewClient(&config.Client)
 
 	// Create connection with PostgreSQL database and
 	// Ping database to verify connection is success.
-	db := db.Connect(config.DB)
-	err = db.Ping()
+	db := db.Connect(&config.DB)
+	err := db.Ping()
 	if err != nil {
 		zap.L().Error("failed to ping database", zap.Error(err))
 		return
@@ -143,7 +139,7 @@ func main() {
 	// Start the Mintscan API server.
 	go func() {
 		zap.S().Infof("Server is running on http://localhost:%s", config.Web.Port)
-		zap.S().Infof("Network Type: %s | Version: %s | Commit: %s", cfg.Common.NetworkType, Version, Commit)
+		zap.S().Infof("Version: %s | Commit: %s", Version, Commit)
 
 		err := sm.ListenAndServe()
 		if err != nil {
@@ -167,7 +163,7 @@ func TrapSignal(sm *http.Server) {
 		sig := <-c // Block until a signal is received.
 		switch sig {
 		case syscall.SIGHUP:
-			cfg.ReloadConfig()
+			// cfg.ReloadConfig()
 		default:
 			terminate(sm, sig)
 			break
