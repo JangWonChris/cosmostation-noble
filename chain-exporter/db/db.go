@@ -6,8 +6,10 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
+	//mbl
+	lconfig "github.com/cosmostation/mintscan-backend-library/config"
+	ldb "github.com/cosmostation/mintscan-backend-library/db"
+	"github.com/cosmostation/mintscan-backend-library/db/schema"
 
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
@@ -19,44 +21,14 @@ var (
 	columnLength = 99999
 )
 
-const (
-	// Define PostgreSQL database indexes to improve the speed of data retrieval operations on a database tables.
-	indexAccountAddress           = "CREATE INDEX accunt_account_address_idx ON account USING btree(account_address);"
-	indexBlockHeight              = "CREATE INDEX block_height_idx ON block USING btree(height);"
-	indexValidatorRank            = "CREATE INDEX validator_rank_idx ON validator USING btree(rank);"
-	indexValidatorStatus          = "CREATE INDEX validator_status_idx ON validator USING btree(status);"
-	indexPowerEventHistoryHeight  = "CREATE INDEX power_event_history_height_idx ON power_event_history USING btree(height);"
-	indexMissStartHeight          = "CREATE INDEX miss_start_height_idx ON miss USING btree(start_height);"
-	indexMissEndHeight            = "CREATE INDEX miss_end_height_idx ON miss USING btree(end_height);"
-	indexMissDetailHeight         = "CREATE INDEX miss_detail_height_idx ON miss_detail USING btree(height);"
-	indexTransactionLegacyHeight  = "CREATE INDEX transaction_height_idx ON transaction_legacy USING btree(height);"
-	indexTransactionLegacyChainID = "CREATE INDEX transaction_chain_id_idx ON transaction_legacy USING btree(chain_id);"
-	indexTransactionLegacyHash    = "CREATE INDEX transaction_tx_hash_idx ON transaction_legacy USING btree(tx_hash);"
-	// indexTransactionHeight         = "CREATE INDEX transaction_height_idx ON transaction_legacy USING btree(height);"
-	// indexTransactionHash           = "CREATE INDEX transaction_tx_hash_idx ON transaction USING btree(tx_hash);"
-	indexTransactionDetailHash     = "CREATE INDEX transaction_tx_hash_idx ON transaction_detail USING btree(tx_hash);"
-	indexTransactionDetailMsgType  = "CREATE INDEX transaction_msg_type_idx ON transaction_detail USING btree(msg_type);"
-	indexTransactionMessageAccount = "CREATE INDEX transaction_account_address_idx ON transaction_message USING btree(account_address);"
-)
-
 // Database implements a wrapper of golang ORM with focus on PostgreSQL.
 type Database struct {
-	*pg.DB
+	*ldb.Database
 }
 
 // Connect opens a database connections with the given database connection info from config.
-func Connect(config *config.Database) *Database {
-	db := pg.Connect(&pg.Options{
-		Addr:     config.Host + ":" + config.Port,
-		User:     config.User,
-		Password: config.Password,
-		Database: config.Table,
-	})
-
-	// Disable pluralization
-	orm.SetTableNameInflector(func(s string) string {
-		return s
-	})
+func Connect(config *lconfig.DatabaseConfig) *Database {
+	db := ldb.Connect(config)
 
 	return &Database{db}
 }
@@ -82,16 +54,10 @@ func (db *Database) CreateTables() error {
 		(*schema.Proposal)(nil),
 		(*schema.PowerEventHistory)(nil),
 		(*schema.Validator)(nil),
-		(*schema.TransactionLegacy)(nil),
-		(*schema.TransactionDetail)(nil),
+		(*schema.Transaction)(nil),
 		(*schema.TransactionAccount)(nil),
 		(*schema.Vote)(nil),
 		(*schema.Deposit)(nil)} {
-
-		// Disable pluralization
-		orm.SetTableNameInflector(func(s string) string {
-			return s
-		})
 
 		err := db.CreateTable(table, &orm.CreateTableOptions{
 			IfNotExists: true,
@@ -117,55 +83,55 @@ func (db *Database) CreateTables() error {
 // Create B-Tree indexes to reduce the cost of lookup queries
 func (db *Database) createIndexes() error {
 	db.RunInTransaction(func(tx *pg.Tx) error {
-		_, err := db.Model(schema.Account{}).Exec(indexAccountAddress)
+		_, err := db.Model(schema.Account{}).Exec(ldb.GetIndex(schema.IndexAccountAddress))
 		if err != nil {
 			return fmt.Errorf("failed to create account address index: %s", err)
 		}
-		_, err = db.Model(schema.Block{}).Exec(indexBlockHeight)
+		_, err = db.Model(schema.Block{}).Exec(ldb.GetIndex(schema.IndexBlockHeight))
 		if err != nil {
 			return fmt.Errorf("failed to create block height index: %s", err)
 		}
-		_, err = db.Model(schema.Validator{}).Exec(indexValidatorRank)
+		_, err = db.Model(schema.Validator{}).Exec(ldb.GetIndex(schema.IndexValidatorRank))
 		if err != nil {
 			return fmt.Errorf("failed to create validator rank index: %s", err)
 		}
-		_, err = db.Model(schema.Validator{}).Exec(indexValidatorStatus)
+		_, err = db.Model(schema.Validator{}).Exec(ldb.GetIndex(schema.IndexValidatorStatus))
 		if err != nil {
 			return fmt.Errorf("failed to create validator status index: %s", err)
 		}
-		_, err = db.Model(schema.PowerEventHistory{}).Exec(indexPowerEventHistoryHeight)
+		_, err = db.Model(schema.PowerEventHistory{}).Exec(ldb.GetIndex(schema.IndexPowerEventHistoryHeight))
 		if err != nil {
 			return fmt.Errorf("failed to create power event history height index: %s", err)
 		}
-		_, err = db.Model(schema.Miss{}).Exec(indexMissStartHeight)
+		_, err = db.Model(schema.Miss{}).Exec(ldb.GetIndex(schema.IndexMissStartHeight))
 		if err != nil {
 			return fmt.Errorf("failed to create miss start height index: %s", err)
 		}
-		_, err = db.Model(schema.Miss{}).Exec(indexMissEndHeight)
+		_, err = db.Model(schema.Miss{}).Exec(ldb.GetIndex(schema.IndexMissEndHeight))
 		if err != nil {
 			return fmt.Errorf("failed to create miss end height index: %s", err)
 		}
-		_, err = db.Model(schema.MissDetail{}).Exec(indexMissDetailHeight)
+		_, err = db.Model(schema.MissDetail{}).Exec(ldb.GetIndex(schema.IndexMissDetailHeight))
 		if err != nil {
 			return fmt.Errorf("failed to create miss detail height index: %s", err)
 		}
-		_, err = db.Model(schema.TransactionLegacy{}).Exec(indexTransactionLegacyHeight)
+		_, err = db.Model(schema.Transaction{}).Exec(ldb.GetIndex(schema.IndexTransactionHeight))
 		if err != nil {
 			return fmt.Errorf("failed to create tx height index: %s", err)
 		}
-		_, err = db.Model(schema.TransactionLegacy{}).Exec(indexTransactionLegacyChainID)
+		_, err = db.Model(schema.Transaction{}).Exec(ldb.GetIndex(schema.IndexTransactionChainID))
 		if err != nil {
 			return fmt.Errorf("failed to create tx chain id index: %s", err)
 		}
-		_, err = db.Model(schema.TransactionLegacy{}).Exec(indexTransactionLegacyHash)
+		_, err = db.Model(schema.Transaction{}).Exec(ldb.GetIndex(schema.IndexTransactionHash))
 		if err != nil {
 			return fmt.Errorf("failed to create tx hash index: %s", err)
 		}
-		_, err = db.Model(schema.TransactionDetail{}).Exec(indexTransactionDetailHash)
+		_, err = db.Model(schema.TransactionAccount{}).Exec(ldb.GetIndex(schema.IndexTransactionAccountAddress))
 		if err != nil {
 			return fmt.Errorf("failed to create tx hash index: %s", err)
 		}
-		_, err = db.Model(schema.TransactionDetail{}).Exec(indexTransactionDetailMsgType)
+		_, err = db.Model(schema.TransactionAccount{}).Exec(ldb.GetIndex(schema.IndexTransactionAccountHeight))
 		if err != nil {
 			return fmt.Errorf("failed to create tx hash index: %s", err)
 		}
@@ -219,7 +185,8 @@ func (db *Database) QueryValidators() (validators []schema.Validator, err error)
 }
 
 // QueryValidator returns particular validator information.
-func (db *Database) QueryValidator(address string) (validator schema.Validator, err error) {
+// core 에 QueryValidatorByAnyAddr() 함수로 이름 변경 됨
+func (db *Database) QueryValidator(address string) (validator *schema.Validator, err error) {
 	switch {
 	case strings.HasPrefix(address, sdk.GetConfig().GetBech32ConsensusPubPrefix()):
 		err = db.Model(&validator).
@@ -241,63 +208,63 @@ func (db *Database) QueryValidator(address string) (validator schema.Validator, 
 	}
 
 	if err == pg.ErrNoRows {
-		return schema.Validator{}, nil
+		return &schema.Validator{}, nil
 	}
 
 	if err != nil {
-		return schema.Validator{}, err
+		return &schema.Validator{}, err
 	}
 
 	return validator, nil
 }
 
 // QueryValidatorID returns the validator_id of a validator from power_event_history table.
-func (db *Database) QueryValidatorID(proposer string) (peh schema.PowerEventHistory, err error) {
-	err = db.Model(&peh).
-		Column("id_validator", "voting_power").
-		Where("proposer = ?", proposer).
-		Order("id DESC"). // Lastly input data
-		Limit(1).
-		Select()
+// func (db *Database) QueryValidatorID(proposer string) (peh *schema.PowerEventHistory, err error) {
+// 	err = db.Model(&peh).
+// 		Column("id_validator", "voting_power").
+// 		Where("proposer = ?", proposer).
+// 		Order("id DESC"). // Lastly input data
+// 		Limit(1).
+// 		Select()
 
-	if err == pg.ErrNoRows {
-		return schema.PowerEventHistory{}, nil
-	}
+// 	if err == pg.ErrNoRows {
+// 		return &schema.PowerEventHistory{}, nil
+// 	}
 
-	if err != nil {
-		return schema.PowerEventHistory{}, err
-	}
+// 	if err != nil {
+// 		return &schema.PowerEventHistory{}, err
+// 	}
 
-	return peh, nil
-}
+// 	return peh, nil
+// }
 
 // QueryAccount queries account information
-func (db *Database) QueryAccount(address string) (schema.Account, error) {
+func (db *Database) QueryAccount(address string) (*schema.Account, error) {
 	var account schema.Account
 	_ = db.Model(&account).
 		Where("account_address = ?", address).
 		Select()
 
-	return account, nil
+	return &account, nil
 }
 
 // QueryHighestValidatorID returns highest id number of a validator from power_event_history table
-func (db *Database) QueryHighestValidatorID() (int, error) {
-	var powerEventHistory schema.PowerEventHistory
-	err := db.Model(&powerEventHistory).
-		Column("id_validator").
-		Order("id_validator DESC").
-		Limit(1).
-		Select()
-	if err != nil {
-		return 0, err
-	}
-	return powerEventHistory.IDValidator, nil
-}
+// func (db *Database) QueryHighestValidatorID() (int, error) {
+// 	var powerEventHistory *schema.PowerEventHistory
+// 	err := db.Model(&powerEventHistory).
+// 		Column("id_validator").
+// 		Order("id_validator DESC").
+// 		Limit(1).
+// 		Select()
+// 	if err != nil {
+// 		return 0, err
+// 	}
+// 	return powerEventHistory.IDValidator, nil
+// }
 
 // QueryAccountMobile queries account information
-func (db *Database) QueryAccountMobile(address string) (schema.AccountMobile, error) {
-	var account schema.AccountMobile
+func (db *Database) QueryAccountMobile(address string) (*schema.AccountMobile, error) {
+	var account *schema.AccountMobile
 	_ = db.Model(&account).
 		Where("address = ?", address).
 		Select()
@@ -306,108 +273,108 @@ func (db *Database) QueryAccountMobile(address string) (schema.AccountMobile, er
 }
 
 // QueryAlarmTokens queries user's alarm tokens
-func (db *Database) QueryAlarmTokens(address string) ([]string, error) {
-	var accounts []schema.AccountMobile
-	_ = db.Model(&accounts).
-		Column("alarm_token").
-		Where("address = ?", address).
-		Select()
+// func (db *Database) QueryAlarmTokens(address string) ([]string, error) {
+// 	var accounts []schema.AccountMobile
+// 	_ = db.Model(&accounts).
+// 		Column("alarm_token").
+// 		Where("address = ?", address).
+// 		Select()
 
-	var result []string
-	if len(accounts) > 0 {
-		for _, account := range accounts {
-			result = append(result, account.AlarmToken)
-		}
-	}
+// 	var result []string
+// 	if len(accounts) > 0 {
+// 		for _, account := range accounts {
+// 			result = append(result, account.AlarmToken)
+// 		}
+// 	}
 
-	return result, nil
-}
+// 	return result, nil
+// }
 
 // QueryHighestRankValidatorByStatus queries highest rank of a validator by status
-func (db *Database) QueryHighestRankValidatorByStatus(status int) int {
-	var val schema.Validator
-	_ = db.Model(&val).
-		Where("status = ?", status).
-		Order("rank DESC").
-		Limit(1).
-		Select()
+// func (db *Database) QueryHighestRankValidatorByStatus(status int) int {
+// 	var val schema.Validator
+// 	_ = db.Model(&val).
+// 		Where("status = ?", status).
+// 		Order("rank DESC").
+// 		Limit(1).
+// 		Select()
 
-	return val.Rank
-}
+// 	return val.Rank
+// }
 
 // QueryMissingPreviousBlock queries if a validator has missed previous block.
-func (db *Database) QueryMissingPreviousBlock(consAddrHex string, prevHeight int64) schema.Miss {
-	var prevMiss schema.Miss
-	_ = db.Model(&prevMiss).
-		Where("end_height = ? AND address = ?", prevHeight, consAddrHex).
-		Order("end_height DESC").
-		Select()
+// func (db *Database) QueryMissingPreviousBlock(consAddrHex string, prevHeight int64) *schema.Miss {
+// 	var prevMiss schema.Miss
+// 	_ = db.Model(&prevMiss).
+// 		Where("end_height = ? AND address = ?", prevHeight, consAddrHex).
+// 		Order("end_height DESC").
+// 		Select()
 
-	return prevMiss
-}
+// 	return &prevMiss
+// }
 
 // --------------------
 // Exists
 // --------------------
 
 // ExistAccount queries to find if the account exists in database.
-func (db *Database) ExistAccount(address string) (exist bool, err error) {
-	exist, err = db.Model(&schema.Account{}).
-		Where("account_address = ?", address).
-		Exists()
+// func (db *Database) ExistAccount(address string) (exist bool, err error) {
+// 	exist, err = db.Model(&schema.Account{}).
+// 		Where("account_address = ?", address).
+// 		Exists()
 
-	if err != nil {
-		return false, err
-	}
+// 	if err != nil {
+// 		return false, err
+// 	}
 
-	return exist, nil
-}
+// 	return exist, nil
+// }
 
 // ExistProposal queries to find if the proposal id exists in database.
-func (db *Database) ExistProposal(proposalID uint64) (exist bool, err error) {
-	exist, err = db.Model(&schema.Proposal{}).
-		Where("id = ?", proposalID).
-		Exists()
+// func (db *Database) ExistProposal(proposalID uint64) (exist bool, err error) {
+// 	exist, err = db.Model(&schema.Proposal{}).
+// 		Where("id = ?", proposalID).
+// 		Exists()
 
-	if err != nil {
-		return false, err
-	}
+// 	if err != nil {
+// 		return false, err
+// 	}
 
-	return exist, nil
-}
+// 	return exist, nil
+// }
 
 // ExistVote checks to see if a vote exists in database.
-func (db *Database) ExistVote(proposalID uint64, voter string) (exist bool, err error) {
-	exist, err = db.Model(&schema.Vote{}).
-		Where("proposal_id = ? AND voter = ?", proposalID, voter).
-		Exists()
+// func (db *Database) ExistVote(proposalID uint64, voter string) (exist bool, err error) {
+// 	exist, err = db.Model(&schema.Vote{}).
+// 		Where("proposal_id = ? AND voter = ?", proposalID, voter).
+// 		Exists()
 
-	if err != nil {
-		return false, err
-	}
+// 	if err != nil {
+// 		return false, err
+// 	}
 
-	return exist, nil
-}
+// 	return exist, nil
+// }
 
 // ExistValidator checks to see if a validator exists
-func (db *Database) ExistValidator(valAddr string) (bool, error) {
-	exist, err := db.Model(&schema.Validator{}).
-		Where("operator_address = ?", valAddr).
-		Exists()
+// func (db *Database) ExistValidator(valAddr string) (bool, error) {
+// 	exist, err := db.Model(&schema.Validator{}).
+// 		Where("operator_address = ?", valAddr).
+// 		Exists()
 
-	if err != nil {
-		return false, err
-	}
+// 	if err != nil {
+// 		return false, err
+// 	}
 
-	return exist, nil
-}
+// 	return exist, nil
+// }
 
 // --------------------
 // Insert or Update
 // --------------------
 
 // InsertOrUpdateAccounts inserts if not exist already or update accounts.
-func (db *Database) InsertOrUpdateAccounts(accounts []schema.Account) error {
+func (db *Database) InsertOrUpdateAccounts(accounts []schema.AccountCoin) error {
 	for _, acc := range accounts {
 		ok, _ := db.ExistAccount(acc.AccountAddress)
 		if !ok {
@@ -416,17 +383,17 @@ func (db *Database) InsertOrUpdateAccounts(accounts []schema.Account) error {
 				return err
 			}
 		} else {
-			_, err := db.Model(&schema.Account{}).
-				Set("account_number = ?", acc.AccountNumber).
-				Set("coins_total = ?", acc.CoinsTotal).
-				Set("coins_spendable = ?", acc.CoinsSpendable).
-				Set("coins_delegated = ?", acc.CoinsDelegated).
-				Set("coins_undelegated = ?", acc.CoinsUndelegated).
-				Set("coins_rewards = ?", acc.CoinsRewards).
-				Set("coins_commission = ?", acc.CoinsCommission).
-				Set("coins_vesting = ?", acc.CoinsVesting).
-				Set("coins_vested = ?", acc.CoinsVested).
-				Set("coins_failed_vested = ?", acc.CoinsFailedVested).
+			_, err := db.Model(&schema.AccountCoin{}).
+				Set("denom = ?", acc.Denom).
+				Set("coins_total = ?", acc.Total).
+				Set("coins_spendable = ?", acc.Available).
+				Set("coins_delegated = ?", acc.Delegated).
+				Set("coins_undelegated = ?", acc.Undelegated).
+				Set("coins_rewards = ?", acc.Rewards).
+				Set("coins_commission = ?", acc.Commission).
+				Set("coins_vesting = ?", acc.Vesting).
+				Set("coins_vested = ?", acc.Vested).
+				Set("coins_failed_vested = ?", acc.FailedVested).
 				Set("last_tx = ?", acc.LastTx).
 				Set("last_tx_time = ?", acc.LastTxTime).
 				Where("account_address = ?", acc.AccountAddress).
@@ -442,82 +409,82 @@ func (db *Database) InsertOrUpdateAccounts(accounts []schema.Account) error {
 }
 
 // InsertOrUpdateProposals inserts if not exist already or updates proposals.
-func (db *Database) InsertOrUpdateProposals(proposals []schema.Proposal) error {
-	for _, p := range proposals {
-		ok, _ := db.ExistProposal(p.ID)
-		if !ok {
-			err := db.Insert(&p)
-			if err != nil {
-				return err
-			}
-		} else {
-			_, err := db.Model(&schema.Proposal{}).
-				Set("title = ?", p.Title).
-				Set("description = ?", p.Description).
-				Set("proposal_type = ?", p.ProposalType).
-				Set("proposal_status = ?", p.ProposalStatus).
-				Set("yes = ?", p.Yes).
-				Set("abstain = ?", p.Abstain).
-				Set("no = ?", p.No).
-				Set("no_with_veto = ?", p.NoWithVeto).
-				Set("deposit_end_time = ?", p.DepositEndtime).
-				Set("total_deposit_amount = ?", p.TotalDepositAmount).
-				Set("total_deposit_denom = ?", p.TotalDepositDenom).
-				Set("submit_time = ?", p.SubmitTime).
-				Set("voting_start_time = ?", p.VotingStartTime).
-				Set("voting_end_time = ?", p.VotingEndTime).
-				Where("id = ?", p.ID).
-				Update()
+// func (db *Database) InsertOrUpdateProposals(proposals []schema.Proposal) error {
+// 	for _, p := range proposals {
+// 		ok, _ := db.ExistProposal(p.ID)
+// 		if !ok {
+// 			err := db.Insert(&p)
+// 			if err != nil {
+// 				return err
+// 			}
+// 		} else {
+// 			_, err := db.Model(&schema.Proposal{}).
+// 				Set("title = ?", p.Title).
+// 				Set("description = ?", p.Description).
+// 				Set("proposal_type = ?", p.ProposalType).
+// 				Set("proposal_status = ?", p.ProposalStatus).
+// 				Set("yes = ?", p.Yes).
+// 				Set("abstain = ?", p.Abstain).
+// 				Set("no = ?", p.No).
+// 				Set("no_with_veto = ?", p.NoWithVeto).
+// 				Set("deposit_end_time = ?", p.DepositEndtime).
+// 				Set("total_deposit_amount = ?", p.TotalDepositAmount).
+// 				Set("total_deposit_denom = ?", p.TotalDepositDenom).
+// 				Set("submit_time = ?", p.SubmitTime).
+// 				Set("voting_start_time = ?", p.VotingStartTime).
+// 				Set("voting_end_time = ?", p.VotingEndTime).
+// 				Where("id = ?", p.ID).
+// 				Update()
 
-			if err != nil {
-				return err
-			}
-		}
-	}
+// 			if err != nil {
+// 				return err
+// 			}
+// 		}
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 // InsertOrUpdateValidators inserts validators or updates validators information.
-func (db *Database) InsertOrUpdateValidators(vals []schema.Validator) error {
-	for _, val := range vals {
-		ok, _ := db.ExistValidator(val.OperatorAddress)
-		if !ok {
-			err := db.Insert(&val)
-			if err != nil {
-				return err
-			}
-		} else {
-			_, err := db.Model(&schema.Validator{}).
-				Set("rank = ?", val.Rank).
-				Set("consensus_pubkey = ?", val.ConsensusPubkey).
-				Set("proposer = ?", val.Proposer).
-				Set("jailed = ?", val.Jailed).
-				Set("status = ?", val.Status).
-				Set("tokens = ?", val.Tokens).
-				Set("delegator_shares = ?", val.DelegatorShares).
-				Set("moniker = ?", val.Moniker).
-				Set("identity = ?", val.Identity).
-				Set("website = ?", val.Website).
-				Set("details = ?", val.Details).
-				Set("unbonding_height = ?", val.UnbondingHeight).
-				Set("unbonding_time = ?", val.UnbondingTime).
-				Set("commission_rate = ?", val.CommissionRate).
-				Set("commission_max_rate = ?", val.CommissionMaxRate).
-				Set("commission_change_rate = ?", val.CommissionChangeRate).
-				Set("update_time = ?", val.UpdateTime).
-				Set("min_self_delegation = ?", val.MinSelfDelegation).
-				Where("operator_address = ?", val.OperatorAddress).
-				Update()
+// func (db *Database) InsertOrUpdateValidators(vals []schema.Validator) error {
+// 	for _, val := range vals {
+// 		ok, _ := db.ExistValidator(val.OperatorAddress)
+// 		if !ok {
+// 			err := db.Insert(&val)
+// 			if err != nil {
+// 				return err
+// 			}
+// 		} else {
+// 			_, err := db.Model(&schema.Validator{}).
+// 				Set("rank = ?", val.Rank).
+// 				Set("consensus_pubkey = ?", val.ConsensusPubkey).
+// 				Set("proposer = ?", val.Proposer).
+// 				Set("jailed = ?", val.Jailed).
+// 				Set("status = ?", val.Status).
+// 				Set("tokens = ?", val.Tokens).
+// 				Set("delegator_shares = ?", val.DelegatorShares).
+// 				Set("moniker = ?", val.Moniker).
+// 				Set("identity = ?", val.Identity).
+// 				Set("website = ?", val.Website).
+// 				Set("details = ?", val.Details).
+// 				Set("unbonding_height = ?", val.UnbondingHeight).
+// 				Set("unbonding_time = ?", val.UnbondingTime).
+// 				Set("commission_rate = ?", val.CommissionRate).
+// 				Set("commission_max_rate = ?", val.CommissionMaxRate).
+// 				Set("commission_change_rate = ?", val.CommissionChangeRate).
+// 				Set("update_time = ?", val.UpdateTime).
+// 				Set("min_self_delegation = ?", val.MinSelfDelegation).
+// 				Where("operator_address = ?", val.OperatorAddress).
+// 				Update()
 
-			if err != nil {
-				return err
-			}
-		}
-	}
+// 			if err != nil {
+// 				return err
+// 			}
+// 		}
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 // InsertExportedData saves exported blockchain data
 // if function returns an error transaction is rollbacked, otherwise transaction is committed.
@@ -531,7 +498,7 @@ func (db *Database) InsertExportedData(e *schema.ExportData) error {
 		}
 
 		if len(e.ResultAccounts) > 0 {
-			err := db.InsertOrUpdateAccounts(e.ResultAccounts)
+			err := db.InsertOrUpdateAccounts(e.ResultAccountCoin)
 			if err != nil {
 				return fmt.Errorf("failed to insert result accounts: %s", err)
 			}
@@ -579,8 +546,8 @@ func (db *Database) InsertExportedData(e *schema.ExportData) error {
 			}
 		}
 
-		if len(e.ResultTxsMessages) > 0 {
-			err := tx.Insert(&e.ResultTxsMessages)
+		if len(e.ResultTxsAccount) > 0 {
+			err := tx.Insert(&e.ResultTxsAccount)
 			if err != nil {
 				return fmt.Errorf("failed to insert result txs message: %s", err)
 			}
@@ -673,23 +640,23 @@ func (db *Database) InsertExportedData(e *schema.ExportData) error {
 }
 
 // UpdateValidatorsKeyBaseURL updates the given validators' keybase url information
-func (db *Database) UpdateValidatorsKeyBaseURL(vals []schema.Validator) (bool, error) {
-	for _, val := range vals {
-		_, err := db.Model(&schema.Validator{}).
-			Set("keybase_url = ?", val.KeybaseURL).
-			Where("id = ?", val.ID).
-			Update()
+// func (db *Database) UpdateValidatorsKeyBaseURL(vals []schema.Validator) (bool, error) {
+// 	for _, val := range vals {
+// 		_, err := db.Model(&schema.Validator{}).
+// 			Set("keybase_url = ?", val.KeybaseURL).
+// 			Where("id = ?", val.ID).
+// 			Update()
 
-		if err != nil {
-			return false, err
-		}
-	}
+// 		if err != nil {
+// 			return false, err
+// 		}
+// 	}
 
-	return true, nil
-}
+// 	return true, nil
+// }
 
 // InsertGenesisAccount insert the given genesis accounts using Copy command, it will faster than insert
-func (db *Database) InsertGenesisAccount(acc []schema.Account) error {
+func (db *Database) InsertGenesisAccount(acc []schema.AccountCoin) error {
 	err := db.RunInTransaction(func(tx *pg.Tx) error {
 		if len(acc) > 0 {
 			err := tx.Insert(&acc)

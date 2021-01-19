@@ -4,8 +4,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
+	//mbl
+	"github.com/cosmostation/mintscan-backend-library/config"
+	"github.com/cosmostation/mintscan-backend-library/db/schema"
 
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
@@ -46,7 +47,7 @@ func TestUpdate_Validator(t *testing.T) {
 	err := db.Ping()
 	require.NoError(t, err)
 
-	val := schema.Validator{
+	val := &schema.Validator{
 		Address: "kava1ulzzxuvghlv04sglkzyxv94rvl7c2llhs098ju",
 		Rank:    5,
 	}
@@ -77,7 +78,7 @@ func TestQuery_Account(t *testing.T) {
 	err := db.Ping()
 	require.NoError(t, err)
 
-	acct := &schema.Account{AccountAddress: "kava1m36xddywe0yneykv34az8smzhtxy3nyc6v9jdj"}
+	acct := &schema.AccountCoin{AccountAddress: "kava1m36xddywe0yneykv34az8smzhtxy3nyc6v9jdj"}
 
 	account, err := db.QueryAccount(acct.AccountAddress)
 	require.NoError(t, err)
@@ -85,22 +86,22 @@ func TestQuery_Account(t *testing.T) {
 	require.NotNil(t, account)
 }
 
-func TestCreate_Indexes(t *testing.T) {
+func TestCreateIndexes(t *testing.T) {
 	err := db.Ping()
 	require.NoError(t, err)
 
 	testIndex := "CREATE INDEX account_account_address_idx ON account USING btree(account_address);"
 
-	_, err = db.Model(schema.Block{}).Exec(testIndex)
+	_, err = db.Model(&schema.Block{}).Exec(testIndex)
 	require.NoError(t, err)
 }
 
-func TestCreate_Tables(t *testing.T) {
+func TestCreateTables(t *testing.T) {
 	err := db.Ping()
 	require.NoError(t, err)
 
 	tables := []interface{}{
-		(*schema.Account)(nil),
+		(*schema.AccountCoin)(nil),
 	}
 
 	for _, table := range tables {

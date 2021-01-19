@@ -3,9 +3,14 @@ package notification
 import (
 	"time"
 
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/db"
+	// "github.com/cosmostation/cosmostation-cosmos/chain-exporter/db"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
+
+	// mbl
+	"github.com/cosmostation/mintscan-backend-library/config"
+	"github.com/cosmostation/mintscan-backend-library/db"
+
+	// "github.com/cosmostation/mintscan-backend-library/types"
 	"go.uber.org/zap"
 
 	resty "github.com/go-resty/resty/v2"
@@ -23,7 +28,7 @@ func NewNotification() *Notification {
 	config := config.ParseConfig()
 
 	client := resty.New().
-		SetHostURL(config.Alarm.PushServerEndpoint).
+		SetHostURL(config.Alarm.PushServer).
 		SetTimeout(time.Duration(5 * time.Second))
 
 	database := db.Connect(&config.DB)
@@ -75,17 +80,17 @@ func (nof *Notification) Push(np types.NotificationPayload, tokens []string, tar
 
 // VerifyAccountStatus verifes account status before sending notification to its local server.
 func (nof *Notification) VerifyAccountStatus(address string) bool {
-	acct, _ := nof.db.QueryAccountMobile(address)
+	// acct, _ := db.QueryAccountMobile(address)
 
-	// Check account's alarm token
-	if acct.AlarmToken == "" {
-		return false
-	}
+	// // Check account's alarm token
+	// if acct.AlarmToken == "" {
+	// 	return false
+	// }
 
-	// Check user's alarm status
-	if !acct.AlarmStatus {
-		return false
-	}
+	// // Check user's alarm status
+	// if !acct.AlarmStatus {
+	// 	return false
+	// }
 
 	return true
 }

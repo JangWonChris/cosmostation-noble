@@ -1,9 +1,8 @@
 package exporter
 
 import (
+	"context"
 	"fmt"
-
-	// gaia
 
 	// cosmos-sdk
 	sdkclient "github.com/cosmos/cosmos-sdk/client"
@@ -13,33 +12,31 @@ import (
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
-	// internal
-
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
+	// mbl
+	"github.com/cosmostation/mintscan-backend-library/db/schema"
+	"github.com/cosmostation/mintscan-backend-library/types"
 
 	// tendermint
-
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	"go.uber.org/zap"
 )
 
 // getAccounts
-func (ex *Exporter) getAccounts(block *tmctypes.ResultBlock, txResps []*sdk.TxResponse) (accounts []schema.Account, err error) {
+func (ex *Exporter) getAccounts(block *tmctypes.ResultBlock, txResps []*sdk.TxResponse) (accounts []schema.AccountCoin, err error) {
 	if len(txResps) <= 0 {
-		return []schema.Account{}, nil
+		return []schema.AccountCoin{}, nil
 	}
 
 	for _, txResp := range txResps {
 		// Other than code equals to 0, it is failed transaction.
 		if txResp.Code != 0 {
-			return []schema.Account{}, nil
+			return []schema.AccountCoin{}, nil
 		}
 
 		// stdTx, ok := tx.Tx.(auth.StdTx)
 		// if !ok {
-		// 	return []schema.Account{}, fmt.Errorf("unsupported tx type: %s", tx.Tx)
+		// 	return []schema.AccountCoin{}, fmt.Errorf("unsupported tx type: %s", tx.Tx)
 		// }
 
 		msgs := txResp.GetTx().GetMsgs()
@@ -52,14 +49,14 @@ func (ex *Exporter) getAccounts(block *tmctypes.ResultBlock, txResps []*sdk.TxRe
 
 				// msgSend := m.(bank.MsgSend)
 
-				fromAcct, err := ex.client.GetAccount(m.FromAddress)
+				fromAcct, err := ex.client.CliCtx.GetAccount(m.FromAddress)
 				if err != nil {
-					return []schema.Account{}, err
+					return []schema.AccountCoin{}, err
 				}
 
-				toAcct, err := ex.client.GetAccount(m.ToAddress)
+				toAcct, err := ex.client.CliCtx.GetAccount(m.ToAddress)
 				if err != nil {
-					return []schema.Account{}, err
+					return []schema.AccountCoin{}, err
 				}
 
 				exportedAccts := []sdkclient.Account{
@@ -68,7 +65,7 @@ func (ex *Exporter) getAccounts(block *tmctypes.ResultBlock, txResps []*sdk.TxRe
 
 				accounts, err = ex.getAccountAllAssets(exportedAccts, txResp.TxHash, txResp.Timestamp)
 				if err != nil {
-					return []schema.Account{}, err
+					return []schema.AccountCoin{}, err
 				}
 
 			case *banktypes.MsgMultiSend:
@@ -79,18 +76,18 @@ func (ex *Exporter) getAccounts(block *tmctypes.ResultBlock, txResps []*sdk.TxRe
 				var exportedAccts []sdkclient.Account
 
 				for _, input := range m.Inputs {
-					inputAcct, err := ex.client.GetAccount(input.Address)
+					inputAcct, err := ex.client.CliCtx.GetAccount(input.Address)
 					if err != nil {
-						return []schema.Account{}, err
+						return []schema.AccountCoin{}, err
 					}
 
 					exportedAccts = append(exportedAccts, inputAcct)
 				}
 
 				for _, output := range m.Outputs {
-					outputAcct, err := ex.client.GetAccount(output.Address)
+					outputAcct, err := ex.client.CliCtx.GetAccount(output.Address)
 					if err != nil {
-						return []schema.Account{}, err
+						return []schema.AccountCoin{}, err
 					}
 
 					exportedAccts = append(exportedAccts, outputAcct)
@@ -98,7 +95,7 @@ func (ex *Exporter) getAccounts(block *tmctypes.ResultBlock, txResps []*sdk.TxRe
 
 				accounts, err = ex.getAccountAllAssets(exportedAccts, txResp.TxHash, txResp.Timestamp)
 				if err != nil {
-					return []schema.Account{}, err
+					return []schema.AccountCoin{}, err
 				}
 
 			case *stakingtypes.MsgDelegate:
@@ -106,19 +103,19 @@ func (ex *Exporter) getAccounts(block *tmctypes.ResultBlock, txResps []*sdk.TxRe
 
 				// msgDelegate := m.(staking.MsgDelegate)
 
-				delegatorAddr, err := ex.client.GetAccount(m.DelegatorAddress)
+				delegatorAddr, err := ex.client.CliCtx.GetAccount(m.DelegatorAddress)
 				if err != nil {
-					return []schema.Account{}, err
+					return []schema.AccountCoin{}, err
 				}
 
 				valAccAddr, err := types.ConvertAccAddrFromValAddr(m.DelegatorAddress)
 				if err != nil {
-					return []schema.Account{}, err
+					return []schema.AccountCoin{}, err
 				}
 
-				valAddr, err := ex.client.GetAccount(valAccAddr)
+				valAddr, err := ex.client.CliCtx.GetAccount(valAccAddr)
 				if err != nil {
-					return []schema.Account{}, err
+					return []schema.AccountCoin{}, err
 				}
 
 				exportedAccts := []sdkclient.Account{
@@ -127,7 +124,7 @@ func (ex *Exporter) getAccounts(block *tmctypes.ResultBlock, txResps []*sdk.TxRe
 
 				accounts, err = ex.getAccountAllAssets(exportedAccts, txResp.TxHash, txResp.Timestamp)
 				if err != nil {
-					return []schema.Account{}, err
+					return []schema.AccountCoin{}, err
 				}
 
 			case *stakingtypes.MsgUndelegate:
@@ -135,19 +132,19 @@ func (ex *Exporter) getAccounts(block *tmctypes.ResultBlock, txResps []*sdk.TxRe
 
 				// msgUndelegate := m.(staking.MsgUndelegate)
 
-				delegatorAddr, err := ex.client.GetAccount(m.DelegatorAddress)
+				delegatorAddr, err := ex.client.CliCtx.GetAccount(m.DelegatorAddress)
 				if err != nil {
-					return []schema.Account{}, err
+					return []schema.AccountCoin{}, err
 				}
 
 				valAccAddr, err := types.ConvertAccAddrFromValAddr(m.DelegatorAddress)
 				if err != nil {
-					return []schema.Account{}, err
+					return []schema.AccountCoin{}, err
 				}
 
-				valAddr, err := ex.client.GetAccount(valAccAddr)
+				valAddr, err := ex.client.CliCtx.GetAccount(valAccAddr)
 				if err != nil {
-					return []schema.Account{}, err
+					return []schema.AccountCoin{}, err
 				}
 
 				exportedAccts := []sdkclient.Account{
@@ -156,7 +153,7 @@ func (ex *Exporter) getAccounts(block *tmctypes.ResultBlock, txResps []*sdk.TxRe
 
 				accounts, err = ex.getAccountAllAssets(exportedAccts, txResp.TxHash, txResp.Timestamp)
 				if err != nil {
-					return []schema.Account{}, err
+					return []schema.AccountCoin{}, err
 				}
 
 			case *stakingtypes.MsgBeginRedelegate:
@@ -164,29 +161,29 @@ func (ex *Exporter) getAccounts(block *tmctypes.ResultBlock, txResps []*sdk.TxRe
 
 				// msgBeginRedelegate := m.(staking.MsgBeginRedelegate)
 
-				delegatorAddr, err := ex.client.GetAccount(m.DelegatorAddress)
+				delegatorAddr, err := ex.client.CliCtx.GetAccount(m.DelegatorAddress)
 				if err != nil {
-					return []schema.Account{}, err
+					return []schema.AccountCoin{}, err
 				}
 
 				valSrcAccAddr, err := types.ConvertAccAddrFromValAddr(m.ValidatorSrcAddress)
 				if err != nil {
-					return []schema.Account{}, err
+					return []schema.AccountCoin{}, err
 				}
 
 				valDstAccAddr, err := types.ConvertAccAddrFromValAddr(m.ValidatorDstAddress)
 				if err != nil {
-					return []schema.Account{}, err
+					return []schema.AccountCoin{}, err
 				}
 
-				srcAddr, err := ex.client.GetAccount(valSrcAccAddr)
+				srcAddr, err := ex.client.CliCtx.GetAccount(valSrcAccAddr)
 				if err != nil {
-					return []schema.Account{}, err
+					return []schema.AccountCoin{}, err
 				}
 
-				dstAddr, err := ex.client.GetAccount(valDstAccAddr)
+				dstAddr, err := ex.client.CliCtx.GetAccount(valDstAccAddr)
 				if err != nil {
-					return []schema.Account{}, err
+					return []schema.AccountCoin{}, err
 				}
 
 				exportedAccts := []sdkclient.Account{
@@ -195,7 +192,7 @@ func (ex *Exporter) getAccounts(block *tmctypes.ResultBlock, txResps []*sdk.TxRe
 
 				accounts, err = ex.getAccountAllAssets(exportedAccts, txResp.TxHash, txResp.Timestamp)
 				if err != nil {
-					return []schema.Account{}, err
+					return []schema.AccountCoin{}, err
 				}
 
 			default:
@@ -207,37 +204,37 @@ func (ex *Exporter) getAccounts(block *tmctypes.ResultBlock, txResps []*sdk.TxRe
 	return accounts, nil
 }
 
-func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHashStr, txTime string) (accounts []schema.Account, err error) {
-	chainID, err := ex.client.GetNetworkChainID()
+func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHashStr, txTime string) (accounts []schema.AccountCoin, err error) {
+	// chainID, err := ex.client.GetNetworkChainID()
 	if err != nil {
-		return []schema.Account{}, err
+		return []schema.AccountCoin{}, err
 	}
 
-	denom, err := ex.client.GetBondDenom()
+	denom, err := ex.client.GRPC.GetBondDenom(context.Background())
 	if err != nil {
-		return []schema.Account{}, err
+		return []schema.AccountCoin{}, err
 	}
 
-	latestBlockHeight, err := ex.client.GetLatestBlockHeight()
+	latestBlockHeight, err := ex.client.RPC.GetLatestBlockHeight()
 	if err != nil {
-		return []schema.Account{}, err
+		return []schema.AccountCoin{}, err
 	}
 
-	block, err := ex.client.GetBlock(latestBlockHeight)
+	block, err := ex.client.RPC.GetBlock(latestBlockHeight)
 	if err != nil {
-		return []schema.Account{}, err
+		return []schema.AccountCoin{}, err
 	}
 
 	for _, account := range exportedAccts {
 		switch acc := account.(type) {
 		case *authtypes.BaseAccount:
-			zap.S().Infof("Account type: %s | Account: %s", types.BaseAccount, account.GetAddress())
+			zap.S().Infof("Account type: %T | Account: %s", acc, account.GetAddress())
 
 			// acc := account.(*authtypes.BaseAccount)
 
 			spendable, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(acc.GetAddress().String())
 			if err != nil {
-				return []schema.Account{}, err
+				return []schema.AccountCoin{}, err
 			}
 
 			total := sdk.NewCoin(denom, sdk.NewInt(0))
@@ -249,35 +246,35 @@ func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHas
 				Add(rewards).
 				Add(commission)
 
-			acct := &schema.Account{
-				ChainID:           chainID,
-				AccountAddress:    acc.Address,
-				AccountNumber:     acc.AccountNumber,
-				AccountType:       types.BaseAccount,
-				CoinsTotal:        total.Amount.String(),
-				CoinsSpendable:    spendable.Amount.String(),
-				CoinsRewards:      rewards.Amount.String(),
-				CoinsCommission:   commission.Amount.String(),
-				CoinsDelegated:    delegated.Amount.String(),
-				CoinsUndelegated:  undelegated.Amount.String(),
-				CoinsVested:       "0",
-				CoinsVesting:      "0",
-				CoinsFailedVested: "0",
-				LastTx:            txHashStr,
-				LastTxTime:        txTime,
-				CreationTime:      block.Block.Time.String(),
+			acct := schema.AccountCoin{
+				// ChainID:           chainID,
+				AccountAddress: acc.Address,
+				// AccountNumber:     acc.AccountNumber,
+				// AccountType:       types.BaseAccount,
+				Total:        total.Amount.String(),
+				Available:    spendable.Amount.String(),
+				Rewards:      rewards.Amount.String(),
+				Commission:   commission.Amount.String(),
+				Delegated:    delegated.Amount.String(),
+				Undelegated:  undelegated.Amount.String(),
+				Vested:       "0",
+				Vesting:      "0",
+				FailedVested: "0",
+				LastTx:       txHashStr,
+				LastTxTime:   txTime,
+				// CreationTime:      block.Block.Time.String(),
 			}
 
-			accounts = append(accounts, *acct)
+			accounts = append(accounts, acct)
 
 		case *authtypes.ModuleAccount:
-			zap.S().Infof("Account type: %s | Account: %s", types.ModuleAccount, account.GetAddress().String())
+			zap.S().Infof("Account type: %T | Account: %s", acc, account.GetAddress())
 
 			// acc := account.(authtypes.ModuleAccountI)
 
 			spendable, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(acc.GetAddress().String())
 			if err != nil {
-				return []schema.Account{}, err
+				return []schema.AccountCoin{}, err
 			}
 
 			total := sdk.NewCoin(denom, sdk.NewInt(0))
@@ -289,35 +286,35 @@ func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHas
 				Add(rewards).
 				Add(commission)
 
-			acct := &schema.Account{
-				ChainID:           chainID,
-				AccountAddress:    acc.GetAddress().String(),
-				AccountNumber:     acc.GetAccountNumber(),
-				AccountType:       types.ModuleAccount,
-				CoinsTotal:        total.Amount.String(),
-				CoinsSpendable:    spendable.Amount.String(),
-				CoinsRewards:      rewards.Amount.String(),
-				CoinsCommission:   commission.Amount.String(),
-				CoinsDelegated:    delegated.Amount.String(),
-				CoinsUndelegated:  undelegated.Amount.String(),
-				CoinsVested:       "0",
-				CoinsVesting:      "0",
-				CoinsFailedVested: "0",
-				LastTx:            txHashStr,
-				LastTxTime:        txTime,
-				CreationTime:      block.Block.Time.String(),
+			acct := schema.AccountCoin{
+				// ChainID:           chainID,
+				AccountAddress: acc.GetAddress().String(),
+				// AccountNumber:     acc.GetAccountNumber(),
+				// AccountType:       types.ModuleAccount,
+				Total:        total.Amount.String(),
+				Available:    spendable.Amount.String(),
+				Rewards:      rewards.Amount.String(),
+				Commission:   commission.Amount.String(),
+				Delegated:    delegated.Amount.String(),
+				Undelegated:  undelegated.Amount.String(),
+				Vested:       "0",
+				Vesting:      "0",
+				FailedVested: "0",
+				LastTx:       txHashStr,
+				LastTxTime:   txTime,
+				// CreationTime: block.Block.Time.String(),
 			}
 
-			accounts = append(accounts, *acct)
+			accounts = append(accounts, acct)
 
 		case *authvestingtypes.PeriodicVestingAccount:
-			zap.S().Infof("Account type: %s | Account: %s", types.PeriodicVestingAccount, account.GetAddress().String())
+			zap.S().Infof("Account type: %T | Account: %s", acc, account.GetAddress())
 
 			// acc := account.(*authvestingtypes.PeriodicVestingAccount)
 
 			spendable, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(acc.GetAddress().String())
 			if err != nil {
-				return []schema.Account{}, err
+				return []schema.AccountCoin{}, err
 			}
 
 			vesting := sdk.NewCoin(denom, sdk.NewInt(0))
@@ -358,35 +355,35 @@ func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHas
 				Add(commission).
 				Add(vesting)
 
-			acct := &schema.Account{
-				ChainID:           chainID,
-				AccountAddress:    acc.Address,
-				AccountNumber:     acc.AccountNumber,
-				AccountType:       types.PeriodicVestingAccount,
-				CoinsTotal:        total.Amount.String(),
-				CoinsSpendable:    spendable.Amount.String(),
-				CoinsRewards:      rewards.Amount.String(),
-				CoinsCommission:   commission.Amount.String(),
-				CoinsDelegated:    delegated.Amount.String(),
-				CoinsUndelegated:  undelegated.Amount.String(),
-				CoinsVested:       "0",
-				CoinsVesting:      "0",
-				CoinsFailedVested: "0",
-				LastTx:            txHashStr,
-				LastTxTime:        txTime,
-				CreationTime:      block.Block.Time.String(),
+			acct := schema.AccountCoin{
+				// ChainID:           chainID,
+				AccountAddress: acc.Address,
+				// AccountNumber:     acc.AccountNumber,
+				// AccountType:       types.PeriodicVestingAccount,
+				Total:        total.Amount.String(),
+				Available:    spendable.Amount.String(),
+				Rewards:      rewards.Amount.String(),
+				Commission:   commission.Amount.String(),
+				Delegated:    delegated.Amount.String(),
+				Undelegated:  undelegated.Amount.String(),
+				Vested:       "0",
+				Vesting:      "0",
+				FailedVested: "0",
+				LastTx:       txHashStr,
+				LastTxTime:   txTime,
+				// CreationTime:      block.Block.Time.String(),
 			}
 
-			accounts = append(accounts, *acct)
+			accounts = append(accounts, acct)
 
 		case *authvestingtypes.DelayedVestingAccount:
-			zap.S().Infof("Account type: %s | Account: %s", types.DelayedVestingAccount, account.GetAddress().String())
+			zap.S().Infof("Account type: %T | Account: %s", acc, account.GetAddress())
 
 			// acc := account.(*authvestingtypes.DelayedVestingAccount)
 
 			spendable, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(acc.GetAddress().String())
 			if err != nil {
-				return []schema.Account{}, err
+				return []schema.AccountCoin{}, err
 			}
 
 			vesting := sdk.NewCoin(denom, sdk.NewInt(0))
@@ -427,29 +424,29 @@ func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHas
 				Add(commission).
 				Add(vesting)
 
-			acct := &schema.Account{
-				ChainID:           chainID,
-				AccountAddress:    acc.Address,
-				AccountNumber:     acc.AccountNumber,
-				AccountType:       types.DelayedVestingAccount,
-				CoinsTotal:        total.Amount.String(),
-				CoinsSpendable:    spendable.Amount.String(),
-				CoinsRewards:      rewards.Amount.String(),
-				CoinsCommission:   commission.Amount.String(),
-				CoinsDelegated:    delegated.Amount.String(),
-				CoinsUndelegated:  undelegated.Amount.String(),
-				CoinsVested:       "0",
-				CoinsVesting:      "0",
-				CoinsFailedVested: "0",
-				LastTx:            txHashStr,
-				LastTxTime:        txTime,
-				CreationTime:      block.Block.Time.String(),
+			acct := schema.AccountCoin{
+				// ChainID:           chainID,
+				AccountAddress: acc.Address,
+				// AccountNumber:     acc.AccountNumber,
+				// AccountType:       types.DelayedVestingAccount,
+				Total:        total.Amount.String(),
+				Available:    spendable.Amount.String(),
+				Rewards:      rewards.Amount.String(),
+				Commission:   commission.Amount.String(),
+				Delegated:    delegated.Amount.String(),
+				Undelegated:  undelegated.Amount.String(),
+				Vested:       "0",
+				Vesting:      "0",
+				FailedVested: "0",
+				LastTx:       txHashStr,
+				LastTxTime:   txTime,
+				// CreationTime: block.Block.Time.String(),
 			}
 
-			accounts = append(accounts, *acct)
+			accounts = append(accounts, acct)
 
 		default:
-			return []schema.Account{}, fmt.Errorf("unrecognized account type: %T", account)
+			return []schema.AccountCoin{}, fmt.Errorf("unrecognized account type: %T", account)
 		}
 	}
 

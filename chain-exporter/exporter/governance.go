@@ -3,8 +3,10 @@ package exporter
 import (
 	"strconv"
 
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
+	//mbl
+	"github.com/cosmostation/mintscan-backend-library/db/schema"
 
+	//cosmos-sdk
 	sdkTypes "github.com/cosmos/cosmos-sdk/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 
@@ -67,17 +69,17 @@ func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txResp []*sdkType
 					initialDepositDenom = m.InitialDeposit[0].Denom
 				}
 
-				p := schema.NewProposal(schema.Proposal{
+				p := schema.Proposal{
 					ID:                   proposalID,
 					TxHash:               tx.TxHash,
 					Proposer:             m.Proposer,
 					InitialDepositAmount: initialDepositAmount,
 					InitialDepositDenom:  initialDepositDenom,
-				})
+				}
 
-				proposals = append(proposals, *p)
+				proposals = append(proposals, p)
 
-				d := schema.NewDeposit(schema.Deposit{
+				d := schema.Deposit{
 					Height:     tx.Height,
 					ProposalID: proposalID,
 					Depositor:  m.Proposer,
@@ -87,9 +89,9 @@ func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txResp []*sdkType
 					GasWanted:  tx.GasWanted,
 					GasUsed:    tx.GasUsed,
 					Timestamp:  block.Block.Header.Time,
-				})
+				}
 
-				deposits = append(deposits, *d)
+				deposits = append(deposits, d)
 
 			case *govtypes.MsgDeposit:
 				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
@@ -104,7 +106,7 @@ func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txResp []*sdkType
 					denom = m.Amount[0].Denom
 				}
 
-				d := schema.NewDeposit(schema.Deposit{
+				d := schema.Deposit{
 					Height:     tx.Height,
 					ProposalID: m.ProposalId,
 					Depositor:  m.Depositor,
@@ -114,16 +116,16 @@ func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txResp []*sdkType
 					GasWanted:  tx.GasWanted,
 					GasUsed:    tx.GasUsed,
 					Timestamp:  block.Block.Header.Time,
-				})
+				}
 
-				deposits = append(deposits, *d)
+				deposits = append(deposits, d)
 
 			case *govtypes.MsgVote:
 				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
 
 				// msgVote := m.(gov.MsgVote)
 
-				v := schema.NewVote(schema.Vote{
+				v := schema.Vote{
 					Height:     tx.Height,
 					ProposalID: m.ProposalId,
 					Voter:      m.Voter,
@@ -132,9 +134,9 @@ func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txResp []*sdkType
 					GasWanted:  tx.GasWanted,
 					GasUsed:    tx.GasUsed,
 					Timestamp:  block.Block.Header.Time,
-				})
+				}
 
-				votes = append(votes, *v)
+				votes = append(votes, v)
 
 			default:
 				continue

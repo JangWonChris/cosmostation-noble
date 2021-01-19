@@ -1,13 +1,13 @@
 package client
 
-import (
-	"testing"
+// import (
+// 	"testing"
 
-	"github.com/stretchr/testify/require"
-)
+// 	"github.com/stretchr/testify/require"
+// )
 
-func TestGetProposals(t *testing.T) {
-	resp, err := cli.GetProposals()
-	require.NoError(t, err)
-	t.Log(resp)
-}
+// func TestGetProposals(t *testing.T) {
+// 	resp, err := cli.GetProposals()
+// 	require.NoError(t, err)
+// 	t.Log(resp)
+// }

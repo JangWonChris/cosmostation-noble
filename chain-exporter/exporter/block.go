@@ -4,15 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
-
+	"github.com/cosmostation/mintscan-backend-library/db/schema"
 	tmcTypes "github.com/tendermint/tendermint/rpc/core/types"
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
 // getBlock exports block information.
-func (ex *Exporter) getBlock(block *tmcTypes.ResultBlock) (schema.Block, error) {
-	b := schema.NewBlock(schema.Block{
+func (ex *Exporter) getBlock(block *tmcTypes.ResultBlock) (*schema.Block, error) {
+	b := schema.Block{
 		ChainID:       block.Block.Header.ChainID,
 		Height:        block.Block.Height,
 		Proposer:      block.Block.ProposerAddress.String(),
@@ -21,9 +20,9 @@ func (ex *Exporter) getBlock(block *tmcTypes.ResultBlock) (schema.Block, error) 
 		NumSignatures: int64(len(block.Block.LastCommit.Signatures)),
 		NumTxs:        int64(len(block.Block.Data.Txs)),
 		Timestamp:     block.Block.Time,
-	})
+	}
 
-	return *b, nil
+	return &b, nil
 }
 
 // getBlockJSONChunk decodes transactions in a block and return a format of database transaction.
@@ -38,7 +37,7 @@ func (ex *Exporter) getBlockJSONChunk(block *tmctypes.ResultBlock) (schema.RawBl
 	b.Height = block.Block.Height
 	b.BlockHash = block.BlockID.Hash.String()
 	b.NumTxs = int64(len(block.Block.Data.Txs))
-	b.Chunk = string(chunk)
+	b.Chunk = chunk
 
 	return *b, nil
 }

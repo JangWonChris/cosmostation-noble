@@ -6,7 +6,7 @@ import (
 	"log"
 
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
+	"github.com/cosmostation/mintscan-backend-library/db/schema"
 
 	// cosmos-sdk
 	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
@@ -18,7 +18,7 @@ import (
 
 // GetGovQueryClient returns a object of queryClient
 func (c *Client) GetGovQueryClient() govtypes.QueryClient {
-	return govtypes.NewQueryClient(c.grpcClient)
+	return govtypes.NewQueryClient(c.GRPC)
 }
 
 // GetProposals returns all governance proposals
@@ -79,7 +79,7 @@ func (c *Client) GetProposals() (result []schema.Proposal, err error) {
 		}
 		tally := tallyResultResp.Tally
 
-		p := schema.NewProposal(schema.Proposal{
+		p := schema.Proposal{
 			ID:           proposal.ProposalId,
 			Title:        proposal.GetTitle(),
 			Description:  contentI.GetDescription(),
@@ -97,9 +97,9 @@ func (c *Client) GetProposals() (result []schema.Proposal, err error) {
 			TotalDepositDenom:  totalDepositDenom,
 			VotingStartTime:    proposal.VotingStartTime,
 			VotingEndTime:      proposal.VotingEndTime,
-		})
+		}
 
-		result = append(result, *p)
+		result = append(result, p)
 	}
 
 	return result, nil

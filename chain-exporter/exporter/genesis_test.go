@@ -8,6 +8,11 @@ import (
 	"testing"
 	"time"
 
+	//internal
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
+	//mbl
+	"github.com/cosmostation/mintscan-backend-library/db/schema"
+
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	authvestingtypes "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
 	bankexported "github.com/cosmos/cosmos-sdk/x/bank/exported"
@@ -15,14 +20,12 @@ import (
 	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	gaia "github.com/cosmos/gaia/v3/app"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 	tmconfig "github.com/tendermint/tendermint/config"
 	tmtypes "github.com/tendermint/tendermint/types"
 )
 
 func TestGetGenesisStateFromGenesisFile(t *testing.T) {
-	var accounts []schema.Account
+	var accounts []schema.AccountCoin
 	// genesisFile := os.Getenv("PWD") + "/genesis.json"
 	baseConfig := tmconfig.DefaultBaseConfig()
 	genesisFile := filepath.Join(gaia.DefaultNodeHome, baseConfig.Genesis)
@@ -61,7 +64,7 @@ func TestGetGenesisStateFromGenesisFile(t *testing.T) {
 
 	authAccs := authGenesisState.GetAccounts()
 	NumberOfTotalAccounts := len(authAccs)
-	accountMapper := make(map[string]*schema.Account, NumberOfTotalAccounts)
+	accountMapper := make(map[string]*schema.AccountCoin, NumberOfTotalAccounts)
 	for _, authAcc := range authAccs {
 		var ga authtypes.GenesisAccount
 		codec.AppCodec.UnpackAny(authAcc, &ga)
@@ -85,21 +88,21 @@ func TestGetGenesisStateFromGenesisFile(t *testing.T) {
 		// log.Println(authAcc.GetTypeUrl())
 		// log.Println(ga.GetAddress().String())
 		// log.Println(ga.GetAccountNumber())
-		sAcc := schema.Account{
-			ChainID:           genDoc.ChainID,
-			AccountAddress:    ga.GetAddress().String(),
-			AccountNumber:     ga.GetAccountNumber(), //account number is set by specified order in genesis file
-			AccountType:       authAcc.GetTypeUrl(),  //type 변경
-			CoinsTotal:        "0",
-			CoinsSpendable:    "0",
-			CoinsDelegated:    "0",
-			CoinsRewards:      "0",
-			CoinsCommission:   "0",
-			CoinsUndelegated:  "0",
-			CoinsFailedVested: "0",
-			CoinsVested:       "0",
-			CoinsVesting:      "0",
-			CreationTime:      genDoc.GenesisTime.String(),
+		sAcc := schema.AccountCoin{
+			// ChainID:        genDoc.ChainID,
+			AccountAddress: ga.GetAddress().String(),
+			// AccountNumber:  ga.GetAccountNumber(), //account number is set by specified order in genesis file
+			// AccountType:    authAcc.GetTypeUrl(),  //type 변경
+			Total:        "0",
+			Available:    "0",
+			Delegated:    "0",
+			Rewards:      "0",
+			Commission:   "0",
+			Undelegated:  "0",
+			FailedVested: "0",
+			Vested:       "0",
+			Vesting:      "0",
+			// CreationTime: genDoc.GenesisTime.String(),
 		}
 		accountMapper[ga.GetAddress().String()] = &sAcc
 	}
@@ -111,7 +114,7 @@ func TestGetGenesisStateFromGenesisFile(t *testing.T) {
 			accCoins := bal.GetCoins()
 
 			// accountMapper[accAddress.String()].CoinsSpendable = *accCoins.AmountOf(bondDenom).String()
-			accountMapper[accAddress.String()].CoinsSpendable = accCoins.AmountOf(bondDenom).String()
+			accountMapper[accAddress.String()].Available = accCoins.AmountOf(bondDenom).String()
 			return false
 		},
 	)

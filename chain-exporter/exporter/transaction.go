@@ -6,8 +6,11 @@ import (
 	"log"
 
 	ceCodec "github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
 
+	// core
+	"github.com/cosmostation/mintscan-backend-library/db/schema"
+
+	// sdk
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	sdktypestx "github.com/cosmos/cosmos-sdk/types/tx"
 	authvestingtypes "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
@@ -23,8 +26,8 @@ import (
 )
 
 // getTxs decodes transactions in a block and return a format of database transaction.
-func (ex *Exporter) getTxs(block *tmctypes.ResultBlock, txResps []*sdktypes.TxResponse) ([]schema.TransactionLegacy, error) {
-	txs := make([]schema.TransactionLegacy, 0)
+func (ex *Exporter) getTxs(block *tmctypes.ResultBlock, txResps []*sdktypes.TxResponse) ([]schema.Transaction, error) {
+	txs := make([]schema.Transaction, 0)
 
 	if len(txResps) <= 0 {
 		return txs, nil
@@ -75,7 +78,7 @@ func (ex *Exporter) getTxs(block *tmctypes.ResultBlock, txResps []*sdktypes.TxRe
 			return txs, fmt.Errorf("failed to marshal tx logs: %s", err)
 		}
 
-		t := &schema.TransactionLegacy{
+		t := &schema.Transaction{
 			ChainID:    block.Block.ChainID,
 			Height:     txResp.Height,
 			Code:       txResp.Code,
@@ -113,7 +116,7 @@ func (ex *Exporter) getTxsJSONChunk(block *tmctypes.ResultBlock, txResps []*sdkt
 		txChunk[i].ChainID = block.Block.ChainID
 		txChunk[i].Height = txResp.Height
 		txChunk[i].TxHash = txResp.TxHash
-		txChunk[i].Chunk = string(chunk)
+		txChunk[i].Chunk = chunk
 		// show result
 		// fmt.Println(jsonString[i])
 	}

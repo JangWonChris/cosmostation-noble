@@ -1,20 +1,24 @@
 package exporter
 
 import (
+	"context"
 	"strconv"
 
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 	"go.uber.org/zap"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	// mbl
+	"github.com/cosmostation/mintscan-backend-library/db/schema"
+	"github.com/cosmostation/mintscan-backend-library/types"
+
+	// cosmos-sdk
+	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
 // getPowerEventHistory returns voting power event history of validators by decoding transactions in a block.
-func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*sdk.TxResponse) ([]schema.PowerEventHistory, error) {
+func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*sdktypes.TxResponse) ([]schema.PowerEventHistory, error) {
 	powerEventHistory := make([]schema.PowerEventHistory, 0)
 
 	if len(txResp) <= 0 {
@@ -54,7 +58,7 @@ func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*
 					VotingPower:          newVotingPowerAmount,
 					NewVotingPowerAmount: newVotingPowerAmount,
 					NewVotingPowerDenom:  m.Value.Denom,
-					MsgType:              types.TypeMsgCreateValidator,
+					MsgType:              types.StakingMsgCreateValidator,
 					TxHash:               tx.TxHash,
 					Timestamp:            block.Block.Header.Time,
 				}
@@ -80,7 +84,7 @@ func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*
 				// TODO: Note that if two MsgDelegate messages in one transaction, then
 				// the validator's voting power may not be calculated correctly.
 				var votingPower float64
-				vals, _ := ex.client.GetValidators(tx.Height, 1, 150)
+				vals, _ := ex.client.RPC.GetValidatorsInHeight(tx.Height, 1, 150)
 				for _, val := range vals.Validators {
 					if val.Address.String() == valInfo.Proposer {
 						votingPower = float64(val.VotingPower)
@@ -94,7 +98,7 @@ func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*
 					OperatorAddress:      valInfo.OperatorAddress,
 					Proposer:             valInfo.Proposer,
 					VotingPower:          votingPower + newVotingPowerAmount,
-					MsgType:              types.TypeMsgDelegate,
+					MsgType:              types.StakingMsgDelegate,
 					NewVotingPowerAmount: newVotingPowerAmount,
 					NewVotingPowerDenom:  m.Amount.Denom,
 					TxHash:               tx.TxHash,
@@ -120,7 +124,7 @@ func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*
 
 				// Get current voting power of the validator.
 				var votingPower float64
-				vals, _ := ex.client.GetValidators(tx.Height, types.DefaultQueryValidatorsPage, types.DefaultQueryValidatorsPerPage)
+				vals, _ := ex.client.RPC.GetValidatorsInHeight(tx.Height, types.DefaultQueryValidatorsPage, types.DefaultQueryValidatorsPerPage)
 				for _, val := range vals.Validators {
 					if val.Address.String() == valInfo.Proposer {
 						votingPower = float64(val.VotingPower)
@@ -134,7 +138,7 @@ func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*
 					OperatorAddress:      valInfo.OperatorAddress,
 					Proposer:             valInfo.Proposer,
 					VotingPower:          votingPower + newVotingPowerAmount,
-					MsgType:              types.TypeMsgUndelegate,
+					MsgType:              types.StakingMsgUndelegate,
 					NewVotingPowerAmount: newVotingPowerAmount,
 					NewVotingPowerDenom:  m.Amount.Denom,
 					TxHash:               tx.TxHash,
@@ -162,7 +166,7 @@ func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*
 
 				// Get current destination validator's voting power.
 				var dstValVotingPower float64
-				vals, _ := ex.client.GetValidators(tx.Height, 1, 150)
+				vals, _ := ex.client.RPC.GetValidatorsInHeight(tx.Height, 1, 150)
 				for _, val := range vals.Validators {
 					if val.Address.String() == valDstInfo.Proposer {
 						dstValVotingPower = float64(val.VotingPower)
@@ -171,7 +175,7 @@ func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*
 
 				// Get current source validator's voting power.
 				var srcValVotingPower float64
-				vals, _ = ex.client.GetValidators(tx.Height, 1, 150)
+				vals, _ = ex.client.RPC.GetValidatorsInHeight(tx.Height, 1, 150)
 				for _, val := range vals.Validators {
 					if val.Address.String() == valSrcInfo.Proposer {
 						srcValVotingPower = float64(val.VotingPower)
@@ -185,7 +189,7 @@ func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*
 					OperatorAddress:      valDstInfo.OperatorAddress,
 					Proposer:             valDstInfo.Proposer,
 					VotingPower:          dstValVotingPower + newVotingPowerAmount, // Add
-					MsgType:              types.TypeMsgBeginRedelegate,
+					MsgType:              types.StakingMsgBeginRedelegate,
 					NewVotingPowerAmount: newVotingPowerAmount,
 					NewVotingPowerDenom:  m.Amount.Denom,
 					TxHash:               tx.TxHash,
@@ -201,7 +205,7 @@ func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*
 					OperatorAddress:      valSrcInfo.OperatorAddress,
 					Proposer:             valSrcInfo.Proposer,
 					VotingPower:          srcValVotingPower - newVotingPowerAmount, // Substract
-					MsgType:              types.TypeMsgBeginRedelegate,
+					MsgType:              types.StakingMsgBeginRedelegate,
 					NewVotingPowerAmount: -newVotingPowerAmount,
 					NewVotingPowerDenom:  m.Amount.Denom,
 					TxHash:               tx.TxHash,
@@ -238,14 +242,14 @@ func (ex *Exporter) getValidatorsUptime(prevBlock *tmctypes.ResultBlock,
 
 		// Note that it used to be block.Block.LastCommit.Precommits[i] == nil
 		if block.Block.LastCommit.Signatures[i].Signature == nil {
-			m := schema.NewMissDetail(schema.MissDetail{
+			m := schema.MissDetail{
 				Address:   val.Address.String(),
 				Height:    prevBlock.Block.Header.Height,
 				Proposer:  prevBlock.Block.Header.ProposerAddress.String(),
 				Timestamp: prevBlock.Block.Header.Time,
-			})
+			}
 
-			missDetail = append(missDetail, *m)
+			missDetail = append(missDetail, m)
 
 			// Set initial variables
 			startHeight := prevBlock.Block.Header.Height
@@ -257,30 +261,30 @@ func (ex *Exporter) getValidatorsUptime(prevBlock *tmctypes.ResultBlock,
 
 			// Validator hasn't missed previous block.
 			if prevMiss.Address == "" {
-				m := schema.NewMiss(schema.Miss{
+				m := schema.Miss{
 					Address:      val.Address.String(),
 					StartHeight:  startHeight,
 					EndHeight:    endHeight,
 					MissingCount: missingCount,
 					StartTime:    prevBlock.Block.Header.Time,
 					EndTime:      prevBlock.Block.Header.Time,
-				})
+				}
 
-				miss = append(miss, *m)
+				miss = append(miss, m)
 			}
 
 			// Validator has missed previous block.
 			if prevMiss.Address != "" {
-				m := schema.NewMiss(schema.Miss{
+				m := schema.Miss{
 					Address:      prevMiss.Address,
 					StartHeight:  prevMiss.StartHeight,
 					EndHeight:    prevMiss.EndHeight + int64(1),
 					MissingCount: prevMiss.MissingCount + int64(1),
 					StartTime:    prevMiss.StartTime,
 					EndTime:      prevBlock.Block.Header.Time,
-				})
+				}
 
-				accumMiss = append(accumMiss, *m)
+				accumMiss = append(accumMiss, m)
 			}
 		}
 	}
@@ -295,16 +299,16 @@ func (ex *Exporter) getEvidence(block *tmctypes.ResultBlock) ([]schema.Evidence,
 
 	if block.Block.Evidence.Evidence != nil {
 		for _, ev := range block.Block.Evidence.Evidence {
-			e := schema.NewEvidence(schema.Evidence{
+			e := schema.Evidence{
 				// jeonghwan : ev.Address() are removed
 				// Proposer:  strings.ToUpper(string(hex.EncodeToString(ev.Address()))),
 				Proposer:  "",
 				Height:    ev.Height(),
 				Hash:      block.Block.Header.EvidenceHash.String(),
 				Timestamp: block.Block.Header.Time,
-			})
+			}
 
-			evidence = append(evidence, *e)
+			evidence = append(evidence, e)
 		}
 	}
 
@@ -314,7 +318,8 @@ func (ex *Exporter) getEvidence(block *tmctypes.ResultBlock) ([]schema.Evidence,
 // saveValidators parses all validators which are in three different status
 // bonded, unbonding, unbonded and save them in database.
 func (ex *Exporter) saveValidators() {
-	bondedVals, err := ex.client.GetValidatorsByStatus(stakingtypes.Bonded)
+	ctx := context.Background()
+	bondedVals, err := ex.client.GRPC.GetValidatorsByStatus(ctx, stakingtypes.Bonded)
 	if err != nil {
 		zap.S().Errorf("failed to get bonded validators: %s", err)
 		return
@@ -327,7 +332,7 @@ func (ex *Exporter) saveValidators() {
 		return
 	}
 
-	unbondingVals, err := ex.client.GetValidatorsByStatus(stakingtypes.Unbonding)
+	unbondingVals, err := ex.client.GRPC.GetValidatorsByStatus(ctx, stakingtypes.Unbonding)
 	if err != nil {
 		zap.S().Errorf("failed to get unbonding validators: %s", err)
 		return
@@ -348,7 +353,7 @@ func (ex *Exporter) saveValidators() {
 		}
 	}
 
-	unbondedVals, err := ex.client.GetValidatorsByStatus(stakingtypes.Unbonded)
+	unbondedVals, err := ex.client.GRPC.GetValidatorsByStatus(ctx, stakingtypes.Unbonded)
 	if err != nil {
 		zap.S().Errorf("failed to get unbonded validators: %s", err)
 		return

@@ -7,49 +7,15 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
 
+	ltypes "github.com/cosmostation/mintscan-backend-library/types"
+
 	"github.com/stretchr/testify/require"
-	// "github.com/tendermint/tendermint/libs/bech32"
 )
 
 func TestMain(m *testing.M) {
 	// SetAppConfig()
 
 	os.Exit(m.Run())
-}
-
-func TestConvertConsAddrFromConsPubkey(t *testing.T) {
-	consAddr, err := ConvertConsAddrFromConsPubkey("kavavalconspub1zcjduepqvtvkhh22hgfvp865tj4uwltv0hu7fs3vwmxwrl0n2mdpfuzj0p0qes2k9e")
-	require.NoError(t, err)
-
-	require.Equal(t, consAddr, "3D6468FCB5EC366714EF86E5263C0B30C11734FB")
-}
-
-func TestConvertAccAddrFromValAddr(t *testing.T) {
-	accAddr, err := ConvertAccAddrFromValAddr("kavavaloper140g8fnnl46mlvfhygj3zvjqlku6x0fwu6lgey7")
-	require.NoError(t, err)
-
-	require.Equal(t, accAddr, "kava140g8fnnl46mlvfhygj3zvjqlku6x0fwuhfj3uf")
-}
-
-func TestConvertValAddrFromAccAddr(t *testing.T) {
-	valAddr, err := ConvertValAddrFromAccAddr("kavavaloper140g8fnnl46mlvfhygj3zvjqlku6x0fwu6lgey7")
-	require.NoError(t, err)
-
-	require.Equal(t, valAddr, "kavavaloper140g8fnnl46mlvfhygj3zvjqlku6x0fwu6lgey7")
-}
-
-func TestVerifyAccAddr(t *testing.T) {
-	ok, err := VerifyBech32AccAddr("kava140g8fnnl46mlvfhygj3zvjqlku6x0fwuhfj3uf")
-	require.NoError(t, err)
-
-	require.Equal(t, true, ok)
-}
-
-func TestVerifyValAddr(t *testing.T) {
-	ok, err := VerifyBech32ValAddr("kavavaloper140g8fnnl46mlvfhygj3zvjqlku6x0fwu6lgey7")
-	require.NoError(t, err)
-
-	require.Equal(t, true, ok)
 }
 
 func TestBech32PrefixesToAcctAddr(t *testing.T) {
@@ -85,7 +51,7 @@ func TestPrivValidatorKey(t *testing.T) {
 	valconpub := "cosmosvalconspub1zcjduepq5mhsvc5685267fg2ee5uv30srjjxzetp8msfs3h983vz724496lqtaz884"
 	_, _ = valcon, valconpub
 
-	consAddrStr, err := ConvertConsAddrFromConsPubkey(valconpub)
+	consAddrStr, err := ltypes.ConvertConsAddrFromConsPubkey(valconpub)
 	require.NoError(t, err)
 
 	consAddr, err := sdk.ConsAddressFromHex(consAddrStr)

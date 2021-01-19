@@ -1,6 +1,7 @@
 package exporter
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -8,8 +9,11 @@ import (
 	"time"
 
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
+	"github.com/cosmostation/mintscan-backend-library/types"
+
+	//mbl
+
+	lschema "github.com/cosmostation/mintscan-backend-library/db/schema"
 	"go.uber.org/zap"
 
 	//gaia
@@ -63,7 +67,7 @@ func (ex *Exporter) GetGenesisStateFromGenesisFile(genesisPath string) (err erro
 
 	authAccs := authGenesisState.GetAccounts()
 	NumberOfTotalAccounts := len(authAccs)
-	accountMapper := make(map[string]*schema.Account, NumberOfTotalAccounts)
+	accountMapper := make(map[string]*lschema.AccountCoin, NumberOfTotalAccounts)
 	for _, authAcc := range authAccs {
 		var ga authtypes.GenesisAccount
 		codec.AppCodec.UnpackAny(authAcc, &ga)
@@ -81,21 +85,21 @@ func (ex *Exporter) GetGenesisStateFromGenesisFile(genesisPath string) (err erro
 		case *authvestingtypes.PeriodicVestingAccount:
 			log.Println("PeriodicVestingAccount", ga.String())
 		}
-		sAcc := schema.Account{
-			ChainID:           genDoc.ChainID,
-			AccountAddress:    ga.GetAddress().String(),
-			AccountNumber:     ga.GetAccountNumber(), //account number is set by specified order in genesis file
-			AccountType:       authAcc.GetTypeUrl(),  //type 변경
-			CoinsTotal:        "0",
-			CoinsSpendable:    "0",
-			CoinsDelegated:    "0",
-			CoinsRewards:      "0",
-			CoinsCommission:   "0",
-			CoinsUndelegated:  "0",
-			CoinsFailedVested: "0",
-			CoinsVested:       "0",
-			CoinsVesting:      "0",
-			CreationTime:      genDoc.GenesisTime.String(),
+		sAcc := lschema.AccountCoin{
+			// ChainID:           genDoc.ChainID,
+			AccountAddress: ga.GetAddress().String(),
+			// AccountNumber:  ga.GetAccountNumber(), //account number is set by specified order in genesis file
+			// AccountType:    authAcc.GetTypeUrl(),  //type 변경
+			Total:        "0",
+			Available:    "0",
+			Delegated:    "0",
+			Rewards:      "0",
+			Commission:   "0",
+			Undelegated:  "0",
+			FailedVested: "0",
+			Vested:       "0",
+			Vesting:      "0",
+			// CreationTime: genDoc.GenesisTime.String(),
 		}
 		accountMapper[ga.GetAddress().String()] = &sAcc
 	}
@@ -107,12 +111,12 @@ func (ex *Exporter) GetGenesisStateFromGenesisFile(genesisPath string) (err erro
 			accCoins := bal.GetCoins()
 
 			// accountMapper[accAddress.String()].CoinsSpendable = *accCoins.AmountOf(bondDenom).BigInt()
-			accountMapper[accAddress.String()].CoinsSpendable = accCoins.AmountOf(bondDenom).String()
+			accountMapper[accAddress.String()].Available = accCoins.AmountOf(bondDenom).String()
 			return false
 		},
 	)
 
-	var accounts []schema.Account
+	var accounts []lschema.AccountCoin
 	for _, acc := range accountMapper {
 		accounts = append(accounts, *acc)
 		log.Println(acc)
@@ -124,32 +128,32 @@ func (ex *Exporter) GetGenesisStateFromGenesisFile(genesisPath string) (err erro
 }
 
 // deprecated
-func (ex *Exporter) getGenesisAccounts(genesisAccts authtypes.GenesisAccounts) (accounts []schema.Account, err error) {
-	chainID, err := ex.client.GetNetworkChainID()
+func (ex *Exporter) getGenesisAccounts(genesisAccts authtypes.GenesisAccounts) (accounts []lschema.AccountCoin, err error) {
+	// chainID, err := ex.client.GetNetworkChainID()
 	if err != nil {
-		return []schema.Account{}, err
+		return []lschema.AccountCoin{}, err
 	}
 
-	block, err := ex.client.GetBlock(startingHeight)
+	block, err := ex.client.RPC.GetBlock(startingHeight)
 	if err != nil {
-		return []schema.Account{}, err
+		return []lschema.AccountCoin{}, err
 	}
 
-	denom, err := ex.client.GetBondDenom()
+	denom, err := ex.client.GRPC.GetBondDenom(context.Background())
 	if err != nil {
-		return []schema.Account{}, err
+		return []lschema.AccountCoin{}, err
 	}
 
 	for i, account := range genesisAccts {
-		switch account.(type) {
+		switch account := account.(type) {
 		case *authtypes.BaseAccount:
-			zap.S().Infof("Account type: %s | Synced account %d/%d", types.BaseAccount, i, len(genesisAccts))
+			zap.S().Infof("Account type: %T | Synced account %d/%d", account, i, len(genesisAccts))
 
-			acc := account.(*authtypes.BaseAccount)
+			// acc := account.(*authtypes.BaseAccount)
 
-			spendable, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(acc.GetAddress().String())
+			spendable, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(account.GetAddress().String())
 			if err != nil {
-				return []schema.Account{}, err
+				return []lschema.AccountCoin{}, err
 			}
 
 			total := sdk.NewCoin(denom, sdk.NewInt(0))
@@ -161,30 +165,29 @@ func (ex *Exporter) getGenesisAccounts(genesisAccts authtypes.GenesisAccounts) (
 				Add(rewards).
 				Add(commission)
 
-			acct := &schema.Account{
-				ChainID:          chainID,
-				AccountAddress:   acc.Address,
-				AccountNumber:    acc.AccountNumber,
-				AccountType:      types.BaseAccount,
-				CoinsTotal:       total.Amount.String(),
-				CoinsSpendable:   spendable.Amount.String(),
-				CoinsRewards:     rewards.Amount.String(),
-				CoinsCommission:  commission.Amount.String(),
-				CoinsDelegated:   delegated.Amount.String(),
-				CoinsUndelegated: undelegated.Amount.String(),
-				CreationTime:     block.Block.Time.String(),
+			acct := lschema.AccountCoin{
+				// ChainID:          chainID,
+				AccountAddress: account.Address,
+				// AccountNumber:    acc.AccountNumber,
+				// AccountType:      types.BaseAccount,
+				Total:       total.Amount.String(),
+				Available:   spendable.Amount.String(),
+				Rewards:     rewards.Amount.String(),
+				Commission:  commission.Amount.String(),
+				Delegated:   delegated.Amount.String(),
+				Undelegated: undelegated.Amount.String(),
 			}
 
-			accounts = append(accounts, *acct)
+			accounts = append(accounts, acct)
 
 		case *authtypes.ModuleAccount:
-			zap.S().Infof("Account type: %s | Synced account %d/%d", types.BaseAccount, i, len(genesisAccts))
+			zap.S().Infof("Account type: %T | Synced account %d/%d", account, i, len(genesisAccts))
 
-			acc := account.(authtypes.ModuleAccountI)
+			// acc := account.(authtypes.ModuleAccountI)
 
-			spendable, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(acc.GetAddress().String())
+			spendable, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(account.GetAddress().String())
 			if err != nil {
-				return []schema.Account{}, err
+				return []lschema.AccountCoin{}, err
 			}
 
 			total := sdk.NewCoin(denom, sdk.NewInt(0))
@@ -196,38 +199,37 @@ func (ex *Exporter) getGenesisAccounts(genesisAccts authtypes.GenesisAccounts) (
 				Add(rewards).
 				Add(commission)
 
-			acct := &schema.Account{
-				ChainID:          chainID,
-				AccountAddress:   acc.GetAddress().String(),
-				AccountNumber:    acc.GetAccountNumber(),
-				AccountType:      types.ModuleAccount,
-				CoinsTotal:       total.Amount.String(),
-				CoinsSpendable:   spendable.Amount.String(),
-				CoinsRewards:     rewards.Amount.String(),
-				CoinsCommission:  commission.Amount.String(),
-				CoinsDelegated:   delegated.Amount.String(),
-				CoinsUndelegated: undelegated.Amount.String(),
-				CreationTime:     block.Block.Time.String(),
+			acct := lschema.AccountCoin{
+				// ChainID:          chainID,
+				AccountAddress: account.GetAddress().String(),
+				// AccountNumber:    account.GetAccountNumber(),
+				// AccountType:      types.ModuleAccount,
+				Total:       total.Amount.String(),
+				Available:   spendable.Amount.String(),
+				Rewards:     rewards.Amount.String(),
+				Commission:  commission.Amount.String(),
+				Delegated:   delegated.Amount.String(),
+				Undelegated: undelegated.Amount.String(),
 			}
 
-			accounts = append(accounts, *acct)
+			accounts = append(accounts, acct)
 
 		case *authvestingtypes.PeriodicVestingAccount:
-			zap.S().Infof("Account type: %s | Synced account %d/%d", types.BaseAccount, i, len(genesisAccts))
+			zap.S().Infof("Account type: %T | Synced account %d/%d", account, i, len(genesisAccts))
 
-			acc := account.(*authvestingtypes.PeriodicVestingAccount)
+			// acc := account.(*authvestingtypes.PeriodicVestingAccount)
 
-			spendable, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(acc.GetAddress().String())
+			spendable, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(account.GetAddress().String())
 			if err != nil {
-				return []schema.Account{}, err
+				return []lschema.AccountCoin{}, err
 			}
 
 			vesting := sdk.NewCoin(denom, sdk.NewInt(0))
 			vested := sdk.NewCoin(denom, sdk.NewInt(0))
 
-			vestingCoins := acc.GetVestingCoins(block.Block.Time)
-			vestedCoins := acc.GetVestedCoins(block.Block.Time)
-			delegatedVesting := acc.GetDelegatedVesting()
+			vestingCoins := account.GetVestingCoins(block.Block.Time)
+			vestedCoins := account.GetVestedCoins(block.Block.Time)
+			delegatedVesting := account.GetDelegatedVesting()
 
 			// When total vesting amount is greater than or equal to delegated vesting amount, then
 			// there is still a room to delegate. Otherwise, vesting should be zero.
@@ -260,24 +262,24 @@ func (ex *Exporter) getGenesisAccounts(genesisAccts authtypes.GenesisAccounts) (
 				Add(commission).
 				Add(vesting)
 
-			acct := &schema.Account{
-				ChainID:          chainID,
-				AccountAddress:   acc.Address,
-				AccountNumber:    acc.AccountNumber,
-				AccountType:      types.PeriodicVestingAccount,
-				CoinsTotal:       total.Amount.String(),
-				CoinsSpendable:   spendable.Amount.String(),
-				CoinsRewards:     rewards.Amount.String(),
-				CoinsCommission:  commission.Amount.String(),
-				CoinsDelegated:   delegated.Amount.String(),
-				CoinsUndelegated: undelegated.Amount.String(),
-				CreationTime:     block.Block.Time.String(),
+			acct := lschema.AccountCoin{
+				// ChainID:          chainID,
+				AccountAddress: account.Address,
+				// AccountNumber:    account.AccountNumber,
+				// AccountType:      types.PeriodicVestingAccount,
+				Total:       total.Amount.String(),
+				Available:   spendable.Amount.String(),
+				Rewards:     rewards.Amount.String(),
+				Commission:  commission.Amount.String(),
+				Delegated:   delegated.Amount.String(),
+				Undelegated: undelegated.Amount.String(),
+				// CreationTime:     block.Block.Time.String(),
 			}
 
-			accounts = append(accounts, *acct)
+			accounts = append(accounts, acct)
 
 		default:
-			return []schema.Account{}, fmt.Errorf("unrecognized account type: %T", account)
+			return []lschema.AccountCoin{}, fmt.Errorf("unrecognized account type: %T", account)
 		}
 	}
 
@@ -285,37 +287,37 @@ func (ex *Exporter) getGenesisAccounts(genesisAccts authtypes.GenesisAccounts) (
 }
 
 // getGenesisValidatorsSet returns validator set in genesis.
-func (ex *Exporter) getGenesisValidatorsSet(block *tmctypes.ResultBlock, vals *tmctypes.ResultValidators) ([]schema.PowerEventHistory, error) {
+func (ex *Exporter) getGenesisValidatorsSet(block *tmctypes.ResultBlock, vals *tmctypes.ResultValidators) ([]lschema.PowerEventHistory, error) {
 	// Get genesis validator set (block height 1).
 	if block.Block.Height != 1 {
-		return []schema.PowerEventHistory{}, nil
+		return []lschema.PowerEventHistory{}, nil
 	}
 
-	denom, err := ex.client.GetBondDenom()
+	denom, err := ex.client.GRPC.GetBondDenom(context.Background())
 	if err != nil {
-		return []schema.PowerEventHistory{}, err
+		return []lschema.PowerEventHistory{}, err
 	}
 
 	if vals == nil {
-		return []schema.PowerEventHistory{}, nil
+		return []lschema.PowerEventHistory{}, nil
 	}
-	genesisValsSet := make([]schema.PowerEventHistory, 0)
+	genesisValsSet := make([]lschema.PowerEventHistory, 0)
 	for i, val := range vals.Validators {
-		gvs := schema.NewPowerEventHistoryForGenesisValidatorSet(schema.PowerEventHistory{
+		gvs := lschema.PowerEventHistory{
 			IDValidator:          i + 1,
 			Height:               block.Block.Height,
 			Moniker:              "",
 			OperatorAddress:      "",
 			Proposer:             val.Address.String(),
 			VotingPower:          float64(val.VotingPower),
-			MsgType:              types.TypeMsgCreateValidator,
+			MsgType:              types.StakingMsgCreateValidator,
 			NewVotingPowerAmount: float64(val.VotingPower),
 			NewVotingPowerDenom:  denom,
 			TxHash:               "",
 			Timestamp:            block.Block.Header.Time,
-		})
+		}
 
-		genesisValsSet = append(genesisValsSet, *gvs)
+		genesisValsSet = append(genesisValsSet, gvs)
 	}
 
 	return genesisValsSet, nil

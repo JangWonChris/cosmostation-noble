@@ -14,7 +14,7 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
+	"github.com/cosmostation/mintscan-backend-library/config"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
@@ -25,7 +25,7 @@ func TestMain(m *testing.M) {
 	log.Println("testmain start")
 	cfg := config.ParseConfig()
 	var err error
-	cli, err = NewClient(cfg.Node, cfg.KeybaseURL)
+	cli, err = NewClient(&cfg.Client)
 	if err != nil {
 		log.Println(err)
 		os.Exit(1)
@@ -37,13 +37,15 @@ func TestMain(m *testing.M) {
 }
 
 func TestGetAccount(t *testing.T) {
-	address := "cosmos1pvzrncl89w5z9psr8ch90057va9tc23pehpd2t"
+	// address := "cosmos1pvzrncl89w5z9psr8ch90057va9tc23pehpd2t"
+	address := "cosmos1x5wgh6vwye60wv3dtshs9dmqggwfx2ldnqvev0"
 	sdkaddr, err := sdktypes.AccAddressFromBech32(address)
 	if err != nil {
 		log.Println(err)
 	}
 	ar := authtypes.AccountRetriever{}
-	acc, err := ar.GetAccount(cli.cliCtx, sdkaddr)
+	log.Println(cli.CliCtx)
+	acc, err := ar.GetAccount(cli.GetCLIContext(), sdkaddr)
 	if err != nil {
 		log.Println(err)
 	}
@@ -63,7 +65,7 @@ func TestGetAccountBalance(t *testing.T) {
 	}
 	b := banktypes.NewQueryBalanceRequest(sdkaddr, "umuon")
 	log.Println(b)
-	bankClient := banktypes.NewQueryClient(cli.grpcClient)
+	bankClient := banktypes.NewQueryClient(cli.GRPC)
 	var header metadata.MD
 	blockHeight := header.Get(grpctypes.GRPCBlockHeightHeader)
 	log.Println("blockHeight :", blockHeight)
@@ -90,7 +92,7 @@ func TestGetAccountBalance(t *testing.T) {
 	log.Println("blockHeight :", blockHeight)
 }
 func TestGetNetworkChainID(t *testing.T) {
-	n, err := cli.GetNetworkChainID()
+	n, err := cli.RPC.GetNetworkChainID()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -98,7 +100,7 @@ func TestGetNetworkChainID(t *testing.T) {
 }
 
 func TestGetBlock(t *testing.T) {
-	log.Println(cli.GetBlock(11111))
+	log.Println(cli.RPC.GetBlock(11111))
 }
 
 func TestGetTx(t *testing.T) {
@@ -108,7 +110,7 @@ func TestGetTx(t *testing.T) {
 	unknownTx := "30B43BB887FA6F56E5302B6CCB9C439A6C2AF29CFADA1465C0174EE6C62E3D28"
 	_, _, _, _ = sendTx, withdrawAllRewardsTx, delegateTx, unknownTx
 	txhash := unknownTx
-	txResp, err := cli.GetTx(txhash)
+	txResp, err := cli.CliCtx.GetTx(txhash)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -117,22 +119,22 @@ func TestGetTx(t *testing.T) {
 	ta, ok := tx.(*sdktypestx.Tx)
 	log.Println(ok)
 	if ok {
-		a, err := cli.cliCtx.JSONMarshaler.MarshalJSON(ta.GetBody())
+		a, err := cli.CliCtx.JSONMarshaler.MarshalJSON(ta.GetBody())
 		if err != nil {
 			log.Println(err)
 		}
 		log.Println("message :", string(a))
-		a, err = cli.cliCtx.JSONMarshaler.MarshalJSON(ta.GetAuthInfo().GetFee())
+		a, err = cli.CliCtx.JSONMarshaler.MarshalJSON(ta.GetAuthInfo().GetFee())
 		if err != nil {
 			log.Println(err)
 		}
 		log.Println("fee :", string(a))
-		a, err = cli.cliCtx.JSONMarshaler.MarshalJSON(ta.GetAuthInfo())
+		a, err = cli.CliCtx.JSONMarshaler.MarshalJSON(ta.GetAuthInfo())
 		if err != nil {
 			log.Println(err)
 		}
 		log.Println("authinfo :", string(a))
-		a, err = cli.cliCtx.JSONMarshaler.MarshalJSON(ta.GetAuthInfo().GetSignerInfos()[0])
+		a, err = cli.CliCtx.JSONMarshaler.MarshalJSON(ta.GetAuthInfo().GetSignerInfos()[0])
 		if err != nil {
 			log.Println(err)
 		}
@@ -140,7 +142,7 @@ func TestGetTx(t *testing.T) {
 		for _, addr := range ta.GetSigners() {
 			log.Println("getsigners addr :", addr)
 		}
-		a, err = cli.cliCtx.JSONMarshaler.MarshalJSON(ta.GetAuthInfo().GetSignerInfos()[0].GetPublicKey())
+		a, err = cli.CliCtx.JSONMarshaler.MarshalJSON(ta.GetAuthInfo().GetSignerInfos()[0].GetPublicKey())
 		if err != nil {
 			log.Println(err)
 		}
@@ -183,7 +185,7 @@ func TestValidatorByStatus(t *testing.T) {
 	// unbonded := stakingtypes.BondStatus_name[int32(stakingtypes.Unbonded)]
 	// unbonding := stakingtypes.BondStatus_name[int32(stakingtypes.Unbonding)]
 
-	queryClient := stakingtypes.NewQueryClient(cli.grpcClient)
+	queryClient := stakingtypes.NewQueryClient(cli.GRPC)
 	request := stakingtypes.QueryValidatorsRequest{Status: bonded}
 	resp, err := queryClient.Validators(context.Background(), &request)
 	require.NoError(t, err)

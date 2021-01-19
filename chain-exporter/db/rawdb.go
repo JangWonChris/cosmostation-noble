@@ -3,36 +3,23 @@ package db
 import (
 	"fmt"
 
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
+	//mbl
+	lconfig "github.com/cosmostation/mintscan-backend-library/config"
+	ldb "github.com/cosmostation/mintscan-backend-library/db"
+	lschema "github.com/cosmostation/mintscan-backend-library/db/schema"
+
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
 )
 
 // Database implements a wrapper of golang ORM with focus on PostgreSQL.
 type RawDatabase struct {
-	*pg.DB
+	*ldb.RawDatabase
 }
 
-const (
-	// Define PostgreSQL database indexes to improve the speed of data retrieval operations on a database tables.
-	indexTransactionHeight = "CREATE INDEX transaction_height_idx ON transaction USING btree(height);"
-	indexTransactionHash   = "CREATE INDEX transaction_tx_hash_idx ON transaction USING btree(tx_hash);"
-)
-
 // Connect opens a database connections with the given database connection info from config.
-func RawDBConnect(config *config.Database) *RawDatabase {
-	db := pg.Connect(&pg.Options{
-		Addr:     config.Host + ":" + config.Port,
-		User:     config.User,
-		Password: config.Password,
-		Database: config.Table,
-	})
-
-	// Disable pluralization
-	orm.SetTableNameInflector(func(s string) string {
-		return s
-	})
+func RawDBConnect(config *lconfig.DatabaseConfig) *RawDatabase {
+	db := ldb.RawDBConnect(config)
 
 	return &RawDatabase{db}
 }
@@ -50,13 +37,8 @@ func (db *RawDatabase) Ping() error {
 // CreateTables creates database tables using ORM (Object Relational Mapper).
 func (db *RawDatabase) CreateTables() error {
 	for _, table := range []interface{}{
-		(*schema.RawBlock)(nil),
-		(*schema.RawTransaction)(nil)} {
-
-		// Disable pluralization
-		orm.SetTableNameInflector(func(s string) string {
-			return s
-		})
+		(*lschema.RawBlock)(nil),
+		(*lschema.RawTransaction)(nil)} {
 
 		err := db.CreateTable(table, &orm.CreateTableOptions{
 			IfNotExists: true,
@@ -82,11 +64,11 @@ func (db *RawDatabase) CreateTables() error {
 // Create B-Tree indexes to reduce the cost of lookup queries
 func (db *RawDatabase) createIndexes() error {
 	db.RunInTransaction(func(tx *pg.Tx) error {
-		_, err := db.Model(schema.RawTransaction{}).Exec(indexTransactionHeight)
+		_, err := db.Model(lschema.RawTransaction{}).Exec(ldb.GetIndex(lschema.IndexRawTransactionHeight))
 		if err != nil {
 			return fmt.Errorf("failed to create tx hash index: %s", err)
 		}
-		_, err = db.Model(schema.RawTransaction{}).Exec(indexTransactionHash)
+		_, err = db.Model(lschema.RawTransaction{}).Exec(ldb.GetIndex(lschema.IndexRawTransactionHash))
 		if err != nil {
 			return fmt.Errorf("failed to create tx hash index: %s", err)
 		}
@@ -99,7 +81,7 @@ func (db *RawDatabase) createIndexes() error {
 
 // InsertExportedData saves exported blockchain data
 // if function returns an error transaction is rollbacked, otherwise transaction is committed.
-func (db *RawDatabase) InsertExportedData(e *schema.ExportRawData) error {
+func (db *RawDatabase) InsertExportedData(e *lschema.ExportRawData) error {
 	err := db.RunInTransaction(func(tx *pg.Tx) error {
 		if e.ResultBlockJSONChunk.BlockHash != "" {
 			err := tx.Insert(&e.ResultBlockJSONChunk)
@@ -128,7 +110,7 @@ func (db *RawDatabase) InsertExportedData(e *schema.ExportRawData) error {
 
 // QueryLatestBlockHeight queries latest block height in database
 func (db *RawDatabase) QueryLatestBlockHeight() (int64, error) {
-	var b schema.RawBlock
+	var b lschema.RawBlock
 	err := db.Model(&b).
 		Order("height DESC").
 		Limit(1).
@@ -148,8 +130,8 @@ func (db *RawDatabase) QueryLatestBlockHeight() (int64, error) {
 }
 
 // QueryLatestBlockHeight queries latest block height in database
-func (db *RawDatabase) GetRawBlock(height int64) ([]schema.RawBlock, error) {
-	var b []schema.RawBlock
+func (db *RawDatabase) GetRawBlock(height int64) ([]lschema.RawBlock, error) {
+	var b []lschema.RawBlock
 	err := db.Model(&b).
 		Where("height >= ?", height).
 		Order("height ASC").
@@ -163,8 +145,8 @@ func (db *RawDatabase) GetRawBlock(height int64) ([]schema.RawBlock, error) {
 	return b, nil
 }
 
-func (db *RawDatabase) GetRawTransactions(height int64) ([]schema.RawTransaction, error) {
-	var txs []schema.RawTransaction
+func (db *RawDatabase) GetRawTransactions(height int64) ([]lschema.RawTransaction, error) {
+	var txs []lschema.RawTransaction
 	err := db.Model(&txs).
 		Where("height = ?", height).
 		Select()

@@ -18,11 +18,11 @@ func TestGetTxsChunk(t *testing.T) {
 	require.NotNil(t, ex.client)
 	// 13030, 272247
 	// 122499 (multi msg type)
-	block, err := ex.client.GetBlock(13030)
+	block, err := ex.client.RPC.GetBlock(13030)
 	if err != nil {
 		log.Println(err)
 	}
-	txResps, err := ex.client.GetTxs(block)
+	txResps, err := ex.client.CliCtx.GetTxs(block)
 	if err != nil {
 		log.Println(err)
 	}
@@ -81,11 +81,11 @@ func JSONStringUnmarshal(jsonString []string) error {
 func TestGetMessage(t *testing.T) {
 	// 13030, 272247
 	// 122499 (multi msg type)
-	block, err := ex.client.GetBlock(122499)
+	block, err := ex.client.RPC.GetBlock(122499)
 	if err != nil {
 		log.Println(err)
 	}
-	txResps, err := ex.client.GetTxs(block)
+	txResps, err := ex.client.CliCtx.GetTxs(block)
 	if err != nil {
 		log.Println(err)
 	}

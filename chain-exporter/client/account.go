@@ -1,14 +1,21 @@
 package client
 
 import (
+	"context"
+
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
+	"github.com/cosmostation/mintscan-backend-library/types"
+)
+
+var (
+	pageLimit = uint64(100)
 )
 
 // GetBaseAccountTotalAsset returns coins against bonded-denom from a delegator.
 // returns spendable, delegated, undelegated, rewards, commission
 func (c *Client) GetBaseAccountTotalAsset(address string) (sdktypes.Coin, sdktypes.Coin, sdktypes.Coin, sdktypes.Coin, sdktypes.Coin, error) {
-	denom, err := c.GetBondDenom()
+	ctx := context.Background()
+	denom, err := c.GRPC.GetBondDenom(ctx)
 	if err != nil {
 		return sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, err
 	}
@@ -19,7 +26,7 @@ func (c *Client) GetBaseAccountTotalAsset(address string) (sdktypes.Coin, sdktyp
 	rewards := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
 	commission := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
 
-	available, err := c.GetBalance(address)
+	available, err := c.GRPC.GetBalance(ctx, denom, address)
 	if err != nil {
 		return sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, err
 	}
@@ -28,7 +35,7 @@ func (c *Client) GetBaseAccountTotalAsset(address string) (sdktypes.Coin, sdktyp
 	}
 
 	// Get total delegated coins.
-	delegatorDelegationsResp, err := c.GetDelegatorDelegations(address)
+	delegatorDelegationsResp, err := c.GRPC.GetDelegatorDelegations(ctx, address, pageLimit)
 	if err != nil {
 		return sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, err
 	}
@@ -38,7 +45,7 @@ func (c *Client) GetBaseAccountTotalAsset(address string) (sdktypes.Coin, sdktyp
 	}
 
 	// Get total undelegated coins.
-	unbondingDelegationsResp, err := c.GetDelegatorUnbondingDelegations(address)
+	unbondingDelegationsResp, err := c.GRPC.GetDelegatorUnbondingDelegations(ctx, address, pageLimit)
 	if err != nil {
 		return sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, err
 	}
@@ -50,7 +57,7 @@ func (c *Client) GetBaseAccountTotalAsset(address string) (sdktypes.Coin, sdktyp
 	}
 
 	// total Rewards
-	totalRewardsResp, err := c.GetDelegationTotalRewards(address)
+	totalRewardsResp, err := c.GRPC.GetDelegationTotalRewards(ctx, address)
 	if err != nil {
 		return sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, err
 	}
@@ -64,7 +71,7 @@ func (c *Client) GetBaseAccountTotalAsset(address string) (sdktypes.Coin, sdktyp
 	}
 
 	// Get total commission
-	commissions, err := c.GetValidatorCommission(valAddr)
+	commissions, err := c.GRPC.GetValidatorCommission(ctx, valAddr)
 	if err != nil {
 		return sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, err
 	}

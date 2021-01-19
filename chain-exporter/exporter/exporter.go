@@ -8,13 +8,17 @@ import (
 
 	"go.uber.org/zap"
 
+	// mbl
+
+	"github.com/cosmostation/mintscan-backend-library/config"
+	"github.com/cosmostation/mintscan-backend-library/db/schema"
+	"github.com/cosmostation/mintscan-backend-library/types"
+
+	// sdk
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/client"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/config"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/db"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/schema"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
@@ -45,7 +49,7 @@ func NewExporter() *Exporter {
 
 	// Create new client with node configruation.
 	// Client is used for requesting any type of network data from RPC full node and REST Server.
-	client, err := client.NewClient(config.Node, config.KeybaseURL)
+	client, err := client.NewClient(&config.Client)
 	if err != nil {
 		zap.L().Error("failed to create new client", zap.Error(err))
 		return &Exporter{}
@@ -77,10 +81,10 @@ func NewExporter() *Exporter {
 // Start starts to synchronize blockchain data
 func (ex *Exporter) Start(initialHeight int64, op int) {
 	zap.S().Info("Starting Chain Exporter...")
-	zap.S().Infof("Network Type: %s | Version: %s | Commit: %s", ex.config.Node.NetworkType, Version, Commit)
+	zap.S().Infof("Version: %s | Commit: %s", Version, Commit)
 
 	//close grpc
-	defer ex.client.Close()
+	// defer ex.client.Close()
 
 	tick7Sec := time.NewTicker(time.Second * 7)
 	tick20Min := time.NewTicker(time.Minute * 20)
@@ -191,7 +195,7 @@ func (ex *Exporter) sync(initialHeight int64, op int) error {
 	}
 
 	// Query latest block height on the active network
-	latestBlockHeight, err := ex.client.GetLatestBlockHeight()
+	latestBlockHeight, err := ex.client.RPC.GetLatestBlockHeight()
 	if latestBlockHeight == -1 {
 		return fmt.Errorf("failed to query the latest block height on the active network: %s", err)
 	}
@@ -210,11 +214,11 @@ func (ex *Exporter) sync(initialHeight int64, op int) error {
 	zap.S().Infof("dbHeight %d, rawHeight %d \n", dbHeight, rawDBHeight)
 
 	for i := beginHeight + 1; i <= latestBlockHeight; i++ {
-		block, err := ex.client.GetBlock(i)
+		block, err := ex.client.RPC.GetBlock(i)
 		if err != nil {
 			return fmt.Errorf("failed to query block: %s", err)
 		}
-		txs, err := ex.client.GetTxs(block)
+		txs, err := ex.client.CliCtx.GetTxs(block)
 		if err != nil {
 			return fmt.Errorf("failed to get transactions for block: %s", err)
 		}
@@ -275,12 +279,12 @@ func (ex *Exporter) process(block *tmctypes.ResultBlock, txs []*sdktypes.TxRespo
 		}
 
 		if block.Block.LastCommit.Height != 0 {
-			prevBlock, err := ex.client.GetBlock(block.Block.LastCommit.Height)
+			prevBlock, err := ex.client.RPC.GetBlock(block.Block.LastCommit.Height)
 			if err != nil {
 				return fmt.Errorf("failed to query previous block: %s", err)
 			}
 
-			vals, err := ex.client.GetValidators(block.Block.LastCommit.Height, types.DefaultQueryValidatorsPage, types.DefaultQueryValidatorsPerPage)
+			vals, err := ex.client.RPC.GetValidatorsInHeight(block.Block.LastCommit.Height, types.DefaultQueryValidatorsPage, types.DefaultQueryValidatorsPerPage)
 			if err != nil {
 				return fmt.Errorf("failed to query validators: %s", err)
 			}
@@ -298,7 +302,11 @@ func (ex *Exporter) process(block *tmctypes.ResultBlock, txs []*sdktypes.TxRespo
 
 	if exportData.ResultBlock.NumTxs > 0 {
 		if op != REFINE_MODE {
-			exportData.ResultAccounts, err = ex.getAccounts(block, txs)
+			// exportData.ResultAccounts, err = ex.getAccounts(block, txs)
+			// if err != nil {
+			// 	return fmt.Errorf("failed to get accounts: %s", err)
+			// }
+			exportData.ResultAccountCoin, err = ex.getAccounts(block, txs)
 			if err != nil {
 				return fmt.Errorf("failed to get accounts: %s", err)
 			}
@@ -315,7 +323,7 @@ func (ex *Exporter) process(block *tmctypes.ResultBlock, txs []*sdktypes.TxRespo
 		if err != nil {
 			return fmt.Errorf("failed to get txs: %s", err)
 		}
-		exportData.ResultTxsMessages, err = ex.transactionAccount(txs)
+		exportData.ResultTxsAccount, err = ex.transactionAccount(txs)
 		if err != nil {
 			return fmt.Errorf("failed to get account by each tx message: %s", err)
 		}

@@ -21,7 +21,7 @@ func TestMain(m *testing.M) {
 }
 
 func commonTxParser(txHash string) (*sdkTypes.TxResponse, sdktypestx.Tx, error) {
-	txResponse, err := ex.client.GetTx(txHash)
+	txResponse, err := ex.client.CliCtx.GetTx(txHash)
 	if err != nil {
 		return &sdkTypes.TxResponse{}, legacytx.StdTx{}, err
 	}
