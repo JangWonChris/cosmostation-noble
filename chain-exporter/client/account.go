@@ -20,18 +20,18 @@ func (c *Client) GetBaseAccountTotalAsset(address string) (sdktypes.Coin, sdktyp
 		return sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, err
 	}
 
-	spendable := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
+	available := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
 	delegated := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
 	undelegated := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
 	rewards := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
 	commission := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
 
-	available, err := c.GRPC.GetBalance(ctx, denom, address)
+	resAvailable, err := c.GRPC.GetBalance(ctx, denom, address)
 	if err != nil {
 		return sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, err
 	}
-	if available != nil {
-		spendable = spendable.Add(*available)
+	if resAvailable != nil {
+		available = available.Add(*resAvailable)
 	}
 
 	// Get total delegated coins.
@@ -81,5 +81,5 @@ func (c *Client) GetBaseAccountTotalAsset(address string) (sdktypes.Coin, sdktyp
 		commission = commission.Add(comm)
 	}
 
-	return spendable, delegated, undelegated, rewards, commission, nil
+	return available, delegated, undelegated, rewards, commission, nil
 }

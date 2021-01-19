@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -47,6 +48,7 @@ func (db *Database) Ping() error {
 func (db *Database) CreateTables() error {
 	for _, table := range []interface{}{
 		(*schema.Account)(nil),
+		(*schema.AccountCoin)(nil),
 		(*schema.Block)(nil),
 		(*schema.Evidence)(nil),
 		(*schema.Miss)(nil),
@@ -147,42 +149,42 @@ func (db *Database) createIndexes() error {
 // --------------------
 
 // QueryLatestBlockHeight queries latest block height in database
-func (db *Database) QueryLatestBlockHeight() (int64, error) {
-	var block schema.Block
-	err := db.Model(&block).
-		Order("height DESC").
-		Limit(1).
-		Select()
+// func (db *Database) QueryLatestBlockHeight() (int64, error) {
+// 	var block schema.Block
+// 	err := db.Model(&block).
+// 		Order("height DESC").
+// 		Limit(1).
+// 		Select()
 
-	// return 0 when there is no row in result set
-	if err == pg.ErrNoRows {
-		return 0, err
-	}
+// 	// return 0 when there is no row in result set
+// 	if err == pg.ErrNoRows {
+// 		return 0, err
+// 	}
 
-	// return -1 for any type of errors
-	if err != nil {
-		return -1, err
-	}
+// 	// return -1 for any type of errors
+// 	if err != nil {
+// 		return -1, err
+// 	}
 
-	return block.Height, nil
-}
+// 	return block.Height, nil
+// }
 
 // QueryValidators returns all validators.
-func (db *Database) QueryValidators() (validators []schema.Validator, err error) {
-	err = db.Model(&validators).
-		Column("id", "identity", "moniker").
-		Select()
+// func (db *Database) QueryValidators() (validators []schema.Validator, err error) {
+// 	err = db.Model(&validators).
+// 		Column("id", "identity", "moniker").
+// 		Select()
 
-	if err == pg.ErrNoRows {
-		return []schema.Validator{}, nil
-	}
+// 	if err == pg.ErrNoRows {
+// 		return []schema.Validator{}, nil
+// 	}
 
-	if err != nil {
-		return []schema.Validator{}, nil
-	}
+// 	if err != nil {
+// 		return []schema.Validator{}, nil
+// 	}
 
-	return validators, nil
-}
+// 	return validators, nil
+// }
 
 // QueryValidator returns particular validator information.
 // core 에 QueryValidatorByAnyAddr() 함수로 이름 변경 됨
@@ -376,7 +378,9 @@ func (db *Database) QueryAccountMobile(address string) (*schema.AccountMobile, e
 // InsertOrUpdateAccounts inserts if not exist already or update accounts.
 func (db *Database) InsertOrUpdateAccounts(accounts []schema.AccountCoin) error {
 	for _, acc := range accounts {
-		ok, _ := db.ExistAccount(acc.AccountAddress)
+		log.Println(acc.AccountAddress)
+		log.Println(acc.Available)
+		ok, _ := db.ExistAccountAtAccountCoin(acc.AccountAddress)
 		if !ok {
 			err := db.Insert(&acc)
 			if err != nil {
@@ -385,15 +389,15 @@ func (db *Database) InsertOrUpdateAccounts(accounts []schema.AccountCoin) error 
 		} else {
 			_, err := db.Model(&schema.AccountCoin{}).
 				Set("denom = ?", acc.Denom).
-				Set("coins_total = ?", acc.Total).
-				Set("coins_spendable = ?", acc.Available).
-				Set("coins_delegated = ?", acc.Delegated).
-				Set("coins_undelegated = ?", acc.Undelegated).
-				Set("coins_rewards = ?", acc.Rewards).
-				Set("coins_commission = ?", acc.Commission).
-				Set("coins_vesting = ?", acc.Vesting).
-				Set("coins_vested = ?", acc.Vested).
-				Set("coins_failed_vested = ?", acc.FailedVested).
+				Set("total = ?", acc.Total).
+				Set("available = ?", acc.Available).
+				Set("delegated = ?", acc.Delegated).
+				Set("undelegated = ?", acc.Undelegated).
+				Set("rewards = ?", acc.Rewards).
+				Set("commission = ?", acc.Commission).
+				Set("vesting = ?", acc.Vesting).
+				Set("vested = ?", acc.Vested).
+				Set("failed_vested = ?", acc.FailedVested).
 				Set("last_tx = ?", acc.LastTx).
 				Set("last_tx_time = ?", acc.LastTxTime).
 				Where("account_address = ?", acc.AccountAddress).
@@ -490,17 +494,25 @@ func (db *Database) InsertOrUpdateAccounts(accounts []schema.AccountCoin) error 
 // if function returns an error transaction is rollbacked, otherwise transaction is committed.
 func (db *Database) InsertExportedData(e *schema.ExportData) error {
 	err := db.RunInTransaction(func(tx *pg.Tx) error {
-		if e.ResultBlock.BlockHash != "" {
-			err := tx.Insert(&e.ResultBlock)
+		if e.ResultBlock != nil {
+			err := tx.Insert(e.ResultBlock)
 			if err != nil {
 				return fmt.Errorf("failed to insert result block: %s", err)
 			}
 		}
 
 		if len(e.ResultAccounts) > 0 {
+			// err := db.InsertOrUpdateAccounts(e.ResultAccounts)
+			// if err != nil {
+			// 	return fmt.Errorf("failed to insert result accounts: %s", err)
+			// }
+		}
+
+		if len(e.ResultAccountCoin) > 0 {
+			log.Println("insert in ", e.ResultAccountCoin)
 			err := db.InsertOrUpdateAccounts(e.ResultAccountCoin)
 			if err != nil {
-				return fmt.Errorf("failed to insert result accounts: %s", err)
+				return fmt.Errorf("failed to insert result account coin: %s", err)
 			}
 		}
 

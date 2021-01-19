@@ -232,7 +232,7 @@ func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHas
 
 			// acc := account.(*authtypes.BaseAccount)
 
-			spendable, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(acc.GetAddress().String())
+			available, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(acc.GetAddress().String())
 			if err != nil {
 				return []schema.AccountCoin{}, err
 			}
@@ -240,7 +240,7 @@ func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHas
 			total := sdk.NewCoin(denom, sdk.NewInt(0))
 
 			// Sum up all coins that exist in an account.
-			total = total.Add(spendable).
+			total = total.Add(available).
 				Add(delegated).
 				Add(undelegated).
 				Add(rewards).
@@ -251,8 +251,9 @@ func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHas
 				AccountAddress: acc.Address,
 				// AccountNumber:     acc.AccountNumber,
 				// AccountType:       types.BaseAccount,
+				Denom:        denom,
 				Total:        total.Amount.String(),
-				Available:    spendable.Amount.String(),
+				Available:    available.Amount.String(),
 				Rewards:      rewards.Amount.String(),
 				Commission:   commission.Amount.String(),
 				Delegated:    delegated.Amount.String(),
@@ -272,7 +273,7 @@ func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHas
 
 			// acc := account.(authtypes.ModuleAccountI)
 
-			spendable, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(acc.GetAddress().String())
+			available, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(acc.GetAddress().String())
 			if err != nil {
 				return []schema.AccountCoin{}, err
 			}
@@ -280,7 +281,7 @@ func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHas
 			total := sdk.NewCoin(denom, sdk.NewInt(0))
 
 			// Sum up all coins that exist in an account.
-			total = total.Add(spendable).
+			total = total.Add(available).
 				Add(delegated).
 				Add(undelegated).
 				Add(rewards).
@@ -291,8 +292,9 @@ func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHas
 				AccountAddress: acc.GetAddress().String(),
 				// AccountNumber:     acc.GetAccountNumber(),
 				// AccountType:       types.ModuleAccount,
+				Denom:        denom,
 				Total:        total.Amount.String(),
-				Available:    spendable.Amount.String(),
+				Available:    available.Amount.String(),
 				Rewards:      rewards.Amount.String(),
 				Commission:   commission.Amount.String(),
 				Delegated:    delegated.Amount.String(),
@@ -312,7 +314,7 @@ func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHas
 
 			// acc := account.(*authvestingtypes.PeriodicVestingAccount)
 
-			spendable, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(acc.GetAddress().String())
+			available, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(acc.GetAddress().String())
 			if err != nil {
 				return []schema.AccountCoin{}, err
 			}
@@ -348,7 +350,7 @@ func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHas
 			total := sdk.NewCoin(denom, sdk.NewInt(0))
 
 			// Sum up all coins that exist in an account.
-			total = total.Add(spendable).
+			total = total.Add(available).
 				Add(delegated).
 				Add(undelegated).
 				Add(rewards).
@@ -360,8 +362,9 @@ func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHas
 				AccountAddress: acc.Address,
 				// AccountNumber:     acc.AccountNumber,
 				// AccountType:       types.PeriodicVestingAccount,
+				Denom:        denom,
 				Total:        total.Amount.String(),
-				Available:    spendable.Amount.String(),
+				Available:    available.Amount.String(),
 				Rewards:      rewards.Amount.String(),
 				Commission:   commission.Amount.String(),
 				Delegated:    delegated.Amount.String(),
@@ -381,7 +384,7 @@ func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHas
 
 			// acc := account.(*authvestingtypes.DelayedVestingAccount)
 
-			spendable, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(acc.GetAddress().String())
+			available, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(acc.GetAddress().String())
 			if err != nil {
 				return []schema.AccountCoin{}, err
 			}
@@ -417,7 +420,7 @@ func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHas
 			total := sdk.NewCoin(denom, sdk.NewInt(0))
 
 			// Sum up all coins that exist in an account.
-			total = total.Add(spendable).
+			total = total.Add(available).
 				Add(delegated).
 				Add(undelegated).
 				Add(rewards).
@@ -429,8 +432,9 @@ func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHas
 				AccountAddress: acc.Address,
 				// AccountNumber:     acc.AccountNumber,
 				// AccountType:       types.DelayedVestingAccount,
+				Denom:        denom,
 				Total:        total.Amount.String(),
-				Available:    spendable.Amount.String(),
+				Available:    available.Amount.String(),
 				Rewards:      rewards.Amount.String(),
 				Commission:   commission.Amount.String(),
 				Delegated:    delegated.Amount.String(),

@@ -323,7 +323,7 @@ func (ex *Exporter) process(block *tmctypes.ResultBlock, txs []*sdktypes.TxRespo
 		if err != nil {
 			return fmt.Errorf("failed to get txs: %s", err)
 		}
-		exportData.ResultTxsAccount, err = ex.transactionAccount(txs)
+		exportData.ResultTxsAccount, err = ex.transactionAccount(block.Block.ChainID, txs)
 		if err != nil {
 			return fmt.Errorf("failed to get account by each tx message: %s", err)
 		}

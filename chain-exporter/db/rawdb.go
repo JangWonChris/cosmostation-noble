@@ -6,7 +6,7 @@ import (
 	//mbl
 	lconfig "github.com/cosmostation/mintscan-backend-library/config"
 	ldb "github.com/cosmostation/mintscan-backend-library/db"
-	lschema "github.com/cosmostation/mintscan-backend-library/db/schema"
+	"github.com/cosmostation/mintscan-backend-library/db/schema"
 
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
@@ -37,8 +37,8 @@ func (db *RawDatabase) Ping() error {
 // CreateTables creates database tables using ORM (Object Relational Mapper).
 func (db *RawDatabase) CreateTables() error {
 	for _, table := range []interface{}{
-		(*lschema.RawBlock)(nil),
-		(*lschema.RawTransaction)(nil)} {
+		(*schema.RawBlock)(nil),
+		(*schema.RawTransaction)(nil)} {
 
 		err := db.CreateTable(table, &orm.CreateTableOptions{
 			IfNotExists: true,
@@ -64,11 +64,11 @@ func (db *RawDatabase) CreateTables() error {
 // Create B-Tree indexes to reduce the cost of lookup queries
 func (db *RawDatabase) createIndexes() error {
 	db.RunInTransaction(func(tx *pg.Tx) error {
-		_, err := db.Model(lschema.RawTransaction{}).Exec(ldb.GetIndex(lschema.IndexRawTransactionHeight))
+		_, err := db.Model(schema.RawTransaction{}).Exec(ldb.GetIndex(schema.IndexRawTransactionHeight))
 		if err != nil {
 			return fmt.Errorf("failed to create tx hash index: %s", err)
 		}
-		_, err = db.Model(lschema.RawTransaction{}).Exec(ldb.GetIndex(lschema.IndexRawTransactionHash))
+		_, err = db.Model(schema.RawTransaction{}).Exec(ldb.GetIndex(schema.IndexRawTransactionHash))
 		if err != nil {
 			return fmt.Errorf("failed to create tx hash index: %s", err)
 		}
@@ -81,7 +81,7 @@ func (db *RawDatabase) createIndexes() error {
 
 // InsertExportedData saves exported blockchain data
 // if function returns an error transaction is rollbacked, otherwise transaction is committed.
-func (db *RawDatabase) InsertExportedData(e *lschema.ExportRawData) error {
+func (db *RawDatabase) InsertExportedData(e *schema.ExportRawData) error {
 	err := db.RunInTransaction(func(tx *pg.Tx) error {
 		if e.ResultBlockJSONChunk.BlockHash != "" {
 			err := tx.Insert(&e.ResultBlockJSONChunk)
@@ -110,7 +110,7 @@ func (db *RawDatabase) InsertExportedData(e *lschema.ExportRawData) error {
 
 // QueryLatestBlockHeight queries latest block height in database
 func (db *RawDatabase) QueryLatestBlockHeight() (int64, error) {
-	var b lschema.RawBlock
+	var b schema.RawBlock
 	err := db.Model(&b).
 		Order("height DESC").
 		Limit(1).
@@ -130,8 +130,8 @@ func (db *RawDatabase) QueryLatestBlockHeight() (int64, error) {
 }
 
 // QueryLatestBlockHeight queries latest block height in database
-func (db *RawDatabase) GetRawBlock(height int64) ([]lschema.RawBlock, error) {
-	var b []lschema.RawBlock
+func (db *RawDatabase) GetRawBlock(height int64) ([]schema.RawBlock, error) {
+	var b []schema.RawBlock
 	err := db.Model(&b).
 		Where("height >= ?", height).
 		Order("height ASC").
@@ -145,8 +145,8 @@ func (db *RawDatabase) GetRawBlock(height int64) ([]lschema.RawBlock, error) {
 	return b, nil
 }
 
-func (db *RawDatabase) GetRawTransactions(height int64) ([]lschema.RawTransaction, error) {
-	var txs []lschema.RawTransaction
+func (db *RawDatabase) GetRawTransactions(height int64) ([]schema.RawTransaction, error) {
+	var txs []schema.RawTransaction
 	err := db.Model(&txs).
 		Where("height = ?", height).
 		Select()

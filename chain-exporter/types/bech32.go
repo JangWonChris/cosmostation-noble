@@ -3,12 +3,12 @@ package types
 // "github.com/tendermint/tendermint/libs/bech32"
 
 // SetAppConfig creates a new config instance for the SDK configuration.
-// func SetAppConfig() {
-// 	config := sdk.GetConfig()
-// 	SetBech32AddressPrefixes(config)
-// 	SetBip44CoinType(config)
-// 	config.Seal()
-// }
+func SetAppConfig() {
+	// 	config := sdk.GetConfig()
+	// 	SetBech32AddressPrefixes(config)
+	// 	SetBip44CoinType(config)
+	// 	config.Seal()
+}
 
 // SetBech32AddressPrefixes sets the global prefix to be used when serializing addresses to bech32 strings.
 // func SetBech32AddressPrefixes(config *sdk.Config) {

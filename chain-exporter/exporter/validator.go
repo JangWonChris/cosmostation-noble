@@ -319,7 +319,7 @@ func (ex *Exporter) getEvidence(block *tmctypes.ResultBlock) ([]schema.Evidence,
 // bonded, unbonding, unbonded and save them in database.
 func (ex *Exporter) saveValidators() {
 	ctx := context.Background()
-	bondedVals, err := ex.client.GRPC.GetValidatorsByStatus(ctx, stakingtypes.Bonded)
+	bondedVals, err := ex.client.GetValidatorsByStatus(ctx, stakingtypes.Bonded)
 	if err != nil {
 		zap.S().Errorf("failed to get bonded validators: %s", err)
 		return
@@ -332,7 +332,7 @@ func (ex *Exporter) saveValidators() {
 		return
 	}
 
-	unbondingVals, err := ex.client.GRPC.GetValidatorsByStatus(ctx, stakingtypes.Unbonding)
+	unbondingVals, err := ex.client.GetValidatorsByStatus(ctx, stakingtypes.Unbonding)
 	if err != nil {
 		zap.S().Errorf("failed to get unbonding validators: %s", err)
 		return
@@ -353,7 +353,7 @@ func (ex *Exporter) saveValidators() {
 		}
 	}
 
-	unbondedVals, err := ex.client.GRPC.GetValidatorsByStatus(ctx, stakingtypes.Unbonded)
+	unbondedVals, err := ex.client.GetValidatorsByStatus(ctx, stakingtypes.Unbonded)
 	if err != nil {
 		zap.S().Errorf("failed to get unbonded validators: %s", err)
 		return

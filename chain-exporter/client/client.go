@@ -3,15 +3,14 @@ package client
 import (
 
 	// cosmos-sdk
-
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
-	//product
+	//internal
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
+
+	//mbl
 	lclient "github.com/cosmostation/mintscan-backend-library/client"
 	"github.com/cosmostation/mintscan-backend-library/config"
-	// tendermint
-	//etc
 )
 
 // Client implements a wrapper around both Tendermint RPC HTTP client and
