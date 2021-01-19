@@ -22,18 +22,12 @@ import (
 var cli *Client
 
 func TestMain(m *testing.M) {
-	log.Println("testmain start")
 	cfg := config.ParseConfig()
-	var err error
-	cli, err = NewClient(&cfg.Client)
-	if err != nil {
-		log.Println(err)
-		os.Exit(1)
-	}
+
+	cli = NewClient(&cfg.Client)
 
 	os.Exit(m.Run())
 
-	log.Println("testmain end")
 }
 
 func TestGetAccount(t *testing.T) {

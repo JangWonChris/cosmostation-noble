@@ -5,7 +5,7 @@ go 1.15
 require (
 	github.com/cosmos/cosmos-sdk v0.40.0
 	github.com/cosmos/gaia/v3 v3.0.0
-	github.com/cosmostation/mintscan-backend-library v0.0.0-20210119065050-3227d7501e70
+	github.com/cosmostation/mintscan-backend-library v0.0.0-20210119170926-440efb4265df
 	github.com/go-pg/pg v8.0.7+incompatible
 	github.com/go-resty/resty/v2 v2.3.0
 	github.com/google/go-cmp v0.5.2 // indirect

@@ -21,7 +21,7 @@ type Client struct {
 
 // NewClient creates a new client with the given configuration and
 // return Client struct. An error is returned if it fails.
-func NewClient(cfg *config.ClientConfig) (*Client, error) {
+func NewClient(cfg *config.ClientConfig) *Client {
 	client := lclient.NewClient(cfg)
 
 	client.CliCtx.Context = client.CliCtx.Context.
@@ -31,5 +31,5 @@ func NewClient(cfg *config.ClientConfig) (*Client, error) {
 		WithInterfaceRegistry(codec.EncodingConfig.InterfaceRegistry).
 		WithAccountRetriever(authtypes.AccountRetriever{})
 
-	return &Client{client}, nil
+	return &Client{client}
 }

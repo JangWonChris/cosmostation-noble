@@ -49,16 +49,12 @@ func NewExporter() *Exporter {
 
 	// Create new client with node configruation.
 	// Client is used for requesting any type of network data from RPC full node and REST Server.
-	client, err := client.NewClient(&config.Client)
-	if err != nil {
-		zap.L().Error("failed to create new client", zap.Error(err))
-		return &Exporter{}
-	}
+	client := client.NewClient(&config.Client)
 
 	// Create connection with PostgreSQL database and
 	// Ping database to verify connection is success.
 	database := db.Connect(&config.DB)
-	err = database.Ping()
+	err := database.Ping()
 	if err != nil {
 		zap.L().Error("failed to ping database", zap.Error(err))
 		return &Exporter{}
