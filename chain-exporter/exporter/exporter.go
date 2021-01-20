@@ -8,17 +8,18 @@ import (
 
 	"go.uber.org/zap"
 
-	// mbl
+	//internal
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/client"
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/custom"
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/db"
 
+	// mbl
 	"github.com/cosmostation/mintscan-backend-library/config"
 	"github.com/cosmostation/mintscan-backend-library/db/schema"
 	"github.com/cosmostation/mintscan-backend-library/types"
 
 	// sdk
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/client"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/db"
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
@@ -50,7 +51,7 @@ func NewExporter() *Exporter {
 	// Create new client with node configruation.
 	// Client is used for requesting any type of network data from RPC full node and REST Server.
 	client := client.NewClient(&config.Client)
-
+	custom.SetAppConfig()
 	// Create connection with PostgreSQL database and
 	// Ping database to verify connection is success.
 	database := db.Connect(&config.DB)
@@ -161,7 +162,7 @@ func (ex *Exporter) Refine(op int) error {
 				}
 				for i, t := range ts {
 					tx := new(sdktypes.TxResponse)
-					if err := codec.AppCodec.UnmarshalJSON([]byte(t.Chunk), tx); err != nil {
+					if err := custom.AppCodec.UnmarshalJSON([]byte(t.Chunk), tx); err != nil {
 						return err
 					}
 					txs[i] = tx

@@ -9,7 +9,7 @@ import (
 	"time"
 
 	//internal
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/custom"
 	//mbl
 	"github.com/cosmostation/mintscan-backend-library/db/schema"
 
@@ -46,8 +46,8 @@ func TestGetGenesisStateFromGenesisFile(t *testing.T) {
 	}
 	// a := appState[authtypes.ModuleName]
 	// log.Println(string(a)) //print message that key is auth {...}
-	authGenesisState := authtypes.GetGenesisStateFromAppState(codec.AppCodec, appState)
-	stakingGenesisState := stakingtypes.GetGenesisStateFromAppState(codec.AppCodec, appState)
+	authGenesisState := authtypes.GetGenesisStateFromAppState(custom.AppCodec, appState)
+	stakingGenesisState := stakingtypes.GetGenesisStateFromAppState(custom.AppCodec, appState)
 	bondDenom := stakingGenesisState.Params.BondDenom
 	lastValidatorPowers := stakingGenesisState.GetLastValidatorPowers()
 	for _, val := range lastValidatorPowers {
@@ -56,7 +56,7 @@ func TestGetGenesisStateFromGenesisFile(t *testing.T) {
 	os.Exit(0)
 	var distributionGenesisState distributiontypes.GenesisState
 	if appState[distributiontypes.ModuleName] != nil {
-		codec.AppCodec.MustUnmarshalJSON(appState[distributiontypes.ModuleName], &distributionGenesisState)
+		custom.AppCodec.MustUnmarshalJSON(appState[distributiontypes.ModuleName], &distributionGenesisState)
 		log.Println("abcded :", distributionGenesisState.DelegatorStartingInfos[0].DelegatorAddress)
 		log.Println("counts :", len(distributionGenesisState.DelegatorStartingInfos))
 	}
@@ -67,7 +67,7 @@ func TestGetGenesisStateFromGenesisFile(t *testing.T) {
 	accountMapper := make(map[string]*schema.AccountCoin, NumberOfTotalAccounts)
 	for _, authAcc := range authAccs {
 		var ga authtypes.GenesisAccount
-		codec.AppCodec.UnpackAny(authAcc, &ga)
+		custom.AppCodec.UnpackAny(authAcc, &ga)
 		switch ga := ga.(type) {
 		case *authtypes.BaseAccount:
 		case *authvestingtypes.DelayedVestingAccount:
@@ -108,7 +108,7 @@ func TestGetGenesisStateFromGenesisFile(t *testing.T) {
 	}
 
 	balIter := banktypes.GenesisBalancesIterator{}
-	balIter.IterateGenesisBalances(codec.AppCodec, appState,
+	balIter.IterateGenesisBalances(custom.AppCodec, appState,
 		func(bal bankexported.GenesisBalance) (stop bool) {
 			accAddress := bal.GetAddress()
 			accCoins := bal.GetCoins()

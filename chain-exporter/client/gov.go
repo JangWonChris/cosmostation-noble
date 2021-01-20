@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/custom"
 	"github.com/cosmostation/mintscan-backend-library/db/schema"
 
 	// cosmos-sdk
@@ -35,7 +35,7 @@ func (c *Client) GetProposals() (result []schema.Proposal, err error) {
 
 	for _, proposal := range resp.Proposals {
 		var contentI govtypes.Content
-		err = codec.AppCodec.UnpackAny(proposal.Content, &contentI)
+		err = custom.AppCodec.UnpackAny(proposal.Content, &contentI)
 		if err != nil {
 			log.Println(err)
 		}

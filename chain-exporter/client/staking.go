@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/custom"
 	"github.com/cosmostation/mintscan-backend-library/db/schema"
 	"github.com/cosmostation/mintscan-backend-library/types"
 
@@ -34,7 +34,7 @@ func (c *Client) GetValidatorsByStatus(ctx context.Context, status stakingtypes.
 		}
 
 		var conspubkey cryptotypes.PubKey
-		codec.AppCodec.UnpackAny(val.ConsensusPubkey, &conspubkey)
+		custom.AppCodec.UnpackAny(val.ConsensusPubkey, &conspubkey)
 
 		valconspub, err := sdktypes.Bech32ifyPubKey(sdktypes.Bech32PubKeyTypeConsPub, conspubkey)
 		if err != nil {
@@ -86,7 +86,7 @@ func (c *Client) GetValidatorsByStatus(ctx context.Context, status stakingtypes.
 // 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 // 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
-// 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
+// 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/custom"
 // 	"github.com/cosmostation/mintscan-backend-library/types"
 
 // 	// mbl
@@ -144,7 +144,7 @@ func (c *Client) GetValidatorsByStatus(ctx context.Context, status stakingtypes.
 // 		}
 
 // 		var conspubkey cryptotypes.PubKey
-// 		codec.AppCodec.UnpackAny(val.ConsensusPubkey, &conspubkey)
+// 		custom.AppCodec.UnpackAny(val.ConsensusPubkey, &conspubkey)
 
 // 		valconspub, err := sdktypes.Bech32ifyPubKey(sdktypes.Bech32PubKeyTypeConsPub, conspubkey)
 // 		if err != nil {

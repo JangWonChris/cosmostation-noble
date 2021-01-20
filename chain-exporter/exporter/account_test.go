@@ -7,7 +7,7 @@ import (
 
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	authvestingtypes "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/custom"
 )
 
 func TestAccounts(t *testing.T) {
@@ -28,7 +28,7 @@ func TestAccounts(t *testing.T) {
 
 	acc := accountResp.GetAccount()
 	var ai authtypes.AccountI
-	codec.AppCodec.UnpackAny(acc, &ai)
+	custom.AppCodec.UnpackAny(acc, &ai)
 
 	switch ai := ai.(type) {
 	case *authtypes.ModuleAccount:

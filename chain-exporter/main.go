@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/exporter"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 	"go.uber.org/zap"
 )
 
@@ -14,7 +13,7 @@ func main() {
 	mode := flag.String("mode", "basic", "chain-exporter mode \n  - basic : default, will store current chain status\n  - raw : will only store jsonRawMessage of block and transaction to database\n  - refine : refine new data from database the legacy chain stored\n  - genesis : extract genesis state from the given file")
 	initialHeight := flag.Int64("initial-height", 0, "initial height of chain-exporter to sync")
 	genesisFilePath := flag.String("genesis-file-path", "", "absolute path of genesis.json")
-	types.SetAppConfig()
+	custom.SetAppConfig()
 	flag.Parse()
 
 	log.Println("mode : ", *mode)

@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/custom"
 	"github.com/cosmostation/mintscan-backend-library/types"
 
 	//mbl
@@ -61,8 +61,8 @@ func (ex *Exporter) GetGenesisStateFromGenesisFile(genesisPath string) (err erro
 	}
 	// a := genesisState[authtypes.ModuleName]
 	// log.Println(string(a)) //print message that key is auth {...}
-	authGenesisState := authtypes.GetGenesisStateFromAppState(codec.AppCodec, genesisState)
-	stakingGenesisState := stakingtypes.GetGenesisStateFromAppState(codec.AppCodec, genesisState)
+	authGenesisState := authtypes.GetGenesisStateFromAppState(custom.AppCodec, genesisState)
+	stakingGenesisState := stakingtypes.GetGenesisStateFromAppState(custom.AppCodec, genesisState)
 	bondDenom := stakingGenesisState.GetParams().BondDenom
 
 	authAccs := authGenesisState.GetAccounts()
@@ -70,7 +70,7 @@ func (ex *Exporter) GetGenesisStateFromGenesisFile(genesisPath string) (err erro
 	accountMapper := make(map[string]*lschema.AccountCoin, NumberOfTotalAccounts)
 	for _, authAcc := range authAccs {
 		var ga authtypes.GenesisAccount
-		codec.AppCodec.UnpackAny(authAcc, &ga)
+		custom.AppCodec.UnpackAny(authAcc, &ga)
 		switch ga := ga.(type) {
 		case *authtypes.BaseAccount:
 		case *authvestingtypes.DelayedVestingAccount:
@@ -105,7 +105,7 @@ func (ex *Exporter) GetGenesisStateFromGenesisFile(genesisPath string) (err erro
 	}
 
 	balIter := banktypes.GenesisBalancesIterator{}
-	balIter.IterateGenesisBalances(codec.AppCodec, genesisState,
+	balIter.IterateGenesisBalances(custom.AppCodec, genesisState,
 		func(bal bankexported.GenesisBalance) (stop bool) {
 			accAddress := bal.GetAddress()
 			accCoins := bal.GetCoins()

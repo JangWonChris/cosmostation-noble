@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"log"
 
-	ceCodec "github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
+	// internal
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/custom"
 
 	// core
 	"github.com/cosmostation/mintscan-backend-library/db/schema"
@@ -36,7 +37,7 @@ func (ex *Exporter) getTxs(block *tmctypes.ResultBlock, txResps []*sdktypes.TxRe
 		jsonRaws := make([]json.RawMessage, len(msgs), len(msgs))
 		var err error
 		for i, msg := range msgs {
-			jsonRaws[i], err = ceCodec.AppCodec.MarshalJSON(msg)
+			jsonRaws[i], err = custom.AppCodec.MarshalJSON(msg)
 			if err != nil {
 				return txs, fmt.Errorf("failed to marshal message of transaction : %s", err)
 			}
@@ -46,7 +47,7 @@ func (ex *Exporter) getTxs(block *tmctypes.ResultBlock, txResps []*sdktypes.TxRe
 			return txs, fmt.Errorf("failed to marshal set of transactions : %s", err)
 		}
 
-		feeBz, err := ceCodec.AppCodec.MarshalJSON(tx.GetAuthInfo().GetFee())
+		feeBz, err := custom.AppCodec.MarshalJSON(tx.GetAuthInfo().GetFee())
 		if err != nil {
 			return txs, fmt.Errorf("failed to marshal tx fee: %s", err)
 		}
@@ -100,7 +101,7 @@ func (ex *Exporter) getTxsJSONChunk(block *tmctypes.ResultBlock, txResps []*sdkt
 	}
 
 	for i, txResp := range txResps {
-		chunk, err := ceCodec.AppCodec.MarshalJSON(txResp)
+		chunk, err := custom.AppCodec.MarshalJSON(txResp)
 		if err != nil {
 			log.Println(err)
 			return txChunk, fmt.Errorf("failed to marshal tx : %s", err)
@@ -138,11 +139,16 @@ func (ex *Exporter) transactionAccount(chainID string, txResps []*sdktypes.TxRes
 
 			// 코스모스 기본 메세지 타입이 아니면, msgType이 비어있다.
 			if msgType == "" {
-				fmt.Printf("Undefined msg Type : %T(hash = %s)\n", txResp.TxHash, msg)
+				msgType, accounts = custom.AccountExporterFromCustomTxMsg(&msg, txResp.TxHash)
+				if msgType == "" {
+					fmt.Printf("Undefined msg Type : %T(hash = %s)\n", msg, txResp.TxHash)
+				}
 			}
-			sub := getAccountSlice(chainID, msgType, height, txHash, accounts...)
-			// Tx 내에서 발생한 msg별로 어카운트를 수집했으므로, 슬라이스에 저장한다.
-			tms = append(tms, sub...)
+			if len(accounts) > 0 {
+				sub := getAccountSlice(chainID, msgType, height, txHash, accounts...)
+				// Tx 내에서 발생한 msg별로 어카운트를 수집했으므로, 슬라이스에 저장한다.
+				tms = append(tms, sub...)
+			}
 		} // end msgs for loop
 
 	} // 모든 tx 완료

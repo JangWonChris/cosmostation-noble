@@ -1,4 +1,4 @@
-package types
+package custom
 
 // "github.com/tendermint/tendermint/libs/bech32"
 

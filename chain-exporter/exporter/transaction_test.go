@@ -6,10 +6,13 @@ import (
 	"log"
 	"testing"
 
+	//internal
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/custom"
+
+	//cosmos-sdk
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	sdktypestx "github.com/cosmos/cosmos-sdk/types/tx"
-	ceCodec "github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
 	"github.com/stretchr/testify/require"
 )
 
@@ -51,7 +54,7 @@ func TestGetTxsChunk(t *testing.T) {
 func InsertJSONStringToDB(txResps []*sdktypes.TxResponse) ([]string, error) {
 	jsonString := make([]string, len(txResps), len(txResps))
 	for i, txResp := range txResps {
-		chunk, err := ceCodec.AppCodec.MarshalJSON(txResp)
+		chunk, err := custom.AppCodec.MarshalJSON(txResp)
 		if err != nil {
 			log.Println(err)
 		}
@@ -66,7 +69,7 @@ func InsertJSONStringToDB(txResps []*sdktypes.TxResponse) ([]string, error) {
 func JSONStringUnmarshal(jsonString []string) error {
 	txResps := make([]sdktypes.TxResponse, len(jsonString), len(jsonString))
 	for i, js := range jsonString {
-		err := ceCodec.AppCodec.UnmarshalJSON([]byte(js), &txResps[i])
+		err := custom.AppCodec.UnmarshalJSON([]byte(js), &txResps[i])
 		if err != nil {
 			log.Println(err)
 			return err
@@ -100,7 +103,7 @@ func TestGetMessage(t *testing.T) {
 		msgjson := make([]json.RawMessage, len(getMessages), len(getMessages))
 		var err error
 		for i, msg := range getMessages {
-			msgjson[i], err = ceCodec.AppCodec.MarshalJSON(msg)
+			msgjson[i], err = custom.AppCodec.MarshalJSON(msg)
 			if err != nil {
 				fmt.Println(err)
 				return
@@ -122,7 +125,7 @@ func TestUnmarshalMessageString(t *testing.T) {
 	for _, raw := range jsonRaws {
 		fmt.Println(string(raw))
 		var any codectypes.Any
-		ceCodec.AppCodec.UnmarshalJSON(raw, &any)
+		custom.AppCodec.UnmarshalJSON(raw, &any)
 		fmt.Println(any.TypeUrl)
 		// any.GetCachedValue().(type)
 		fmt.Println(any.GetCachedValue())

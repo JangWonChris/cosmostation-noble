@@ -6,7 +6,7 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	//internal
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/codec"
+	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/custom"
 
 	//mbl
 	lclient "github.com/cosmostation/mintscan-backend-library/client"
@@ -25,10 +25,10 @@ func NewClient(cfg *config.ClientConfig) *Client {
 	client := lclient.NewClient(cfg)
 
 	client.CliCtx.Context = client.CliCtx.Context.
-		WithJSONMarshaler(codec.EncodingConfig.Marshaler).
-		WithLegacyAmino(codec.EncodingConfig.Amino).
-		WithTxConfig(codec.EncodingConfig.TxConfig).
-		WithInterfaceRegistry(codec.EncodingConfig.InterfaceRegistry).
+		WithJSONMarshaler(custom.EncodingConfig.Marshaler).
+		WithLegacyAmino(custom.EncodingConfig.Amino).
+		WithTxConfig(custom.EncodingConfig.TxConfig).
+		WithInterfaceRegistry(custom.EncodingConfig.InterfaceRegistry).
 		WithAccountRetriever(authtypes.AccountRetriever{})
 
 	return &Client{client}
