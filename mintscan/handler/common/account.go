@@ -279,7 +279,7 @@ func GetDelegatorUndelegations(rw http.ResponseWriter, r *http.Request) {
 // GetDelegatorUnbondingDelegations returns unbonding delegations from a delegator
 func GetDelegatorUnbondingDelegations(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	accAddr := vars["delAddr"]
+	accAddr := vars["accAddr"]
 
 	err := model.VerifyBech32AccAddr(accAddr)
 	if err != nil {
