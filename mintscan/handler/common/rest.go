@@ -34,7 +34,8 @@ func RegisterHandlers(session *handler.Session, r *mux.Router) {
 	r.HandleFunc("/staking/validator/uptime/range/{address}", GetValidatorUptimeRange).Methods("GET")
 	r.HandleFunc("/staking/validator/delegations/{address}", GetValidatorDelegations).Methods("GET")
 	r.HandleFunc("/staking/validator/events/{address}", GetValidatorPowerHistoryEvents).Methods("GET")
-	r.HandleFunc("/staking/redelegations", GetRedelegations).Methods("GET")
+	r.HandleFunc("/staking/redelegations", GetRedelegationsLegacy).Methods("GET")
+	// r.HandleFunc("/staking/redelegations", GetRedelegations).Methods("GET")
 	r.HandleFunc("/status", GetStatus).Methods("GET")
 	r.HandleFunc("/stats/market", GetMarketStats).Methods("GET")
 	r.HandleFunc("/stats/network", GetNetworkStats).Methods("GET")
@@ -50,7 +51,7 @@ func RegisterHandlers(session *handler.Session, r *mux.Router) {
 	// r.HandleFunc("/module/accounts", GetModuleAccounts).Methods("GET")                                                // (변경) /account/module_accounts
 	r.HandleFunc("/account/total/balance/{accAddr}", GetTotalBalance).Methods("GET")                                  // (변경) /account/balances/{accAddr}
 	r.HandleFunc("/blocks/{proposer}", GetBlocksByProposer).Methods("GET")                                            // (변경) /staking/validator/blocks/{proposer}
-	r.HandleFunc("/account/unbonding_delegations/{accAddr}", GetDelegatorUndelegations).Methods("GET")                // (변경) /account/undelegations/{accAddr}
+	r.HandleFunc("/account/unbonding_delegations/{accAddr}", GetDelegatorUnbondingDelegations).Methods("GET")         // (변경) /account/undelegations/{accAddr}
 	r.HandleFunc("/distribution/delegators/{delAddr}/withdraw_address", GetDelegatorWithdrawalAddress).Methods("GET") // (포함) /account/balances/{accAddr}
 
 	// 부연님 커미션 조회할때 사용하는 api
