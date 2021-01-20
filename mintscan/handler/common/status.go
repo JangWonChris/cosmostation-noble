@@ -1,4 +1,4 @@
-package handler
+package common
 
 import (
 	"context"
@@ -41,14 +41,14 @@ func SetStatus() error {
 		return fmt.Errorf("Session is not initialized")
 	}
 
-	stakingQueryClient := stakingtypes.NewQueryClient(s.client.GetCLIContext())
+	stakingQueryClient := stakingtypes.NewQueryClient(s.Client.GetCLIContext())
 	pool, err := stakingQueryClient.Pool(context.Background(), &stakingtypes.QueryPoolRequest{})
 	if err != nil {
 		zap.L().Error("failed to get staking pool", zap.Error(err))
 		return err
 	}
 
-	bankQueryClient := banktypes.NewQueryClient(s.client.GetCLIContext())
+	bankQueryClient := banktypes.NewQueryClient(s.Client.GetCLIContext())
 	coins, err := bankQueryClient.TotalSupply(context.Background(), &banktypes.QueryTotalSupplyRequest{})
 	if err != nil {
 		zap.L().Error("failed to get supply total", zap.Error(err))
@@ -57,19 +57,19 @@ func SetStatus() error {
 
 	notBondedTokens, _ := strconv.ParseFloat(pool.Pool.NotBondedTokens.String(), 64)
 	bondedTokens, _ := strconv.ParseFloat(pool.Pool.BondedTokens.String(), 64)
-	bondedValsNum, _ := s.db.CountValidatorsByStatus(int(stakingtypes.Bonded))
-	unbondingValsNum, _ := s.db.CountValidatorsByStatus(int(stakingtypes.Unbonding))
-	unbondedValsNum, _ := s.db.CountValidatorsByStatus(int(stakingtypes.Unbonded))
-	totalTxsNum := s.db.QueryTotalTransactionNum()
+	bondedValsNum, _ := s.DB.CountValidatorsByStatus(int(stakingtypes.Bonded))
+	unbondingValsNum, _ := s.DB.CountValidatorsByStatus(int(stakingtypes.Unbonding))
+	unbondedValsNum, _ := s.DB.CountValidatorsByStatus(int(stakingtypes.Unbonded))
+	totalTxsNum := s.DB.QueryTotalTransactionNum()
 
-	status, err := s.client.RPC.GetStatus()
+	status, err := s.Client.RPC.GetStatus()
 	if err != nil {
 		zap.L().Error("failed to get chain status", zap.Error(err))
 		return err
 	}
 
 	// Query two latest blocks to calculate block time.
-	latestTwoBlocks, _ := s.db.QueryLastestTwoBlocks()
+	latestTwoBlocks, _ := s.DB.QueryLastestTwoBlocks()
 	if len(latestTwoBlocks) <= 1 {
 		zap.L().Debug("failed to query two latest blocks", zap.Any("blocks", latestTwoBlocks))
 		return err

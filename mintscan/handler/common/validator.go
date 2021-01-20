@@ -1,4 +1,4 @@
-package handler
+package common
 
 import (
 	"context"
@@ -29,14 +29,14 @@ func GetValidators(rw http.ResponseWriter, r *http.Request) {
 
 	switch status {
 	case model.ActiveValidator:
-		vals, _ = s.db.QueryValidatorsByStatus(int(stakingtypes.Bonded))
+		vals, _ = s.DB.QueryValidatorsByStatus(int(stakingtypes.Bonded))
 	case model.InactiveValidator:
-		unbondingVals, _ := s.db.QueryValidatorsByStatus(int(stakingtypes.Unbonding))
-		unbondedVals, _ := s.db.QueryValidatorsByStatus(int(stakingtypes.Unbonded))
+		unbondingVals, _ := s.DB.QueryValidatorsByStatus(int(stakingtypes.Unbonding))
+		unbondedVals, _ := s.DB.QueryValidatorsByStatus(int(stakingtypes.Unbonded))
 		vals = append(vals, unbondingVals...)
 		vals = append(vals, unbondedVals...)
 	default:
-		vals, _ = s.db.QueryValidators()
+		vals, _ = s.DB.QueryValidators()
 	}
 
 	if len(vals) <= 0 {
@@ -52,7 +52,7 @@ func GetValidators(rw http.ResponseWriter, r *http.Request) {
 		return tk1 > tk2
 	})
 
-	latestDBHeight, err := s.db.QueryLatestBlockHeight()
+	latestDBHeight, err := s.DB.QueryLatestBlockHeight()
 	if err != nil {
 		zap.S().Errorf("failed to query latest block height: %s", err)
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -66,7 +66,7 @@ func GetValidators(rw http.ResponseWriter, r *http.Request) {
 		missBlockCount := model.MissingAllBlocks
 
 		if val.Status == int(stakingtypes.Bonded) {
-			blocks, err := s.db.QueryValidatorUptime(val.Proposer, latestDBHeight-1)
+			blocks, err := s.DB.QueryValidatorUptime(val.Proposer, latestDBHeight-1)
 			if err != nil {
 				zap.S().Errorf("failed to query validator's missing blocks: %s", err)
 				errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -118,7 +118,7 @@ func GetValidator(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	address := vars["address"]
 
-	val, err := s.db.QueryValidatorByAnyAddr(address)
+	val, err := s.DB.QueryValidatorByAnyAddr(address)
 	if err != nil {
 		zap.S().Errorf("failed to query validator information: %s", err)
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -130,7 +130,7 @@ func GetValidator(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	latestDBHeight, err := s.db.QueryLatestBlockHeight()
+	latestDBHeight, err := s.DB.QueryLatestBlockHeight()
 	if err != nil {
 		zap.S().Errorf("failed to query latest block height: %s", err)
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -141,7 +141,7 @@ func GetValidator(rw http.ResponseWriter, r *http.Request) {
 	missBlockCount := model.MissingAllBlocks
 
 	if val.Status == int(stakingtypes.Bonded) {
-		blocks, err := s.db.QueryValidatorUptime(val.Proposer, latestDBHeight-1)
+		blocks, err := s.DB.QueryValidatorUptime(val.Proposer, latestDBHeight-1)
 		if err != nil {
 			zap.S().Errorf("failed to query validator's missing blocks: %s", err)
 			errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -157,7 +157,7 @@ func GetValidator(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Query a validator's bonded information
-	powerEventHistory, _ := s.db.QueryValidatorBondedInfo(val.Proposer)
+	powerEventHistory, _ := s.DB.QueryValidatorBondedInfo(val.Proposer)
 
 	result := &model.ResultValidatorDetail{
 		Rank:            val.Rank,
@@ -199,7 +199,7 @@ func GetValidatorUptime(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	address := vars["address"]
 
-	val, err := s.db.QueryValidatorByAnyAddr(address)
+	val, err := s.DB.QueryValidatorByAnyAddr(address)
 	if err != nil {
 		zap.S().Errorf("failed to query validator information: %s", err)
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -211,7 +211,7 @@ func GetValidatorUptime(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	latestDBHeight, err := s.db.QueryLatestBlockHeight()
+	latestDBHeight, err := s.DB.QueryLatestBlockHeight()
 	if err != nil {
 		zap.S().Errorf("failed to query latest block height: %s", err)
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -222,7 +222,7 @@ func GetValidatorUptime(rw http.ResponseWriter, r *http.Request) {
 	result.LatestHeight = latestDBHeight - 1
 
 	// Query missing blocks for the last 100 blocks
-	blocks, err := s.db.QueryValidatorUptime(val.Proposer, result.LatestHeight)
+	blocks, err := s.DB.QueryValidatorUptime(val.Proposer, result.LatestHeight)
 	if err != nil {
 		zap.S().Errorf("failed to query validator's missing blocks: %s", err)
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -253,7 +253,7 @@ func GetValidatorUptimeRange(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	address := vars["address"]
 
-	val, err := s.db.QueryValidatorByAnyAddr(address)
+	val, err := s.DB.QueryValidatorByAnyAddr(address)
 	if err != nil {
 		zap.L().Debug("failed to query validator info", zap.Error(err))
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -265,7 +265,7 @@ func GetValidatorUptimeRange(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	blocks, err := s.db.QueryValidatorUptimeRange(val.Proposer)
+	blocks, err := s.DB.QueryValidatorUptimeRange(val.Proposer)
 	if len(blocks) <= 0 {
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
 		return
@@ -293,14 +293,14 @@ func GetValidatorDelegations(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	address := vars["address"]
 
-	val, err := s.db.QueryValidatorByAnyAddr(address)
+	val, err := s.DB.QueryValidatorByAnyAddr(address)
 	if err != nil {
 		zap.L().Error("failed to query validator info", zap.Error(err))
 		errors.ErrNotExist(rw, http.StatusNotFound)
 		return
 	}
 
-	queryClient := stakingtypes.NewQueryClient(s.client.GetCLIContext())
+	queryClient := stakingtypes.NewQueryClient(s.Client.GetCLIContext())
 	request := stakingtypes.QueryValidatorDelegationsRequest{ValidatorAddr: val.OperatorAddress}
 	res, err := queryClient.ValidatorDelegations(context.Background(), &request)
 	if err != nil {
@@ -329,7 +329,7 @@ func GetValidatorDelegations(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// query delegation change rate in 24 hours by 24 rows order by descending id
-	validatorStats, _ := s.db.QueryValidatorStats1D(val.Proposer, 2)
+	validatorStats, _ := s.DB.QueryValidatorStats1D(val.Proposer, 2)
 
 	delegatorNumChange24H := int(0)
 	latestDelegatorNum := int(0)
@@ -368,7 +368,7 @@ func GetValidatorPowerHistoryEvents(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	val, err := s.db.QueryValidatorByAnyAddr(address)
+	val, err := s.DB.QueryValidatorByAnyAddr(address)
 	if err != nil {
 		zap.S().Errorf("failed to query validator information: %s", err)
 		return
@@ -381,7 +381,7 @@ func GetValidatorPowerHistoryEvents(rw http.ResponseWriter, r *http.Request) {
 
 	// Note that saome validators existed in cosmoshub-1 or cosmoshub-2, but not in cosmoshub-3
 	// They won't have any power event history, so return empty array for client to handle this
-	validatorID, _ := s.db.QueryValidatorByID(val.Proposer)
+	validatorID, _ := s.DB.QueryValidatorByID(val.Proposer)
 	if validatorID == 0 {
 		model.Respond(rw, []model.ResultPowerEventHistory{})
 		return
@@ -392,7 +392,7 @@ func GetValidatorPowerHistoryEvents(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	events, err := s.db.QueryValidatorVotingPowerEventHistory(validatorID, before, after, limit)
+	events, err := s.DB.QueryValidatorVotingPowerEventHistory(validatorID, before, after, limit)
 	if err != nil {
 		zap.L().Error("failed to query power event history", zap.Error(err))
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -424,7 +424,7 @@ func GetValidatorEventsTotalCount(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	address := vars["address"]
 
-	val, err := s.db.QueryValidatorByAnyAddr(address)
+	val, err := s.DB.QueryValidatorByAnyAddr(address)
 	if err != nil {
 		zap.S().Errorf("failed to query validator information: %s", err)
 		return
@@ -435,7 +435,7 @@ func GetValidatorEventsTotalCount(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	count, _ := s.db.CountPowerEventHistoryTransactions(val.Proposer)
+	count, _ := s.DB.CountPowerEventHistoryTransactions(val.Proposer)
 
 	result := &model.ResultVotingPowerHistoryCount{
 		Moniker:         val.Moniker,
@@ -454,7 +454,7 @@ func GetRedelegationsLegacy(rw http.ResponseWriter, r *http.Request) {
 		delAddr = r.URL.Query()["delegator"][0]
 	}
 
-	res, err := s.client.GRPC.GetRedelegations(r.Context(), delAddr, "", "")
+	res, err := s.Client.GRPC.GetRedelegations(r.Context(), delAddr, "", "")
 	if err != nil {
 		zap.L().Error("failed to get all redelegations from a validator", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -479,7 +479,7 @@ func GetRedelegations(rw http.ResponseWriter, r *http.Request) {
 	if len(r.URL.Query()["dst_validator_addr"]) > 0 {
 		dstValidatorAddress = r.URL.Query()["dst_validator_addr"][0]
 	}
-	res, err := s.client.GRPC.GetRedelegations(r.Context(), delAddr, srcValidatorAddress, dstValidatorAddress)
+	res, err := s.Client.GRPC.GetRedelegations(r.Context(), delAddr, srcValidatorAddress, dstValidatorAddress)
 	if err != nil {
 		zap.L().Error("failed to get all redelegations from a validator", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -487,5 +487,99 @@ func GetRedelegations(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	model.Respond(rw, res)
+	return
+}
+
+// GetBlocksByProposer returns blocks that are proposed by the proposer.
+func GetValidatorProposedBlocks(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	proposer := vars["proposer"]
+
+	before, after, limit, err := model.ParseHTTPArgsWithBeforeAfterLimit(r, model.DefaultBefore, model.DefaultAfter, model.DefaultLimit)
+	if err != nil {
+		zap.S().Debug("failed to parse HTTP args ", zap.Error(err))
+		errors.ErrInvalidParam(rw, http.StatusBadRequest, "request is invalid")
+		return
+	}
+
+	if limit > 100 {
+		zap.S().Debug("failed to query with this limit ", zap.Int("request limit", limit))
+		errors.ErrOverMaxLimit(rw, http.StatusUnauthorized)
+		return
+	}
+
+	// Query validator information by any type of bech32 address, even moniker.
+	val, err := s.DB.QueryValidatorByAnyAddr(proposer)
+	if err != nil {
+		zap.S().Errorf("failed to query validator information: %s", err)
+		return
+	}
+
+	if val.Proposer == "" {
+		errors.ErrNotExist(rw, http.StatusNotFound)
+		return
+	}
+
+	blocks, err := s.DB.QueryBlocksByProposer(val.Proposer, before, after, limit)
+	if err != nil {
+		zap.L().Error("failed to query blocks", zap.Error(err))
+		errors.ErrInternalServer(rw, http.StatusInternalServerError)
+		return
+	}
+
+	if len(blocks) <= 0 {
+		model.Respond(rw, []schema.Block{})
+		return
+	}
+
+	totalNum, err := s.DB.CountProposedBlocksByProposer(val.Proposer)
+	if err != nil {
+		zap.L().Error("failed to count proposed blocks by proposer", zap.Error(err))
+		errors.ErrInternalServer(rw, http.StatusInternalServerError)
+		return
+	}
+
+	result := make([]*model.ResultBlock, 0)
+
+	for _, b := range blocks {
+		val, err := s.DB.QueryValidatorByAnyAddr(b.Proposer)
+		if err != nil {
+			zap.L().Error("failed to query validator", zap.Error(err))
+			errors.ErrInternalServer(rw, http.StatusInternalServerError)
+			return
+		}
+
+		txs, err := s.DB.QueryTransactionsInBlockHeight(b.Height)
+		if err != nil {
+			zap.L().Error("failed to query transactions in a block", zap.Error(err))
+			errors.ErrInternalServer(rw, http.StatusInternalServerError)
+			return
+		}
+
+		var txData model.TxData
+		if len(txs) > 0 {
+			for _, tx := range txs {
+				txData.Txs = append(txData.Txs, tx.TxHash)
+			}
+		}
+
+		b := &model.ResultBlock{
+			ID:                     b.ID,
+			Height:                 b.Height,
+			Proposer:               b.Proposer,
+			OperatorAddress:        val.OperatorAddress,
+			Moniker:                val.Moniker,
+			BlockHash:              b.BlockHash,
+			Identity:               val.Identity,
+			NumTxs:                 b.NumTxs,
+			TotalNumProposerBlocks: totalNum,
+			TxData:                 txData,
+			Timestamp:              b.Timestamp,
+		}
+
+		result = append(result, b)
+	}
+
+	model.Respond(rw, result)
 	return
 }

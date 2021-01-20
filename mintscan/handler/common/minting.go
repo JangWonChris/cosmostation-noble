@@ -1,4 +1,4 @@
-package handler
+package common
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 // GetMintingInflation returns inflation rate of the network.
 func GetMintingInflation(rw http.ResponseWriter, r *http.Request) {
 
-	queryClient := minttypes.NewQueryClient(s.client.GetCLIContext())
+	queryClient := minttypes.NewQueryClient(s.Client.GetCLIContext())
 	res, err := queryClient.Inflation(context.Background(), &minttypes.QueryInflationRequest{})
 	if err != nil {
 		zap.L().Error("failed to get inflation information", zap.Error(err))

@@ -1,4 +1,4 @@
-package handler
+package common
 
 import (
 	"net/http"
@@ -27,7 +27,7 @@ func GetBlocks(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	blocks, _ := s.db.QueryBlocks(before, after, limit)
+	blocks, _ := s.DB.QueryBlocks(before, after, limit)
 	if len(blocks) <= 0 {
 		model.Respond(rw, []model.ResultBlock{})
 		return
@@ -36,13 +36,13 @@ func GetBlocks(rw http.ResponseWriter, r *http.Request) {
 	result := make([]*model.ResultBlock, 0)
 
 	for _, block := range blocks {
-		validator, err := s.db.QueryValidatorByAnyAddr(block.Proposer)
+		validator, err := s.DB.QueryValidatorByAnyAddr(block.Proposer)
 		if err != nil {
 			zap.S().Error("failed to query validator by proposer", zap.Error(err))
 			return
 		}
 
-		txs, err := s.db.QueryTransactionsInBlockHeight(block.Height)
+		txs, err := s.DB.QueryTransactionsInBlockHeight(block.Height)
 		if err != nil {
 			zap.L().Error("failed to query txs", zap.Error(err))
 			errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -93,7 +93,7 @@ func GetBlocksByProposer(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Query validator information by any type of bech32 address, even moniker.
-	val, err := s.db.QueryValidatorByAnyAddr(proposer)
+	val, err := s.DB.QueryValidatorByAnyAddr(proposer)
 	if err != nil {
 		zap.S().Errorf("failed to query validator information: %s", err)
 		return
@@ -104,7 +104,7 @@ func GetBlocksByProposer(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	blocks, err := s.db.QueryBlocksByProposer(val.Proposer, before, after, limit)
+	blocks, err := s.DB.QueryBlocksByProposer(val.Proposer, before, after, limit)
 	if err != nil {
 		zap.L().Error("failed to query blocks", zap.Error(err))
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -116,7 +116,7 @@ func GetBlocksByProposer(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	totalNum, err := s.db.CountProposedBlocksByProposer(val.Proposer)
+	totalNum, err := s.DB.CountProposedBlocksByProposer(val.Proposer)
 	if err != nil {
 		zap.L().Error("failed to count proposed blocks by proposer", zap.Error(err))
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -126,14 +126,14 @@ func GetBlocksByProposer(rw http.ResponseWriter, r *http.Request) {
 	result := make([]*model.ResultBlock, 0)
 
 	for _, b := range blocks {
-		val, err := s.db.QueryValidatorByAnyAddr(b.Proposer)
+		val, err := s.DB.QueryValidatorByAnyAddr(b.Proposer)
 		if err != nil {
 			zap.L().Error("failed to query validator", zap.Error(err))
 			errors.ErrInternalServer(rw, http.StatusInternalServerError)
 			return
 		}
 
-		txs, err := s.db.QueryTransactionsInBlockHeight(b.Height)
+		txs, err := s.DB.QueryTransactionsInBlockHeight(b.Height)
 		if err != nil {
 			zap.L().Error("failed to query transactions in a block", zap.Error(err))
 			errors.ErrInternalServer(rw, http.StatusInternalServerError)

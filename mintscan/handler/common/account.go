@@ -1,7 +1,6 @@
-package handler
+package common
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"sort"
@@ -16,7 +15,7 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
 
 	//mbl
-	"github.com/cosmostation/mintscan-backend-library/types"
+
 	// "github.com/cosmostation/mintscan-backend-library/db"
 
 	"go.uber.org/zap"
@@ -28,8 +27,8 @@ var (
 	pageLimit = uint64(100)
 )
 
-// GetAccount returns general account information.
-func GetAccount(rw http.ResponseWriter, r *http.Request) {
+// GetAuthAccount returns general account information.
+func GetAuthAccount(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	accAddr := vars["accAddr"]
 	err := model.VerifyBech32AccAddr(accAddr)
@@ -38,7 +37,7 @@ func GetAccount(rw http.ResponseWriter, r *http.Request) {
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
 		return
 	}
-	account, err := s.client.CliCtx.GetAccount(accAddr)
+	account, err := s.Client.CliCtx.GetAccount(accAddr)
 	if err != nil {
 		zap.L().Error("failed to get account information", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -48,15 +47,15 @@ func GetAccount(rw http.ResponseWriter, r *http.Request) {
 	var b []byte
 	switch account := account.(type) {
 	case *authtypes.ModuleAccount:
-		b, err = s.client.GetCLIContext().JSONMarshaler.MarshalJSON(account)
+		b, err = s.Client.GetCLIContext().JSONMarshaler.MarshalJSON(account)
 	case *authtypes.BaseAccount:
-		b, err = s.client.GetCLIContext().JSONMarshaler.MarshalJSON(account)
+		b, err = s.Client.GetCLIContext().JSONMarshaler.MarshalJSON(account)
 	case *vestingtypes.ContinuousVestingAccount:
-		b, err = s.client.GetCLIContext().JSONMarshaler.MarshalJSON(account)
+		b, err = s.Client.GetCLIContext().JSONMarshaler.MarshalJSON(account)
 	case *vestingtypes.DelayedVestingAccount:
-		b, err = s.client.GetCLIContext().JSONMarshaler.MarshalJSON(account)
+		b, err = s.Client.GetCLIContext().JSONMarshaler.MarshalJSON(account)
 	case *vestingtypes.PeriodicVestingAccount:
-		b, err = s.client.GetCLIContext().JSONMarshaler.MarshalJSON(account)
+		b, err = s.Client.GetCLIContext().JSONMarshaler.MarshalJSON(account)
 	default:
 		zap.L().Error("unknown account type :", zap.String("info", account.GetAddress().String()), zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -77,13 +76,13 @@ func GetBalance(rw http.ResponseWriter, r *http.Request) {
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
 		return
 	}
-	denom, err := s.client.GRPC.GetBondDenom(r.Context())
+	denom, err := s.Client.GRPC.GetBondDenom(r.Context())
 	if err != nil {
 		zap.L().Debug("failed to get account balance", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
 		return
 	}
-	res, err := s.client.GRPC.GetBalance(r.Context(), denom, accAddr)
+	res, err := s.Client.GRPC.GetBalance(r.Context(), denom, accAddr)
 	if err != nil {
 		zap.L().Debug("failed to get account balance", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -104,7 +103,7 @@ func GetAllBalances(rw http.ResponseWriter, r *http.Request) {
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
 		return
 	}
-	res, err := s.client.GRPC.GetAllBalances(r.Context(), accAddr, pageLimit)
+	res, err := s.Client.GRPC.GetAllBalances(r.Context(), accAddr, pageLimit)
 	if err != nil {
 		zap.L().Debug("failed to get all account balances", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -175,7 +174,7 @@ func GetDelegatorDelegations(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Query all delegations from a delegator
-	resps, err := s.client.GRPC.GetDelegatorDelegations(r.Context(), accAddr, pageLimit)
+	resps, err := s.Client.GRPC.GetDelegatorDelegations(r.Context(), accAddr, pageLimit)
 	if err != nil {
 		zap.L().Error("failed to get delegators delegations", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -185,7 +184,7 @@ func GetDelegatorDelegations(rw http.ResponseWriter, r *http.Request) {
 	rewards := func(p1, p2 *distributiontypes.DelegationDelegatorReward) bool {
 		return p1.ValidatorAddress < p2.ValidatorAddress
 	}
-	res2, err2 := s.client.GRPC.GetDelegationTotalRewards(r.Context(), accAddr)
+	res2, err2 := s.Client.GRPC.GetDelegationTotalRewards(r.Context(), accAddr)
 	if err2 != nil {
 		zap.L().Error("failed to get delegator rewards", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -216,7 +215,7 @@ func GetDelegatorDelegations(rw http.ResponseWriter, r *http.Request) {
 	resultDelegations := make([]model.ResultDelegations, 0)
 	for _, resp := range resps.DelegationResponses {
 		// Query a delegation reward
-		drr, err := s.client.GRPC.GetDelegationRewards(r.Context(), resp.Delegation.DelegatorAddress, resp.Delegation.ValidatorAddress)
+		drr, err := s.Client.GRPC.GetDelegationRewards(r.Context(), resp.Delegation.DelegatorAddress, resp.Delegation.ValidatorAddress)
 		if err != nil {
 			zap.L().Error("failed to get delegator rewards", zap.Error(err))
 			errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -225,7 +224,7 @@ func GetDelegatorDelegations(rw http.ResponseWriter, r *http.Request) {
 
 		resultRewards := make([]model.Coin, 0)
 
-		denom, err := s.client.GRPC.GetBondDenom(r.Context())
+		denom, err := s.Client.GRPC.GetBondDenom(r.Context())
 		if err != nil {
 			return
 		}
@@ -249,7 +248,7 @@ func GetDelegatorDelegations(rw http.ResponseWriter, r *http.Request) {
 		}
 
 		// 위임한 검증인의 모니커 조회
-		vr, err := s.client.GRPC.GetValidator(r.Context(), resp.Delegation.ValidatorAddress)
+		vr, err := s.Client.GRPC.GetValidator(r.Context(), resp.Delegation.ValidatorAddress)
 		if err != nil {
 			zap.L().Error("failed to get delegations from a validator", zap.Error(err))
 			errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -272,6 +271,11 @@ func GetDelegatorDelegations(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
+//이력 관리 용
+func GetDelegatorUndelegations(rw http.ResponseWriter, r *http.Request) {
+	GetDelegatorUnbondingDelegations(rw, r)
+}
+
 // GetDelegatorUnbondingDelegations returns unbonding delegations from a delegator
 func GetDelegatorUnbondingDelegations(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -284,7 +288,7 @@ func GetDelegatorUnbondingDelegations(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res, err := s.client.GRPC.GetDelegatorUnbondingDelegations(r.Context(), accAddr, pageLimit)
+	res, err := s.Client.GRPC.GetDelegatorUnbondingDelegations(r.Context(), accAddr, pageLimit)
 	if err != nil {
 		zap.L().Error("failed to get account delegators rewards", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -293,7 +297,7 @@ func GetDelegatorUnbondingDelegations(rw http.ResponseWriter, r *http.Request) {
 
 	result := make([]*model.UnbondingDelegations, 0)
 	for _, u := range res.UnbondingResponses {
-		val, err := s.db.QueryValidatorByValAddr(u.ValidatorAddress)
+		val, err := s.DB.QueryValidatorByValAddr(u.ValidatorAddress)
 		if err != nil {
 			zap.L().Debug("failed to query validator information", zap.Error(err))
 		}
@@ -332,175 +336,12 @@ func GetValidatorCommission(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	comm, err := s.client.GRPC.GetValidatorCommission(r.Context(), valAddr)
+	comm, err := s.Client.GRPC.GetValidatorCommission(r.Context(), valAddr)
 	if err != nil {
 		zap.L().Error("failed to get validator commission", zap.Error(err))
 	}
 
 	model.Respond(rw, comm)
-	return
-}
-
-// GetAccountTxsNew returns transactions that are sent by an account
-func GetAccountTxsNew(rw http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	accAddr := vars["accAddr"]
-
-	before, after, limit, err := model.ParseHTTPArgsWithBeforeAfterLimit(r, model.DefaultBefore, model.DefaultAfter, model.DefaultLimit)
-	if err != nil {
-		zap.S().Debug("failed to parse HTTP args ", zap.Error(err))
-		errors.ErrInvalidParam(rw, http.StatusBadRequest, "request is invalid")
-		return
-	}
-
-	if limit > 100 {
-		zap.S().Debug("failed to query with this limit ", zap.Int("request limit", limit))
-		errors.ErrOverMaxLimit(rw, http.StatusUnauthorized)
-		return
-	}
-
-	err = types.VerifyBech32AccAddr(accAddr)
-	if err != nil {
-		zap.L().Debug("failed to validate account address", zap.Error(err))
-		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
-		return
-	}
-
-	valAddr, err := types.ConvertValAddrFromAccAddr(accAddr)
-	if err != nil {
-		zap.L().Debug("failed to convert validator address from account address", zap.Error(err))
-		errors.ErrInvalidParam(rw, http.StatusBadRequest, "validator address is invalid")
-		return
-	}
-
-	// Query transactions that are made by the account.
-	txs, err := s.db.QueryTransactionsByAddrNew(accAddr, valAddr, before, after, limit)
-	if err != nil {
-		zap.L().Error("failed to query txs", zap.Error(err))
-		errors.ErrInternalServer(rw, http.StatusInternalServerError)
-		return
-	}
-
-	if len(txs) <= 0 {
-		model.Respond(rw, []model.ResultTx{})
-		return
-	}
-
-	// result, err := model.ParseTransactions(txs)
-	// if err != nil {
-	// 	zap.L().Error("failed to parse txs", zap.Error(err))
-	// 	errors.ErrInternalServer(rw, http.StatusInternalServerError)
-	// 	return
-	// }
-
-	model.Respond(rw, txs)
-	return
-}
-
-// GetAccountTransferTxsNew returns transfer txs (MsgSend and MsgMultiSend) that are sent by an account
-func GetAccountTransferTxsNew(rw http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	accAddr := vars["accAddr"]
-
-	before, after, limit, err := model.ParseHTTPArgsWithBeforeAfterLimit(r, model.DefaultBefore, model.DefaultAfter, model.DefaultLimit)
-	if err != nil {
-		zap.S().Debug("failed to parse HTTP args ", zap.Error(err))
-		errors.ErrInvalidParam(rw, http.StatusBadRequest, "request is invalid")
-		return
-	}
-
-	if limit > 100 {
-		zap.S().Debug("failed to query with this limit ", zap.Int("request limit", limit))
-		errors.ErrOverMaxLimit(rw, http.StatusUnauthorized)
-		return
-	}
-
-	var denom string
-
-	if len(r.URL.Query()["denom"]) > 0 {
-		denom = r.URL.Query()["denom"][0]
-	}
-
-	if denom == "" {
-		denom, err = s.client.GRPC.GetBondDenom(context.Background())
-		if err != nil {
-			return
-		}
-	}
-
-	err = types.VerifyBech32AccAddr(accAddr)
-	if err != nil {
-		zap.L().Debug("failed to validate account address", zap.Error(err))
-		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
-		return
-	}
-
-	txs, err := s.db.QueryTransferTransactionsByAddrNew(accAddr, denom, before, after, limit)
-	if err != nil {
-		zap.L().Error("failed to query txs", zap.Error(err))
-		errors.ErrInternalServer(rw, http.StatusInternalServerError)
-		return
-	}
-
-	// result, err := model.ParseTransactions(txs)
-	// if err != nil {
-	// 	zap.L().Error("failed to parse txs", zap.Error(err))
-	// 	errors.ErrInternalServer(rw, http.StatusInternalServerError)
-	// 	return
-	// }
-
-	model.Respond(rw, txs)
-	return
-}
-
-// GetTxsBetweenDelegatorAndValidatorNew returns transactions that are made between an account and his delegated validator
-func GetTxsBetweenDelegatorAndValidatorNew(rw http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	accAddr := vars["accAddr"]
-	valAddr := vars["valAddr"]
-
-	before, after, limit, err := model.ParseHTTPArgsWithBeforeAfterLimit(r, model.DefaultBefore, model.DefaultAfter, model.DefaultLimit)
-	if err != nil {
-		zap.S().Debug("failed to parse HTTP args ", zap.Error(err))
-		errors.ErrInvalidParam(rw, http.StatusBadRequest, "request is invalid")
-		return
-	}
-
-	if limit > 100 {
-		zap.S().Debug("failed to query with this limit ", zap.Int("request limit", limit))
-		errors.ErrOverMaxLimit(rw, http.StatusUnauthorized)
-		return
-	}
-
-	err = types.VerifyBech32AccAddr(accAddr)
-	if err != nil {
-		zap.L().Debug("failed to validate account address", zap.Error(err))
-		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
-		return
-	}
-
-	err = types.VerifyBech32ValAddr(valAddr)
-	if err != nil {
-		zap.L().Debug("failed to validate validator address", zap.Error(err))
-		errors.ErrInvalidParam(rw, http.StatusBadRequest, "validator address is invalid")
-		return
-	}
-
-	txs, err := s.db.QueryTransactionsBetweenAccountAndValidatorNew(accAddr, valAddr, before, after, limit)
-	if err != nil {
-		zap.L().Error("failed to query txs", zap.Error(err))
-		errors.ErrInternalServer(rw, http.StatusInternalServerError)
-		return
-	}
-
-	// result, err := model.ParseTransactions(txs)
-	// if err != nil {
-	// 	zap.L().Error("failed to parse txs", zap.Error(err))
-	// 	errors.ErrInternalServer(rw, http.StatusInternalServerError)
-	// 	return
-	// }
-
-	model.Respond(rw, txs)
 	return
 }
 
@@ -516,7 +357,7 @@ func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	denom, err := s.client.GRPC.GetBondDenom(r.Context())
+	denom, err := s.Client.GRPC.GetBondDenom(r.Context())
 	if err != nil {
 		zap.S().Errorf("failed to get staking denom: %s", err)
 		return
@@ -533,7 +374,7 @@ func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 	commission := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
 
 	// available
-	coins, err := s.client.GRPC.GetBalance(r.Context(), denom, accAddr)
+	coins, err := s.Client.GRPC.GetBalance(r.Context(), denom, accAddr)
 	if err != nil {
 		zap.S().Debugf("failed to get account balance: %s", err)
 		errors.ErrNotFound(rw, http.StatusNotFound)
@@ -546,7 +387,7 @@ func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Delegated
-	delegationsResp, err := s.client.GRPC.GetDelegatorDelegations(r.Context(), accAddr, pageLimit)
+	delegationsResp, err := s.Client.GRPC.GetDelegatorDelegations(r.Context(), accAddr, pageLimit)
 	if err != nil {
 		zap.S().Errorf("failed to get delegator's delegations: %s", err)
 		return
@@ -556,7 +397,7 @@ func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Undelegated
-	undelegationsResp, err := s.client.GRPC.GetDelegatorUnbondingDelegations(r.Context(), accAddr, pageLimit)
+	undelegationsResp, err := s.Client.GRPC.GetDelegatorUnbondingDelegations(r.Context(), accAddr, pageLimit)
 	if err != nil {
 		zap.S().Errorf("failed to get delegator's undelegations: %s", err)
 		return
@@ -568,7 +409,7 @@ func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Rewards
-	totalRewardsResp, err := s.client.GRPC.GetDelegationTotalRewards(r.Context(), accAddr)
+	totalRewardsResp, err := s.Client.GRPC.GetDelegationTotalRewards(r.Context(), accAddr)
 	if err != nil {
 		zap.S().Errorf("failed to get get delegator's total rewards: %s", err)
 		return
@@ -591,7 +432,7 @@ func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Commission
-	commissionsResp, err := s.client.GRPC.GetValidatorCommission(r.Context(), valAddr)
+	commissionsResp, err := s.Client.GRPC.GetValidatorCommission(r.Context(), valAddr)
 	if err != nil {
 		zap.S().Errorf("failed to get validator's commission: %s", err)
 		return
@@ -601,19 +442,19 @@ func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 		commission = commission.Add(truncatedCoin)
 	}
 
-	account, err := s.client.CliCtx.GetAccount(accAddr)
+	account, err := s.Client.CliCtx.GetAccount(accAddr)
 	if err != nil {
 		zap.S().Debugf("failed to get account information: %s", err)
 		errors.ErrNotFound(rw, http.StatusNotFound)
 		return
 	}
 
-	latestBlock, err := s.client.RPC.GetLatestBlockHeight()
+	latestBlock, err := s.Client.RPC.GetLatestBlockHeight()
 	if err != nil {
 		zap.S().Errorf("failed to get the latest block height: %s", err)
 		return
 	}
-	block, err := s.client.RPC.GetBlock(latestBlock)
+	block, err := s.Client.RPC.GetBlock(latestBlock)
 	if err != nil {
 		zap.S().Errorf("failed to get block information: %s", err)
 		return
@@ -683,7 +524,7 @@ func GetTotalAllBalances(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	denom, err := s.client.GRPC.GetBondDenom(r.Context())
+	denom, err := s.Client.GRPC.GetBondDenom(r.Context())
 	if err != nil {
 		zap.S().Errorf("failed to get staking denom: %s", err)
 		return
@@ -700,7 +541,7 @@ func GetTotalAllBalances(rw http.ResponseWriter, r *http.Request) {
 	commission := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
 
 	// available
-	availableCoins, err := s.client.GRPC.GetAllBalances(r.Context(), accAddr, pageLimit)
+	availableCoins, err := s.Client.GRPC.GetAllBalances(r.Context(), accAddr, pageLimit)
 	if err != nil {
 		zap.S().Debugf("failed to get account balance: %s", err)
 		errors.ErrNotFound(rw, http.StatusNotFound)
@@ -709,7 +550,7 @@ func GetTotalAllBalances(rw http.ResponseWriter, r *http.Request) {
 	_ = availableCoins
 
 	// Delegated
-	delegationsResp, err := s.client.GRPC.GetDelegatorDelegations(r.Context(), accAddr, pageLimit)
+	delegationsResp, err := s.Client.GRPC.GetDelegatorDelegations(r.Context(), accAddr, pageLimit)
 	if err != nil {
 		zap.S().Errorf("failed to get delegator's delegations: %s", err)
 		return
@@ -719,7 +560,7 @@ func GetTotalAllBalances(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Undelegated
-	undelegationsResp, err := s.client.GRPC.GetDelegatorUnbondingDelegations(r.Context(), accAddr, pageLimit)
+	undelegationsResp, err := s.Client.GRPC.GetDelegatorUnbondingDelegations(r.Context(), accAddr, pageLimit)
 	if err != nil {
 		zap.S().Errorf("failed to get delegator's undelegations: %s", err)
 		return
@@ -731,7 +572,7 @@ func GetTotalAllBalances(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Rewards
-	totalRewardsResp, err := s.client.GRPC.GetDelegationTotalRewards(r.Context(), accAddr)
+	totalRewardsResp, err := s.Client.GRPC.GetDelegationTotalRewards(r.Context(), accAddr)
 	if err != nil {
 		zap.S().Errorf("failed to get get delegator's total rewards: %s", err)
 		return
@@ -753,7 +594,7 @@ func GetTotalAllBalances(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Commission
-	commissionsResp, err := s.client.GRPC.GetValidatorCommission(r.Context(), valAddr)
+	commissionsResp, err := s.Client.GRPC.GetValidatorCommission(r.Context(), valAddr)
 	if err != nil {
 		zap.S().Errorf("failed to get validator's commission: %s", err)
 		return
@@ -763,19 +604,19 @@ func GetTotalAllBalances(rw http.ResponseWriter, r *http.Request) {
 		commission = commission.Add(truncatedCoin)
 	}
 
-	account, err := s.client.CliCtx.GetAccount(accAddr)
+	account, err := s.Client.CliCtx.GetAccount(accAddr)
 	if err != nil {
 		zap.S().Debugf("failed to get account information: %s", err)
 		errors.ErrNotFound(rw, http.StatusNotFound)
 		return
 	}
 
-	latestBlock, err := s.client.RPC.GetLatestBlockHeight()
+	latestBlock, err := s.Client.RPC.GetLatestBlockHeight()
 	if err != nil {
 		zap.S().Errorf("failed to get the latest block height: %s", err)
 		return
 	}
-	block, err := s.client.RPC.GetBlock(latestBlock)
+	block, err := s.Client.RPC.GetBlock(latestBlock)
 	if err != nil {
 		zap.S().Errorf("failed to get block information: %s", err)
 		return

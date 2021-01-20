@@ -11,7 +11,9 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/client"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/db"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/handler"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/log"
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/handler/common"
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/handler/custom"
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/handler/mobile"
 	cfg "github.com/cosmostation/mintscan-backend-library/config"
 
 	"go.uber.org/zap"
@@ -27,21 +29,17 @@ var (
 	Commit = ""
 )
 
-func main() {
-	// Create custom logger with a combination of using uber/zap and lumberjack.v2.
-	l, _ := log.NewCustomLogger()
+func init() {
+	l, _ := zap.NewDevelopment()
 	zap.ReplaceGlobals(l)
 	defer l.Sync()
+}
 
-	// Parse config from configuration file (config.yaml).
+func main() {
 	config := cfg.ParseConfig()
 
-	// Create new client with node configruation.
-	// Client is used for requesting any type of network data from RPC full node and REST Server.
 	client := client.NewClient(&config.Client)
 
-	// Create connection with PostgreSQL database and
-	// Ping database to verify connection is success.
 	db := db.Connect(&config.DB)
 	err := db.Ping()
 	if err != nil {
@@ -49,75 +47,15 @@ func main() {
 		return
 	}
 
+	s := handler.SetSession(client, db)
+
 	r := mux.NewRouter()
 	r = r.PathPrefix("/v1").Subrouter()
-	// account prefix를 가진 모든 REST API는
-	// account 별 잔액을 조회
-	// account 별 위임 상세 내역
-	// account 별 위임 해제 상세 내역
-	// account 별 tx 상세 내역
-	r.HandleFunc("/auth/accounts/{accAddr}", handler.GetAccount).Methods("GET")                                               //kava에서만 사용중 (vesting account를 뽑기 위해)
-	r.HandleFunc("/account/balances/{accAddr}", handler.GetBalance).Methods("GET")                                            // return all assets of given account
-	r.HandleFunc("/account/validator/commission/{accAddr}", handler.GetValidatorCommission).Methods("GET")                    // 현재 사용중이나 /account/balances에 포함시킬 예정
-	r.HandleFunc("/distribution/delegators/{delAddr}/withdraw_address", handler.GetDelegatorWithdrawalAddress).Methods("GET") //위임 내역을 반환할 때, 같이 포함시킨다
+	common.RegisterHandlers(s, r)
+	custom.RegisterHandlers(s, r)
+	mobile.RegisterHandlers(s, r)
 
-	r.HandleFunc("/account/delegations/{accAddr}", handler.GetDelegatorDelegations).Methods("GET")                    //
-	r.HandleFunc("/account/unbonding_delegations/{delAddr}", handler.GetDelegatorUnbondingDelegations).Methods("GET") //moved to staking
-
-	// 모바일 API
-	r.HandleFunc("/account/txs/{accAddr}", handler.GetAccountTxsNew).Methods("GET")
-	r.HandleFunc("/account/txs/{accAddr}/{valAddr}", handler.GetTxsBetweenDelegatorAndValidatorNew).Methods("GET")
-	r.HandleFunc("/account/transfer_txs/{accAddr}", handler.GetAccountTransferTxsNew).Methods("GET")
-
-	r.HandleFunc("/blocks", handler.GetBlocks).Methods("GET")
-	r.HandleFunc("/blocks/{proposer}", handler.GetBlocksByProposer).Methods("GET")
-
-	//사용 안하는 중
-	r.HandleFunc("/distribution/community_pool", handler.GetCommunityPool).Methods("GET")
-	//end
-
-	r.HandleFunc("/gov/proposals", handler.GetProposals).Methods("GET")
-	r.HandleFunc("/gov/proposal/{proposal_id}", handler.GetProposal).Methods("GET")
-	r.HandleFunc("/gov/proposal/deposits/{proposal_id}", handler.GetDeposits).Methods("GET")
-	r.HandleFunc("/gov/proposal/votes/{proposal_id}", handler.GetVotes).Methods("GET")
-
-	r.HandleFunc("/minting/inflation", handler.GetMintingInflation).Methods("GET")
-	r.HandleFunc("/market/chart", handler.GetCoinMarketChartData).Methods("GET")
-	r.HandleFunc("/market/{id}", handler.GetSimpleCoinPrice).Methods("GET")
-	r.HandleFunc("/stats/market", handler.GetMarketStats).Methods("GET")
-	r.HandleFunc("/stats/network", handler.GetNetworkStats).Methods("GET")
-	r.HandleFunc("/status", handler.GetStatus).Methods("GET")
-
-	r.HandleFunc("/txs", handler.GetTransactions).Methods("GET")
-	r.HandleFunc("/txs", handler.GetTransactionsList).Methods("POST")
-	r.HandleFunc("/tx", handler.GetTransaction).Methods("GET")
-	r.HandleFunc("/tx/broadcast/{signed_tx}", handler.BroadcastTx).Methods("GET")
-
-	r.HandleFunc("/staking/validators", handler.GetValidators).Methods("GET")
-	r.HandleFunc("/staking/validator/{address}", handler.GetValidator).Methods("GET")
-	r.HandleFunc("/staking/validator/uptime/{address}", handler.GetValidatorUptime).Methods("GET")
-	r.HandleFunc("/staking/validator/uptime/range/{address}", handler.GetValidatorUptimeRange).Methods("GET")
-	r.HandleFunc("/staking/validator/delegations/{address}", handler.GetValidatorDelegations).Methods("GET")
-	r.HandleFunc("/staking/validator/events/{address}", handler.GetValidatorPowerHistoryEvents).Methods("GET")
-	r.HandleFunc("/staking/validator/events/{address}/count", handler.GetValidatorEventsTotalCount).Methods("GET")
-	r.HandleFunc("/staking/delegator/{delAddr}/redelegations", handler.GetRedelegations).Methods("GET")
-	r.HandleFunc("/staking/delegators/{delAddr}/unbonding_delegations", handler.GetDelegatorUnbondingDelegations).Methods("GET")
-
-	// 다음 버전에 업데이트 될 APIs
-	r.HandleFunc("/account/total/balance/{accAddr}", handler.GetTotalBalance).Methods("GET")
-
-	// These APIs will be deprecated in next update.
-	r.HandleFunc("/staking/redelegations", handler.GetRedelegationsLegacy).Methods("GET")                             //staking/delegator/{delAddr}/redelegations 로 변경 됨
-	r.HandleFunc("/account/balance/{accAddr}", handler.GetBalance).Methods("GET")                                     // /account/balances/{accAddr}
-	r.HandleFunc("/account/commission/{accAddr}", handler.GetValidatorCommission).Methods("GET")                      // /account/validator/commission/{accAddr}
-	r.HandleFunc("/account/unbonding-delegations/{delAddr}", handler.GetDelegatorUnbondingDelegations).Methods("GET") // /acount/unbonding_delegations/{accAddr}
-	r.HandleFunc("/tx/{hash}", handler.GetLegacyTransactionFromDB).Methods("GET")                                     // /tx?hash={hash}
-
-	// These APIs will need to be added in next update.
-	// r.HandleFunc("/module/accounts", handler.GetModuleAccounts).Methods("GET")
-
-	// Session will wrap both client and database and be used throughout all handlers.
-	handler.SetSession(client, db)
+	// r.HandleFunc("/tx/{hash}", common.GetLegacyTransactionFromDB).Methods("GET")                // /tx?hash={hash}
 
 	sm := &http.Server{
 		Addr:         ":" + config.Web.Port,
@@ -128,7 +66,7 @@ func main() {
 
 	go func() {
 		for {
-			if err := handler.SetStatus(); err != nil {
+			if err := common.SetStatus(); err != nil {
 				time.Sleep(1 * time.Second)
 				continue
 			}

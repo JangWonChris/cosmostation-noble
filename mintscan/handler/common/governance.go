@@ -1,4 +1,4 @@
-package handler
+package common
 
 import (
 	"context"
@@ -20,7 +20,7 @@ import (
 
 // GetProposals returns all existing proposals
 func GetProposals(rw http.ResponseWriter, r *http.Request) {
-	proposals, err := s.db.QueryProposals()
+	proposals, err := s.DB.QueryProposals()
 	if err != nil {
 		zap.L().Error("failed to query proposals", zap.Error(err))
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -36,7 +36,7 @@ func GetProposals(rw http.ResponseWriter, r *http.Request) {
 	result := make([]*model.ResultProposal, 0)
 
 	for _, p := range proposals {
-		val, err := s.db.QueryValidatorByAnyAddr(p.Proposer)
+		val, err := s.DB.QueryValidatorByAnyAddr(p.Proposer)
 		if err != nil {
 			zap.S().Errorf("failed to query validator information: %s", err)
 			return
@@ -78,7 +78,7 @@ func GetProposal(rw http.ResponseWriter, r *http.Request) {
 	id := vars["proposal_id"]
 
 	// Query particular proposal
-	p, _ := s.db.QueryProposal(id)
+	p, _ := s.DB.QueryProposal(id)
 	if p.ID == 0 {
 		zap.L().Debug("this proposal does not exist", zap.String("id", id))
 		errors.ErrNotExist(rw, http.StatusNotFound)
@@ -86,7 +86,7 @@ func GetProposal(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Error doesn't need to be handled since any accoount can propose proposal
-	val, err := s.db.QueryValidatorByAnyAddr(p.Proposer)
+	val, err := s.DB.QueryValidatorByAnyAddr(p.Proposer)
 	if err != nil {
 		zap.S().Errorf("failed to query validator information: %s", err)
 		return
@@ -125,7 +125,7 @@ func GetDeposits(rw http.ResponseWriter, r *http.Request) {
 	id := vars["proposal_id"]
 
 	// Query particular proposal
-	p, _ := s.db.QueryProposal(id)
+	p, _ := s.DB.QueryProposal(id)
 	if p.ID == 0 {
 		zap.L().Debug("this proposal does not exist", zap.String("id", id))
 		errors.ErrNotExist(rw, http.StatusNotFound)
@@ -134,7 +134,7 @@ func GetDeposits(rw http.ResponseWriter, r *http.Request) {
 
 	result := make([]*model.ResultDeposit, 0)
 
-	deposits, _ := s.db.QueryDeposits(id)
+	deposits, _ := s.DB.QueryDeposits(id)
 	if len(deposits) <= 0 {
 		zap.L().Debug("this proposal does not have any deposit yet", zap.String("id", id))
 		model.Respond(rw, result)
@@ -142,7 +142,7 @@ func GetDeposits(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, d := range deposits {
-		val, err := s.db.QueryValidatorByAnyAddr(d.Depositor)
+		val, err := s.DB.QueryValidatorByAnyAddr(d.Depositor)
 		if err != nil {
 			zap.S().Errorf("failed to query validator information: %s", err)
 			return
@@ -171,7 +171,7 @@ func GetVotes(rw http.ResponseWriter, r *http.Request) {
 	id := vars["proposal_id"]
 
 	// Query particular proposal
-	p, _ := s.db.QueryProposal(id)
+	p, _ := s.DB.QueryProposal(id)
 	if p.ID == 0 {
 		zap.L().Debug("this proposal does not exist", zap.String("id", id))
 		errors.ErrNotExist(rw, http.StatusNotFound)
@@ -179,7 +179,7 @@ func GetVotes(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Query all votes
-	votes, _ := s.db.QueryVotes(id)
+	votes, _ := s.DB.QueryVotes(id)
 	if len(votes) <= 0 {
 		model.Respond(rw, &model.ResultVote{
 			Tally: &model.ResultTally{},
@@ -191,7 +191,7 @@ func GetVotes(rw http.ResponseWriter, r *http.Request) {
 	rv := make([]*model.Votes, 0)
 
 	for _, v := range votes {
-		val, err := s.db.QueryValidatorByAnyAddr(v.Voter)
+		val, err := s.DB.QueryValidatorByAnyAddr(v.Voter)
 		if err != nil {
 			zap.S().Errorf("failed to query validator information: %s", err)
 			return
@@ -208,7 +208,7 @@ func GetVotes(rw http.ResponseWriter, r *http.Request) {
 		rv = append(rv, vote)
 	}
 
-	queryClient := govtypes.NewQueryClient(s.client.GetCLIContext())
+	queryClient := govtypes.NewQueryClient(s.Client.GetCLIContext())
 	proposalID, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
 		zap.L().Error("failed to convert proposal id ", zap.Error(err))
@@ -223,7 +223,7 @@ func GetVotes(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Query vote options for the proposal
-	yes, no, noWithVeto, abstain, err := s.db.QueryVoteOptions(id)
+	yes, no, noWithVeto, abstain, err := s.DB.QueryVoteOptions(id)
 	if err != nil {
 		zap.L().Error("failed to get count of tally option", zap.Error(err))
 		errors.ErrNotExist(rw, http.StatusNotFound)

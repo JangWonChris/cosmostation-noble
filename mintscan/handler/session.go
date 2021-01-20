@@ -10,11 +10,11 @@ var s *Session
 
 // Session is struct for wrapping both client and db structs.
 type Session struct {
-	client *client.Client
-	db     *db.Database
+	Client *client.Client
+	DB     *db.Database
 }
 
 // SetSession set Session object.
-func SetSession(client *client.Client, db *db.Database) {
-	s = &Session{client, db}
+func SetSession(client *client.Client, db *db.Database) *Session {
+	return &Session{client, db}
 }

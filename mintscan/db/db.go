@@ -495,8 +495,8 @@ func (db *Database) QueryValidatorBondedInfo(address string) (peh schema.PowerEv
 // 	return txs, nil
 // }
 
-// QueryTransactionsByAddrNew returns all transactions that are created by an account.
-func (db *Database) QueryTransactionsByAddrNew(accAddr, valAddr string, before, after, limit int) ([]schema.Transaction, error) {
+// QueryTransactionsByAddr returns all transactions that are created by an account.
+func (db *Database) QueryTransactionsByAddr(accAddr, valAddr string, before, after, limit int) ([]schema.Transaction, error) {
 	var txs []schema.Transaction
 	var err error
 
@@ -533,8 +533,8 @@ func (db *Database) QueryTransactionsByAddrNew(accAddr, valAddr string, before, 
 	return txs, nil
 }
 
-// QueryTransferTransactionsByAddrNew queries Send / MultiSend transactions that are made by an account
-func (db *Database) QueryTransferTransactionsByAddrNew(accAddr, denom string, before, after, limit int) ([]schema.Transaction, error) {
+// QueryTransferTransactionsByAddr queries Send / MultiSend transactions that are made by an account
+func (db *Database) QueryTransferTransactionsByAddr(accAddr, denom string, before, after, limit int) ([]schema.Transaction, error) {
 	var txs []schema.Transaction
 	var err error
 
@@ -571,8 +571,8 @@ func (db *Database) QueryTransferTransactionsByAddrNew(accAddr, denom string, be
 	return txs, nil
 }
 
-// QueryTransactionsBetweenAccountAndValidatorNew queries transactions that are made between an account and his delegated validator
-func (db *Database) QueryTransactionsBetweenAccountAndValidatorNew(address, valAddr string, before, after, limit int) ([]schema.Transaction, error) {
+// QueryTransactionsBetweenAccountAndValidator queries transactions that are made between an account and his delegated validator
+func (db *Database) QueryTransactionsBetweenAccountAndValidator(address, valAddr string, before, after, limit int) ([]schema.Transaction, error) {
 	var txs []schema.Transaction
 	var err error
 

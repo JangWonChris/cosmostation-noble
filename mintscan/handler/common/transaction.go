@@ -1,4 +1,4 @@
-package handler
+package common
 
 import (
 	"encoding/json"
@@ -36,7 +36,7 @@ func GetTransactions(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txs, err := s.db.QueryTransactions(before, after, limit)
+	txs, err := s.DB.QueryTransactions(before, after, limit)
 	if err != nil {
 		zap.L().Error("failed to query txs", zap.Error(err))
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -101,7 +101,7 @@ func GetTransactionsList(rw http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		tx, err := s.db.QueryTransactionByTxHash(txHashStr)
+		tx, err := s.DB.QueryTransactionByTxHash(txHashStr)
 		if err != nil {
 			zap.L().Error("failed to get transaction by tx hash", zap.Error(err))
 			continue
@@ -138,7 +138,7 @@ func GetTransaction(rw http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		tx, err := s.db.QueryTransactionByID(txID)
+		tx, err := s.DB.QueryTransactionByID(txID)
 		if err != nil {
 			zap.L().Error("failed to get transaction by tx id", zap.Error(err))
 			errors.ErrServerUnavailable(rw, http.StatusInternalServerError)
@@ -163,7 +163,7 @@ func GetTransaction(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tx, err := s.db.QueryTransactionByTxHash(txHashStr)
+	tx, err := s.DB.QueryTransactionByTxHash(txHashStr)
 	if err != nil {
 		zap.L().Error("failed to get transaction by tx hash", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusInternalServerError)
@@ -198,7 +198,7 @@ func GetLegacyTransactionFromDB(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tx, err := s.db.QueryTransactionByTxHash(txHashStr)
+	tx, err := s.DB.QueryTransactionByTxHash(txHashStr)
 	if err != nil {
 		zap.L().Error("failed to get transaction by tx hash", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusInternalServerError)
@@ -227,14 +227,14 @@ func GetLegacyTransaction(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := s.client.CliCtx.GetTx(txHashStr)
+	resp, err := s.Client.CliCtx.GetTx(txHashStr)
 	if err != nil {
 		zap.L().Error("failed to get tx hash info", zap.Error(err))
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
 		return
 	}
 
-	rest.PostProcessResponseBare(rw, s.client.GetCLIContext(), resp) // codec marshalling
+	rest.PostProcessResponseBare(rw, s.Client.GetCLIContext(), resp) // codec marshalling
 	return
 }
 
@@ -247,7 +247,7 @@ func BroadcastTx(rw http.ResponseWriter, r *http.Request) {
 		signedTx = signedTx[2:]
 	}
 	// jeonghwan 오류
-	result, err := s.client.CliCtx.BroadcastTx([]byte(signedTx))
+	result, err := s.Client.CliCtx.BroadcastTx([]byte(signedTx))
 	if err != nil {
 		zap.L().Error("failed to broadcast transaction", zap.Error(err))
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)

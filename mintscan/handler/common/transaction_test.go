@@ -1,4 +1,4 @@
-package handler
+package common
 
 // 정환님 트랜잭션 요청 벤치마크 테스트 코드
 

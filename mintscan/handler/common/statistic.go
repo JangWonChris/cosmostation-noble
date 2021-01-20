@@ -1,4 +1,4 @@
-package handler
+package common
 
 import (
 	"net/http"
@@ -17,7 +17,7 @@ const (
 // GetMarketStats returns market statistics
 // TODO: find better and cleaner way to handle this API.
 func GetMarketStats(rw http.ResponseWriter, r *http.Request) {
-	currentPrice, err := s.db.QueryPriceFromMarketStat5M()
+	currentPrice, err := s.DB.QueryPriceFromMarketStat5M()
 	if err != nil {
 		zap.S().Errorf("failed to query current price from stat market 5m: %s", err)
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -44,7 +44,7 @@ func GetMarketStats(rw http.ResponseWriter, r *http.Request) {
 // GetNetworkStats returns network statistics
 func GetNetworkStats(rw http.ResponseWriter, r *http.Request) {
 	// Count network statistics to see if enough data is available to query.
-	networkStatsNum, err := s.db.CountNetworkStats1H()
+	networkStatsNum, err := s.DB.CountNetworkStats1H()
 	if err != nil {
 		zap.S().Errorf("failed to count network stats: %s", err)
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -57,7 +57,7 @@ func GetNetworkStats(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	network1HStats, err := s.db.QueryNetworkStats1H(requiredLimit)
+	network1HStats, err := s.DB.QueryNetworkStats1H(requiredLimit)
 	if err != nil {
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
 		return
@@ -76,7 +76,7 @@ func GetNetworkStats(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Query two latest network stats from 1D table to calculate bonded change rate within 24 hours.
-	network1Dstats, err := s.db.QueryNetworkStats1D(2)
+	network1Dstats, err := s.DB.QueryNetworkStats1D(2)
 	if err != nil {
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
 		return

@@ -20,6 +20,7 @@ import (
 )
 
 var cli *Client
+var pageLimit = uint64(100)
 
 func TestMain(m *testing.M) {
 	config := mintscanconfig.ParseConfig()
@@ -29,7 +30,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestGetChainID(t *testing.T) {
-	chainID, err := cli.GetNetworkChainID()
+	chainID, err := cli.RPC.GetNetworkChainID()
 	require.NoError(t, err)
 
 	require.NotNil(t, chainID)
@@ -38,14 +39,14 @@ func TestGetChainID(t *testing.T) {
 func TestGetBlock(t *testing.T) {
 	height := int64(67270)
 
-	block, err := cli.GetBlock(height)
+	block, err := cli.RPC.GetBlock(height)
 	require.NoError(t, err)
 
 	require.NotNil(t, block)
 }
 
 func TestGetCoinDenom(t *testing.T) {
-	bondDenom, err := cli.GetBondDenom()
+	bondDenom, err := cli.GRPC.GetBondDenom(context.Background())
 	require.NoError(t, err)
 
 	require.NotNil(t, bondDenom)
@@ -79,7 +80,7 @@ func TestGetAccountSpendableCoins(t *testing.T) {
 }
 
 func TestGetAccountDelegatedCoins(t *testing.T) {
-	resp, err := cli.GetDelegatorDelegations("cosmos1clpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9q")
+	resp, err := cli.GRPC.GetDelegatorDelegations(context.Background(), "cosmos1clpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9q", pageLimit)
 	require.NoError(t, err)
 
 	for _, delegation := range resp.DelegationResponses {
@@ -88,7 +89,7 @@ func TestGetAccountDelegatedCoins(t *testing.T) {
 }
 
 func TestGetAccountUndelegatedCoins(t *testing.T) {
-	res, err := cli.GetDelegatorUnbondingDelegations("cosmos1clpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9q")
+	res, err := cli.GRPC.GetDelegatorUnbondingDelegations(context.Background(), "cosmos1clpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9q", pageLimit)
 	require.NoError(t, err)
 
 	for _, undelegation := range res.UnbondingResponses {
@@ -97,14 +98,14 @@ func TestGetAccountUndelegatedCoins(t *testing.T) {
 }
 
 func TestGetAccountTotalRewards(t *testing.T) {
-	rewards, err := cli.GetDelegationTotalRewards("cosmos1clpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9q")
+	rewards, err := cli.GRPC.GetDelegationTotalRewards(context.Background(), "cosmos1clpqr4nrk4khgkxj78fcwwh6dl3uw4ep4tgu9q")
 	require.NoError(t, err)
 
 	require.NotNil(t, rewards)
 }
 
 func TestGetValidatorCommission(t *testing.T) {
-	res, err := cli.GetValidatorCommission("cosmosvaloper1clpqr4nrk4khgkxj78fcwwh6dl3uw4epsluffn")
+	res, err := cli.GRPC.GetValidatorCommission(context.Background(), "cosmosvaloper1clpqr4nrk4khgkxj78fcwwh6dl3uw4epsluffn")
 	require.NoError(t, err)
 
 	require.NotNil(t, res.Commission)
@@ -113,7 +114,7 @@ func TestGetValidatorCommission(t *testing.T) {
 func TestParseTxResponse(t *testing.T) {
 	hash := "A8A272A277213D17339B900B1EA2A634CBA33049327E6591648EDA8DA86AF7F2"
 
-	txResponse, err := cli.GetTx(hash)
+	txResponse, err := cli.CliCtx.GetTx(hash)
 	require.NoError(t, err)
 	require.Equal(t, false, txResponse.Empty(), "tx hash has empty txResponse %s", hash)
 
