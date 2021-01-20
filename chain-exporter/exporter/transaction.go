@@ -140,9 +140,6 @@ func (ex *Exporter) transactionAccount(chainID string, txResps []*sdktypes.TxRes
 			// 코스모스 기본 메세지 타입이 아니면, msgType이 비어있다.
 			if msgType == "" {
 				msgType, accounts = custom.AccountExporterFromCustomTxMsg(&msg, txResp.TxHash)
-				if msgType == "" {
-					fmt.Printf("Undefined msg Type : %T(hash = %s)\n", msg, txResp.TxHash)
-				}
 			}
 			if len(accounts) > 0 {
 				sub := getAccountSlice(chainID, msgType, height, txHash, accounts...)
