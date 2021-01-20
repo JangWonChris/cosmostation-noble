@@ -120,41 +120,43 @@ func ParseTransaction(tx schema.Transaction) (result *ResultTx, err error) {
 }
 
 // ParseTransactions receives result transactions from database and return them after unmarshal them.
-// func ParseTransactions(txs []schema.Transaction) (result []ResultTx, err error) {
-// 	for _, tx := range txs {
-// 		msgs := make([]Message, 0)
-// 		err = json.Unmarshal([]byte(tx.Messages), &msgs)
-// 		if err != nil {
-// 			return []ResultTx{}, err
-// 		}
+func ParseTransactions(txs []schema.Transaction) (result []ResultTx, err error) {
 
-// 		var fee *Fee
-// 		err = json.Unmarshal([]byte(tx.Fee), &fee)
-// 		if err != nil {
-// 			return []ResultTx{}, err
-// 		}
+	for _, tx := range txs {
 
-// 		var logs []Log
-// 		err = json.Unmarshal([]byte(tx.Logs), &logs)
-// 		if err != nil {
-// 			return []ResultTx{}, err
-// 		}
+		msgs := make([]Message, 0)
+		err = json.Unmarshal([]byte(tx.Messages), &msgs)
+		if err != nil {
+			return []ResultTx{}, err
+		}
 
-// 		tx := &ResultTx{
-// 			ID:        tx.ID,
-// 			Height:    tx.Height,
-// 			TxHash:    tx.TxHash,
-// 			Logs:      logs,
-// 			GasWanted: tx.GasWanted,
-// 			GasUsed:   tx.GasUsed,
-// 			Msgs:      msgs,
-// 			Fee:       fee,
-// 			Memo:      tx.Memo,
-// 			Timestamp: tx.Timestamp,
-// 		}
+		var fee *Fee
+		err = json.Unmarshal([]byte(tx.Fee), &fee)
+		if err != nil {
+			return []ResultTx{}, err
+		}
 
-// 		result = append(result, *tx)
-// 	}
+		var logs []Log
+		err = json.Unmarshal([]byte(tx.Logs), &logs)
+		if err != nil {
+			return []ResultTx{}, err
+		}
 
-// 	return result, nil
-// }
+		tx := &ResultTx{
+			ID:        tx.ID,
+			Height:    tx.Height,
+			TxHash:    tx.TxHash,
+			Logs:      logs,
+			GasWanted: tx.GasWanted,
+			GasUsed:   tx.GasUsed,
+			Msgs:      msgs,
+			Fee:       fee,
+			Memo:      tx.Memo,
+			Timestamp: tx.Timestamp,
+		}
+
+		result = append(result, *tx)
+	}
+
+	return result, nil
+}

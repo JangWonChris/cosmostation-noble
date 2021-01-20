@@ -495,41 +495,35 @@ func (db *Database) QueryValidatorBondedInfo(address string) (peh schema.PowerEv
 // 	return txs, nil
 // }
 
-// QueryTransactionsByAddr returns all transactions that are created by an account.
-func (db *Database) QueryTransactionsByAddr(accAddr, valAddr string, before, after, limit int) (txs []schema.Transaction, err error) {
-	// Make sure to use brackets that surround each local operator, otherwise it will return incorrect data.
-	params := "(" + QueryTxParamFromAddress + "'" + accAddr + "'" + " OR " +
-		QueryTxParamToAddress + "'" + accAddr + "'" + " OR " +
-		QueryTxParamInputsAddress + "'" + accAddr + "'" + " OR " +
-		QueryTxParamOutpusAddress + "'" + accAddr + "'" + " OR " +
-		QueryTxParamDelegatorAddress + "'" + accAddr + "'" + " OR " +
-		QueryTxParamAddress + "'" + accAddr + "'" + " OR " +
-		QueryTxParamProposer + "'" + accAddr + "'" + " OR " +
-		QueryTxParamDepositer + "'" + accAddr + "'" + " OR " +
-		QueryTxParamVoter + "'" + accAddr + "'" + " OR " +
-		QueryTxParamValidatorCommission + " AND " + QueryTxParamValidatorAddress + "'" + valAddr + "'" + ")"
+// QueryTransactionsByAddrNew returns all transactions that are created by an account.
+func (db *Database) QueryTransactionsByAddrNew(accAddr, valAddr string, before, after, limit int) ([]schema.Transaction, error) {
+	var txs []schema.Transaction
+	var err error
 
 	switch {
 	case before > 0:
-		params += " AND (id < ?)"
-		err = db.Model(&txs).
-			Where("id < ?", before).
-			Limit(limit).
-			Order("id DESC").
-			Select()
+		_, err = db.Query(&txs, "select distinct t.* from transaction as t, transaction_account as ta where ta.account_address = ? and t.tx_hash = ta.tx_hash order by id desc limit ?", accAddr, limit)
+		// params += " AND (id < ?)"
+		// err = db.postgres.Model(&txs).
+		// 	Where(params, accAddr, before).
+		// 	Limit(limit).
+		// 	Order("id DESC").
+		// 	Select()
 	case after > 0:
-		params += " AND (id > ?)"
-		err = db.Model(&txs).
-			Where("id > ?", after).
-			Limit(limit).
-			Order("id ASC").
-			Select()
+		_, err = db.Query(&txs, "select distinct t.* from transaction as t, transaction_account as ta where ta.account_address = ? and t.tx_hash = ta.tx_hash order by id desc limit ?", accAddr, limit)
+		// params += " AND (id > ?)"
+		// err = db.postgres.Model(&txs).
+		// 	Where(params, accAddr, after).
+		// 	Limit(limit).
+		// 	Order("id ASC").
+		// 	Select()
 	default:
-		err = db.Model(&txs).
-			Where(params).
-			Limit(limit).
-			Order("id DESC").
-			Select()
+		_, err = db.Query(&txs, "select distinct t.* from transaction as t, transaction_account as ta where ta.account_address = ? and t.tx_hash = ta.tx_hash order by id desc limit ?", accAddr, limit)
+		// err = db.postgres.Model(&txs).
+		// 	Where(params, accAddr).
+		// 	Limit(limit).
+		// 	Order("id DESC").
+		// 	Select()
 	}
 
 	if err != nil {
@@ -539,34 +533,35 @@ func (db *Database) QueryTransactionsByAddr(accAddr, valAddr string, before, aft
 	return txs, nil
 }
 
-// QueryTransferTransactionsByAddr queries Send / MultiSend transactions that are made by an account
-func (db *Database) QueryTransferTransactionsByAddr(accAddr, denom string, before, after, limit int) (txs []schema.Transaction, err error) {
-	params := "(" + QueryTxParamFromAddress + "'" + accAddr + "'" + " AND " + QueryTxParamDenom + "'" + denom + "')" + " OR " +
-		"(" + QueryTxParamToAddress + "'" + accAddr + "'" + " AND " + QueryTxParamDenom + "'" + denom + "')" + " OR " +
-		"(" + QueryTxParamInputsAddress + "'" + accAddr + "'" + " AND " + QueryTxParamDenom + "'" + denom + "')" + " OR " +
-		"(" + QueryTxParamOutpusAddress + "'" + accAddr + "'" + " AND " + QueryTxParamDenom + "'" + denom + "')"
+// QueryTransferTransactionsByAddrNew queries Send / MultiSend transactions that are made by an account
+func (db *Database) QueryTransferTransactionsByAddrNew(accAddr, denom string, before, after, limit int) ([]schema.Transaction, error) {
+	var txs []schema.Transaction
+	var err error
 
 	switch {
 	case before > 0:
-		params += " AND (id < ?)"
-		err = db.Model(&txs).
-			Where(params, before).
-			Limit(limit).
-			Order("id DESC").
-			Select()
+		_, err = db.Query(&txs, "select t.* from transaction as t left join transaction_account as t1 on t.tx_hash = t1.tx_hash where t1.account_address = ? and (t1.msg_type = 'send' or t1.msg_type = 'multisend') limit ?", accAddr, limit)
+		// params += " AND (id < ?)"
+		// err = db.postgres.Model(&txs).
+		// 	Where(params, before).
+		// 	Limit(limit).
+		// 	Order("id DESC").
+		// 	Select()
 	case after > 0:
-		params += " AND (id > ?)"
-		err = db.Model(&txs).
-			Where(params, after).
-			Limit(limit).
-			Order("id ASC").
-			Select()
+		_, err = db.Query(&txs, "select t.* from transaction as t left join transaction_account as t1 on t.tx_hash = t1.tx_hash where t1.account_address = ? and (t1.msg_type = 'send' or t1.msg_type = 'multisend') limit ?", accAddr, limit)
+		// params += " AND (id > ?)"
+		// err = db.postgres.Model(&txs).
+		// 	Where(params, after).
+		// 	Limit(limit).
+		// 	Order("id ASC").
+		// 	Select()
 	default:
-		err = db.Model(&txs).
-			Where(params).
-			Limit(limit).
-			Order("id DESC").
-			Select()
+		_, err = db.Query(&txs, "select t.* from transaction as t left join transaction_account as t1 on t.tx_hash = t1.tx_hash where t1.account_address = ? and (t1.msg_type = 'send' or t1.msg_type = 'multisend') limit ?", accAddr, limit)
+		// err = db.postgres.Model(&txs).
+		// 	Where(params).
+		// 	Limit(limit).
+		// 	Order("id DESC").
+		// 	Select()
 	}
 
 	if err != nil {
@@ -576,34 +571,18 @@ func (db *Database) QueryTransferTransactionsByAddr(accAddr, denom string, befor
 	return txs, nil
 }
 
-// QueryTransactionsBetweenAccountAndValidator queries transactions that are made between an account and his delegated validator
-func (db *Database) QueryTransactionsBetweenAccountAndValidator(address, valAddr string, before, after, limit int) (txs []schema.Transaction, err error) {
-	params := "(" + QueryTxParamValidatorAddress + "'" + valAddr + "'" + " OR " +
-		QueryTxParamValidatorDstAddress + "'" + valAddr + "'" + " OR " +
-		QueryTxParamValidatorSrcAddress + "'" + valAddr + "')" + " AND " +
-		"(" + QueryTxParamDelegatorAddress + "'" + address + "'" + ")"
+// QueryTransactionsBetweenAccountAndValidatorNew queries transactions that are made between an account and his delegated validator
+func (db *Database) QueryTransactionsBetweenAccountAndValidatorNew(address, valAddr string, before, after, limit int) ([]schema.Transaction, error) {
+	var txs []schema.Transaction
+	var err error
 
 	switch {
 	case before > 0:
-		params += " AND (id < ?)"
-		err = db.Model(&txs).
-			Where(params, before).
-			Limit(limit).
-			Order("id DESC").
-			Select()
+		_, err = db.Query(&txs, "select t.* from transaction as t, transaction_account as t1, transaction_account as t2 where t1.account_address = ? and t2.account_address = ? and t1.tx_hash = t2.tx_hash and t.tx_hash = t1.tx_hash order by id desc limit ?", address, valAddr, limit)
 	case after > 0:
-		params += " AND (id > ?)"
-		err = db.Model(&txs).
-			Where(params, after).
-			Limit(limit).
-			Order("id ASC").
-			Select()
+		_, err = db.Query(&txs, "select t.* from transaction as t, transaction_account as t1, transaction_account as t2 where t1.account_address = ? and t2.account_address = ? and t1.tx_hash = t2.tx_hash and t.tx_hash = t1.tx_hash order by id desc limit ?", address, valAddr, limit)
 	default:
-		err = db.Model(&txs).
-			Where(params).
-			Limit(limit).
-			Order("id DESC").
-			Select()
+		_, err = db.Query(&txs, "select t.* from transaction as t, transaction_account as t1, transaction_account as t2 where t1.account_address = ? and t2.account_address = ? and t1.tx_hash = t2.tx_hash and t.tx_hash = t1.tx_hash order by id desc limit ?", address, valAddr, limit)
 	}
 
 	if err != nil {

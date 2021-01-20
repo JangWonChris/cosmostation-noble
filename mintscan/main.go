@@ -65,9 +65,9 @@ func main() {
 	r.HandleFunc("/account/unbonding_delegations/{delAddr}", handler.GetDelegatorUnbondingDelegations).Methods("GET") //moved to staking
 
 	// 모바일 API
-	r.HandleFunc("/account/txs/{accAddr}", handler.GetAccountTxs).Methods("GET")
-	r.HandleFunc("/account/txs/{accAddr}/{valAddr}", handler.GetTxsBetweenDelegatorAndValidator).Methods("GET")
-	r.HandleFunc("/account/transfer_txs/{accAddr}", handler.GetAccountTransferTxs).Methods("GET")
+	r.HandleFunc("/account/txs/{accAddr}", handler.GetAccountTxsNew).Methods("GET")
+	r.HandleFunc("/account/txs/{accAddr}/{valAddr}", handler.GetTxsBetweenDelegatorAndValidatorNew).Methods("GET")
+	r.HandleFunc("/account/transfer_txs/{accAddr}", handler.GetAccountTransferTxsNew).Methods("GET")
 
 	r.HandleFunc("/blocks", handler.GetBlocks).Methods("GET")
 	r.HandleFunc("/blocks/{proposer}", handler.GetBlocksByProposer).Methods("GET")
