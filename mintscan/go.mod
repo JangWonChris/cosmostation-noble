@@ -10,12 +10,9 @@ require (
 	github.com/go-resty/resty/v2 v2.3.0
 	github.com/gorilla/mux v1.8.0
 	github.com/stretchr/testify v1.6.1
-	github.com/tendermint/tendermint v0.34.1
-	github.com/tendermint/tm-db v0.6.3
 	github.com/tomasen/realip v0.0.0-20180522021738-f0c99a92ddce
 	go.uber.org/zap v1.13.0
 	google.golang.org/grpc v1.33.2
-	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 )
 
 replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.4

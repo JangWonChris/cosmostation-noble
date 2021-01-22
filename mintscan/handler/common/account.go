@@ -1,6 +1,7 @@
 package common
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"sort"
@@ -9,14 +10,15 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	vestingtypes "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
 	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
+	app "github.com/cosmos/gaia/v3/app"
 
 	//internal
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
 
 	//mbl
-
 	// "github.com/cosmostation/mintscan-backend-library/db"
+	ltypes "github.com/cosmostation/mintscan-backend-library/types"
 
 	"go.uber.org/zap"
 
@@ -24,14 +26,55 @@ import (
 )
 
 var (
-	pageLimit = uint64(100)
+	pageLimit      = uint64(100)
+	moduleAccounts = make(map[string]string) // map for module account name, address
 )
+
+func init() {
+	maccPerms := app.GetMaccPerms()
+	for name := range maccPerms {
+		moduleAccounts[name] = authtypes.NewModuleAddress(name).String()
+	}
+}
+
+func GetModuleAccounts(rw http.ResponseWriter, r *http.Request) {
+	macc := make([]*model.ModuleAccount, 0)
+
+	for name, addr := range moduleAccounts {
+		account, err := s.Client.CliCtx.GetAccount(addr)
+		if err != nil {
+			zap.L().Error("failed to get module account information", zap.Error(err))
+			errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
+		}
+
+		acc, ok := account.(authtypes.ModuleAccountI)
+		if !ok {
+			zap.L().Error("account type is not module account", zap.Error(err))
+		}
+
+		coins, err := s.Client.GRPC.GetAllBalances(context.Background(), addr, pageLimit)
+		if err != nil {
+			zap.L().Error("failed to get module account balance", zap.Error(err))
+			errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
+		}
+		ma := &model.ModuleAccount{
+			Address:       addr,
+			AccountNumber: acc.GetAccountNumber(),
+			Coins:         coins,
+			Permissions:   acc.GetPermissions(),
+			Name:          name,
+		}
+		macc = append(macc, ma)
+	}
+
+	model.Respond(rw, macc)
+}
 
 // GetAuthAccount returns general account information.
 func GetAuthAccount(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	accAddr := vars["accAddr"]
-	err := model.VerifyBech32AccAddr(accAddr)
+	err := ltypes.VerifyBech32AccAddr(accAddr)
 	if err != nil {
 		zap.L().Debug("failed to validate account address", zap.Error(err))
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
@@ -70,7 +113,7 @@ func GetAuthAccount(rw http.ResponseWriter, r *http.Request) {
 func GetBalance(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	accAddr := vars["accAddr"]
-	err := model.VerifyBech32AccAddr(accAddr)
+	err := ltypes.VerifyBech32AccAddr(accAddr)
 	if err != nil {
 		zap.L().Debug("failed to validate account address", zap.Error(err))
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
@@ -95,9 +138,24 @@ func GetBalance(rw http.ResponseWriter, r *http.Request) {
 
 // GetAllBalances returns account balance.
 func GetAllBalances(rw http.ResponseWriter, r *http.Request) {
+	// type ResultAllBalances struct {
+	// 	Balance []Balance `json:"balances"`
+	// }
+
+	// type Balance struct {
+	// 	Denom       string `json:"denom"`
+	// 	Total       string `json:"total"`
+	// 	Available   string `json:"available"`
+	// 	Delegated   string `json:"delegated"`
+	// 	Undelegated string `json:"undelegated"`
+	// 	Rewards     string `json:"rewards"`
+	// 	Commission  string `json:"commission"`
+	// 	Vesting     string `json:"vesting"`
+	// 	Vested      string `json:"vested"`
+	// }
 	vars := mux.Vars(r)
 	accAddr := vars["accAddr"]
-	err := model.VerifyBech32AccAddr(accAddr)
+	err := ltypes.VerifyBech32AccAddr(accAddr)
 	if err != nil {
 		zap.L().Debug("failed to validate account address", zap.Error(err))
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
@@ -109,8 +167,13 @@ func GetAllBalances(rw http.ResponseWriter, r *http.Request) {
 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
 		return
 	}
+	result := make([]model.Balance, len(res))
+	for i, coin := range res {
+		result[i].Denom = coin.Denom
+		result[i].Available = coin.Amount.String()
+	}
 
-	model.Respond(rw, res)
+	model.Respond(rw, result)
 	return
 }
 
@@ -166,7 +229,7 @@ func GetDelegatorDelegations(rw http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 	accAddr := vars["accAddr"]
-	err := model.VerifyBech32AccAddr(accAddr)
+	err := ltypes.VerifyBech32AccAddr(accAddr)
 	if err != nil {
 		zap.L().Debug("failed to validate account address", zap.Error(err))
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
@@ -281,7 +344,7 @@ func GetDelegatorUnbondingDelegations(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	accAddr := vars["accAddr"]
 
-	err := model.VerifyBech32AccAddr(accAddr)
+	err := ltypes.VerifyBech32AccAddr(accAddr)
 	if err != nil {
 		zap.L().Debug("failed to validate account address", zap.Error(err))
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "acount address is invalid")
@@ -322,14 +385,14 @@ func GetValidatorCommission(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	accAddr := vars["accAddr"]
 
-	err := model.VerifyBech32AccAddr(accAddr)
+	err := ltypes.VerifyBech32AccAddr(accAddr)
 	if err != nil {
 		zap.L().Debug("failed to validate account address", zap.Error(err))
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
 		return
 	}
 
-	valAddr, err := model.ConvertValAddrFromAccAddr(accAddr)
+	valAddr, err := ltypes.ConvertValAddrFromAccAddr(accAddr)
 	if err != nil {
 		zap.L().Debug("failed to validate validator address", zap.Error(err))
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "validator address is invalid")
@@ -350,7 +413,7 @@ func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	accAddr := vars["accAddr"]
 
-	err := model.VerifyBech32AccAddr(accAddr)
+	err := ltypes.VerifyBech32AccAddr(accAddr)
 	if err != nil {
 		zap.S().Debugf("failed to validate account address: %s", err)
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
@@ -426,7 +489,7 @@ func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 	// 	}
 	// }
 
-	valAddr, err := model.ConvertValAddrFromAccAddr(accAddr)
+	valAddr, err := ltypes.ConvertValAddrFromAccAddr(accAddr)
 	if err != nil {
 		zap.S().Errorf("failed to convert validator address from account address: %s", err)
 		return
@@ -466,10 +529,9 @@ func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 		vestedCoins := acct.GetVestedCoins(block.Block.Time)
 		delegatedVesting := acct.GetDelegatedVesting()
 
-		// When total vesting amount is greater than or equal to delegated vesting amount, then
-		// there is still a room to delegate. Otherwise, vesting should be zero.
+		// vesting 수량은 delegate 한 수량은 제외한다. (vesting 중이어도 delegate 한 수량은 delegate에 표시)
 		if len(vestingCoins) > 0 {
-			if vestingCoins.IsAllGTE(delegatedVesting) {
+			if vestingCoins.IsAllGT(delegatedVesting) {
 				vestingCoins = vestingCoins.Sub(delegatedVesting)
 				for _, vc := range vestingCoins {
 					if vc.Denom == denom {
@@ -517,7 +579,7 @@ func GetTotalAllBalances(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	accAddr := vars["accAddr"]
 
-	err := model.VerifyBech32AccAddr(accAddr)
+	err := ltypes.VerifyBech32AccAddr(accAddr)
 	if err != nil {
 		zap.S().Debugf("failed to validate account address: %s", err)
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
@@ -587,7 +649,7 @@ func GetTotalAllBalances(rw http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	valAddr, err := model.ConvertValAddrFromAccAddr(accAddr)
+	valAddr, err := ltypes.ConvertValAddrFromAccAddr(accAddr)
 	if err != nil {
 		zap.S().Errorf("failed to convert validator address from account address: %s", err)
 		return
@@ -628,10 +690,9 @@ func GetTotalAllBalances(rw http.ResponseWriter, r *http.Request) {
 		vestedCoins := acct.GetVestedCoins(block.Block.Time)
 		delegatedVesting := acct.GetDelegatedVesting()
 
-		// When total vesting amount is greater than or equal to delegated vesting amount, then
-		// there is still a room to delegate. Otherwise, vesting should be zero.
+		// vesting 양은 delegate 한 양은 제외한다. (vesting 중이어도 delegate 한 수량은 delegate에 표시)
 		if len(vestingCoins) > 0 {
-			if vestingCoins.IsAllGTE(delegatedVesting) {
+			if vestingCoins.IsAllGT(delegatedVesting) {
 				vestingCoins = vestingCoins.Sub(delegatedVesting)
 				for _, vc := range vestingCoins {
 					if vc.Denom == denom {

@@ -2,12 +2,11 @@ package client
 
 import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/codec"
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/custom"
 
 	// mbl
 	lclient "github.com/cosmostation/mintscan-backend-library/client"
 	"github.com/cosmostation/mintscan-backend-library/config"
-	// "github.com/cosmostation/mintscan-backend-library/config"
 )
 
 // Client implements a wrapper around both Tendermint RPC HTTP client and
@@ -22,10 +21,10 @@ func NewClient(cfg *config.ClientConfig) *Client {
 	client := lclient.NewClient(cfg)
 
 	client.CliCtx.Context = client.CliCtx.Context.
-		WithJSONMarshaler(codec.EncodingConfig.Marshaler).
-		WithLegacyAmino(codec.EncodingConfig.Amino).
-		WithTxConfig(codec.EncodingConfig.TxConfig).
-		WithInterfaceRegistry(codec.EncodingConfig.InterfaceRegistry).
+		WithJSONMarshaler(custom.EncodingConfig.Marshaler).
+		WithLegacyAmino(custom.EncodingConfig.Amino).
+		WithTxConfig(custom.EncodingConfig.TxConfig).
+		WithInterfaceRegistry(custom.EncodingConfig.InterfaceRegistry).
 		WithAccountRetriever(authtypes.AccountRetriever{})
 
 	return &Client{client}

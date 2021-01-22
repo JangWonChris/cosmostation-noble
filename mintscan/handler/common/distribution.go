@@ -7,6 +7,7 @@ import (
 	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
+	ltypes "github.com/cosmostation/mintscan-backend-library/types"
 
 	"github.com/gorilla/mux"
 
@@ -18,7 +19,7 @@ func GetDelegatorWithdrawalAddress(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	delAddr := vars["delAddr"]
 
-	err := model.VerifyBech32AccAddr(delAddr)
+	err := ltypes.VerifyBech32AccAddr(delAddr)
 	if err != nil {
 		zap.L().Debug("failed to validate delegator address", zap.Error(err))
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "delegator address is invalid")

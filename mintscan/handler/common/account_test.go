@@ -6,20 +6,12 @@ import (
 	"os"
 	"testing"
 
-	sdktypes "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/bech32"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	app "github.com/cosmos/gaia/v3/app"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/client"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/db"
-	"github.com/cosmostation/mintscan-backend-library/codec"
 	mintscanconfig "github.com/cosmostation/mintscan-backend-library/config"
 	"github.com/stretchr/testify/require"
-	"github.com/tendermint/tendermint/crypto"
-
-	tlog "github.com/tendermint/tendermint/libs/log"
-
-	tdb "github.com/tendermint/tm-db"
 )
 
 var iclient *client.Client
@@ -40,33 +32,27 @@ func (g gaiaInit) Get(s string) interface{} {
 }
 
 func TestModuleAccounts(t *testing.T) {
-	tmdb := tdb.NewMemDB()
-	gapp := app.NewGaiaApp(tlog.NewTMLogger(tlog.NewSyncWriter(os.Stdout)), tmdb, nil, true, map[int64]bool{}, "", uint(1), codec.EncodingConfig, gaiaInit{})
-	// gapp := app.NewGaiaApp(tlog.NewTMLogger(tlog.NewSyncWriter(os.Stdout)), tmdb, nil, true, uint(1))
-	// sapp := simapp.NewSimApp(tlog.NewTMLogger(tlog.NewSyncWriter(os.Stdout)), tmdb, nil, true, 0)
+	maccPerms := app.GetMaccPerms()
 
-	modAccAddrs := gapp.ModuleAccountAddrs()
-	authtypes.ModuleCdc.RegisterConcrete(&authtypes.BaseAccount{}, "cosmos-sdk/ModuleAccount", nil)
-
-	a := crypto.AddressHash([]byte("fee_collector"))
-	s, _ := bech32.ConvertAndEncode(sdktypes.GetConfig().GetBech32AccountAddrPrefix(), a.Bytes())
-	fmt.Println("fee_collector:", s)
-
-	for mAccAddr, permission := range modAccAddrs {
-		require.Equal(t, true, permission)
-		t.Log(mAccAddr)
-		t.Log(permission)
-		account, err := iclient.CliCtx.GetAccount(mAccAddr)
-		t.Log(account)
+	for name := range maccPerms {
+		maccAddr := authtypes.NewModuleAddress(name).String()
+		// require.Equal(t, true, permission)
+		account, err := iclient.CliCtx.GetAccount(maccAddr)
 		require.NoError(t, err)
+		// t.Log(account)
 
 		acc, ok := account.(authtypes.ModuleAccountI)
 		require.Equal(t, true, ok)
 
-		require.NotNil(t, acc.GetAddress().String(), "Module Account Address")
-		// require.NotNil(t, acc.GetCoins(), "Module Account Balance")
-		require.NotNil(t, acc.GetName(), "Module Account Name")
-		require.NotNil(t, acc.GetPermissions(), "Module Account Permissions")
+		pageLimit := uint64(100)
+		coins, err := iclient.GRPC.GetAllBalances(context.Background(), maccAddr, pageLimit)
+		require.NoError(t, err)
+
+		t.Log("=======")
+		t.Log("Module Account Name : ", acc.GetName())
+		t.Log("Module Account Permissions : ", acc.GetPermissions())
+		t.Log("Module Account Address : ", acc.GetAddress().String())
+		t.Log("Module Account Balance : ", coins)
 	}
 }
 

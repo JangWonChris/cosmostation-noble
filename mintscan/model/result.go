@@ -10,6 +10,22 @@ import (
 	"github.com/cosmostation/mintscan-backend-library/db/schema"
 )
 
+type ResultAllBalances struct {
+	Balance []Balance `json:"balances"`
+}
+
+type Balance struct {
+	Denom       string `json:"denom"`
+	Total       string `json:"total"`
+	Available   string `json:"available"`
+	Delegated   string `json:"delegated"`
+	Undelegated string `json:"undelegated"`
+	Rewards     string `json:"rewards"`
+	Commission  string `json:"commission"`
+	Vesting     string `json:"vesting"`
+	Vested      string `json:"vested"`
+}
+
 // ResultTotalBalance defines the structure for total kava balance of a delegator.
 type ResultTotalBalance struct {
 	Total       sdk.Coin `json:"total"`

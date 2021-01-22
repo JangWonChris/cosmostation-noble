@@ -17,9 +17,9 @@ type UnbondingDelegations struct {
 // ModuleAccount defines the structure for module account information.
 // 향후 사용할 수 있어서 삭제 안함(Jeonghwan)
 type ModuleAccount struct {
+	Name          string    `json:"name"`
+	Permissions   []string  `json:"permissions"`
 	Address       string    `json:"address"`
 	AccountNumber uint64    `json:"account_number"`
 	Coins         sdk.Coins `json:"coins"`
-	Permissions   []string  `json:"permissions"`
-	Name          string    `json:"name"`
 }

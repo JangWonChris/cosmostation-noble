@@ -12,9 +12,10 @@ var s *handler.Session
 func RegisterHandlers(session *handler.Session, r *mux.Router) {
 	s = session
 
-	r.HandleFunc("/auth/accounts/{accAddr}", GetAuthAccount).Methods("GET") // used for Kava Vesting Schedule
-	// r.HandleFunc("/account/module_accounts", GetModuleAccounts).Methods("GET")
-	r.HandleFunc("/account/balances/{accAddr}", GetBalance).Methods("GET")
+	r.HandleFunc("/auth/accounts/{accAddr}", GetAuthAccount).Methods("GET")
+	r.HandleFunc("/account/module_accounts", GetModuleAccounts).Methods("GET")
+	// r.HandleFunc("/account/balances/{accAddr}", GetBalance).Methods("GET")
+	r.HandleFunc("/account/balances/{accAddr}", GetAllBalances).Methods("GET")
 	r.HandleFunc("/account/delegations/{accAddr}", GetDelegatorDelegations).Methods("GET")
 	r.HandleFunc("/account/undelegations/{accAddr}", GetDelegatorUnbondingDelegations).Methods("GET")
 	r.HandleFunc("/blocks", GetBlocks).Methods("GET")
@@ -48,7 +49,6 @@ func RegisterHandlers(session *handler.Session, r *mux.Router) {
 		나중 = 나중에 필요할 수도 있을 만한 API
 	*/
 
-	// r.HandleFunc("/module/accounts", GetModuleAccounts).Methods("GET")                                                // (변경) /account/module_accounts
 	r.HandleFunc("/account/total/balance/{accAddr}", GetTotalBalance).Methods("GET")                                  // (변경) /account/balances/{accAddr}
 	r.HandleFunc("/blocks/{proposer}", GetBlocksByProposer).Methods("GET")                                            // (변경) /staking/validator/blocks/{proposer}
 	r.HandleFunc("/account/unbonding_delegations/{accAddr}", GetDelegatorUndelegations).Methods("GET")                // (변경) /account/undelegations/{accAddr}
