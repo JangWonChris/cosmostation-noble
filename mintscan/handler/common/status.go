@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
 
@@ -79,6 +80,13 @@ func SetStatus() error {
 	secondLastBlocktime := latestTwoBlocks[1].Timestamp.UTC()
 	blockTime := lastBlocktime.Sub(secondLastBlocktime).Seconds()
 
+	queryClient := distributiontypes.NewQueryClient(s.Client.GetCLIContext())
+	cpr, err := queryClient.CommunityPool(context.Background(), &distributiontypes.QueryCommunityPoolRequest{})
+	if err != nil {
+		zap.L().Error("failed to get community pool", zap.Error(err))
+		return err
+	}
+
 	mu.Lock()
 	latestStatus = &model.ResultStatus{
 		ChainID:                status.NodeInfo.Network,
@@ -92,6 +100,7 @@ func SetStatus() error {
 		TotalCirculatingTokens: *coins, // TODO: should be how we discuss with CoinGecko (Total Supply - Vesting Amount)
 		BondedTokens:           bondedTokens,
 		NotBondedTokens:        notBondedTokens,
+		CommunityPool:          cpr.Pool,
 		Timestamp:              status.SyncInfo.LatestBlockTime,
 	}
 	mu.Unlock()

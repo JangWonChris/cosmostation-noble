@@ -5,8 +5,10 @@ import (
 	"net/http"
 	"time"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+
+	// distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	"github.com/cosmostation/mintscan-backend-library/db/schema"
 )
 
@@ -28,14 +30,14 @@ type Balance struct {
 
 // ResultTotalBalance defines the structure for total kava balance of a delegator.
 type ResultTotalBalance struct {
-	Total       sdk.Coin `json:"total"`
-	Available   sdk.Coin `json:"available"`
-	Delegated   sdk.Coin `json:"delegated"`
-	Undelegated sdk.Coin `json:"undelegated"`
-	Rewards     sdk.Coin `json:"rewards"`
-	Commission  sdk.Coin `json:"commission"`
-	Vesting     sdk.Coin `json:"vesting"`
-	Vested      sdk.Coin `json:"vested"`
+	Total       sdktypes.Coin `json:"total"`
+	Available   sdktypes.Coin `json:"available"`
+	Delegated   sdktypes.Coin `json:"delegated"`
+	Undelegated sdktypes.Coin `json:"undelegated"`
+	Rewards     sdktypes.Coin `json:"rewards"`
+	Commission  sdktypes.Coin `json:"commission"`
+	Vesting     sdktypes.Coin `json:"vesting"`
+	Vested      sdktypes.Coin `json:"vested"`
 	// FailedVested sdk.Coin `json:"failed_vested"`
 	// Incentive    sdk.Coin `json:"incentive"`
 	// Deposited    sdk.Coin `json:"deposited"`
@@ -126,7 +128,9 @@ type ResultStatus struct {
 	TotalCirculatingTokens banktypes.QueryTotalSupplyResponse `json:"total_circulating_tokens"`
 	BondedTokens           float64                            `json:"bonded_tokens"`
 	NotBondedTokens        float64                            `json:"not_bonded_tokens"`
-	Timestamp              time.Time                          `json:"timestamp"`
+	// CommunityPool          *distrtypes.QueryCommunityPoolResponse `json:"community_pool"`
+	CommunityPool sdktypes.DecCoins `json:"community_pool"`
+	Timestamp     time.Time         `json:"timestamp"`
 }
 
 // ResultValidator defines the structure for validator result response.

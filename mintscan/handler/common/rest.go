@@ -41,6 +41,9 @@ func RegisterHandlers(session *handler.Session, r *mux.Router) {
 	r.HandleFunc("/stats/market", GetMarketStats).Methods("GET")
 	r.HandleFunc("/stats/network", GetNetworkStats).Methods("GET")
 
+	// 부연님 커미션 조회할때 사용하는 api
+	r.HandleFunc("/account/validator/commission/{accAddr}", GetValidatorCommission).Methods("GET") // (포함) /account/balances/{accAddr}
+	r.HandleFunc("/distribution/community_pool", GetCommunityPool).Methods("GET")                  // (포함) /status
 	/*
 		변경 = 요청 Path 변경
 		포함 = 다른 API에 포함
@@ -54,12 +57,8 @@ func RegisterHandlers(session *handler.Session, r *mux.Router) {
 	r.HandleFunc("/account/unbonding_delegations/{accAddr}", GetDelegatorUndelegations).Methods("GET")                // (변경) /account/undelegations/{accAddr}
 	r.HandleFunc("/distribution/delegators/{delAddr}/withdraw_address", GetDelegatorWithdrawalAddress).Methods("GET") // (포함) /account/balances/{accAddr}
 
-	// 부연님 커미션 조회할때 사용하는 api
-	r.HandleFunc("/account/validator/commission/{accAddr}", GetValidatorCommission).Methods("GET") // (포함) /account/balances/{accAddr}
-
 	// r.HandleFunc("/account/delegations/rewards/{accAddr}", GetDelegationsRewards).Methods("GET")                                // (확인)
 	// r.HandleFunc("/staking/validator/events/{address}/count", GetValidatorEventsTotalCount).Methods("GET")                      // (확인)
 	// r.HandleFunc("/distribution/delegators/{delAddr}/rewards/{valAddr}", GetRewardsBetweenDelegatorAndValidator).Methods("GET") // (확인)
-	r.HandleFunc("/distribution/community_pool", GetCommunityPool).Methods("GET")                     // (나중)
 	r.HandleFunc("/staking/validator/uptime/range/{address}", GetValidatorUptimeRange).Methods("GET") // (나중)
 }
