@@ -49,8 +49,6 @@ func NewExporter() *Exporter {
 
 	client := client.NewClient(&config.Client)
 
-	custom.SetAppConfig()
-
 	database := db.Connect(&config.DB)
 	err := database.Ping()
 	if err != nil {
