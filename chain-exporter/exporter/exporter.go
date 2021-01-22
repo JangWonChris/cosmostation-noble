@@ -45,15 +45,12 @@ func NewExporter() *Exporter {
 	zap.ReplaceGlobals(l)
 	defer l.Sync()
 
-	// Parse config from configuration file (config.yaml).
 	config := config.ParseConfig()
 
-	// Create new client with node configruation.
-	// Client is used for requesting any type of network data from RPC full node and REST Server.
 	client := client.NewClient(&config.Client)
+
 	custom.SetAppConfig()
-	// Create connection with PostgreSQL database and
-	// Ping database to verify connection is success.
+
 	database := db.Connect(&config.DB)
 	err := database.Ping()
 	if err != nil {

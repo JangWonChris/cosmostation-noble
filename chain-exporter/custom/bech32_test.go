@@ -13,7 +13,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	// SetAppConfig()
+	SetAppConfig()
 
 	os.Exit(m.Run())
 }
