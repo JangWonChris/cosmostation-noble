@@ -9,6 +9,7 @@ import (
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 
 	// distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
+
 	"github.com/cosmostation/mintscan-backend-library/db/schema"
 )
 
@@ -60,15 +61,17 @@ type ResultBlock struct {
 }
 
 // ResultDelegations defines the structure for delegations result response.
+// account 상세 Delegations 카드에 나오는 데이터
 type ResultDelegations struct {
 	DelegatorAddress string `json:"delegator_address"`
 	ValidatorAddress string `json:"validator_address"`
 	Moniker          string `json:"moniker"`
 	Shares           string `json:"shares"`
-	Balance          string `json:"balance"`
+	// Balance          string `json:"balance"`
 	// Balance          Coin   `json:"balance"`
-	Amount  string `json:"amount"`
-	Rewards []Coin `json:"delegator_rewards"`
+	Amount string `json:"amount"`
+	// Rewards []Coin `json:"delegator_rewards"`
+	Rewards sdktypes.DecCoins `json:"delegator_rewards"`
 }
 
 // ResultProposal defines the structure for proposal result response.

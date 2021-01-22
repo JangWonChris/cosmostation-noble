@@ -58,6 +58,9 @@ func TestModuleAccounts(t *testing.T) {
 
 func TestKindOfBalance(t *testing.T) {
 	address := "cosmos1x5wgh6vwye60wv3dtshs9dmqggwfx2ldnqvev0"
+
+	// acc, err := iclient.CliCtx.GetAccount(address)
+
 	ctx := context.Background()
 	coin, err := iclient.GRPC.GetBalance(ctx, "umuon", address)
 	require.NoError(t, err)

@@ -211,11 +211,7 @@ func (s *QueryDelegatorTotalRewardsResponseSorter) Less(i, j int) bool {
 	return s.by(&s.resp[i], &s.resp[j])
 }
 
-// GetDelegatorDelegations returns all delegations from a delegator.
-// TODO: This API uses 3 REST API requests.
-// Don't need to be handled immediately, but if this ever slows down or gives burden to our
-// REST server, change to use RPC to see if it gets better.
-func GetDelegatorDelegations(rw http.ResponseWriter, r *http.Request) {
+func GetDelegatorDelegationsLegacy(rw http.ResponseWriter, r *http.Request) {
 	/*
 		이 함수의 기능은 특정 위임자(주어진 주소)가 위임한 모든 검증인의 상세 데이터를 출력하는 것임
 		- 위임자 주소 (staking/delegations/delAddr)
@@ -261,15 +257,15 @@ func GetDelegatorDelegations(rw http.ResponseWriter, r *http.Request) {
 	// 아래 결과로만 받을 때는, 소팅이 필요 없어보이고,
 	// vali가 일치하는지만 검사해서 리턴하면 될 것 같다.
 	for _, r := range resps.DelegationResponses {
-		fmt.Println(r)
+		fmt.Println("step 1: ", r.Delegation.ValidatorAddress)
 	}
-
+	fmt.Println("res2.total :", res2.Total)
 	fmt.Println("before sort")
 	for _, r := range res2.Rewards {
 		fmt.Println(r)
 	}
 	By(rewards).Sort(res2.Rewards)
-	fmt.Println("after sort")
+	fmt.Println("after sort") //결론 소팅할 필요 없다.
 	for _, r := range res2.Rewards {
 		fmt.Println(r)
 	}
@@ -285,7 +281,7 @@ func GetDelegatorDelegations(rw http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		resultRewards := make([]model.Coin, 0)
+		resultRewards := make(sdktypes.DecCoins, 0)
 
 		denom, err := s.Client.GRPC.GetBondDenom(r.Context())
 		if err != nil {
@@ -295,19 +291,19 @@ func GetDelegatorDelegations(rw http.ResponseWriter, r *http.Request) {
 		// Exception: reward is null when the fee of delegator's validator is 100%
 		if len(drr) > 0 {
 			for _, reward := range drr {
-				tempReward := &model.Coin{
+				tempReward := sdktypes.DecCoin{
 					Denom:  reward.Denom,
-					Amount: reward.Amount.String(),
+					Amount: reward.Amount,
 				}
-				resultRewards = append(resultRewards, *tempReward)
+				resultRewards = append(resultRewards, tempReward)
 			}
 		} else {
-			tempReward := &model.Coin{
+			tempReward := sdktypes.DecCoin{
 				Denom:  denom,
-				Amount: "0",
+				Amount: sdktypes.NewDec(0),
 				// Amount: sdk.ZeroInt(), //"0" value is modified because cointype is changed from model.coin to sdk.coin
 			}
-			resultRewards = append(resultRewards, *tempReward)
+			resultRewards = append(resultRewards, tempReward)
 		}
 
 		// 위임한 검증인의 모니커 조회
@@ -323,8 +319,82 @@ func GetDelegatorDelegations(rw http.ResponseWriter, r *http.Request) {
 			ValidatorAddress: resp.Delegation.ValidatorAddress,
 			Moniker:          vr.Description.Moniker,
 			Shares:           resp.Delegation.Shares.String(),
-			Balance:          resp.Balance.Amount.String(),
-			Amount:           resp.Balance.Amount.String(),
+			// Balance:          resp.Balance.Amount.String(),
+			Amount:  resp.Balance.Amount.String(),
+			Rewards: resultRewards,
+		}
+		resultDelegations = append(resultDelegations, *temp)
+	}
+
+	model.Respond(rw, resultDelegations)
+	return
+}
+
+func GetDelegatorDelegations(rw http.ResponseWriter, r *http.Request) {
+	/*
+		이 함수의 기능은 특정 위임자(주어진 주소)가 위임한 모든 검증인의 상세 데이터를 출력하는 것임
+		- 위임자 주소 (staking/delegations/delAddr)
+		- 검증인 주소 (staking/delegations/delAddr)
+		- 모니커
+		- 지분(shares) (staking/delegations/delAddr)
+		- 잔고 (staking/delegations/delAddr)
+		- 지분으로 계산한 잔고 (staking/delegations/delAddr)
+		- 리워드
+	*/
+
+	vars := mux.Vars(r)
+	accAddr := vars["accAddr"]
+	err := ltypes.VerifyBech32AccAddr(accAddr)
+	if err != nil {
+		zap.L().Debug("failed to validate account address", zap.Error(err))
+		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
+		return
+	}
+	// Query all delegations from a delegator
+	dd, err := s.Client.GRPC.GetDelegatorDelegations(r.Context(), accAddr, pageLimit)
+	if err != nil {
+		zap.L().Error("failed to get delegators delegations", zap.Error(err))
+		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
+		return
+	}
+
+	dtr, err := s.Client.GRPC.GetDelegationTotalRewards(r.Context(), accAddr)
+	if err != nil {
+		zap.L().Error("failed to get delegator rewards", zap.Error(err))
+		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
+		return
+	}
+
+	denom, err := s.Client.GRPC.GetBondDenom(r.Context())
+	if err != nil {
+		return
+	}
+
+	resultDelegations := make([]model.ResultDelegations, 0)
+	for i, reward := range dtr.Rewards {
+
+		resultRewards := make(sdktypes.DecCoins, 0)
+
+		tempReward := sdktypes.DecCoin{
+			Denom:  denom,
+			Amount: reward.Reward.AmountOf(denom),
+		}
+		resultRewards = append(resultRewards, tempReward)
+
+		// 위임한 검증인의 모니커 조회
+		vr, err := s.Client.GRPC.GetValidator(r.Context(), reward.ValidatorAddress)
+		if err != nil {
+			zap.L().Error("failed to get delegations from a validator", zap.Error(err))
+			errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
+			return
+		}
+
+		temp := &model.ResultDelegations{
+			DelegatorAddress: accAddr,
+			ValidatorAddress: reward.ValidatorAddress,
+			Moniker:          vr.Description.Moniker,
+			Shares:           vr.DelegatorShares.String(),
+			Amount:           dd.DelegationResponses[i].Balance.Amount.String(),
 			Rewards:          resultRewards,
 		}
 		resultDelegations = append(resultDelegations, *temp)
