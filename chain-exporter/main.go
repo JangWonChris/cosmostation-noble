@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 
@@ -12,9 +13,9 @@ import (
 )
 
 func init() {
-	if sdktypes.GetConfig().GetBech32AccountAddrPrefix() != sdktypes.Bech32PrefixAccAddr /* 체인 별 Bech32PrefixAccAddr을 비교하도록 코드를 변경 해야한다 */ {
-		log.Println("bech32 is not identical, will set ")
-		custom.SetAppConfig() // 체인 별 정의 필요
+	custom.SetAppConfig()
+	if !custom.IsSetBech32() {
+		panic(fmt.Errorf("bech32 is not set corretly"))
 	}
 	log.Println("Current bech32 : ", sdktypes.GetConfig())
 }

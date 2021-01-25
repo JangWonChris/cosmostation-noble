@@ -64,8 +64,8 @@ func NewExporter() *Exporter {
 	}
 
 	// Create database tables if not exist already
-	database.CreateTables()
-	rawdb.CreateTables()
+	database.CreateTablesAndIndexes()
+	rawdb.CreateTablesAndIndexes()
 
 	return &Exporter{config, client, database, rawdb}
 }
@@ -138,7 +138,7 @@ func (ex *Exporter) Refine(op int) error {
 
 	for i := dstDBHeight + 1; i <= srcDBHeight; {
 		zap.S().Info("working height : ", i)
-		bs, err := ex.rawdb.GetRawBlock(i)
+		bs, err := ex.rawdb.GetBlocks(i)
 		if err != nil {
 			return err
 		}
@@ -151,7 +151,7 @@ func (ex *Exporter) Refine(op int) error {
 			if b.NumTxs != 0 {
 				txs = make([]*sdktypes.TxResponse, b.NumTxs)
 				zap.S().Info("height : ", b.Height, ", num_txs : ", b.NumTxs)
-				ts, err := ex.rawdb.GetRawTransactions(b.Height)
+				ts, err := ex.rawdb.GetTransactions(b.Height)
 				if err != nil {
 					return err
 				}

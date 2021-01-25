@@ -72,7 +72,7 @@ func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*
 				// msgDelegate := stdTx.Msgs[0].(staking.MsgDelegate)
 
 				// Query the validator's information.
-				valInfo, _ := ex.db.QueryValidator(m.ValidatorAddress)
+				valInfo, _ := ex.db.QueryValidatorByAnyAddr(m.ValidatorAddress)
 
 				// Query id_validator of lastly inserted data.
 				validatorID, _ := ex.db.QueryValidatorID(valInfo.Proposer)
@@ -114,7 +114,7 @@ func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*
 				// msgUndelegate := stdTx.Msgs[0].(staking.MsgUndelegate)
 
 				// Query the validator's information.
-				valInfo, _ := ex.db.QueryValidator(m.ValidatorAddress)
+				valInfo, _ := ex.db.QueryValidatorByAnyAddr(m.ValidatorAddress)
 
 				// Query d_validator of lastly inserted data.
 				validatorID, _ := ex.db.QueryValidatorID(valInfo.Proposer)
@@ -154,11 +154,11 @@ func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*
 				// msgBeginRedelegate := m.(staking.MsgBeginRedelegate)
 
 				// Query validator_dst_address information.
-				valDstInfo, _ := ex.db.QueryValidator(m.ValidatorDstAddress)
+				valDstInfo, _ := ex.db.QueryValidatorByAnyAddr(m.ValidatorDstAddress)
 				dstpowerEventHistory, _ := ex.db.QueryValidatorID(valDstInfo.Proposer)
 
 				// Query validator_src_address information.
-				valSrcInfo, _ := ex.db.QueryValidator(m.ValidatorSrcAddress)
+				valSrcInfo, _ := ex.db.QueryValidatorByAnyAddr(m.ValidatorSrcAddress)
 				srcpowerEventHistory, _ := ex.db.QueryValidatorID(valSrcInfo.Proposer)
 
 				newVotingPowerAmount, _ := strconv.ParseFloat(m.Amount.String(), 64)

@@ -9,7 +9,6 @@ import (
 	"github.com/cosmostation/mintscan-backend-library/db/schema"
 
 	"github.com/go-pg/pg"
-	"github.com/go-pg/pg/orm"
 
 	"github.com/stretchr/testify/require"
 )
@@ -52,7 +51,7 @@ func TestUpdate_Validator(t *testing.T) {
 		Rank:    5,
 	}
 
-	validator, err := db.QueryValidator(val.Address)
+	validator, err := db.QueryValidatorByAnyAddr(val.Address)
 	require.NoError(t, err)
 
 	result, err := db.Model(&validator).
@@ -84,38 +83,6 @@ func TestQuery_Account(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NotNil(t, account)
-}
-
-func TestCreateIndexes(t *testing.T) {
-	err := db.Ping()
-	require.NoError(t, err)
-
-	testIndex := "CREATE INDEX account_account_address_idx ON account USING btree(account_address);"
-
-	_, err = db.Model(&schema.Block{}).Exec(testIndex)
-	require.NoError(t, err)
-}
-
-func TestCreateTables(t *testing.T) {
-	err := db.Ping()
-	require.NoError(t, err)
-
-	tables := []interface{}{
-		(*schema.AccountCoin)(nil),
-	}
-
-	for _, table := range tables {
-		orm.SetTableNameInflector(func(s string) string {
-			return s
-		})
-
-		err := db.CreateTable(table, &orm.CreateTableOptions{
-			IfNotExists: true,
-			Varchar:     columnLength,
-		})
-
-		require.NoError(t, err)
-	}
 }
 
 func TestConnection(t *testing.T) {
