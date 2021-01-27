@@ -120,7 +120,6 @@ func (db *Database) InsertExportedData(e *schema.ExportData) error {
 		}
 
 		if len(e.ResultAccountCoin) > 0 {
-			log.Println("insert in ", e.ResultAccountCoin)
 			err := db.InsertOrUpdateAccounts(e.ResultAccountCoin)
 			if err != nil {
 				return fmt.Errorf("failed to insert result account coin: %s", err)
