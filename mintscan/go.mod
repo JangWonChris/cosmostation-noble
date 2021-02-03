@@ -5,7 +5,8 @@ go 1.12
 require (
 	github.com/cosmos/cosmos-sdk v0.40.0
 	github.com/cosmos/gaia/v3 v3.0.0
-	github.com/cosmostation/mintscan-backend-library v0.0.0-20210120031210-8342355c7571
+	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210120031210-8342355c7571
+	github.com/cosmostation/mintscan-backend-library v0.0.0-20210203045952-a9fbf8bbbfe7
 	github.com/go-pg/pg v8.0.7+incompatible
 	github.com/go-resty/resty/v2 v2.3.0
 	github.com/gorilla/mux v1.8.0

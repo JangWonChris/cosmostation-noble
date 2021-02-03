@@ -223,7 +223,7 @@ func GetVotes(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Query vote options for the proposal
-	yes, no, noWithVeto, abstain, err := s.DB.QueryVoteOptions(id)
+	yes, no, noWithVeto, abstain, err := s.DB.QueryVoteOptions(p.ID)
 	if err != nil {
 		zap.L().Error("failed to get count of tally option", zap.Error(err))
 		errors.ErrNotExist(rw, http.StatusNotFound)
