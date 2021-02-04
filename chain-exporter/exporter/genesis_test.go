@@ -19,7 +19,7 @@ import (
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	gaia "github.com/cosmos/gaia/v3/app"
+	gaia "github.com/cosmos/gaia/v4/app"
 	tmconfig "github.com/tendermint/tendermint/config"
 	tmtypes "github.com/tendermint/tendermint/types"
 )

@@ -17,7 +17,7 @@ import (
 	"go.uber.org/zap"
 
 	//gaia
-	gaia "github.com/cosmos/gaia/v3/app"
+	gaia "github.com/cosmos/gaia/v4/app"
 
 	//cosmos-sdk
 	sdk "github.com/cosmos/cosmos-sdk/types"

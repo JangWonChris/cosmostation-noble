@@ -123,6 +123,51 @@ func (ex *Exporter) Start(initialHeight int64, op int) {
 	zap.S().Infof("shutdown signal received")
 }
 
+func (ex *Exporter) ReproducePowerEventHistory(op int) error {
+	// Query latest block height saved in database
+	dbHeight, err := ex.db.QueryLatestBlockHeight()
+	if dbHeight == -1 {
+		return fmt.Errorf("unexpected error in database: %s", err)
+	}
+
+	zap.S().Infof("dst db %d \n", dbHeight)
+
+	i := int64(1)
+	endHeight := int64(200)
+	for ; i <= dbHeight; i += endHeight {
+		zap.S().Info("working height : ", i)
+		rawTxs, err := ex.db.QueryTxForPowerEventHistory(i, i+endHeight) // 1 <= x < 201, 201 <= x < 201+200
+		if err != nil {
+			return err
+		}
+
+		rawTxsLen := len(rawTxs)
+		if rawTxsLen > 0 {
+
+			txs := make([]*sdktypes.TxResponse, len(rawTxs))
+			for i := range rawTxs {
+				zap.S().Info("height : ", i, ", num_txs : ")
+				tx := new(sdktypes.TxResponse)
+				if err := custom.AppCodec.UnmarshalJSON([]byte(rawTxs[i].Chunk), tx); err != nil {
+					return err
+				}
+				txs[i] = tx
+			}
+
+			exportData := new(schema.ExportData)
+			exportData.ResultValidatorsPowerEventHistory, err = ex.getPowerEventHistoryNew(txs)
+			if err != nil {
+				return err
+			}
+			return ex.db.InsertExportedData(exportData)
+
+		}
+
+	}
+	return nil
+
+}
+
 func (ex *Exporter) Refine(op int) error {
 	// Query latest block height saved in database
 	srcDBHeight, err := ex.rawdb.QueryLatestBlockHeight()
@@ -306,7 +351,8 @@ func (ex *Exporter) process(block *tmctypes.ResultBlock, txs []*sdktypes.TxRespo
 			if err != nil {
 				return fmt.Errorf("failed to get governance: %s", err)
 			}
-			exportData.ResultValidatorsPowerEventHistory, err = ex.getPowerEventHistory(block, txs)
+			// exportData.ResultValidatorsPowerEventHistory, err = ex.getPowerEventHistory(block, txs)
+			exportData.ResultValidatorsPowerEventHistory, err = ex.getPowerEventHistoryNew(txs)
 			if err != nil {
 				return fmt.Errorf("failed to get transactions: %s", err)
 			}

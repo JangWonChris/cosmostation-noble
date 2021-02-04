@@ -8,6 +8,7 @@ import (
 	lconfig "github.com/cosmostation/mintscan-backend-library/config"
 	ldb "github.com/cosmostation/mintscan-backend-library/db"
 	"github.com/cosmostation/mintscan-backend-library/db/schema"
+	"github.com/cosmostation/mintscan-backend-library/types"
 
 	"github.com/go-pg/pg"
 )
@@ -49,6 +50,19 @@ func (db *Database) CreateTablesAndIndexes() {
 // --------------------
 // Query
 // --------------------
+
+func (db *Database) QueryTxForPowerEventHistory(beginHeight, endHeight int64) ([]schema.RawTransaction, error) {
+	var txs []schema.RawTransaction
+	_, err := db.Query(&txs, "select t.* from stargate_final.raw_transaction t where exists ( select 1 from transaction_account as ta where height >= ? and height < ? and msg_type in (?, ?, ?, ?) and t.tx_hash = ta.tx_hash) order by t.height asc ", beginHeight, endHeight, types.StakingMsgCreateValidator, types.StakingMsgDelegate, types.StakingMsgBeginRedelegate, types.StakingMsgUndelegate)
+	if err != nil {
+		if err == pg.ErrNoRows {
+			return txs, nil
+		}
+		return txs, err
+	}
+
+	return txs, nil
+}
 
 // QueryAccountMobile queries account information
 func (db *Database) QueryAccountMobile(address string) (*schema.AccountMobile, error) {

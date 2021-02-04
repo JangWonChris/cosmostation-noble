@@ -2,8 +2,8 @@ package custom
 
 import (
 	"github.com/cosmos/cosmos-sdk/codec"
-	gaia "github.com/cosmos/gaia/v3/app"
-	"github.com/cosmos/gaia/v3/app/params"
+	gaia "github.com/cosmos/gaia/v4/app"
+	"github.com/cosmos/gaia/v4/app/params"
 )
 
 // Codec is the application-wide Amino codec and is initialized upon package loading.

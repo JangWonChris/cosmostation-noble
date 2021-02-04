@@ -3,6 +3,7 @@ package exporter
 import (
 	"context"
 	"strconv"
+	"time"
 
 	"go.uber.org/zap"
 
@@ -16,6 +17,142 @@ import (
 
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
+
+// getPowerEventHistory returns voting power event history of validators by decoding transactions in a block.
+func (ex *Exporter) getPowerEventHistoryNew( /*block *tmctypes.ResultBlock,*/ txResp []*sdktypes.TxResponse) ([]schema.PowerEventHistory, error) {
+	/*
+		구현 방향 정리 :
+		1. validator 테이블에 존재하는 데이터(검증인 정보)를 중복으로 저장 할 필요가 없다.
+			필요하면 조인 연산을 통해 결과를 만들어 내도록 하고, exporter에서는 조인에 필요한 키(validator operator address)만 취한다.
+			이렇게 되면, chain-exporter에서 power event 저장 시 사용되는 로직 일부를 제거할 수 있다.
+
+		2. validator 테이블의 ID를 관계를 엮어서 가져오는게 아닌, 조회를 통해 넣고 있다.
+			이 역시 validator operator address를 이용하면, 외래 키로 이용이 가능하기 때문에 이 컬럼 역시 제거한다.
+
+		3. 특정 높이의 consensus power를 power_event_history 테이블에 저장하지 않는다.
+			따라서, 변화량만 저장한다.
+			따라서, validator로부터 전체 리스트를 가져올 필요가 없다.
+			따라서, transaction-account 테이블로부터 이 데이터를 만들어 낼 수 있다.(이렇게 하면, 프론트 공수가 추가적으로 들어간다.)
+
+		4. (3)의 결정에 따라, 블록 별 검증인의 consensus 변화 추이를 계산 할 전체 변화량을 저장 할 필요가 있다.
+			4-1. 노드에 특정 높이의 검증인 집합을 요청하고, 그 값을 사용한다. (이전 체인 데이터의 재생산이 어려움)
+			4-2. staking tx로부터 검증인의 보팅 파워 변화를 계산하고 그 결과를 테이블에 저장한다. (이전 체인 히스토리도 모두 지원 할 수 있음, 데이터의 정합성 검증 추가 필요)
+	*/
+	powerEventHistory := make([]schema.PowerEventHistory, 0)
+
+	if len(txResp) <= 0 {
+		return powerEventHistory, nil
+	}
+
+	//sdktypes.PowerReduction == 1,000,000 (BigInt)
+	powerReduction := float64(sdktypes.PowerReduction.Int64())
+	for _, tx := range txResp {
+		if tx.Code != 0 {
+			// Code != 0 이면, 성공한 tx가 아니므로 무시한다.
+			continue
+		}
+
+		timestamp, _ := time.Parse(time.RFC3339, tx.Timestamp) // 임시
+		msgs := tx.GetTx().GetMsgs()
+
+		for _, msg := range msgs {
+
+			switch m := msg.(type) {
+			case *stakingtypes.MsgCreateValidator:
+				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
+
+				newVotingPowerAmount := float64(m.Value.Amount.Int64()) / powerReduction
+
+				peh := &schema.PowerEventHistory{
+					Height:               tx.Height,
+					OperatorAddress:      m.ValidatorAddress,
+					MsgType:              types.StakingMsgCreateValidator,
+					NewVotingPowerAmount: newVotingPowerAmount,
+					NewVotingPowerDenom:  m.Value.Denom,
+					TxHash:               tx.TxHash,
+					// Timestamp:            block.Block.Header.Time,
+					Timestamp: timestamp,
+				}
+
+				powerEventHistory = append(powerEventHistory, *peh)
+
+			case *stakingtypes.MsgDelegate:
+				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
+
+				newVotingPowerAmount := float64(m.Amount.Amount.Int64()) / powerReduction
+
+				peh := &schema.PowerEventHistory{
+					Height:               tx.Height,
+					OperatorAddress:      m.ValidatorAddress,
+					MsgType:              types.StakingMsgDelegate,
+					NewVotingPowerAmount: newVotingPowerAmount,
+					NewVotingPowerDenom:  m.Amount.Denom,
+					TxHash:               tx.TxHash,
+					// Timestamp:            block.Block.Header.Time,
+					Timestamp: timestamp,
+				}
+
+				powerEventHistory = append(powerEventHistory, *peh)
+
+			case *stakingtypes.MsgUndelegate:
+				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
+
+				newVotingPowerAmount := float64(m.Amount.Amount.Int64()) / powerReduction
+
+				peh := &schema.PowerEventHistory{
+					Height:               tx.Height,
+					OperatorAddress:      m.ValidatorAddress,
+					MsgType:              types.StakingMsgUndelegate,
+					NewVotingPowerAmount: -newVotingPowerAmount,
+					NewVotingPowerDenom:  m.Amount.Denom,
+					TxHash:               tx.TxHash,
+					// Timestamp:            block.Block.Header.Time,
+					Timestamp: timestamp,
+				}
+
+				powerEventHistory = append(powerEventHistory, *peh)
+
+			case *stakingtypes.MsgBeginRedelegate:
+				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
+
+				newVotingPowerAmount := float64(m.Amount.Amount.Int64()) / powerReduction
+
+				// destination (add power)
+				dpeh := &schema.PowerEventHistory{
+					Height:               tx.Height,
+					OperatorAddress:      m.ValidatorDstAddress,
+					MsgType:              types.StakingMsgBeginRedelegate,
+					NewVotingPowerAmount: newVotingPowerAmount,
+					NewVotingPowerDenom:  m.Amount.Denom,
+					TxHash:               tx.TxHash,
+					// Timestamp:            block.Block.Header.Time,
+					Timestamp: timestamp,
+				}
+
+				powerEventHistory = append(powerEventHistory, *dpeh)
+
+				//source (subtract power)
+				speh := &schema.PowerEventHistory{
+					Height:               tx.Height,
+					OperatorAddress:      m.ValidatorSrcAddress,
+					MsgType:              types.StakingMsgBeginRedelegate,
+					NewVotingPowerAmount: -newVotingPowerAmount,
+					NewVotingPowerDenom:  m.Amount.Denom,
+					TxHash:               tx.TxHash,
+					// Timestamp:            block.Block.Header.Time,
+					Timestamp: timestamp,
+				}
+
+				powerEventHistory = append(powerEventHistory, *speh)
+
+			default:
+				continue
+			}
+		}
+	}
+
+	return powerEventHistory, nil
+}
 
 // getPowerEventHistory returns voting power event history of validators by decoding transactions in a block.
 func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*sdktypes.TxResponse) ([]schema.PowerEventHistory, error) {
@@ -41,18 +178,16 @@ func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*
 			case *stakingtypes.MsgCreateValidator:
 				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
 
-				// msgCreateValidator := stdTx.Msgs[0].(staking.MsgCreateValidator)
-
 				// Query the highest height of id_validator
 				// TODO: Note that if two `create_validator` mesesages included in the same block then
 				// id_validator may overlap. Needs to find other way to handle this.
-				highestIDValidatorNum, _ := ex.db.QueryHighestValidatorID()
+				highestIDValidatorNum, _ := ex.db.QueryHighestValidatorID() // 필요 없음
 
 				newVotingPowerAmount, _ := strconv.ParseFloat(m.Value.Amount.String(), 64) // parseFloat from sdk.Dec.String()
 				newVotingPowerAmount = float64(newVotingPowerAmount) / 1000000
 
 				peh := &schema.PowerEventHistory{
-					IDValidator:          highestIDValidatorNum + 1,
+					IDValidator:          highestIDValidatorNum + 1, // 필요 없음
 					Height:               tx.Height,
 					Proposer:             m.Pubkey.String(), //jeonghwan : pubkey로부터 address 구하는 인터페이스가 string으로 변경 됨
 					VotingPower:          newVotingPowerAmount,
@@ -68,8 +203,6 @@ func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*
 			// case staking.MsgDelegate:
 			case *stakingtypes.MsgDelegate:
 				zap.S().Infof("MsgType: %s | Hash: %s", m.Type, tx.TxHash)
-
-				// msgDelegate := stdTx.Msgs[0].(staking.MsgDelegate)
 
 				// Query the validator's information.
 				valInfo, _ := ex.db.QueryValidatorByAnyAddr(m.ValidatorAddress)
@@ -92,10 +225,10 @@ func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*
 				}
 
 				peh := &schema.PowerEventHistory{
-					IDValidator:          validatorID.IDValidator,
+					IDValidator:          validatorID.IDValidator, // 필요 없음
 					Height:               tx.Height,
 					Moniker:              valInfo.Moniker,
-					OperatorAddress:      valInfo.OperatorAddress,
+					OperatorAddress:      m.ValidatorAddress,
 					Proposer:             valInfo.Proposer,
 					VotingPower:          votingPower + newVotingPowerAmount,
 					MsgType:              types.StakingMsgDelegate,
@@ -111,13 +244,11 @@ func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*
 			case *stakingtypes.MsgUndelegate:
 				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
 
-				// msgUndelegate := stdTx.Msgs[0].(staking.MsgUndelegate)
-
 				// Query the validator's information.
 				valInfo, _ := ex.db.QueryValidatorByAnyAddr(m.ValidatorAddress)
 
 				// Query d_validator of lastly inserted data.
-				validatorID, _ := ex.db.QueryValidatorID(valInfo.Proposer)
+				validatorID, _ := ex.db.QueryValidatorID(valInfo.Proposer) // 필요 없음
 
 				newVotingPowerAmount, _ := strconv.ParseFloat(m.Amount.String(), 64) // parseFloat from sdk.Dec.String()
 				newVotingPowerAmount = -newVotingPowerAmount / 1000000               // needs to be negative value
@@ -132,7 +263,7 @@ func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*
 				}
 
 				peh := &schema.PowerEventHistory{
-					IDValidator:          validatorID.IDValidator,
+					IDValidator:          validatorID.IDValidator, // 필요 없음
 					Height:               tx.Height,
 					Moniker:              valInfo.Moniker,
 					OperatorAddress:      valInfo.OperatorAddress,
@@ -151,15 +282,13 @@ func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*
 			case *stakingtypes.MsgBeginRedelegate:
 				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
 
-				// msgBeginRedelegate := m.(staking.MsgBeginRedelegate)
-
 				// Query validator_dst_address information.
 				valDstInfo, _ := ex.db.QueryValidatorByAnyAddr(m.ValidatorDstAddress)
-				dstpowerEventHistory, _ := ex.db.QueryValidatorID(valDstInfo.Proposer)
+				dstpowerEventHistory, _ := ex.db.QueryValidatorID(valDstInfo.Proposer) // 필요 없음
 
 				// Query validator_src_address information.
 				valSrcInfo, _ := ex.db.QueryValidatorByAnyAddr(m.ValidatorSrcAddress)
-				srcpowerEventHistory, _ := ex.db.QueryValidatorID(valSrcInfo.Proposer)
+				srcpowerEventHistory, _ := ex.db.QueryValidatorID(valSrcInfo.Proposer) // 필요 없음
 
 				newVotingPowerAmount, _ := strconv.ParseFloat(m.Amount.String(), 64)
 				newVotingPowerAmount = newVotingPowerAmount / 1000000
@@ -183,7 +312,7 @@ func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*
 				}
 
 				dpeh := &schema.PowerEventHistory{
-					IDValidator:          dstpowerEventHistory.IDValidator,
+					IDValidator:          dstpowerEventHistory.IDValidator, //필요 없음
 					Height:               tx.Height,
 					Moniker:              valDstInfo.Moniker,
 					OperatorAddress:      valDstInfo.OperatorAddress,
@@ -199,7 +328,7 @@ func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*
 				powerEventHistory = append(powerEventHistory, *dpeh)
 
 				speh := &schema.PowerEventHistory{
-					IDValidator:          srcpowerEventHistory.IDValidator,
+					IDValidator:          srcpowerEventHistory.IDValidator, //필요 없음
 					Height:               tx.Height,
 					Moniker:              valSrcInfo.Moniker,
 					OperatorAddress:      valSrcInfo.OperatorAddress,
