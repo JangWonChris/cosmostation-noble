@@ -762,3 +762,39 @@ func (db *Database) QueryBondedRateIn1D() ([]schema.StatsNetwork1D, error) {
 // --------------------
 // Exist
 // --------------------
+
+// QueryValidatorVotingPowerEventHistory returns a validator's voting power events
+func (db *Database) QueryValidatorVotingPowerEventHistory(address, before, after, limit int) ([]schema.PowerEventHistory, error) {
+	var peh []schema.PowerEventHistory
+	var err error
+
+	switch {
+	case before > 0:
+		err = db.Model(&peh).
+			Where("operator_address = ? AND height < ?", address, before).
+			Limit(limit).
+			Order("id DESC").
+			Select()
+	case after > 0:
+		err = db.Model(&peh).
+			Where("operator_address = ? AND height > ?", address, after).
+			Limit(limit).
+			Order("id ASC").
+			Select()
+	default:
+		err = db.Model(&peh).
+			Where("operator_address = ?", address).
+			Limit(limit).
+			Order("id DESC").
+			Select()
+	}
+
+	if err != nil {
+		if err == pg.ErrNoRows {
+			return []schema.PowerEventHistory{}, nil
+		}
+		return []schema.PowerEventHistory{}, err
+	}
+
+	return peh, nil
+}
