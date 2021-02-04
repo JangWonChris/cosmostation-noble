@@ -381,18 +381,18 @@ func GetValidatorPowerHistoryEvents(rw http.ResponseWriter, r *http.Request) {
 
 	// Note that saome validators existed in cosmoshub-1 or cosmoshub-2, but not in cosmoshub-3
 	// They won't have any power event history, so return empty array for client to handle this
-	validatorID, _ := s.DB.QueryValidatorByID(val.Proposer)
-	if validatorID == 0 {
-		model.Respond(rw, []model.ResultPowerEventHistory{})
-		return
-	}
+	// validatorID, _ := s.DB.QueryValidatorByID(val.Proposer)
+	// if validatorID == 0 {
+	// 	model.Respond(rw, []model.ResultPowerEventHistory{})
+	// 	return
+	// }
 
-	if validatorID == -1 {
-		errors.ErrInternalServer(rw, http.StatusInternalServerError)
-		return
-	}
+	// if validatorID == -1 {
+	// 	errors.ErrInternalServer(rw, http.StatusInternalServerError)
+	// 	return
+	// }
 
-	events, err := s.DB.QueryValidatorVotingPowerEventHistory(validatorID, before, after, limit)
+	events, err := s.DB.QueryValidatorVotingPowerEventHistory(address, before, after, limit)
 	if err != nil {
 		zap.L().Error("failed to query power event history", zap.Error(err))
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)

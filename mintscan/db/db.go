@@ -764,7 +764,7 @@ func (db *Database) QueryBondedRateIn1D() ([]schema.StatsNetwork1D, error) {
 // --------------------
 
 // QueryValidatorVotingPowerEventHistory returns a validator's voting power events
-func (db *Database) QueryValidatorVotingPowerEventHistory(address, before, after, limit int) ([]schema.PowerEventHistory, error) {
+func (db *Database) QueryValidatorVotingPowerEventHistory(address string, before, after, limit int) ([]schema.PowerEventHistory, error) {
 	var peh []schema.PowerEventHistory
 	var err error
 
