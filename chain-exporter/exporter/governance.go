@@ -26,7 +26,7 @@ func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txResp []*sdkType
 	}
 
 	for _, tx := range txResp {
-		// Other than code equals to 0, it is failed transaction.
+		// code == 0 이면, 오류 트랜잭션이다.
 		if tx.Code != 0 {
 			continue
 		}
@@ -43,8 +43,6 @@ func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txResp []*sdkType
 			switch m := msg.(type) {
 			case *govtypes.MsgSubmitProposal:
 				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
-
-				// msgSubmitProposal := m.(gov.MsgSubmitProposal)
 
 				// Get proposal id for this proposal.
 				// Handle case of multiple messages which has multiple events and attributes.
@@ -96,8 +94,6 @@ func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txResp []*sdkType
 			case *govtypes.MsgDeposit:
 				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
 
-				// msgDeposit := m.(gov.MsgDeposit)
-
 				var amount string
 				var denom string
 
@@ -122,8 +118,6 @@ func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txResp []*sdkType
 
 			case *govtypes.MsgVote:
 				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
-
-				// msgVote := m.(gov.MsgVote)
 
 				v := schema.Vote{
 					Height:     tx.Height,

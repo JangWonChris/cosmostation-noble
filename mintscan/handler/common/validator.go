@@ -157,6 +157,7 @@ func GetValidator(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Query a validator's bonded information
+	// sdk에서 제공하는 IsBonded() 함수를 활용할 수 있는 방안을 고민한다.
 	powerEventHistory, _ := s.DB.QueryValidatorBondedInfo(val.Proposer)
 
 	result := &model.ResultValidatorDetail{
