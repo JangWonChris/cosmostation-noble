@@ -5,12 +5,11 @@ go 1.15
 require (
 	github.com/cosmos/cosmos-sdk v0.41.0
 	github.com/cosmos/gaia/v4 v4.0.0
-	github.com/cosmostation/mintscan-backend-library v0.0.0-20210125133527-87e11a16ee6a
+	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210125133527-87e11a16ee6a
+	github.com/cosmostation/mintscan-backend-library v0.0.0-20210208045014-5ba1778df744
 	github.com/go-pg/pg v8.0.7+incompatible
 	github.com/go-resty/resty/v2 v2.3.0
 	github.com/google/go-cmp v0.5.2 // indirect
-	github.com/iov-one/iovns v0.9.8
-	github.com/miscreant/miscreant.go v0.0.0-20200214223636-26d376326b75
 	github.com/onsi/ginkgo v1.14.2 // indirect
 	github.com/onsi/gomega v1.10.3 // indirect
 	github.com/stretchr/testify v1.7.0
@@ -19,4 +18,4 @@ require (
 	google.golang.org/grpc v1.35.0
 )
 
-replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.4
+replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1

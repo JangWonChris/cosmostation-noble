@@ -47,3 +47,9 @@ func TestConnection(t *testing.T) {
 
 	require.Equal(t, n, 1, "failed to ping database")
 }
+
+func TestTimeDiffLatestTwoBlocks(t *testing.T) {
+	diff, err := db.QueryTimeDiffLastestTwoBlocks()
+	require.NoError(t, err)
+	t.Log("time diff : ", diff)
+}

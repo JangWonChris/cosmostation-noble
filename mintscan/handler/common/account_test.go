@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	app "github.com/cosmos/gaia/v3/app"
+	app "github.com/cosmos/gaia/v4/app"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/client"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/db"
 	mintscanconfig "github.com/cosmostation/mintscan-backend-library/config"

@@ -10,7 +10,7 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	vestingtypes "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
 	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
-	app "github.com/cosmos/gaia/v3/app"
+	app "github.com/cosmos/gaia/v4/app"
 
 	//internal
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/errors"
