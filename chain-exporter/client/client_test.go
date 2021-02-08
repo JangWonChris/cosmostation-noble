@@ -18,7 +18,7 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/custom"
+	"github.com/cosmostation/cosmostation-cosmos/chain-config/custom"
 	"github.com/cosmostation/mintscan-backend-library/config"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"

@@ -5,6 +5,7 @@ go 1.15
 require (
 	github.com/cosmos/cosmos-sdk v0.41.0
 	github.com/cosmos/gaia/v4 v4.0.0
+	github.com/cosmostation/cosmostation-cosmos/chain-config v0.0.0-00010101000000-000000000000
 	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210203045952-a9fbf8bbbfe7
 	github.com/cosmostation/mintscan-backend-library v0.0.0-20210208045014-5ba1778df744
 	github.com/go-pg/pg v8.0.7+incompatible
@@ -17,3 +18,5 @@ require (
 )
 
 replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
+
+replace github.com/cosmostation/cosmostation-cosmos/chain-config => ../chain-config

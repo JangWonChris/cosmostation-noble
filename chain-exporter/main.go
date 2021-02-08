@@ -6,18 +6,15 @@ import (
 	"log"
 	"os"
 
-	sdktypes "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/custom"
+	"github.com/cosmostation/cosmostation-cosmos/chain-config/custom"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/exporter"
 	"go.uber.org/zap"
 )
 
 func init() {
-	custom.SetAppConfig()
-	if !custom.IsSetBech32() {
-		panic(fmt.Errorf("bech32 is not set corretly"))
+	if !custom.IsSetAppConfig() {
+		panic(fmt.Errorf("appconfig was not set"))
 	}
-	log.Println("Current bech32 : ", sdktypes.GetConfig())
 }
 
 func main() {

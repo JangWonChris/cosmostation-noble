@@ -9,8 +9,8 @@ import (
 	"go.uber.org/zap"
 
 	//internal
+	"github.com/cosmostation/cosmostation-cosmos/chain-config/custom"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/client"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/custom"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/db"
 
 	// mbl

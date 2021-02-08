@@ -7,7 +7,7 @@ import (
 
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	authvestingtypes "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/custom"
+	"github.com/cosmostation/cosmostation-cosmos/chain-config/custom"
 )
 
 func TestAccounts(t *testing.T) {

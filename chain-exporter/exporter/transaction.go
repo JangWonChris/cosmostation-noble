@@ -6,7 +6,7 @@ import (
 	"log"
 
 	// internal
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/custom"
+	"github.com/cosmostation/cosmostation-cosmos/chain-config/custom"
 
 	// core
 	"github.com/cosmostation/mintscan-backend-library/db/schema"

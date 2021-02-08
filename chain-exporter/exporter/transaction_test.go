@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	//internal
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/custom"
+	"github.com/cosmostation/cosmostation-cosmos/chain-config/custom"
 
 	//cosmos-sdk
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"

@@ -9,7 +9,7 @@ import (
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	sdktypestx "github.com/cosmos/cosmos-sdk/types"
 	legacytx "github.com/cosmos/cosmos-sdk/x/auth/legacy/legacytx"
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/custom"
+	"github.com/cosmostation/cosmostation-cosmos/chain-config/custom"
 	"github.com/cosmostation/mintscan-backend-library/db/schema"
 	"go.uber.org/zap"
 )

@@ -9,7 +9,7 @@ import (
 	"time"
 
 	//internal
-	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/custom"
+	"github.com/cosmostation/cosmostation-cosmos/chain-config/custom"
 	//mbl
 	"github.com/cosmostation/mintscan-backend-library/db/schema"
 

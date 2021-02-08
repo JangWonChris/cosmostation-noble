@@ -2,7 +2,7 @@ package client
 
 import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/custom"
+	"github.com/cosmostation/cosmostation-cosmos/chain-config/custom"
 
 	// mbl
 	lclient "github.com/cosmostation/mintscan-backend-library/client"

@@ -2,18 +2,21 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/cosmostation/cosmostation-cosmos/chain-config/custom"
+
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/client"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/db"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/handler"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/handler/common"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/handler/custom"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/handler/mobile"
+	commonhandler "github.com/cosmostation/cosmostation-cosmos/mintscan/handler/common"
+	customhandler "github.com/cosmostation/cosmostation-cosmos/mintscan/handler/custom"
+	mobilehandler "github.com/cosmostation/cosmostation-cosmos/mintscan/handler/mobile"
 	cfg "github.com/cosmostation/mintscan-backend-library/config"
 
 	"go.uber.org/zap"
@@ -30,6 +33,10 @@ var (
 )
 
 func init() {
+	if !custom.IsSetAppConfig() {
+		panic(fmt.Errorf("appconfig was not set"))
+	}
+
 	l, _ := zap.NewDevelopment()
 	zap.ReplaceGlobals(l)
 	defer l.Sync()
@@ -51,9 +58,9 @@ func main() {
 
 	r := mux.NewRouter()
 	r = r.PathPrefix("/v1").Subrouter()
-	common.RegisterHandlers(s, r)
-	custom.RegisterHandlers(s, r)
-	mobile.RegisterHandlers(s, r)
+	commonhandler.RegisterHandlers(s, r)
+	customhandler.RegisterHandlers(s, r)
+	mobilehandler.RegisterHandlers(s, r)
 
 	// r.HandleFunc("/tx/{hash}", common.GetLegacyTransactionFromDB).Methods("GET")                // /tx?hash={hash}
 
@@ -66,7 +73,7 @@ func main() {
 
 	go func() {
 		for {
-			if err := common.SetStatus(); err != nil {
+			if err := commonhandler.SetStatus(); err != nil {
 				time.Sleep(1 * time.Second)
 				continue
 			}
