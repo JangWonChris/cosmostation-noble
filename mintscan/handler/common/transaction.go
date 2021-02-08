@@ -2,7 +2,6 @@ package common
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -80,16 +79,12 @@ func GetTransactionsList(rw http.ResponseWriter, r *http.Request) {
 	txResp := make([]schema.Transaction, len(txList.TxHash))
 	// txResp := make([]*model.ResultTx, len(txList.TxHash))
 
-	fmt.Println("size : ", len(txResp))
-
 	if len(txResp) == 0 {
 		errors.ErrInvalidFormat(rw, http.StatusBadRequest)
 		zap.L().Debug("received empty tx hash list", zap.Int("len", len(txResp)))
 		return
 	}
 	for i, txHashStr := range txList.TxHash {
-		fmt.Println("hash : ", txHashStr)
-
 		txHashStr = strings.ToUpper(txHashStr)
 
 		if strings.Contains(txHashStr, "0x") {
