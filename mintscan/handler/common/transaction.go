@@ -11,7 +11,6 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
 
-	// "github.com/cosmostation/mintscan-backend-library/db/schema"
 	// mbl
 	"github.com/cosmostation/mintscan-backend-library/db/schema"
 

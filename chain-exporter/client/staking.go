@@ -14,7 +14,7 @@ import (
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
-// GetValidatorsByStatus 는 MBL의 GetValidatorsByStatus을 재정의한 함수 (codec 사용을 분리하기 위해)
+// GetValidatorsByStatus 는 MBL의 GetValidatorsByStatus을 wrap한 함수 (codec 사용을 분리하기 위해)
 // 필요한 함수를 우선 모듈에 맞게 정의한 후, 나중에 코어로 이전
 // 코어로 분리가 가능할 것 같다.
 func (c *Client) GetValidatorsByStatus(ctx context.Context, status stakingtypes.BondStatus) (validators []schema.Validator, err error) {

@@ -21,7 +21,7 @@ func (c *Client) GetGovQueryClient() govtypes.QueryClient {
 	return govtypes.NewQueryClient(c.GRPC)
 }
 
-// GetProposals returns all governance proposals
+// GetProposals은 MBL GetProposals()를 wrap한 함수
 func (c *Client) GetProposals() (result []schema.Proposal, err error) {
 	queryClient := c.GetGovQueryClient()
 	resp, err := queryClient.Proposals(context.Background(), &govtypes.QueryProposalsRequest{})
