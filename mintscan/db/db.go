@@ -9,6 +9,7 @@ import (
 	"github.com/cosmostation/mintscan-backend-library/config"
 	ldb "github.com/cosmostation/mintscan-backend-library/db"
 	"github.com/cosmostation/mintscan-backend-library/db/schema"
+	"github.com/go-pg/pg"
 )
 
 // Database implements a wrapper of golang ORM with focus on PostgreSQL.
@@ -188,3 +189,21 @@ func (db *Database) QueryBondedRateIn1D() ([]schema.StatsNetwork1D, error) {
 
 // 	return peh, nil
 // }
+
+// QueryTransactionByTxHash returns transaction information with given tx hash
+func (db *Database) QueryTransactionByTxHashes(txHashStr []string) ([]schema.Transaction, error) {
+	var txs []schema.Transaction
+	err := db.Model(&txs).
+		Where("tx_hash IN (?)", pg.In(txHashStr)).
+		// Limit(1).
+		Select()
+
+	if err != nil {
+		if err == pg.ErrNoRows {
+			return []schema.Transaction{}, nil
+		}
+		return []schema.Transaction{}, err
+	}
+
+	return txs, nil
+}

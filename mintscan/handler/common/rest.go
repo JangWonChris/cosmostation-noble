@@ -26,6 +26,7 @@ func RegisterHandlers(session *handler.Session, r *mux.Router) {
 	r.HandleFunc("/minting/inflation", GetMintingInflation).Methods("GET")
 	r.HandleFunc("/txs", GetTransactions).Methods("GET")
 	r.HandleFunc("/txs", GetTransactionsList).Methods("POST")
+	r.HandleFunc("/txs_old", GetTransactionsList_OLD).Methods("POST")
 	r.HandleFunc("/tx", GetTransaction).Methods("GET")
 	r.HandleFunc("/tx/broadcast/{signed_tx}", BroadcastTx).Methods("GET")
 	r.HandleFunc("/staking/validators", GetValidators).Methods("GET")

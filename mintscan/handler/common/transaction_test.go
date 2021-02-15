@@ -1,5 +1,13 @@
 package common
 
+import (
+	"strings"
+	"testing"
+
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
+	"go.uber.org/zap"
+)
+
 // 정환님 트랜잭션 요청 벤치마크 테스트 코드
 
 // func BenchmarkNewTxWithContext(b *testing.B) {
@@ -64,3 +72,36 @@ This test have to return
 // 		//t.Log(string(data))
 // 	}
 // }
+
+func TestTrasnactionHash(t *testing.T) {
+
+	var txList model.TxList
+	var reqTxs model.TxList
+	TxHashes := []string{
+		"BA914C2C12C0A103BDDFA0F4A672C7439487AD2E1387B0E2414EEAAC7C85548E",
+		"BA914C2C12C0A103BDDFA0F4A672C7439487AD2E1387B0E2414EEAAC7C85548Einvalid", //invalid
+		"0xF7E21D6540D11D2043E1A951C4C9D3FA8957AD05882AC34068DA83C76E0B15A7",      //0x
+		"0xF7E21D6540D11D2043E1A951C4C9D3FA8957AD05882AC34068DA83C76E0B15invalid", //0x invalid
+	}
+	txList.TxHash = TxHashes
+
+	for i := range txList.TxHash {
+
+		if strings.Contains(txList.TxHash[i], "0x") {
+			txList.TxHash[i] = txList.TxHash[i][2:]
+			t.Log("remove 0x :", txList.TxHash[i])
+		}
+		if len(txList.TxHash[i]) != 64 {
+			zap.L().Debug("tx hash length is invalid", zap.String("txHashStr", txList.TxHash[i]))
+			continue
+		}
+		txList.TxHash[i] = strings.ToUpper(txList.TxHash[i])
+		t.Log("target :", txList.TxHash[i])
+		reqTxs.TxHash = append(reqTxs.TxHash, txList.TxHash[i])
+
+	}
+	t.Log("final :")
+	for _, txhash := range reqTxs.TxHash {
+		t.Log(txhash)
+	}
+}
