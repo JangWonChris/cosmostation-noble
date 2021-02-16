@@ -6,6 +6,8 @@
 
 ### 개선된 기능 (Improvements)
 
+GetBlocksByProposer() 함수를 기존 형태에 맞추고, 쿼리 사용 횟수만 개선
+db 쿼리 개선
 
 ### 수정된 버그 (Bug fixes)
 

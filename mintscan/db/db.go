@@ -9,7 +9,6 @@ import (
 	"github.com/cosmostation/mintscan-backend-library/config"
 	ldb "github.com/cosmostation/mintscan-backend-library/db"
 	"github.com/cosmostation/mintscan-backend-library/db/schema"
-	"github.com/go-pg/pg"
 )
 
 // Database implements a wrapper of golang ORM with focus on PostgreSQL.
@@ -57,103 +56,6 @@ func (db *Database) QueryBondedRateIn1D() ([]schema.StatsNetwork1D, error) {
 // 	return peh, nil
 // }
 
-// QueryTransactionsByAddr returns all transactions that are created by an account.
-// func (db *Database) QueryTransactionsByAddr(accAddr, valAddr string, before, after, limit int) ([]schema.Transaction, error) {
-// 	var txs []schema.Transaction
-// 	var err error
-
-// 	switch {
-// 	case before > 0:
-// 		_, err = db.Query(&txs, "select distinct t.* from transaction as t, transaction_account as ta where ta.account_address = ? and t.tx_hash = ta.tx_hash order by id desc limit ?", accAddr, limit)
-// 		// params += " AND (id < ?)"
-// 		// err = db.postgres.Model(&txs).
-// 		// 	Where(params, accAddr, before).
-// 		// 	Limit(limit).
-// 		// 	Order("id DESC").
-// 		// 	Select()
-// 	case after > 0:
-// 		_, err = db.Query(&txs, "select distinct t.* from transaction as t, transaction_account as ta where ta.account_address = ? and t.tx_hash = ta.tx_hash order by id desc limit ?", accAddr, limit)
-// 		// params += " AND (id > ?)"
-// 		// err = db.postgres.Model(&txs).
-// 		// 	Where(params, accAddr, after).
-// 		// 	Limit(limit).
-// 		// 	Order("id ASC").
-// 		// 	Select()
-// 	default:
-// 		_, err = db.Query(&txs, "select distinct t.* from transaction as t, transaction_account as ta where ta.account_address = ? and t.tx_hash = ta.tx_hash order by id desc limit ?", accAddr, limit)
-// 		// err = db.postgres.Model(&txs).
-// 		// 	Where(params, accAddr).
-// 		// 	Limit(limit).
-// 		// 	Order("id DESC").
-// 		// 	Select()
-// 	}
-
-// 	if err != nil {
-// 		return []schema.Transaction{}, err
-// 	}
-
-// 	return txs, nil
-// }
-
-// QueryTransferTransactionsByAddr queries Send / MultiSend transactions that are made by an account
-// func (db *Database) QueryTransferTransactionsByAddr(accAddr, denom string, before, after, limit int) ([]schema.Transaction, error) {
-// 	var txs []schema.Transaction
-// 	var err error
-
-// 	switch {
-// 	case before > 0:
-// 		_, err = db.Query(&txs, "select t.* from transaction as t left join transaction_account as t1 on t.tx_hash = t1.tx_hash where t1.account_address = ? and (t1.msg_type = 'send' or t1.msg_type = 'multisend') limit ?", accAddr, limit)
-// 		// params += " AND (id < ?)"
-// 		// err = db.postgres.Model(&txs).
-// 		// 	Where(params, before).
-// 		// 	Limit(limit).
-// 		// 	Order("id DESC").
-// 		// 	Select()
-// 	case after > 0:
-// 		_, err = db.Query(&txs, "select t.* from transaction as t left join transaction_account as t1 on t.tx_hash = t1.tx_hash where t1.account_address = ? and (t1.msg_type = 'send' or t1.msg_type = 'multisend') limit ?", accAddr, limit)
-// 		// params += " AND (id > ?)"
-// 		// err = db.postgres.Model(&txs).
-// 		// 	Where(params, after).
-// 		// 	Limit(limit).
-// 		// 	Order("id ASC").
-// 		// 	Select()
-// 	default:
-// 		_, err = db.Query(&txs, "select t.* from transaction as t left join transaction_account as t1 on t.tx_hash = t1.tx_hash where t1.account_address = ? and (t1.msg_type = 'send' or t1.msg_type = 'multisend') limit ?", accAddr, limit)
-// 		// err = db.postgres.Model(&txs).
-// 		// 	Where(params).
-// 		// 	Limit(limit).
-// 		// 	Order("id DESC").
-// 		// 	Select()
-// 	}
-
-// 	if err != nil {
-// 		return []schema.Transaction{}, err
-// 	}
-
-// 	return txs, nil
-// }
-
-// QueryTransactionsBetweenAccountAndValidator queries transactions that are made between an account and his delegated validator
-// func (db *Database) QueryTransactionsBetweenAccountAndValidator(address, valAddr string, before, after, limit int) ([]schema.Transaction, error) {
-// 	var txs []schema.Transaction
-// 	var err error
-
-// 	switch {
-// 	case before > 0:
-// 		_, err = db.Query(&txs, "select t.* from transaction as t, transaction_account as t1, transaction_account as t2 where t1.account_address = ? and t2.account_address = ? and t1.tx_hash = t2.tx_hash and t.tx_hash = t1.tx_hash order by id desc limit ?", address, valAddr, limit)
-// 	case after > 0:
-// 		_, err = db.Query(&txs, "select t.* from transaction as t, transaction_account as t1, transaction_account as t2 where t1.account_address = ? and t2.account_address = ? and t1.tx_hash = t2.tx_hash and t.tx_hash = t1.tx_hash order by id desc limit ?", address, valAddr, limit)
-// 	default:
-// 		_, err = db.Query(&txs, "select t.* from transaction as t, transaction_account as t1, transaction_account as t2 where t1.account_address = ? and t2.account_address = ? and t1.tx_hash = t2.tx_hash and t.tx_hash = t1.tx_hash order by id desc limit ?", address, valAddr, limit)
-// 	}
-
-// 	if err != nil {
-// 		return []schema.Transaction{}, err
-// 	}
-
-// 	return txs, nil
-// }
-
 // QueryValidatorVotingPowerEventHistory returns a validator's voting power events
 // func (db *Database) QueryValidatorVotingPowerEventHistory(address string, before, after, limit int) ([]schema.PowerEventHistory, error) {
 // 	var peh []schema.PowerEventHistory
@@ -189,21 +91,3 @@ func (db *Database) QueryBondedRateIn1D() ([]schema.StatsNetwork1D, error) {
 
 // 	return peh, nil
 // }
-
-// QueryTransactionByTxHash returns transaction information with given tx hash
-func (db *Database) QueryTransactionByTxHashes(txHashStr []string) ([]schema.Transaction, error) {
-	var txs []schema.Transaction
-	err := db.Model(&txs).
-		Where("tx_hash IN (?)", pg.In(txHashStr)).
-		// Limit(1).
-		Select()
-
-	if err != nil {
-		if err == pg.ErrNoRows {
-			return []schema.Transaction{}, nil
-		}
-		return []schema.Transaction{}, err
-	}
-
-	return txs, nil
-}

@@ -65,51 +65,6 @@ func GetTransactions(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// GetTransactionsList returns a array of transaction details for each transaction hash including request body.
-func GetTransactionsList_OLD(rw http.ResponseWriter, r *http.Request) {
-	var txList model.TxList
-
-	if err := json.NewDecoder(r.Body).Decode(&txList); err != nil {
-		errors.ErrInvalidFormat(rw, http.StatusBadRequest)
-		zap.L().Debug("failed to decode tx list", zap.Error(err))
-		return
-	}
-
-	txResp := make([]schema.Transaction, len(txList.TxHash))
-	// txResp := make([]*model.ResultTx, len(txList.TxHash))
-
-	if len(txResp) == 0 {
-		errors.ErrInvalidFormat(rw, http.StatusBadRequest)
-		zap.L().Debug("received empty tx hash list", zap.Int("len", len(txResp)))
-		return
-	}
-	for i, txHashStr := range txList.TxHash {
-		txHashStr = strings.ToUpper(txHashStr)
-
-		if strings.Contains(txHashStr, "0x") {
-			txHashStr = txHashStr[2:]
-		}
-
-		if len(txHashStr) != 64 {
-			zap.L().Debug("tx hash length is invalid", zap.String("txHashStr", txHashStr))
-			continue
-		}
-
-		tx, err := s.DB.QueryTransactionByTxHash(txHashStr)
-		if err != nil {
-			zap.L().Error("failed to get transaction by tx hash", zap.Error(err))
-			continue
-		}
-
-		// result, _ := model.ParseTransaction(tx)
-		// txResp[i] = result
-		txResp[i] = tx
-	}
-
-	model.Respond(rw, txResp)
-	return
-}
-
 func GetTransactionsList(rw http.ResponseWriter, r *http.Request) {
 	var reqTxs model.TxList
 	var respTxs model.TxList
@@ -145,7 +100,7 @@ func GetTransactionsList(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	model.ParseTransactions(txs)
+	// model.ParseTransactions(txs)
 	// result, _ := model.ParseTransactions(txs)
 	// txResp[i] = result
 

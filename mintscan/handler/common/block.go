@@ -126,18 +126,14 @@ func GetBlocksByProposer(rw http.ResponseWriter, r *http.Request) {
 	result := make([]*model.ResultBlock, 0)
 
 	for _, b := range blocks {
-		val, err := s.DB.QueryValidatorByAnyAddr(b.Proposer)
-		if err != nil {
-			zap.L().Error("failed to query validator", zap.Error(err))
-			errors.ErrInternalServer(rw, http.StatusInternalServerError)
-			return
-		}
-
-		txs, err := s.DB.QueryTransactionsInBlockHeight(b.Height)
-		if err != nil {
-			zap.L().Error("failed to query transactions in a block", zap.Error(err))
-			errors.ErrInternalServer(rw, http.StatusInternalServerError)
-			return
+		txs := make([]schema.Transaction, 0)
+		if b.NumTxs > 0 {
+			txs, err = s.DB.QueryTransactionsInBlockHeight(b.Height)
+			if err != nil {
+				zap.L().Error("failed to query transactions in a block", zap.Error(err))
+				errors.ErrInternalServer(rw, http.StatusInternalServerError)
+				return
+			}
 		}
 
 		var txData model.TxData
@@ -150,7 +146,7 @@ func GetBlocksByProposer(rw http.ResponseWriter, r *http.Request) {
 		b := &model.ResultBlock{
 			ID:                     b.ID,
 			Height:                 b.Height,
-			Proposer:               b.Proposer,
+			Proposer:               val.Proposer,
 			OperatorAddress:        val.OperatorAddress,
 			Moniker:                val.Moniker,
 			BlockHash:              b.BlockHash,

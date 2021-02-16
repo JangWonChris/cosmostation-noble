@@ -112,11 +112,14 @@ func TestGetValidatorCommission(t *testing.T) {
 }
 
 func TestParseTxResponse(t *testing.T) {
-	hash := "A8A272A277213D17339B900B1EA2A634CBA33049327E6591648EDA8DA86AF7F2"
+	hash := "0427ADA778454592A5D6ED0CDC1BEA0693E859EC9951FE376138A4936DC03238"
 
 	txResponse, err := cli.CliCtx.GetTx(hash)
 	require.NoError(t, err)
 	require.Equal(t, false, txResponse.Empty(), "tx hash has empty txResponse %s", hash)
+	t.Log(txResponse)
+	fullbz, err := cli.CliCtx.JSONMarshaler.MarshalJSON(txResponse)
+	t.Log("m :", string(fullbz))
 
 	// stdTx, ok := txResponse.Tx.(auth.StdTx)
 	txI := txResponse.GetTx()
