@@ -42,7 +42,10 @@ func (ex *Exporter) getAccounts(block *tmctypes.ResultBlock, txResps []*sdk.TxRe
 		msgs := txResp.GetTx().GetMsgs()
 
 		for _, msg := range msgs {
-
+			/*
+				tx 내 많은 메세지가 존재하고, 동일한 어카운트 대한 조회가 반복적으로 이루어질 수 있음.
+				따라서 tx내 모든 메세지를 파싱하고 난 뒤 중복된 어카운트를 제거하여 1회만 계정별 조회를 할 필요가 있음
+			*/
 			switch m := msg.(type) {
 			case *banktypes.MsgSend:
 				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), txResp.TxHash)
