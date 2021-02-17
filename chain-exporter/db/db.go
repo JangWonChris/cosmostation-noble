@@ -72,6 +72,15 @@ func (db *Database) QueryAccountMobile(address string) (*schema.AccountMobile, e
 	return account, nil
 }
 
+// InsertMarket5M inserts market data.
+func (db *Database) InsertMarket5M(data *schema.StatsMarket5M) error {
+	_, err := db.Model(data).Insert()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // InsertGenesisAccount insert the given genesis accounts using Copy command, it will faster than insert
 // func (db *Database) InsertGenesisAccount(acc []schema.AccountCoin) error {
 // 	err := db.RunInTransaction(func(tx *pg.Tx) error {
