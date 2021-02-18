@@ -347,10 +347,10 @@ func (ex *Exporter) process(block *tmctypes.ResultBlock, txs []*sdktypes.TxRespo
 			// if err != nil {
 			// 	return fmt.Errorf("failed to get accounts: %s", err)
 			// }
-			exportData.ResultAccountCoin, err = ex.getAccounts(block, txs)
-			if err != nil {
-				return fmt.Errorf("failed to get accounts: %s", err)
-			}
+			// exportData.ResultAccountCoin, err = ex.getAccounts(block, txs)
+			// if err != nil {
+			// 	return fmt.Errorf("failed to get accounts: %s", err)
+			// }
 			exportData.ResultProposals, exportData.ResultDeposits, exportData.ResultVotes, err = ex.getGovernance(block, txs)
 			if err != nil {
 				return fmt.Errorf("failed to get governance: %s", err)
