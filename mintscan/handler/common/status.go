@@ -87,11 +87,11 @@ func SetStatus() error {
 		return err
 	}
 
-	inflationResp, err := s.Client.GRPC.GetInflation(context.Background())
-	if err != nil {
-		zap.L().Error("failed to get inflation information", zap.Error(err))
-		return err
-	}
+	// inflationResp, err := s.Client.GRPC.GetInflation(context.Background())
+	// if err != nil {
+	// 	zap.L().Error("failed to get inflation information", zap.Error(err))
+	// 	return err
+	// }
 
 	mu.Lock()
 	latestStatus = &model.ResultStatus{
@@ -107,8 +107,8 @@ func SetStatus() error {
 		BondedTokens:           bondedTokens,
 		NotBondedTokens:        notBondedTokens,
 		CommunityPool:          cpr.Pool,
-		Inflation:              inflationResp.Inflation,
-		Timestamp:              status.SyncInfo.LatestBlockTime,
+		// Inflation:              inflationResp.Inflation,
+		Timestamp: status.SyncInfo.LatestBlockTime,
 	}
 	mu.Unlock()
 
