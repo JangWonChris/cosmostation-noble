@@ -9,7 +9,8 @@ require (
 	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210218131702-e452de330fd3
 	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210221065353-c439d341db6d
 	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210222091607-09fabc04bacb
-	github.com/cosmostation/mintscan-backend-library v0.0.0-20210222152052-0c136faaa870
+	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210222152052-0c136faaa870
+	github.com/cosmostation/mintscan-backend-library v0.0.0-20210222154014-46a969835c57
 	github.com/go-pg/pg v8.0.7+incompatible
 	github.com/go-resty/resty/v2 v2.4.0
 	github.com/stretchr/testify v1.7.0
