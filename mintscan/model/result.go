@@ -131,6 +131,7 @@ type ResultStatus struct {
 	TotalCirculatingTokens banktypes.QueryTotalSupplyResponse `json:"total_circulating_tokens"`
 	BondedTokens           float64                            `json:"bonded_tokens"`
 	NotBondedTokens        float64                            `json:"not_bonded_tokens"`
+	Inflation              sdktypes.Dec                       `json:"inflation"`
 	// CommunityPool          *distrtypes.QueryCommunityPoolResponse `json:"community_pool"`
 	CommunityPool sdktypes.DecCoins `json:"community_pool"`
 	Timestamp     time.Time         `json:"timestamp"`
