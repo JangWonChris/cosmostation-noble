@@ -20,6 +20,8 @@
 # config files
 
 **/config.yaml
+**/chain-exporter.yaml
+**/mintscan.yaml
 
 # genesis.json
 genesis.json

@@ -15,7 +15,8 @@ import (
 var db *Database
 
 func TestMain(m *testing.M) {
-	config := config.ParseConfig()
+	fileBaseName := "mintscan"
+	config := config.ParseConfig(fileBaseName)
 	db = Connect(&config.DB)
 
 	os.Exit(m.Run())

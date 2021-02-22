@@ -18,7 +18,8 @@ var iclient *client.Client
 var idb *db.Database
 
 func TestMain(m *testing.M) {
-	config := mintscanconfig.ParseConfig()
+	fileBaseName := "mintscan"
+	config := mintscanconfig.ParseConfig(fileBaseName)
 	iclient = client.NewClient(&config.Client)
 	idb = db.Connect(&config.DB)
 

@@ -23,7 +23,8 @@ var cli *Client
 var pageLimit = uint64(100)
 
 func TestMain(m *testing.M) {
-	config := mintscanconfig.ParseConfig()
+	fileBaseName := "mintscan"
+	config := mintscanconfig.ParseConfig(fileBaseName)
 	cli = NewClient(&config.Client)
 
 	os.Exit(m.Run())

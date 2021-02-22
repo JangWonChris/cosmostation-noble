@@ -27,7 +27,8 @@ import (
 var cli *Client
 
 func TestMain(m *testing.M) {
-	cfg := config.ParseConfig()
+	fileBaseName := "chain-exporter"
+	cfg := config.ParseConfig(fileBaseName)
 
 	cli = NewClient(&cfg.Client)
 

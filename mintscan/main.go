@@ -43,7 +43,8 @@ func init() {
 }
 
 func main() {
-	config := cfg.ParseConfig()
+	fileBaseName := "mintscan"
+	config := cfg.ParseConfig(fileBaseName)
 
 	client := client.NewClient(&config.Client)
 

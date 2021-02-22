@@ -24,7 +24,8 @@ type Notification struct {
 
 // NewNotification returns new notification instance.
 func NewNotification() *Notification {
-	config := config.ParseConfig()
+	fileBaseName := "chain-exporter"
+	config := config.ParseConfig(fileBaseName)
 
 	client := resty.New().
 		SetHostURL(config.Alarm.PushServer).

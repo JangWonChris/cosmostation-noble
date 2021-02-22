@@ -45,7 +45,8 @@ func NewExporter() *Exporter {
 	zap.ReplaceGlobals(l)
 	defer l.Sync()
 
-	config := config.ParseConfig()
+	fileBaseName := "chain-exporter"
+	config := config.ParseConfig(fileBaseName)
 
 	client := client.NewClient(&config.Client)
 

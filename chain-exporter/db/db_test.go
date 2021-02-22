@@ -18,8 +18,9 @@ var db *Database
 func TestMain(m *testing.M) {
 	// types.SetAppConfig()
 
-	config := config.ParseConfig()
-	db = Connect(&config.DB)
+	fileBaseName := "chain-exporter"
+	cfg := config.ParseConfig(fileBaseName)
+	db = Connect(&cfg.DB)
 
 	os.Exit(m.Run())
 }
