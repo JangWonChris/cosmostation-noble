@@ -294,6 +294,9 @@ func GetValidatorDelegations(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	address := vars["address"]
 
+	temp := struct{}{}
+	model.Respond(rw, temp)
+
 	val, err := s.DB.QueryValidatorByAnyAddr(address)
 	if err != nil {
 		zap.L().Error("failed to query validator info", zap.Error(err))
