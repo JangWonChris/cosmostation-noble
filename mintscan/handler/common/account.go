@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
-	"sync"
+	"time"
 
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -491,200 +491,6 @@ func GetValidatorCommission(rw http.ResponseWriter, r *http.Request) {
 }
 
 // GetTotalBalance returns account's total, available, vesting, delegated, unbondings, rewards, deposited, incentive, and commission for staking denom.
-func GetTotalBalanceWithParallel(rw http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	accAddr := vars["accAddr"]
-
-	err := ltypes.VerifyBech32AccAddr(accAddr)
-	if err != nil {
-		zap.S().Debugf("failed to validate account address: %s", err)
-		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
-		return
-	}
-
-	denom := handler.BondDenom
-	if denom == "" {
-		denom, err = s.Client.GRPC.GetBondDenom(r.Context())
-		if err != nil {
-			zap.S().Errorf("failed to get staking denom: %s", err)
-			return
-		}
-	}
-
-	// Initialize all variables
-	total := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
-	available := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
-	delegated := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
-	undelegated := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
-	rewards := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
-	vesting := sdktypes.NewCoin(denom, sdktypes.NewInt(0)) // vesting 된 것 중에 delegatable 한 수량
-	vested := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
-	commission := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
-
-	wg := new(sync.WaitGroup)
-	// available
-	wg.Add(1)
-	go func() {
-		defer func() {
-			wg.Done()
-		}()
-		coins, err := s.Client.GRPC.GetBalance(r.Context(), denom, accAddr)
-		if err != nil {
-			zap.S().Debugf("failed to get account balance: %s", err)
-			errors.ErrNotFound(rw, http.StatusNotFound)
-			return
-		}
-		// jeonghwan
-		// coins nil check가 필요한지, getbalance를 리턴 받을 때, available로 받으면 안되는지 확인 필요
-		if coins != nil {
-			available = available.Add(*coins)
-		}
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer func() {
-			wg.Done()
-		}()
-		// Delegated
-		delegationsResp, err := s.Client.GRPC.GetDelegatorDelegations(r.Context(), accAddr, pageLimit)
-		if err != nil {
-			zap.S().Errorf("failed to get delegator's delegations: %s", err)
-			return
-		}
-		for _, delegation := range delegationsResp.DelegationResponses {
-			delegated = delegated.Add(delegation.Balance)
-		}
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer func() {
-			wg.Done()
-		}()
-		// Undelegated
-		undelegationsResp, err := s.Client.GRPC.GetDelegatorUnbondingDelegations(r.Context(), accAddr, pageLimit)
-		if err != nil {
-			zap.S().Errorf("failed to get delegator's undelegations: %s", err)
-			return
-		}
-		for _, undelegation := range undelegationsResp.UnbondingResponses {
-			for _, e := range undelegation.Entries {
-				undelegated = undelegated.Add(sdktypes.NewCoin(denom, e.Balance))
-			}
-		}
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer func() {
-			wg.Done()
-		}()
-		// Rewards
-		totalRewardsResp, err := s.Client.GRPC.GetDelegationTotalRewards(r.Context(), accAddr)
-		if err != nil {
-			zap.S().Errorf("failed to get get delegator's total rewards: %s", err)
-			return
-		}
-		if totalRewardsResp != nil {
-			rewards = rewards.Add(sdktypes.NewCoin(denom, totalRewardsResp.Total.AmountOf(denom).TruncateInt()))
-		}
-	}()
-	// totalDecs, _ := totalRewardsResp.Total.TruncateDecimal()
-	// for _, reward := range totalDecs {
-	// 	if reward.Denom == denom {
-	// 		rewards = rewards.Add(reward)
-	// 		// 특정 denom에 대한 합계를 구하고 나머지는 사용하지 않음
-	// 		break
-	// 	}
-	// }
-
-	valAddr, err := ltypes.ConvertValAddrFromAccAddr(accAddr)
-	if err != nil {
-		zap.S().Errorf("failed to convert validator address from account address: %s", err)
-		return
-	}
-	// Commission
-	commissionsResp, err := s.Client.GRPC.GetValidatorCommission(r.Context(), valAddr)
-	if err != nil {
-		zap.S().Errorf("failed to get validator's commission: %s", err)
-		return
-	}
-	for _, c := range commissionsResp.Commission {
-		truncatedCoin, _ := c.TruncateDecimal()
-		commission = commission.Add(truncatedCoin)
-	}
-
-	account, err := s.Client.CliCtx.GetAccount(accAddr)
-	if err != nil {
-		zap.S().Debugf("failed to get account information: %s", err)
-		errors.ErrNotFound(rw, http.StatusNotFound)
-		return
-	}
-
-	latestBlock, err := s.Client.RPC.GetLatestBlockHeight()
-	if err != nil {
-		zap.S().Errorf("failed to get the latest block height: %s", err)
-		return
-	}
-	block, err := s.Client.RPC.GetBlock(latestBlock)
-	if err != nil {
-		zap.S().Errorf("failed to get block information: %s", err)
-		return
-	}
-	// Vesting, vested
-	switch acct := account.(type) {
-	case *vestingtypes.PeriodicVestingAccount:
-		vestingCoins := acct.GetVestingCoins(block.Block.Time)
-		vestedCoins := acct.GetVestedCoins(block.Block.Time)
-		delegatedVesting := acct.GetDelegatedVesting()
-
-		// vesting 수량은 delegate 한 수량은 제외한다. (vesting 중이어도 delegate 한 수량은 delegate에 표시)
-		if len(vestingCoins) > 0 {
-			if vestingCoins.IsAllGT(delegatedVesting) {
-				vestingCoins = vestingCoins.Sub(delegatedVesting)
-				for _, vc := range vestingCoins {
-					if vc.Denom == denom {
-						vesting = vesting.Add(vc)
-						available = available.Sub(vc) // available should deduct vesting amount
-					}
-				}
-			}
-		}
-
-		if len(vestedCoins) > 0 {
-			for _, vc := range vestedCoins {
-				if vc.Denom == denom {
-					vested = vested.Add(vc)
-				}
-			}
-		}
-	}
-
-	// Sum up all
-	total = total.Add(available).
-		Add(delegated).
-		Add(undelegated).
-		Add(rewards).
-		Add(commission).
-		Add(vesting)
-
-	result := &model.ResultTotalBalance{
-		Total:       total,
-		Available:   available,
-		Delegated:   delegated,
-		Undelegated: undelegated,
-		Rewards:     rewards,
-		Commission:  commission,
-		Vesting:     vesting,
-		Vested:      vested,
-	}
-
-	model.Respond(rw, result)
-	return
-}
-
-// GetTotalBalance returns account's total, available, vesting, delegated, unbondings, rewards, deposited, incentive, and commission for staking denom.
 func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	accAddr := vars["accAddr"]
@@ -783,20 +589,19 @@ func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 		commission = commission.Add(truncatedCoin)
 	}
 
-	// fmt.Println("get coins complete")
-	// account, err := s.Client.CliCtx.GetAccount(accAddr)
-	// if err != nil {
-	// 	zap.S().Debugf("failed to get account information: %s", err)
-	// 	errors.ErrNotFound(rw, http.StatusNotFound)
-	// 	return
-	// }
-	// fmt.Println("get account info ")
+	account, err := s.Client.CliCtx.GetAccount(accAddr)
+	if err != nil {
+		zap.S().Debugf("failed to get account information: %s", err)
+		errors.ErrNotFound(rw, http.StatusNotFound)
+		return
+	}
 
 	// latestBlock, err := s.Client.RPC.GetLatestBlockHeight()
 	// if err != nil {
 	// 	zap.S().Errorf("failed to get the latest block height: %s", err)
 	// 	return
 	// }
+
 	// block, err := s.Client.RPC.GetBlock(latestBlock)
 	// if err != nil {
 	// 	zap.S().Errorf("failed to get block information: %s", err)
@@ -805,35 +610,35 @@ func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 	// Vesting, vested
 
 	// 임시 주석 처리
-	// switch acct := account.(type) {
-	// case *vestingtypes.PeriodicVestingAccount:
-	// 	// vestingCoins := acct.GetVestingCoins(block.Block.Time)
-	// 	// vestedCoins := acct.GetVestedCoins(block.Block.Time)
-	// 	vestingCoins := acct.GetVestingCoins(time.Now())
-	// 	vestedCoins := acct.GetVestedCoins(time.Now())
-	// 	delegatedVesting := acct.GetDelegatedVesting()
+	switch acct := account.(type) {
+	case *vestingtypes.PeriodicVestingAccount:
+		// vestingCoins := acct.GetVestingCoins(block.Block.Time)
+		// vestedCoins := acct.GetVestedCoins(block.Block.Time)
+		vestingCoins := acct.GetVestingCoins(time.Now())
+		vestedCoins := acct.GetVestedCoins(time.Now())
+		delegatedVesting := acct.GetDelegatedVesting()
 
-	// 	// vesting 수량은 delegate 한 수량은 제외한다. (vesting 중이어도 delegate 한 수량은 delegate에 표시)
-	// 	if len(vestingCoins) > 0 {
-	// 		if vestingCoins.IsAllGT(delegatedVesting) {
-	// 			vestingCoins = vestingCoins.Sub(delegatedVesting)
-	// 			for _, vc := range vestingCoins {
-	// 				if vc.Denom == denom {
-	// 					vesting = vesting.Add(vc)
-	// 					available = available.Sub(vc) // available should deduct vesting amount
-	// 				}
-	// 			}
-	// 		}
-	// 	}
+		// vesting 수량은 delegate 한 수량은 제외한다. (vesting 중이어도 delegate 한 수량은 delegate에 표시)
+		if len(vestingCoins) > 0 {
+			if vestingCoins.IsAllGT(delegatedVesting) {
+				vestingCoins = vestingCoins.Sub(delegatedVesting)
+				for _, vc := range vestingCoins {
+					if vc.Denom == denom {
+						vesting = vesting.Add(vc)
+						available = available.Sub(vc) // available should deduct vesting amount
+					}
+				}
+			}
+		}
 
-	// 	if len(vestedCoins) > 0 {
-	// 		for _, vc := range vestedCoins {
-	// 			if vc.Denom == denom {
-	// 				vested = vested.Add(vc)
-	// 			}
-	// 		}
-	// 	}
-	// }
+		if len(vestedCoins) > 0 {
+			for _, vc := range vestedCoins {
+				if vc.Denom == denom {
+					vested = vested.Add(vc)
+				}
+			}
+		}
+	}
 
 	// Sum up all
 	total = total.Add(available).
