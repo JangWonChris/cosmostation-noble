@@ -296,6 +296,7 @@ func GetValidatorDelegations(rw http.ResponseWriter, r *http.Request) {
 
 	temp := struct{}{}
 	model.Respond(rw, temp)
+	return
 
 	val, err := s.DB.QueryValidatorByAnyAddr(address)
 	if err != nil {
