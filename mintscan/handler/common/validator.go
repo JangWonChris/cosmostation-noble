@@ -294,6 +294,7 @@ func GetValidatorDelegations(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	address := vars["address"]
 
+	// jeonghwan 노드 부하로 인한 일시적인 null 응답 활성화
 	temp := struct{}{}
 	model.Respond(rw, temp)
 	return
