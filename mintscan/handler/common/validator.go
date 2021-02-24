@@ -301,7 +301,7 @@ func GetValidatorDelegations(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	queryClient := stakingtypes.NewQueryClient(s.Client.GetCLIContext())
+	queryClient := stakingtypes.NewQueryClient(s.Client.GRPC)
 	request := stakingtypes.QueryValidatorDelegationsRequest{ValidatorAddr: val.OperatorAddress}
 	res, err := queryClient.ValidatorDelegations(context.Background(), &request)
 	if err != nil {

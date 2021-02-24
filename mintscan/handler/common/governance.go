@@ -208,7 +208,7 @@ func GetVotes(rw http.ResponseWriter, r *http.Request) {
 		rv = append(rv, vote)
 	}
 
-	queryClient := govtypes.NewQueryClient(s.Client.GetCLIContext())
+	queryClient := govtypes.NewQueryClient(s.Client.GRPC)
 	proposalID, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
 		zap.L().Error("failed to convert proposal id ", zap.Error(err))
