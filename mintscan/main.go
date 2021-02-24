@@ -57,6 +57,14 @@ func main() {
 
 	s := handler.SetSession(client, db)
 
+	for handler.BondDenom == "" {
+		if err := handler.SetBondDenom(); err != nil {
+			zap.S().Info("fail to set bonded denom ", err)
+		}
+		fmt.Println("denom :", handler.BondDenom)
+		time.Sleep(1 * time.Second)
+	}
+
 	r := mux.NewRouter()
 	r = r.PathPrefix("/v1").Subrouter()
 	commonhandler.RegisterHandlers(s, r)

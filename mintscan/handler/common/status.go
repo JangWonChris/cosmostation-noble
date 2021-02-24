@@ -42,14 +42,14 @@ func SetStatus() error {
 		return fmt.Errorf("Session is not initialized")
 	}
 
-	stakingQueryClient := stakingtypes.NewQueryClient(s.Client.GetCLIContext())
+	stakingQueryClient := stakingtypes.NewQueryClient(s.Client.GRPC)
 	pool, err := stakingQueryClient.Pool(context.Background(), &stakingtypes.QueryPoolRequest{})
 	if err != nil {
 		zap.L().Error("failed to get staking pool", zap.Error(err))
 		return err
 	}
 
-	bankQueryClient := banktypes.NewQueryClient(s.Client.GetCLIContext())
+	bankQueryClient := banktypes.NewQueryClient(s.Client.GRPC)
 	coins, err := bankQueryClient.TotalSupply(context.Background(), &banktypes.QueryTotalSupplyRequest{})
 	if err != nil {
 		zap.L().Error("failed to get supply total", zap.Error(err))
@@ -80,7 +80,7 @@ func SetStatus() error {
 	secondLastBlocktime := latestTwoBlocks[1].Timestamp.UTC()
 	blockTime := lastBlocktime.Sub(secondLastBlocktime).Seconds()
 
-	queryClient := distributiontypes.NewQueryClient(s.Client.GetCLIContext())
+	queryClient := distributiontypes.NewQueryClient(s.Client.GRPC)
 	cpr, err := queryClient.CommunityPool(context.Background(), &distributiontypes.QueryCommunityPoolRequest{})
 	if err != nil {
 		zap.L().Error("failed to get community pool", zap.Error(err))

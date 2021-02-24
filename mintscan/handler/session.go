@@ -16,5 +16,6 @@ type Session struct {
 
 // SetSession set Session object.
 func SetSession(client *client.Client, db *db.Database) *Session {
-	return &Session{client, db}
+	s = &Session{client, db}
+	return s
 }
