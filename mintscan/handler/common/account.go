@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"sort"
 	"sync"
-	"time"
 
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -784,12 +783,14 @@ func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 		commission = commission.Add(truncatedCoin)
 	}
 
-	account, err := s.Client.CliCtx.GetAccount(accAddr)
-	if err != nil {
-		zap.S().Debugf("failed to get account information: %s", err)
-		errors.ErrNotFound(rw, http.StatusNotFound)
-		return
-	}
+	// fmt.Println("get coins complete")
+	// account, err := s.Client.CliCtx.GetAccount(accAddr)
+	// if err != nil {
+	// 	zap.S().Debugf("failed to get account information: %s", err)
+	// 	errors.ErrNotFound(rw, http.StatusNotFound)
+	// 	return
+	// }
+	// fmt.Println("get account info ")
 
 	// latestBlock, err := s.Client.RPC.GetLatestBlockHeight()
 	// if err != nil {
@@ -802,35 +803,37 @@ func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 	// 	return
 	// }
 	// Vesting, vested
-	switch acct := account.(type) {
-	case *vestingtypes.PeriodicVestingAccount:
-		// vestingCoins := acct.GetVestingCoins(block.Block.Time)
-		// vestedCoins := acct.GetVestedCoins(block.Block.Time)
-		vestingCoins := acct.GetVestingCoins(time.Now())
-		vestedCoins := acct.GetVestedCoins(time.Now())
-		delegatedVesting := acct.GetDelegatedVesting()
 
-		// vesting 수량은 delegate 한 수량은 제외한다. (vesting 중이어도 delegate 한 수량은 delegate에 표시)
-		if len(vestingCoins) > 0 {
-			if vestingCoins.IsAllGT(delegatedVesting) {
-				vestingCoins = vestingCoins.Sub(delegatedVesting)
-				for _, vc := range vestingCoins {
-					if vc.Denom == denom {
-						vesting = vesting.Add(vc)
-						available = available.Sub(vc) // available should deduct vesting amount
-					}
-				}
-			}
-		}
+	// 임시 주석 처리
+	// switch acct := account.(type) {
+	// case *vestingtypes.PeriodicVestingAccount:
+	// 	// vestingCoins := acct.GetVestingCoins(block.Block.Time)
+	// 	// vestedCoins := acct.GetVestedCoins(block.Block.Time)
+	// 	vestingCoins := acct.GetVestingCoins(time.Now())
+	// 	vestedCoins := acct.GetVestedCoins(time.Now())
+	// 	delegatedVesting := acct.GetDelegatedVesting()
 
-		if len(vestedCoins) > 0 {
-			for _, vc := range vestedCoins {
-				if vc.Denom == denom {
-					vested = vested.Add(vc)
-				}
-			}
-		}
-	}
+	// 	// vesting 수량은 delegate 한 수량은 제외한다. (vesting 중이어도 delegate 한 수량은 delegate에 표시)
+	// 	if len(vestingCoins) > 0 {
+	// 		if vestingCoins.IsAllGT(delegatedVesting) {
+	// 			vestingCoins = vestingCoins.Sub(delegatedVesting)
+	// 			for _, vc := range vestingCoins {
+	// 				if vc.Denom == denom {
+	// 					vesting = vesting.Add(vc)
+	// 					available = available.Sub(vc) // available should deduct vesting amount
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+
+	// 	if len(vestedCoins) > 0 {
+	// 		for _, vc := range vestedCoins {
+	// 			if vc.Denom == denom {
+	// 				vested = vested.Add(vc)
+	// 			}
+	// 		}
+	// 	}
+	// }
 
 	// Sum up all
 	total = total.Add(available).
