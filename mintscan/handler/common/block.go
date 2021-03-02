@@ -96,6 +96,7 @@ func GetBlocksByProposer(rw http.ResponseWriter, r *http.Request) {
 	val, err := s.DB.QueryValidatorByAnyAddr(proposer)
 	if err != nil {
 		zap.S().Errorf("failed to query validator information: %s", err)
+		errors.ErrInternalServer(rw, http.StatusInternalServerError)
 		return
 	}
 
@@ -126,18 +127,14 @@ func GetBlocksByProposer(rw http.ResponseWriter, r *http.Request) {
 	result := make([]*model.ResultBlock, 0)
 
 	for _, b := range blocks {
-		txs := make([]schema.Transaction, 0)
+		var txData model.TxData
 		if b.NumTxs > 0 {
-			txs, err = s.DB.QueryTransactionsInBlockHeight(b.Height)
+			txs, err := s.DB.QueryTransactionsInBlockHeight(b.Height)
 			if err != nil {
 				zap.L().Error("failed to query transactions in a block", zap.Error(err))
 				errors.ErrInternalServer(rw, http.StatusInternalServerError)
 				return
 			}
-		}
-
-		var txData model.TxData
-		if len(txs) > 0 {
 			for _, tx := range txs {
 				txData.Txs = append(txData.Txs, tx.TxHash)
 			}
@@ -145,16 +142,16 @@ func GetBlocksByProposer(rw http.ResponseWriter, r *http.Request) {
 
 		b := &model.ResultBlock{
 			ID:                     b.ID,
-			Height:                 b.Height,
+			Height:                 b.Height, // 사용 값
 			Proposer:               val.Proposer,
 			OperatorAddress:        val.OperatorAddress,
 			Moniker:                val.Moniker,
-			BlockHash:              b.BlockHash,
+			BlockHash:              b.BlockHash, // 사용 값
 			Identity:               val.Identity,
-			NumTxs:                 b.NumTxs,
+			NumTxs:                 b.NumTxs, // 사용 값
 			TotalNumProposerBlocks: totalNum,
 			TxData:                 txData,
-			Timestamp:              b.Timestamp,
+			Timestamp:              b.Timestamp, // 사용 값
 		}
 
 		result = append(result, b)
