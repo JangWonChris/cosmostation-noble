@@ -84,7 +84,7 @@ func JSONStringUnmarshal(jsonString []string) error {
 func TestGetMessage(t *testing.T) {
 	// 13030, 272247
 	// 122499 (multi msg type)
-	block, err := ex.client.RPC.GetBlock(122499)
+	block, err := ex.client.RPC.GetBlock(970957)
 	if err != nil {
 		log.Println(err)
 	}

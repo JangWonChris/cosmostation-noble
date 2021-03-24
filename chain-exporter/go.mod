@@ -3,19 +3,19 @@ module github.com/cosmostation/cosmostation-cosmos/chain-exporter
 go 1.15
 
 require (
-	github.com/cosmos/cosmos-sdk v0.41.3
-	github.com/cosmos/gaia/v4 v4.0.4
+	github.com/cosmos/cosmos-sdk v0.42.0
+	github.com/cosmos/gaia/v4 v4.1.0
 	github.com/cosmostation/cosmostation-cosmos/chain-config v0.0.0-00010101000000-000000000000
 	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210218131702-e452de330fd3
 	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210221065353-c439d341db6d
 	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210222091607-09fabc04bacb
 	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210222152052-0c136faaa870
 	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210222154014-46a969835c57
-	github.com/cosmostation/mintscan-backend-library v0.0.0-20210223030701-b5a5378a3309
+	github.com/cosmostation/mintscan-backend-library v0.0.0-20210324082716-ab8cf6f38a06
 	github.com/go-pg/pg v8.0.7+incompatible
 	github.com/go-resty/resty/v2 v2.4.0
 	github.com/stretchr/testify v1.7.0
-	github.com/tendermint/tendermint v0.34.7
+	github.com/tendermint/tendermint v0.34.8
 	go.uber.org/zap v1.16.0
 	google.golang.org/grpc v1.35.0
 )

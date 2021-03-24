@@ -31,7 +31,7 @@ func TestGetGenesisStateFromGenesisFile(t *testing.T) {
 	genesisFile := filepath.Join(gaia.DefaultNodeHome, baseConfig.Genesis)
 	// genesisFile := "/Users/jeonghwan/dev/cosmostation/cosmostation-cosmos/chain-exporter/genesis.json"
 	log.Println("genesis file path :", genesisFile)
-	genesisFile = "../cosmoshub-test-stargate-e.json"
+	genesisFile = "../ignoredir/cosmoshub-test-stargate-e.json"
 	genDoc, err := tmtypes.GenesisDocFromFile(genesisFile)
 	if err != nil {
 		log.Println(err, "failed to read genesis doc file %s", genesisFile)
