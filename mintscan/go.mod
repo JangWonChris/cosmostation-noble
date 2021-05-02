@@ -3,8 +3,8 @@ module github.com/cosmostation/cosmostation-cosmos/mintscan
 go 1.15
 
 require (
-	github.com/cosmos/cosmos-sdk v0.41.3
-	github.com/cosmos/gaia/v4 v4.0.4
+	github.com/cosmos/cosmos-sdk v0.42.4
+	github.com/cosmos/gaia/v4 v4.2.1
 	github.com/cosmostation/cosmostation-cosmos/chain-config v0.0.0-00010101000000-000000000000
 	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210215124422-0da1f2875834
 	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210221065353-c439d341db6d

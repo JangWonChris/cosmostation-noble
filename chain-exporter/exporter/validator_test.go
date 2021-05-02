@@ -87,7 +87,7 @@ func TestGetPowerEventHistory(t *testing.T) {
 	// _, stdTx, err := commonTxParser(SampleMsgCreateValidatorTxHash)
 	// require.NoError(t, err)
 
-	peh, err := ex.getPowerEventHistory(b, stdTx)
+	peh, err := ex.getPowerEventHistoryNew(stdTx)
 	require.NoError(t, err)
 
 	for _, p := range peh {

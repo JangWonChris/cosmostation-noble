@@ -1,17 +1,13 @@
 package exporter
 
 import (
+	"github.com/cosmostation/cosmostation-cosmos/chain-config/custom"
 	"github.com/cosmostation/mintscan-backend-library/db/schema"
 	"go.uber.org/zap"
 )
 
-const (
-	CoinID   = "cosmos"
-	Currency = "usd"
-)
-
 func (ex *Exporter) SaveStatsMarket5M() {
-	data, err := ex.client.GetCoinGeckoMarketData(CoinID)
+	data, err := ex.client.GetCoinGeckoMarketData(custom.CoinGeckgoCoinID)
 	if err != nil {
 		zap.S().Errorf("failed to get market data: %s", err)
 		return
@@ -19,7 +15,7 @@ func (ex *Exporter) SaveStatsMarket5M() {
 
 	market := &schema.StatsMarket5M{
 		Price:             data.MarketData.CurrentPrice.Usd,
-		Currency:          Currency,
+		Currency:          custom.Currency,
 		MarketCapRank:     data.MarketCapRank,
 		CoinGeckoRank:     data.CoingeckoRank,
 		PercentChange1H:   data.MarketData.PriceChangePercentage1HInCurrency.Usd,

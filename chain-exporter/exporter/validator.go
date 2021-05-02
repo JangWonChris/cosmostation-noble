@@ -2,12 +2,12 @@ package exporter
 
 import (
 	"context"
-	"strconv"
 	"time"
 
 	"go.uber.org/zap"
 
 	// mbl
+	"github.com/cosmostation/cosmostation-cosmos/chain-config/custom"
 	"github.com/cosmostation/mintscan-backend-library/db/schema"
 	"github.com/cosmostation/mintscan-backend-library/types"
 
@@ -44,8 +44,6 @@ func (ex *Exporter) getPowerEventHistoryNew( /*block *tmctypes.ResultBlock,*/ tx
 		return powerEventHistory, nil
 	}
 
-	//sdktypes.PowerReduction == 1,000,000 (BigInt)
-	powerReduction := float64(sdktypes.PowerReduction.Int64())
 	for _, tx := range txResp {
 		if tx.Code != 0 {
 			// Code != 0 이면, 성공한 tx가 아니므로 무시한다.
@@ -61,7 +59,7 @@ func (ex *Exporter) getPowerEventHistoryNew( /*block *tmctypes.ResultBlock,*/ tx
 			case *stakingtypes.MsgCreateValidator:
 				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
 
-				newVotingPowerAmount := float64(m.Value.Amount.Int64()) / powerReduction
+				newVotingPowerAmount := float64(m.Value.Amount.Quo(custom.PowerReduction).Int64())
 
 				peh := &schema.PowerEventHistory{
 					Height:               tx.Height,
@@ -79,7 +77,7 @@ func (ex *Exporter) getPowerEventHistoryNew( /*block *tmctypes.ResultBlock,*/ tx
 			case *stakingtypes.MsgDelegate:
 				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
 
-				newVotingPowerAmount := float64(m.Amount.Amount.Int64()) / powerReduction
+				newVotingPowerAmount := float64(m.Amount.Amount.Quo(custom.PowerReduction).Int64())
 
 				peh := &schema.PowerEventHistory{
 					Height:               tx.Height,
@@ -97,7 +95,7 @@ func (ex *Exporter) getPowerEventHistoryNew( /*block *tmctypes.ResultBlock,*/ tx
 			case *stakingtypes.MsgUndelegate:
 				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
 
-				newVotingPowerAmount := float64(m.Amount.Amount.Int64()) / powerReduction
+				newVotingPowerAmount := float64(m.Amount.Amount.Quo(custom.PowerReduction).Int64())
 
 				peh := &schema.PowerEventHistory{
 					Height:               tx.Height,
@@ -115,7 +113,7 @@ func (ex *Exporter) getPowerEventHistoryNew( /*block *tmctypes.ResultBlock,*/ tx
 			case *stakingtypes.MsgBeginRedelegate:
 				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
 
-				newVotingPowerAmount := float64(m.Amount.Amount.Int64()) / powerReduction
+				newVotingPowerAmount := float64(m.Amount.Amount.Quo(custom.PowerReduction).Int64())
 
 				// destination (add power)
 				dpeh := &schema.PowerEventHistory{
@@ -141,204 +139,6 @@ func (ex *Exporter) getPowerEventHistoryNew( /*block *tmctypes.ResultBlock,*/ tx
 					TxHash:               tx.TxHash,
 					// Timestamp:            block.Block.Header.Time,
 					Timestamp: timestamp,
-				}
-
-				powerEventHistory = append(powerEventHistory, *speh)
-
-			default:
-				continue
-			}
-		}
-	}
-
-	return powerEventHistory, nil
-}
-
-// getPowerEventHistory returns voting power event history of validators by decoding transactions in a block.
-func (ex *Exporter) getPowerEventHistory(block *tmctypes.ResultBlock, txResp []*sdktypes.TxResponse) ([]schema.PowerEventHistory, error) {
-	powerEventHistory := make([]schema.PowerEventHistory, 0)
-
-	if len(txResp) <= 0 {
-		return powerEventHistory, nil
-	}
-
-	for _, tx := range txResp {
-		// Other than code equals to 0, it is failed transaction.
-		if tx.Code != 0 {
-			continue
-		}
-
-		msgs := tx.GetTx().GetMsgs()
-
-		for _, msg := range msgs {
-
-			// zap.S().Infof("MsgType: %s | Hash: %s", rt.Body.Messages[0].Type, tx.TxHash)
-			switch m := msg.(type) {
-			// case staking.MsgCreateValidator:
-			case *stakingtypes.MsgCreateValidator:
-				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
-
-				// Query the highest height of id_validator
-				// TODO: Note that if two `create_validator` mesesages included in the same block then
-				// id_validator may overlap. Needs to find other way to handle this.
-				highestIDValidatorNum, _ := ex.db.QueryHighestValidatorID() // 필요 없음
-
-				newVotingPowerAmount, _ := strconv.ParseFloat(m.Value.Amount.String(), 64) // parseFloat from sdk.Dec.String()
-				newVotingPowerAmount = float64(newVotingPowerAmount) / 1000000
-
-				peh := &schema.PowerEventHistory{
-					IDValidator:          highestIDValidatorNum + 1, // 필요 없음
-					Height:               tx.Height,
-					Proposer:             m.Pubkey.String(), //jeonghwan : pubkey로부터 address 구하는 인터페이스가 string으로 변경 됨
-					VotingPower:          newVotingPowerAmount,
-					NewVotingPowerAmount: newVotingPowerAmount,
-					NewVotingPowerDenom:  m.Value.Denom,
-					MsgType:              types.StakingMsgCreateValidator,
-					TxHash:               tx.TxHash,
-					Timestamp:            block.Block.Header.Time,
-				}
-
-				powerEventHistory = append(powerEventHistory, *peh)
-
-			// case staking.MsgDelegate:
-			case *stakingtypes.MsgDelegate:
-				zap.S().Infof("MsgType: %s | Hash: %s", m.Type, tx.TxHash)
-
-				// Query the validator's information.
-				valInfo, _ := ex.db.QueryValidatorByAnyAddr(m.ValidatorAddress)
-
-				// Query id_validator of lastly inserted data.
-				validatorID, _ := ex.db.QueryValidatorID(valInfo.Proposer)
-
-				newVotingPowerAmount, _ := strconv.ParseFloat(m.Amount.String(), 64) // parseFloat from sdk.Dec.String()
-				newVotingPowerAmount = newVotingPowerAmount / 1000000
-
-				// Get current voting power of the validator.
-				// TODO: Note that if two MsgDelegate messages in one transaction, then
-				// the validator's voting power may not be calculated correctly.
-				var votingPower float64
-				vals, _ := ex.client.RPC.GetValidatorsInHeight(tx.Height, 1, 150)
-				for _, val := range vals.Validators {
-					if val.Address.String() == valInfo.Proposer {
-						votingPower = float64(val.VotingPower)
-					}
-				}
-
-				peh := &schema.PowerEventHistory{
-					IDValidator:          validatorID.IDValidator, // 필요 없음
-					Height:               tx.Height,
-					Moniker:              valInfo.Moniker,
-					OperatorAddress:      m.ValidatorAddress,
-					Proposer:             valInfo.Proposer,
-					VotingPower:          votingPower + newVotingPowerAmount,
-					MsgType:              types.StakingMsgDelegate,
-					NewVotingPowerAmount: newVotingPowerAmount,
-					NewVotingPowerDenom:  m.Amount.Denom,
-					TxHash:               tx.TxHash,
-					Timestamp:            block.Block.Header.Time,
-				}
-
-				powerEventHistory = append(powerEventHistory, *peh)
-
-			// case staking.MsgUndelegate:
-			case *stakingtypes.MsgUndelegate:
-				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
-
-				// Query the validator's information.
-				valInfo, _ := ex.db.QueryValidatorByAnyAddr(m.ValidatorAddress)
-
-				// Query d_validator of lastly inserted data.
-				validatorID, _ := ex.db.QueryValidatorID(valInfo.Proposer) // 필요 없음
-
-				newVotingPowerAmount, _ := strconv.ParseFloat(m.Amount.String(), 64) // parseFloat from sdk.Dec.String()
-				newVotingPowerAmount = -newVotingPowerAmount / 1000000               // needs to be negative value
-
-				// Get current voting power of the validator.
-				var votingPower float64
-				vals, _ := ex.client.RPC.GetValidatorsInHeight(tx.Height, types.DefaultQueryValidatorsPage, types.DefaultQueryValidatorsPerPage)
-				for _, val := range vals.Validators {
-					if val.Address.String() == valInfo.Proposer {
-						votingPower = float64(val.VotingPower)
-					}
-				}
-
-				peh := &schema.PowerEventHistory{
-					IDValidator:          validatorID.IDValidator, // 필요 없음
-					Height:               tx.Height,
-					Moniker:              valInfo.Moniker,
-					OperatorAddress:      valInfo.OperatorAddress,
-					Proposer:             valInfo.Proposer,
-					VotingPower:          votingPower + newVotingPowerAmount,
-					MsgType:              types.StakingMsgUndelegate,
-					NewVotingPowerAmount: newVotingPowerAmount,
-					NewVotingPowerDenom:  m.Amount.Denom,
-					TxHash:               tx.TxHash,
-					Timestamp:            block.Block.Header.Time,
-				}
-
-				powerEventHistory = append(powerEventHistory, *peh)
-
-			// case staking.MsgBeginRedelegate:
-			case *stakingtypes.MsgBeginRedelegate:
-				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
-
-				// Query validator_dst_address information.
-				valDstInfo, _ := ex.db.QueryValidatorByAnyAddr(m.ValidatorDstAddress)
-				dstpowerEventHistory, _ := ex.db.QueryValidatorID(valDstInfo.Proposer) // 필요 없음
-
-				// Query validator_src_address information.
-				valSrcInfo, _ := ex.db.QueryValidatorByAnyAddr(m.ValidatorSrcAddress)
-				srcpowerEventHistory, _ := ex.db.QueryValidatorID(valSrcInfo.Proposer) // 필요 없음
-
-				newVotingPowerAmount, _ := strconv.ParseFloat(m.Amount.String(), 64)
-				newVotingPowerAmount = newVotingPowerAmount / 1000000
-
-				// Get current destination validator's voting power.
-				var dstValVotingPower float64
-				vals, _ := ex.client.RPC.GetValidatorsInHeight(tx.Height, 1, 150)
-				for _, val := range vals.Validators {
-					if val.Address.String() == valDstInfo.Proposer {
-						dstValVotingPower = float64(val.VotingPower)
-					}
-				}
-
-				// Get current source validator's voting power.
-				var srcValVotingPower float64
-				vals, _ = ex.client.RPC.GetValidatorsInHeight(tx.Height, 1, 150)
-				for _, val := range vals.Validators {
-					if val.Address.String() == valSrcInfo.Proposer {
-						srcValVotingPower = float64(val.VotingPower)
-					}
-				}
-
-				dpeh := &schema.PowerEventHistory{
-					IDValidator:          dstpowerEventHistory.IDValidator, //필요 없음
-					Height:               tx.Height,
-					Moniker:              valDstInfo.Moniker,
-					OperatorAddress:      valDstInfo.OperatorAddress,
-					Proposer:             valDstInfo.Proposer,
-					VotingPower:          dstValVotingPower + newVotingPowerAmount, // Add
-					MsgType:              types.StakingMsgBeginRedelegate,
-					NewVotingPowerAmount: newVotingPowerAmount,
-					NewVotingPowerDenom:  m.Amount.Denom,
-					TxHash:               tx.TxHash,
-					Timestamp:            block.Block.Header.Time,
-				}
-
-				powerEventHistory = append(powerEventHistory, *dpeh)
-
-				speh := &schema.PowerEventHistory{
-					IDValidator:          srcpowerEventHistory.IDValidator, //필요 없음
-					Height:               tx.Height,
-					Moniker:              valSrcInfo.Moniker,
-					OperatorAddress:      valSrcInfo.OperatorAddress,
-					Proposer:             valSrcInfo.Proposer,
-					VotingPower:          srcValVotingPower - newVotingPowerAmount, // Substract
-					MsgType:              types.StakingMsgBeginRedelegate,
-					NewVotingPowerAmount: -newVotingPowerAmount,
-					NewVotingPowerDenom:  m.Amount.Denom,
-					TxHash:               tx.TxHash,
-					Timestamp:            block.Block.Header.Time,
 				}
 
 				powerEventHistory = append(powerEventHistory, *speh)
