@@ -2,6 +2,7 @@ package exporter
 
 import (
 	"context"
+	"math/big"
 	"time"
 
 	"go.uber.org/zap"
@@ -16,6 +17,10 @@ import (
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
+)
+
+var (
+	powerReduction = new(big.Float).SetInt(custom.PowerReduction.BigInt())
 )
 
 // getPowerEventHistory returns voting power event history of validators by decoding transactions in a block.
@@ -59,7 +64,9 @@ func (ex *Exporter) getPowerEventHistoryNew( /*block *tmctypes.ResultBlock,*/ tx
 			case *stakingtypes.MsgCreateValidator:
 				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
 
-				newVotingPowerAmount := float64(m.Value.Amount.Quo(custom.PowerReduction).Int64())
+				// newVotingPowerAmount := float64(m.Value.Amount.Quo(custom.PowerReduction).Int64())
+				amount := new(big.Float).SetInt(m.Value.Amount.BigInt())
+				newVotingPowerAmount, _ := new(big.Float).Quo(amount, powerReduction).Float64()
 
 				peh := &schema.PowerEventHistory{
 					Height:               tx.Height,
@@ -77,7 +84,9 @@ func (ex *Exporter) getPowerEventHistoryNew( /*block *tmctypes.ResultBlock,*/ tx
 			case *stakingtypes.MsgDelegate:
 				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
 
-				newVotingPowerAmount := float64(m.Amount.Amount.Quo(custom.PowerReduction).Int64())
+				// newVotingPowerAmount := float64(m.Amount.Amount.Quo(custom.PowerReduction).Int64())
+				amount := new(big.Float).SetInt(m.Amount.Amount.BigInt())
+				newVotingPowerAmount, _ := new(big.Float).Quo(amount, powerReduction).Float64()
 
 				peh := &schema.PowerEventHistory{
 					Height:               tx.Height,
@@ -95,7 +104,9 @@ func (ex *Exporter) getPowerEventHistoryNew( /*block *tmctypes.ResultBlock,*/ tx
 			case *stakingtypes.MsgUndelegate:
 				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
 
-				newVotingPowerAmount := float64(m.Amount.Amount.Quo(custom.PowerReduction).Int64())
+				// newVotingPowerAmount := float64(m.Amount.Amount.Quo(custom.PowerReduction).Int64())
+				amount := new(big.Float).SetInt(m.Amount.Amount.BigInt())
+				newVotingPowerAmount, _ := new(big.Float).Quo(amount, powerReduction).Float64()
 
 				peh := &schema.PowerEventHistory{
 					Height:               tx.Height,
@@ -113,7 +124,9 @@ func (ex *Exporter) getPowerEventHistoryNew( /*block *tmctypes.ResultBlock,*/ tx
 			case *stakingtypes.MsgBeginRedelegate:
 				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
 
-				newVotingPowerAmount := float64(m.Amount.Amount.Quo(custom.PowerReduction).Int64())
+				// newVotingPowerAmount := float64(m.Amount.Amount.Quo(custom.PowerReduction).Int64())
+				amount := new(big.Float).SetInt(m.Amount.Amount.BigInt())
+				newVotingPowerAmount, _ := new(big.Float).Quo(amount, powerReduction).Float64()
 
 				// destination (add power)
 				dpeh := &schema.PowerEventHistory{
