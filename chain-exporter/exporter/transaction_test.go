@@ -30,8 +30,8 @@ func TestGetTxsChunk(t *testing.T) {
 		log.Println(err)
 	}
 
-	tms, err := ex.transactionAccount(block.Block.ChainID, txResps)
-	log.Println(tms)
+	tma := ex.disassembleTransaction(txResps)
+	log.Println(tma)
 	return
 
 	// assume that following expression is for inserting db

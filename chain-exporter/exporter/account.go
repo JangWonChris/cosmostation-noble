@@ -13,8 +13,8 @@ import (
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	// mbl
-	"github.com/cosmostation/mintscan-backend-library/db/schema"
 	"github.com/cosmostation/mintscan-backend-library/types"
+	"github.com/cosmostation/mintscan-database/schema"
 
 	// tendermint
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
@@ -251,7 +251,7 @@ func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHas
 
 			acct := schema.AccountCoin{
 				// ChainID:           chainID,
-				AccountAddress: acc.Address,
+				Address: acc.Address,
 				// AccountNumber:     acc.AccountNumber,
 				// AccountType:       types.BaseAccount,
 				Denom:        denom,
@@ -292,7 +292,7 @@ func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHas
 
 			acct := schema.AccountCoin{
 				// ChainID:           chainID,
-				AccountAddress: acc.GetAddress().String(),
+				Address: acc.GetAddress().String(),
 				// AccountNumber:     acc.GetAccountNumber(),
 				// AccountType:       types.ModuleAccount,
 				Denom:        denom,
@@ -362,7 +362,7 @@ func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHas
 
 			acct := schema.AccountCoin{
 				// ChainID:           chainID,
-				AccountAddress: acc.Address,
+				Address: acc.Address,
 				// AccountNumber:     acc.AccountNumber,
 				// AccountType:       types.PeriodicVestingAccount,
 				Denom:        denom,
@@ -432,7 +432,7 @@ func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHas
 
 			acct := schema.AccountCoin{
 				// ChainID:           chainID,
-				AccountAddress: acc.Address,
+				Address: acc.Address,
 				// AccountNumber:     acc.AccountNumber,
 				// AccountType:       types.DelayedVestingAccount,
 				Denom:        denom,

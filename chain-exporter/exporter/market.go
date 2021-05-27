@@ -2,7 +2,7 @@ package exporter
 
 import (
 	"github.com/cosmostation/cosmostation-cosmos/chain-config/custom"
-	"github.com/cosmostation/mintscan-backend-library/db/schema"
+	"github.com/cosmostation/mintscan-database/schema"
 	"go.uber.org/zap"
 )
 

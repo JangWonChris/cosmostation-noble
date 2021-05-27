@@ -6,10 +6,7 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/db"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 
-	// mbl
 	"github.com/cosmostation/mintscan-backend-library/config"
-	// "github.com/cosmostation/mintscan-backend-library/db"
-	// "github.com/cosmostation/mintscan-backend-library/types"
 	"go.uber.org/zap"
 
 	resty "github.com/go-resty/resty/v2"

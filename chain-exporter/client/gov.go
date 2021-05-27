@@ -6,7 +6,7 @@ import (
 	"log"
 
 	"github.com/cosmostation/cosmostation-cosmos/chain-config/custom"
-	"github.com/cosmostation/mintscan-backend-library/db/schema"
+	"github.com/cosmostation/mintscan-database/schema"
 
 	// cosmos-sdk
 	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
@@ -92,7 +92,7 @@ func (c *Client) GetProposals() (result []schema.Proposal, err error) {
 			No:                 tally.No.String(),
 			NoWithVeto:         tally.NoWithVeto.String(),
 			SubmitTime:         proposal.SubmitTime,
-			DepositEndtime:     proposal.DepositEndTime,
+			DepositEndTime:     proposal.DepositEndTime,
 			TotalDepositAmount: totalDepositAmount,
 			TotalDepositDenom:  totalDepositDenom,
 			VotingStartTime:    proposal.VotingStartTime,

@@ -9,18 +9,15 @@ import (
 	"time"
 
 	"github.com/cosmostation/cosmostation-cosmos/chain-config/custom"
-	"github.com/cosmostation/mintscan-backend-library/types"
-
-	//mbl
-
-	lschema "github.com/cosmostation/mintscan-backend-library/db/schema"
+	mbltypes "github.com/cosmostation/mintscan-backend-library/types"
+	mdschema "github.com/cosmostation/mintscan-database/schema"
 	"go.uber.org/zap"
 
 	//gaia
 	gaia "github.com/cosmos/gaia/v4/app"
 
 	//cosmos-sdk
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	authvestingtypes "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
 	bankexported "github.com/cosmos/cosmos-sdk/x/bank/exported"
@@ -67,7 +64,7 @@ func (ex *Exporter) GetGenesisStateFromGenesisFile(genesisPath string) (err erro
 
 	authAccs := authGenesisState.GetAccounts()
 	NumberOfTotalAccounts := len(authAccs)
-	accountMapper := make(map[string]*lschema.AccountCoin, NumberOfTotalAccounts)
+	accountMapper := make(map[string]*mdschema.AccountCoin, NumberOfTotalAccounts)
 	for _, authAcc := range authAccs {
 		var ga authtypes.GenesisAccount
 		custom.AppCodec.UnpackAny(authAcc, &ga)
@@ -85,9 +82,9 @@ func (ex *Exporter) GetGenesisStateFromGenesisFile(genesisPath string) (err erro
 		case *authvestingtypes.PeriodicVestingAccount:
 			log.Println("PeriodicVestingAccount", ga.String())
 		}
-		sAcc := lschema.AccountCoin{
+		sAcc := mdschema.AccountCoin{
 			// ChainID:           genDoc.ChainID,
-			AccountAddress: ga.GetAddress().String(),
+			Address: ga.GetAddress().String(),
 			// AccountNumber:  ga.GetAccountNumber(), //account number is set by specified order in genesis file
 			// AccountType:    authAcc.GetTypeUrl(),  //type 변경
 			Total:        "0",
@@ -116,7 +113,7 @@ func (ex *Exporter) GetGenesisStateFromGenesisFile(genesisPath string) (err erro
 		},
 	)
 
-	var accounts []lschema.AccountCoin
+	var accounts []mdschema.AccountCoin
 	for _, acc := range accountMapper {
 		accounts = append(accounts, *acc)
 		log.Println(acc)
@@ -128,20 +125,20 @@ func (ex *Exporter) GetGenesisStateFromGenesisFile(genesisPath string) (err erro
 }
 
 // deprecated
-func (ex *Exporter) getGenesisAccounts(genesisAccts authtypes.GenesisAccounts) (accounts []lschema.AccountCoin, err error) {
+func (ex *Exporter) getGenesisAccounts(genesisAccts authtypes.GenesisAccounts) (accounts []mdschema.AccountCoin, err error) {
 	// chainID, err := ex.client.GetNetworkChainID()
 	if err != nil {
-		return []lschema.AccountCoin{}, err
+		return []mdschema.AccountCoin{}, err
 	}
 
 	block, err := ex.client.RPC.GetBlock(startingHeight)
 	if err != nil {
-		return []lschema.AccountCoin{}, err
+		return []mdschema.AccountCoin{}, err
 	}
 
 	denom, err := ex.client.GRPC.GetBondDenom(context.Background())
 	if err != nil {
-		return []lschema.AccountCoin{}, err
+		return []mdschema.AccountCoin{}, err
 	}
 
 	for i, account := range genesisAccts {
@@ -153,10 +150,10 @@ func (ex *Exporter) getGenesisAccounts(genesisAccts authtypes.GenesisAccounts) (
 
 			spendable, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(account.GetAddress().String())
 			if err != nil {
-				return []lschema.AccountCoin{}, err
+				return []mdschema.AccountCoin{}, err
 			}
 
-			total := sdk.NewCoin(denom, sdk.NewInt(0))
+			total := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
 
 			// Sum up all coins that exist in an account.
 			total = total.Add(spendable).
@@ -165,9 +162,9 @@ func (ex *Exporter) getGenesisAccounts(genesisAccts authtypes.GenesisAccounts) (
 				Add(rewards).
 				Add(commission)
 
-			acct := lschema.AccountCoin{
+			acct := mdschema.AccountCoin{
 				// ChainID:          chainID,
-				AccountAddress: account.Address,
+				Address: account.Address,
 				// AccountNumber:    acc.AccountNumber,
 				// AccountType:      types.BaseAccount,
 				Total:       total.Amount.String(),
@@ -187,10 +184,10 @@ func (ex *Exporter) getGenesisAccounts(genesisAccts authtypes.GenesisAccounts) (
 
 			spendable, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(account.GetAddress().String())
 			if err != nil {
-				return []lschema.AccountCoin{}, err
+				return []mdschema.AccountCoin{}, err
 			}
 
-			total := sdk.NewCoin(denom, sdk.NewInt(0))
+			total := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
 
 			// Sum up all coins that exist in an account.
 			total = total.Add(spendable).
@@ -199,9 +196,9 @@ func (ex *Exporter) getGenesisAccounts(genesisAccts authtypes.GenesisAccounts) (
 				Add(rewards).
 				Add(commission)
 
-			acct := lschema.AccountCoin{
+			acct := mdschema.AccountCoin{
 				// ChainID:          chainID,
-				AccountAddress: account.GetAddress().String(),
+				Address: account.GetAddress().String(),
 				// AccountNumber:    account.GetAccountNumber(),
 				// AccountType:      types.ModuleAccount,
 				Total:       total.Amount.String(),
@@ -221,11 +218,11 @@ func (ex *Exporter) getGenesisAccounts(genesisAccts authtypes.GenesisAccounts) (
 
 			spendable, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(account.GetAddress().String())
 			if err != nil {
-				return []lschema.AccountCoin{}, err
+				return []mdschema.AccountCoin{}, err
 			}
 
-			vesting := sdk.NewCoin(denom, sdk.NewInt(0))
-			vested := sdk.NewCoin(denom, sdk.NewInt(0))
+			vesting := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
+			vested := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
 
 			vestingCoins := account.GetVestingCoins(block.Block.Time)
 			vestedCoins := account.GetVestedCoins(block.Block.Time)
@@ -252,7 +249,7 @@ func (ex *Exporter) getGenesisAccounts(genesisAccts authtypes.GenesisAccounts) (
 				}
 			}
 
-			total := sdk.NewCoin(denom, sdk.NewInt(0))
+			total := sdktypes.NewCoin(denom, sdktypes.NewInt(0))
 
 			// Sum up all coins that exist in an account.
 			total = total.Add(spendable).
@@ -262,9 +259,9 @@ func (ex *Exporter) getGenesisAccounts(genesisAccts authtypes.GenesisAccounts) (
 				Add(commission).
 				Add(vesting)
 
-			acct := lschema.AccountCoin{
+			acct := mdschema.AccountCoin{
 				// ChainID:          chainID,
-				AccountAddress: account.Address,
+				Address: account.Address,
 				// AccountNumber:    account.AccountNumber,
 				// AccountType:      types.PeriodicVestingAccount,
 				Total:       total.Amount.String(),
@@ -279,7 +276,7 @@ func (ex *Exporter) getGenesisAccounts(genesisAccts authtypes.GenesisAccounts) (
 			accounts = append(accounts, acct)
 
 		default:
-			return []lschema.AccountCoin{}, fmt.Errorf("unrecognized account type: %T", account)
+			return []mdschema.AccountCoin{}, fmt.Errorf("unrecognized account type: %T", account)
 		}
 	}
 
@@ -287,30 +284,30 @@ func (ex *Exporter) getGenesisAccounts(genesisAccts authtypes.GenesisAccounts) (
 }
 
 // getGenesisValidatorsSet returns validator set in genesis.
-func (ex *Exporter) getGenesisValidatorsSet(block *tmctypes.ResultBlock, vals *tmctypes.ResultValidators) ([]lschema.PowerEventHistory, error) {
+func (ex *Exporter) getGenesisValidatorsSet(block *tmctypes.ResultBlock, vals *tmctypes.ResultValidators) ([]mdschema.PowerEventHistory, error) {
 	// Get genesis validator set (block height 1).
 	if block.Block.Height != 1 {
-		return []lschema.PowerEventHistory{}, nil
+		return []mdschema.PowerEventHistory{}, nil
 	}
 
 	denom, err := ex.client.GRPC.GetBondDenom(context.Background())
 	if err != nil {
-		return []lschema.PowerEventHistory{}, err
+		return []mdschema.PowerEventHistory{}, err
 	}
 
 	if vals == nil {
-		return []lschema.PowerEventHistory{}, nil
+		return []mdschema.PowerEventHistory{}, nil
 	}
-	genesisValsSet := make([]lschema.PowerEventHistory, 0)
+	genesisValsSet := make([]mdschema.PowerEventHistory, 0)
 	for i, val := range vals.Validators {
-		gvs := lschema.PowerEventHistory{
+		gvs := mdschema.PowerEventHistory{
 			IDValidator:          i + 1,
 			Height:               block.Block.Height,
 			Moniker:              "",
 			OperatorAddress:      "",
 			Proposer:             val.Address.String(),
 			VotingPower:          float64(val.VotingPower),
-			MsgType:              types.StakingMsgCreateValidator,
+			MsgType:              mbltypes.StakingMsgCreateValidator,
 			NewVotingPowerAmount: float64(val.VotingPower),
 			NewVotingPowerDenom:  denom,
 			TxHash:               "",

@@ -3,18 +3,18 @@ package db
 import (
 
 	//mbl
-	lconfig "github.com/cosmostation/mintscan-backend-library/config"
-	ldb "github.com/cosmostation/mintscan-backend-library/db"
+	mblconfig "github.com/cosmostation/mintscan-backend-library/config"
+	mdrawdb "github.com/cosmostation/mintscan-database/rawdb"
 )
 
 // Database implements a wrapper of golang ORM with focus on PostgreSQL.
 type RawDatabase struct {
-	*ldb.RawDatabase
+	*mdrawdb.Database
 }
 
 // Connect opens a database connections with the given database connection info from config.
-func RawDBConnect(config *lconfig.DatabaseConfig) *RawDatabase {
-	db := ldb.RawDBConnect(config)
+func RawDBConnect(dbcfg *mblconfig.DatabaseConfig) *RawDatabase {
+	db := mdrawdb.Connect(dbcfg.Host, dbcfg.Port, dbcfg.User, dbcfg.Password, dbcfg.DBName, dbcfg.Schema, dbcfg.Timeout)
 
 	return &RawDatabase{db}
 }

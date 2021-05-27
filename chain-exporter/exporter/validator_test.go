@@ -72,7 +72,6 @@ func TestParseMsgBeginRedelegate(t *testing.T) {
 }
 
 func TestValidatorRank(t *testing.T) {
-	ex := NewExporter()
 	ex.saveValidators()
 }
 

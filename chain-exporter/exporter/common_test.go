@@ -10,7 +10,7 @@ import (
 	sdktypestx "github.com/cosmos/cosmos-sdk/types"
 	legacytx "github.com/cosmos/cosmos-sdk/x/auth/legacy/legacytx"
 	"github.com/cosmostation/cosmostation-cosmos/chain-config/custom"
-	"github.com/cosmostation/mintscan-backend-library/db/schema"
+	"github.com/cosmostation/mintscan-database/schema"
 	"go.uber.org/zap"
 )
 
@@ -19,7 +19,7 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	ex = NewExporter()
+	ex = NewExporter(BASIC_MODE)
 
 	os.Exit(m.Run())
 }
@@ -45,9 +45,10 @@ func commonTxParser(txHash string) (*sdkTypes.TxResponse, sdktypestx.Tx, error) 
 
 func TestReproducePowerEventHistory(t *testing.T) {
 	// Query latest block height saved in database
-	dbHeight, err := ex.db.QueryLatestBlockHeight()
+	dbHeight, err := ex.db.QueryLatestBlockHeight(ChainIDMap[ChainID])
 	if dbHeight == -1 {
 		fmt.Errorf("unexpected error in database: %s", err)
+		return
 	}
 
 	zap.S().Infof("dst db %d \n", dbHeight)
@@ -76,8 +77,8 @@ func TestReproducePowerEventHistory(t *testing.T) {
 				txs[i] = tx
 			}
 
-			exportData := new(schema.ExportData)
-			exportData.ResultValidatorsPowerEventHistory, err = ex.getPowerEventHistoryNew(txs)
+			exportData := new(schema.BasicData)
+			exportData.ValidatorsPowerEventHistory, err = ex.getPowerEventHistoryNew(txs)
 			if err != nil {
 				return
 			}

@@ -10,8 +10,7 @@ import (
 
 	//internal
 	"github.com/cosmostation/cosmostation-cosmos/chain-config/custom"
-	//mbl
-	"github.com/cosmostation/mintscan-backend-library/db/schema"
+	mdschema "github.com/cosmostation/mintscan-database/schema"
 
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	authvestingtypes "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
@@ -25,7 +24,7 @@ import (
 )
 
 func TestGetGenesisStateFromGenesisFile(t *testing.T) {
-	var accounts []schema.AccountCoin
+	var accounts []mdschema.AccountCoin
 	// genesisFile := os.Getenv("PWD") + "/genesis.json"
 	baseConfig := tmconfig.DefaultBaseConfig()
 	genesisFile := filepath.Join(gaia.DefaultNodeHome, baseConfig.Genesis)
@@ -64,7 +63,7 @@ func TestGetGenesisStateFromGenesisFile(t *testing.T) {
 
 	authAccs := authGenesisState.GetAccounts()
 	NumberOfTotalAccounts := len(authAccs)
-	accountMapper := make(map[string]*schema.AccountCoin, NumberOfTotalAccounts)
+	accountMapper := make(map[string]*mdschema.AccountCoin, NumberOfTotalAccounts)
 	for _, authAcc := range authAccs {
 		var ga authtypes.GenesisAccount
 		custom.AppCodec.UnpackAny(authAcc, &ga)
@@ -88,9 +87,9 @@ func TestGetGenesisStateFromGenesisFile(t *testing.T) {
 		// log.Println(authAcc.GetTypeUrl())
 		// log.Println(ga.GetAddress().String())
 		// log.Println(ga.GetAccountNumber())
-		sAcc := schema.AccountCoin{
+		sAcc := mdschema.AccountCoin{
 			// ChainID:        genDoc.ChainID,
-			AccountAddress: ga.GetAddress().String(),
+			Address: ga.GetAddress().String(),
 			// AccountNumber:  ga.GetAccountNumber(), //account number is set by specified order in genesis file
 			// AccountType:    authAcc.GetTypeUrl(),  //type 변경
 			Total:        "0",
@@ -127,9 +126,9 @@ func TestGetGenesisStateFromGenesisFile(t *testing.T) {
 }
 
 func TestExporterNil(t *testing.T) {
-	s := new(schema.ExportData)
+	s := new(mdschema.BasicData)
 	log.Println(s)
-	log.Println(s.ResultAccounts)
-	log.Println(len(s.ResultTxs))
-	log.Println(s.ResultTxs)
+	log.Println(s.Accounts)
+	log.Println(len(s.Transactions))
+	log.Println(s.Transactions)
 }

@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/cosmostation/cosmostation-cosmos/chain-config/custom"
-	"github.com/cosmostation/mintscan-backend-library/db/schema"
 	"github.com/cosmostation/mintscan-backend-library/types"
+	"github.com/cosmostation/mintscan-database/schema"
 
 	//cosmos-sdk
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"

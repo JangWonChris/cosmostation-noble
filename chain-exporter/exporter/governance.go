@@ -4,7 +4,7 @@ import (
 	"strconv"
 
 	//mbl
-	"github.com/cosmostation/mintscan-backend-library/db/schema"
+	"github.com/cosmostation/mintscan-database/schema"
 
 	//cosmos-sdk
 	sdkTypes "github.com/cosmos/cosmos-sdk/types"

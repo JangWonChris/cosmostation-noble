@@ -5,10 +5,10 @@ import (
 	"testing"
 
 	//mbl
-	"github.com/cosmostation/mintscan-backend-library/config"
-	"github.com/cosmostation/mintscan-backend-library/db/schema"
+	mblconfig "github.com/cosmostation/mintscan-backend-library/config"
+	mdschema "github.com/cosmostation/mintscan-database/schema"
 
-	"github.com/go-pg/pg"
+	pg "github.com/go-pg/pg/v10"
 
 	"github.com/stretchr/testify/require"
 )
@@ -19,7 +19,7 @@ func TestMain(m *testing.M) {
 	// types.SetAppConfig()
 
 	fileBaseName := "chain-exporter"
-	cfg := config.ParseConfig(fileBaseName)
+	cfg := mblconfig.ParseConfig(fileBaseName)
 	db = Connect(&cfg.DB)
 
 	os.Exit(m.Run())
@@ -31,23 +31,11 @@ func TestInsertOrUpdate(t *testing.T) {
 
 }
 
-func TestExistAccount(t *testing.T) {
-	err := db.Ping()
-	require.NoError(t, err)
-
-	address := "kava140g8fnnl46mlvfhygj3zvjqlku6x0fwuhfj3uf"
-
-	exist, err := db.ExistAccount(address)
-	require.NoError(t, err)
-
-	require.Equal(t, true, exist)
-}
-
 func TestUpdate_Validator(t *testing.T) {
 	err := db.Ping()
 	require.NoError(t, err)
 
-	val := &schema.Validator{
+	val := &mdschema.Validator{
 		Address: "kava1ulzzxuvghlv04sglkzyxv94rvl7c2llhs098ju",
 		Rank:    5,
 	}
@@ -62,28 +50,6 @@ func TestUpdate_Validator(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Equal(t, 1, result.RowsAffected())
-}
-
-func TestQuery_LatestBlockHeight(t *testing.T) {
-	err := db.Ping()
-	require.NoError(t, err)
-
-	height, err := db.QueryLatestBlockHeight()
-	require.NoError(t, err)
-
-	require.NotNil(t, height)
-}
-
-func TestQuery_Account(t *testing.T) {
-	err := db.Ping()
-	require.NoError(t, err)
-
-	acct := &schema.AccountCoin{AccountAddress: "kava1m36xddywe0yneykv34az8smzhtxy3nyc6v9jdj"}
-
-	account, err := db.QueryAccount(acct.AccountAddress)
-	require.NoError(t, err)
-
-	require.NotNil(t, account)
 }
 
 func TestConnection(t *testing.T) {

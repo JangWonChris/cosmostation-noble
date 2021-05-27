@@ -6,13 +6,10 @@ require (
 	github.com/cosmos/cosmos-sdk v0.42.4
 	github.com/cosmos/gaia/v4 v4.2.1
 	github.com/cosmostation/cosmostation-cosmos/chain-config v0.0.0-00010101000000-000000000000
-	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210218131702-e452de330fd3
-	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210221065353-c439d341db6d
-	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210222091607-09fabc04bacb
-	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210222152052-0c136faaa870
-	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210222154014-46a969835c57
-	github.com/cosmostation/mintscan-backend-library v0.0.0-20210324082716-ab8cf6f38a06
-	github.com/go-pg/pg v8.0.7+incompatible
+	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210324082716-ab8cf6f38a06
+	github.com/cosmostation/mintscan-backend-library v0.0.0-20210526121338-c1509b0cbf0d
+	github.com/cosmostation/mintscan-database v0.0.0-20210527092150-67ed7a572f0d
+	github.com/go-pg/pg/v10 v10.9.1
 	github.com/go-resty/resty/v2 v2.4.0
 	github.com/stretchr/testify v1.7.0
 	github.com/tendermint/tendermint v0.34.9

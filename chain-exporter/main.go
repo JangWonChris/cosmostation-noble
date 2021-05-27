@@ -43,7 +43,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	ex := exporter.NewExporter()
+	ex := exporter.NewExporter(op)
+	ex.PreProcess(*initialHeight)
 
 	if op == exporter.GENESIS_MODE {
 		if err := ex.GetGenesisStateFromGenesisFile(*genesisFilePath); err != nil {
@@ -61,5 +62,5 @@ func main() {
 		os.Exit(0)
 	}
 
-	ex.Start(*initialHeight, op)
+	ex.Start(op)
 }
