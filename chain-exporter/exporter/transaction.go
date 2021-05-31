@@ -40,7 +40,7 @@ func (ex *Exporter) getTxs(chainID string, list map[int64]*schema.Block, txResp 
 			Code:        txResp[i].Code,
 			Hash:        txResp[i].TxHash,
 			Chunk:       chunk,
-			Timestamp:   list[txResp[i].Height].Timestamp.String(),
+			Timestamp:   list[txResp[i].Height].Timestamp,
 		}
 
 		txs = append(txs, t)

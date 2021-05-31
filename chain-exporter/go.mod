@@ -8,7 +8,8 @@ require (
 	github.com/cosmostation/cosmostation-cosmos/chain-config v0.0.0-00010101000000-000000000000
 	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210324082716-ab8cf6f38a06
 	github.com/cosmostation/mintscan-backend-library v0.0.0-20210526121338-c1509b0cbf0d
-	github.com/cosmostation/mintscan-database v0.0.0-20210527092150-67ed7a572f0d
+	// github.com/cosmostation/mintscan-database v0.0.0-20210527160957-d532bacf97e3
+	github.com/cosmostation/mintscan-database v0.0.0-20210529175451-95b42d1b1f91
 	github.com/go-pg/pg/v10 v10.9.1
 	github.com/go-resty/resty/v2 v2.4.0
 	github.com/stretchr/testify v1.7.0
