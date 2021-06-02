@@ -4,7 +4,7 @@ import (
 	"context"
 
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmostation/mintscan-backend-library/types"
+	mbltypes "github.com/cosmostation/mintscan-backend-library/types"
 )
 
 var (
@@ -65,7 +65,7 @@ func (c *Client) GetBaseAccountTotalAsset(address string) (sdktypes.Coin, sdktyp
 		rewards = rewards.Add(sdktypes.NewCoin(denom, totalRewardsResp.Total.AmountOf(denom).TruncateInt()))
 	}
 
-	valAddr, err := types.ConvertValAddrFromAccAddr(address)
+	valAddr, err := mbltypes.ConvertValAddrFromAccAddr(address)
 	if err != nil {
 		return sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, sdktypes.Coin{}, err
 	}

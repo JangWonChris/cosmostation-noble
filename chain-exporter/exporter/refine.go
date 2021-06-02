@@ -5,7 +5,7 @@ import (
 
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmostation/cosmostation-cosmos/chain-config/custom"
-	"github.com/cosmostation/mintscan-database/schema"
+	mdschema "github.com/cosmostation/mintscan-database/schema"
 	"go.uber.org/zap"
 )
 
@@ -73,7 +73,7 @@ func (ex *Exporter) Refine(op int) error {
 	return nil
 }
 func (ex *Exporter) refineRawTransactions(chainID string, txs []*sdktypes.TxResponse) (err error) {
-	refineData := new(schema.RefineData)
+	refineData := new(mdschema.RefineData)
 
 	//cosmoshub-1에서는 txResponse에 timestamp를 가지고 있지 않기 때문에, 블록으로부터 가져온다.
 	// 시작
@@ -105,13 +105,13 @@ func (ex *Exporter) refineRawTransactions(chainID string, txs []*sdktypes.TxResp
 
 // getBlockHasTxs()는 database로부터 chainID, 시작 블록 높이, 종료 블록 높이의 범위 내에서 []블록 슬라이스를 리턴(id, height, timestamp)를 리턴한다.
 // schema.Block의 나머지 구조체는 nil 임에 주의한다.
-func (ex *Exporter) getBlocksHasTxs(chainID string, begin, end int64) (list map[int64]*schema.Block, err error) {
+func (ex *Exporter) getBlocksHasTxs(chainID string, begin, end int64) (list map[int64]*mdschema.Block, err error) {
 	blocks, err := ex.db.GetBlockHasTxs(ChainIDMap[chainID], begin, end)
 	if err != nil {
 		return list, err
 	}
 
-	list = map[int64]*schema.Block{} // 초기화
+	list = map[int64]*mdschema.Block{} // 초기화
 
 	for i := range blocks {
 		list[blocks[i].Height] = &blocks[i]
@@ -119,8 +119,8 @@ func (ex *Exporter) getBlocksHasTxs(chainID string, begin, end int64) (list map[
 	return list, nil
 }
 
-func (ex *Exporter) refineRawBlocks(block []schema.RawBlock) (err error) {
-	refineData := new(schema.RefineData)
+func (ex *Exporter) refineRawBlocks(block []mdschema.RawBlock) (err error) {
+	refineData := new(mdschema.RefineData)
 
 	refineData.Block, err = ex.getBlockFromDB(block)
 	if err != nil {

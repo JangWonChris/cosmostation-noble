@@ -9,8 +9,8 @@ import (
 
 	// mbl
 	"github.com/cosmostation/cosmostation-cosmos/chain-config/custom"
-	"github.com/cosmostation/mintscan-backend-library/types"
-	"github.com/cosmostation/mintscan-database/schema"
+	mbltypes "github.com/cosmostation/mintscan-backend-library/types"
+	mdschema "github.com/cosmostation/mintscan-database/schema"
 
 	// cosmos-sdk
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
@@ -24,7 +24,7 @@ var (
 )
 
 // getPowerEventHistory returns voting power event history of validators by decoding transactions in a block.
-func (ex *Exporter) getPowerEventHistoryNew( /*block *tmctypes.ResultBlock,*/ txResp []*sdktypes.TxResponse) ([]schema.PowerEventHistory, error) {
+func (ex *Exporter) getPowerEventHistoryNew( /*block *tmctypes.ResultBlock,*/ txResp []*sdktypes.TxResponse) ([]mdschema.PowerEventHistory, error) {
 	/*
 		구현 방향 정리 :
 		1. validator 테이블에 존재하는 데이터(검증인 정보)를 중복으로 저장 할 필요가 없다.
@@ -43,7 +43,7 @@ func (ex *Exporter) getPowerEventHistoryNew( /*block *tmctypes.ResultBlock,*/ tx
 			4-1. 노드에 특정 높이의 검증인 집합을 요청하고, 그 값을 사용한다. (이전 체인 데이터의 재생산이 어려움)
 			4-2. staking tx로부터 검증인의 보팅 파워 변화를 계산하고 그 결과를 테이블에 저장한다. (이전 체인 히스토리도 모두 지원 할 수 있음, 데이터의 정합성 검증 추가 필요)
 	*/
-	powerEventHistory := make([]schema.PowerEventHistory, 0)
+	powerEventHistory := make([]mdschema.PowerEventHistory, 0)
 
 	if len(txResp) <= 0 {
 		return powerEventHistory, nil
@@ -68,10 +68,10 @@ func (ex *Exporter) getPowerEventHistoryNew( /*block *tmctypes.ResultBlock,*/ tx
 				amount := new(big.Float).SetInt(m.Value.Amount.BigInt())
 				newVotingPowerAmount, _ := new(big.Float).Quo(amount, powerReduction).Float64()
 
-				peh := &schema.PowerEventHistory{
+				peh := &mdschema.PowerEventHistory{
 					Height:               tx.Height,
 					OperatorAddress:      m.ValidatorAddress,
-					MsgType:              types.StakingMsgCreateValidator,
+					MsgType:              mbltypes.StakingMsgCreateValidator,
 					NewVotingPowerAmount: newVotingPowerAmount,
 					NewVotingPowerDenom:  m.Value.Denom,
 					TxHash:               tx.TxHash,
@@ -88,10 +88,10 @@ func (ex *Exporter) getPowerEventHistoryNew( /*block *tmctypes.ResultBlock,*/ tx
 				amount := new(big.Float).SetInt(m.Amount.Amount.BigInt())
 				newVotingPowerAmount, _ := new(big.Float).Quo(amount, powerReduction).Float64()
 
-				peh := &schema.PowerEventHistory{
+				peh := &mdschema.PowerEventHistory{
 					Height:               tx.Height,
 					OperatorAddress:      m.ValidatorAddress,
-					MsgType:              types.StakingMsgDelegate,
+					MsgType:              mbltypes.StakingMsgDelegate,
 					NewVotingPowerAmount: newVotingPowerAmount,
 					NewVotingPowerDenom:  m.Amount.Denom,
 					TxHash:               tx.TxHash,
@@ -108,10 +108,10 @@ func (ex *Exporter) getPowerEventHistoryNew( /*block *tmctypes.ResultBlock,*/ tx
 				amount := new(big.Float).SetInt(m.Amount.Amount.BigInt())
 				newVotingPowerAmount, _ := new(big.Float).Quo(amount, powerReduction).Float64()
 
-				peh := &schema.PowerEventHistory{
+				peh := &mdschema.PowerEventHistory{
 					Height:               tx.Height,
 					OperatorAddress:      m.ValidatorAddress,
-					MsgType:              types.StakingMsgUndelegate,
+					MsgType:              mbltypes.StakingMsgUndelegate,
 					NewVotingPowerAmount: -newVotingPowerAmount,
 					NewVotingPowerDenom:  m.Amount.Denom,
 					TxHash:               tx.TxHash,
@@ -129,10 +129,10 @@ func (ex *Exporter) getPowerEventHistoryNew( /*block *tmctypes.ResultBlock,*/ tx
 				newVotingPowerAmount, _ := new(big.Float).Quo(amount, powerReduction).Float64()
 
 				// destination (add power)
-				dpeh := &schema.PowerEventHistory{
+				dpeh := &mdschema.PowerEventHistory{
 					Height:               tx.Height,
 					OperatorAddress:      m.ValidatorDstAddress,
-					MsgType:              types.StakingMsgBeginRedelegate,
+					MsgType:              mbltypes.StakingMsgBeginRedelegate,
 					NewVotingPowerAmount: newVotingPowerAmount,
 					NewVotingPowerDenom:  m.Amount.Denom,
 					TxHash:               tx.TxHash,
@@ -143,10 +143,10 @@ func (ex *Exporter) getPowerEventHistoryNew( /*block *tmctypes.ResultBlock,*/ tx
 				powerEventHistory = append(powerEventHistory, *dpeh)
 
 				//source (subtract power)
-				speh := &schema.PowerEventHistory{
+				speh := &mdschema.PowerEventHistory{
 					Height:               tx.Height,
 					OperatorAddress:      m.ValidatorSrcAddress,
-					MsgType:              types.StakingMsgBeginRedelegate,
+					MsgType:              mbltypes.StakingMsgBeginRedelegate,
 					NewVotingPowerAmount: -newVotingPowerAmount,
 					NewVotingPowerDenom:  m.Amount.Denom,
 					TxHash:               tx.TxHash,
@@ -168,11 +168,11 @@ func (ex *Exporter) getPowerEventHistoryNew( /*block *tmctypes.ResultBlock,*/ tx
 // getValidatorsUptime has three slices
 // missDetail gets every block
 func (ex *Exporter) getValidatorsUptime(prevBlock *tmctypes.ResultBlock,
-	block *tmctypes.ResultBlock, vals *tmctypes.ResultValidators) ([]schema.Miss, []schema.Miss, []schema.MissDetail, error) {
+	block *tmctypes.ResultBlock, vals *tmctypes.ResultValidators) ([]mdschema.Miss, []mdschema.Miss, []mdschema.MissDetail, error) {
 
-	miss := make([]schema.Miss, 0)
-	accumMiss := make([]schema.Miss, 0)
-	missDetail := make([]schema.MissDetail, 0)
+	miss := make([]mdschema.Miss, 0)
+	accumMiss := make([]mdschema.Miss, 0)
+	missDetail := make([]mdschema.MissDetail, 0)
 
 	// MissDetailInfo saves every missing block of validators
 	// while MissInfo saves ranges of missing blocks of validators.
@@ -184,7 +184,7 @@ func (ex *Exporter) getValidatorsUptime(prevBlock *tmctypes.ResultBlock,
 
 		// Note that it used to be block.Block.LastCommit.Precommits[i] == nil
 		if block.Block.LastCommit.Signatures[i].Signature == nil {
-			m := schema.MissDetail{
+			m := mdschema.MissDetail{
 				Address:   val.Address.String(),
 				Height:    prevBlock.Block.Header.Height,
 				Proposer:  prevBlock.Block.Header.ProposerAddress.String(),
@@ -203,7 +203,7 @@ func (ex *Exporter) getValidatorsUptime(prevBlock *tmctypes.ResultBlock,
 
 			// Validator hasn't missed previous block.
 			if prevMiss.Address == "" {
-				m := schema.Miss{
+				m := mdschema.Miss{
 					Address:      val.Address.String(),
 					StartHeight:  startHeight,
 					EndHeight:    endHeight,
@@ -217,7 +217,7 @@ func (ex *Exporter) getValidatorsUptime(prevBlock *tmctypes.ResultBlock,
 
 			// Validator has missed previous block.
 			if prevMiss.Address != "" {
-				m := schema.Miss{
+				m := mdschema.Miss{
 					Address:      prevMiss.Address,
 					StartHeight:  prevMiss.StartHeight,
 					EndHeight:    prevMiss.EndHeight + int64(1),
@@ -236,12 +236,12 @@ func (ex *Exporter) getValidatorsUptime(prevBlock *tmctypes.ResultBlock,
 
 // getEvidence provides evidence of malicious wrong-doing by validators.
 // There is only DuplicateVoteEvidence. There is no downtime evidence.
-func (ex *Exporter) getEvidence(block *tmctypes.ResultBlock) ([]schema.Evidence, error) {
-	evidence := make([]schema.Evidence, 0)
+func (ex *Exporter) getEvidence(block *tmctypes.ResultBlock) ([]mdschema.Evidence, error) {
+	evidence := make([]mdschema.Evidence, 0)
 
 	if block.Block.Evidence.Evidence != nil {
 		for _, ev := range block.Block.Evidence.Evidence {
-			e := schema.Evidence{
+			e := mdschema.Evidence{
 				// jeonghwan : ev.Address() are removed
 				// Proposer:  strings.ToUpper(string(hex.EncodeToString(ev.Address()))),
 				Proposer:  "",
@@ -282,7 +282,7 @@ func (ex *Exporter) saveValidators() {
 
 	// Handle unbonding validators sorted by highest tokens and insert or update them.
 	if len(unbondingVals) > 0 {
-		highestBondedRank := ex.db.QueryHighestRankValidatorByStatus(types.BondedValidatorStatus)
+		highestBondedRank := ex.db.QueryHighestRankValidatorByStatus(mbltypes.BondedValidatorStatus)
 
 		for i := range unbondingVals {
 			unbondingVals[i].Rank = (highestBondedRank + 1 + i)
@@ -303,10 +303,10 @@ func (ex *Exporter) saveValidators() {
 
 	// Handle unbonded validators sorted by highest tokens and insert or update them.
 	if len(unbondedVals) > 0 {
-		unbondingHighestRank := ex.db.QueryHighestRankValidatorByStatus(types.UnbondingValidatorStatus)
+		unbondingHighestRank := ex.db.QueryHighestRankValidatorByStatus(mbltypes.UnbondingValidatorStatus)
 
 		if unbondingHighestRank == 0 {
-			unbondingHighestRank = ex.db.QueryHighestRankValidatorByStatus(types.BondedValidatorStatus)
+			unbondingHighestRank = ex.db.QueryHighestRankValidatorByStatus(mbltypes.BondedValidatorStatus)
 		}
 
 		for i := range unbondedVals {

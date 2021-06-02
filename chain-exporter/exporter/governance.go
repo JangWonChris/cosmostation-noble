@@ -3,8 +3,7 @@ package exporter
 import (
 	"strconv"
 
-	//mbl
-	"github.com/cosmostation/mintscan-database/schema"
+	mdschema "github.com/cosmostation/mintscan-database/schema"
 
 	//cosmos-sdk
 	sdkTypes "github.com/cosmos/cosmos-sdk/types"
@@ -16,10 +15,10 @@ import (
 )
 
 // getGovernance returns governance by decoding governance related transactions in a block.
-func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txResp []*sdkTypes.TxResponse) ([]schema.Proposal, []schema.Deposit, []schema.Vote, error) {
-	proposals := make([]schema.Proposal, 0)
-	deposits := make([]schema.Deposit, 0)
-	votes := make([]schema.Vote, 0)
+func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txResp []*sdkTypes.TxResponse) ([]mdschema.Proposal, []mdschema.Deposit, []mdschema.Vote, error) {
+	proposals := make([]mdschema.Proposal, 0)
+	deposits := make([]mdschema.Deposit, 0)
+	votes := make([]mdschema.Vote, 0)
 
 	if len(txResp) <= 0 {
 		return proposals, deposits, votes, nil
@@ -67,7 +66,7 @@ func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txResp []*sdkType
 					initialDepositDenom = m.InitialDeposit[0].Denom
 				}
 
-				p := schema.Proposal{
+				p := mdschema.Proposal{
 					ID:                   proposalID,
 					TxHash:               tx.TxHash,
 					Proposer:             m.Proposer,
@@ -77,7 +76,7 @@ func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txResp []*sdkType
 
 				proposals = append(proposals, p)
 
-				d := schema.Deposit{
+				d := mdschema.Deposit{
 					Height:     tx.Height,
 					ProposalID: proposalID,
 					Depositor:  m.Proposer,
@@ -102,7 +101,7 @@ func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txResp []*sdkType
 					denom = m.Amount[0].Denom
 				}
 
-				d := schema.Deposit{
+				d := mdschema.Deposit{
 					Height:     tx.Height,
 					ProposalID: m.ProposalId,
 					Depositor:  m.Depositor,
@@ -119,7 +118,7 @@ func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txResp []*sdkType
 			case *govtypes.MsgVote:
 				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
 
-				v := schema.Vote{
+				v := mdschema.Vote{
 					Height:     tx.Height,
 					ProposalID: m.ProposalId,
 					Voter:      m.Voter,

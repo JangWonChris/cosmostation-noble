@@ -6,7 +6,6 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/notification"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 
-	// "github.com/cosmostation/mintscan-backend-library/types"
 	"go.uber.org/zap"
 
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"

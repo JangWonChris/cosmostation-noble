@@ -10,7 +10,6 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys/ed25519"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
-	"github.com/cosmos/cosmos-sdk/types"
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
 	grpctypes "github.com/cosmos/cosmos-sdk/types/grpc"
@@ -19,7 +18,7 @@ import (
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/cosmostation/cosmostation-cosmos/chain-config/custom"
-	"github.com/cosmostation/mintscan-backend-library/config"
+	mblconfig "github.com/cosmostation/mintscan-backend-library/config"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
@@ -28,7 +27,7 @@ var cli *Client
 
 func TestMain(m *testing.M) {
 	fileBaseName := "chain-exporter"
-	cfg := config.ParseConfig(fileBaseName)
+	cfg := mblconfig.ParseConfig(fileBaseName)
 
 	cli = NewClient(&cfg.Client)
 
@@ -219,7 +218,7 @@ func TestValidatorByStatus(t *testing.T) {
 	valconspub_incorrect2, err := bech32.ConvertAndEncode(sdktypes.Bech32PrefixConsPub, pubkey.Bytes())
 	t.Log("valconpub2", valconspub_incorrect2) //cosmosvalconspub1hv5hmywmedf2j8jpdm2xl9ssyyq0nqf7ak24nex9law4dqtx8drqq729uc
 
-	consAddress := types.ConsAddress(pubkey.Address())
+	consAddress := sdktypes.ConsAddress(pubkey.Address())
 	t.Log("consAddress:", consAddress)
 	t.Log("consAddress(string):", consAddress.String()) //types.ConsAddress(pubkey.Bytes()))
 

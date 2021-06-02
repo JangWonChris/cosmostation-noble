@@ -6,7 +6,7 @@ import (
 	"log"
 
 	"github.com/cosmostation/cosmostation-cosmos/chain-config/custom"
-	"github.com/cosmostation/mintscan-database/schema"
+	mdschema "github.com/cosmostation/mintscan-database/schema"
 
 	// cosmos-sdk
 	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
@@ -22,15 +22,15 @@ func (c *Client) GetGovQueryClient() govtypes.QueryClient {
 }
 
 // GetProposals은 MBL GetProposals()를 wrap한 함수
-func (c *Client) GetProposals() (result []schema.Proposal, err error) {
+func (c *Client) GetProposals() (result []mdschema.Proposal, err error) {
 	queryClient := c.GetGovQueryClient()
 	resp, err := queryClient.Proposals(context.Background(), &govtypes.QueryProposalsRequest{})
 	if err != nil {
-		return []schema.Proposal{}, fmt.Errorf("failed to request gov proposals: %s", err)
+		return []mdschema.Proposal{}, fmt.Errorf("failed to request gov proposals: %s", err)
 	}
 
 	if len(resp.Proposals) <= 0 {
-		return []schema.Proposal{}, nil
+		return []mdschema.Proposal{}, nil
 	}
 
 	for _, proposal := range resp.Proposals {
@@ -75,11 +75,11 @@ func (c *Client) GetProposals() (result []schema.Proposal, err error) {
 		request := govtypes.QueryTallyResultRequest{ProposalId: proposal.ProposalId}
 		tallyResultResp, err := queryClient.TallyResult(context.Background(), &request)
 		if err != nil {
-			return []schema.Proposal{}, fmt.Errorf("failed to request gov proposals: %s", err)
+			return []mdschema.Proposal{}, fmt.Errorf("failed to request gov proposals: %s", err)
 		}
 		tally := tallyResultResp.Tally
 
-		p := schema.Proposal{
+		p := mdschema.Proposal{
 			ID:           proposal.ProposalId,
 			Title:        proposal.GetTitle(),
 			Description:  contentI.GetDescription(),

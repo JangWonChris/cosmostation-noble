@@ -10,7 +10,7 @@ import (
 	sdktypestx "github.com/cosmos/cosmos-sdk/types"
 	legacytx "github.com/cosmos/cosmos-sdk/x/auth/legacy/legacytx"
 	"github.com/cosmostation/cosmostation-cosmos/chain-config/custom"
-	"github.com/cosmostation/mintscan-database/schema"
+	mdschema "github.com/cosmostation/mintscan-database/schema"
 	"go.uber.org/zap"
 )
 
@@ -77,7 +77,7 @@ func TestReproducePowerEventHistory(t *testing.T) {
 				txs[i] = tx
 			}
 
-			exportData := new(schema.BasicData)
+			exportData := new(mdschema.BasicData)
 			exportData.ValidatorsPowerEventHistory, err = ex.getPowerEventHistoryNew(txs)
 			if err != nil {
 				return

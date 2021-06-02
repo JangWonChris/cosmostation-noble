@@ -14,9 +14,8 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/db"
 
 	// mbl
-	"github.com/cosmostation/mintscan-backend-library/config"
-	"github.com/cosmostation/mintscan-backend-library/types"
-	"github.com/cosmostation/mintscan-database/schema"
+	mblconfig "github.com/cosmostation/mintscan-backend-library/config"
+	mbltypes "github.com/cosmostation/mintscan-backend-library/types"
 	mdschema "github.com/cosmostation/mintscan-database/schema"
 
 	// sdk
@@ -41,7 +40,7 @@ var (
 
 // Exporter is
 type Exporter struct {
-	config *config.Config
+	config *mblconfig.Config
 	client *client.Client
 	db     *db.Database
 	rawdb  *db.RawDatabase
@@ -54,7 +53,7 @@ func NewExporter(op int) *Exporter {
 	defer l.Sync()
 
 	fileBaseName := "chain-exporter"
-	config := config.ParseConfig(fileBaseName)
+	config := mblconfig.ParseConfig(fileBaseName)
 
 	client := client.NewClient(&config.Client)
 
@@ -234,7 +233,7 @@ func (ex *Exporter) ReproducePowerEventHistory(op int) error {
 				txs[i] = tx
 			}
 
-			exportData := new(schema.BasicData)
+			exportData := new(mdschema.BasicData)
 			exportData.ValidatorsPowerEventHistory, err = ex.getPowerEventHistoryNew(txs)
 			if err != nil {
 				return err
@@ -345,7 +344,7 @@ func (ex *Exporter) sync(op int) error {
 }
 
 func (ex *Exporter) rawProcess(block *tmctypes.ResultBlock, txs []*sdktypes.TxResponse) (err error) {
-	exportRawData := new(schema.RawData)
+	exportRawData := new(mdschema.RawData)
 
 	exportRawData.Block, err = ex.getRawBlock(block)
 	if err != nil {
@@ -361,7 +360,7 @@ func (ex *Exporter) rawProcess(block *tmctypes.ResultBlock, txs []*sdktypes.TxRe
 // process ingests chain data, such as block, transaction, validator, evidence information and
 // save them in database.
 func (ex *Exporter) process(block *tmctypes.ResultBlock, txs []*sdktypes.TxResponse, op int) (err error) {
-	basic := new(schema.BasicData)
+	basic := new(mdschema.BasicData)
 
 	basic.Block, err = ex.getBlock(block)
 	if err != nil {
@@ -379,7 +378,7 @@ func (ex *Exporter) process(block *tmctypes.ResultBlock, txs []*sdktypes.TxRespo
 			return fmt.Errorf("failed to query previous block: %s", err)
 		}
 
-		vals, err := ex.client.RPC.GetValidatorsInHeight(block.Block.LastCommit.Height, types.DefaultQueryValidatorsPage, types.DefaultQueryValidatorsPerPage)
+		vals, err := ex.client.RPC.GetValidatorsInHeight(block.Block.LastCommit.Height, mbltypes.DefaultQueryValidatorsPage, mbltypes.DefaultQueryValidatorsPerPage)
 		if err != nil {
 			return fmt.Errorf("failed to query validators: %s", err)
 		}

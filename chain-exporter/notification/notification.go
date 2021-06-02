@@ -6,7 +6,7 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/db"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/types"
 
-	"github.com/cosmostation/mintscan-backend-library/config"
+	mblconfig "github.com/cosmostation/mintscan-backend-library/config"
 	"go.uber.org/zap"
 
 	resty "github.com/go-resty/resty/v2"
@@ -14,7 +14,7 @@ import (
 
 // Notification wraps around configuration for push notification for mobile apps.
 type Notification struct {
-	cfg    *config.Config
+	cfg    *mblconfig.Config
 	client *resty.Client
 	db     *db.Database
 }
@@ -22,7 +22,7 @@ type Notification struct {
 // NewNotification returns new notification instance.
 func NewNotification() *Notification {
 	fileBaseName := "chain-exporter"
-	config := config.ParseConfig(fileBaseName)
+	config := mblconfig.ParseConfig(fileBaseName)
 
 	client := resty.New().
 		SetHostURL(config.Alarm.PushServer).

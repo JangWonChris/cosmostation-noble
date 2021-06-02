@@ -8,8 +8,8 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/chain-config/custom"
 
 	// core
-	"github.com/cosmostation/mintscan-backend-library/types"
-	"github.com/cosmostation/mintscan-database/schema"
+	mbltypes "github.com/cosmostation/mintscan-backend-library/types"
+	mdschema "github.com/cosmostation/mintscan-database/schema"
 
 	// sdk
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
@@ -17,8 +17,8 @@ import (
 )
 
 // getTxs decodes transactions in a block and return a format of database transaction.
-func (ex *Exporter) getTxs(chainID string, list map[int64]*schema.Block, txResp []*sdktypes.TxResponse) ([]schema.Transaction, error) {
-	txs := make([]schema.Transaction, 0)
+func (ex *Exporter) getTxs(chainID string, list map[int64]*mdschema.Block, txResp []*sdktypes.TxResponse) ([]mdschema.Transaction, error) {
+	txs := make([]mdschema.Transaction, 0)
 
 	if len(txResp) <= 0 {
 		return txs, nil
@@ -33,7 +33,7 @@ func (ex *Exporter) getTxs(chainID string, list map[int64]*schema.Block, txResp 
 			return txs, fmt.Errorf("failed to marshal tx : %s", err)
 		}
 
-		t := schema.Transaction{
+		t := mdschema.Transaction{
 			ChainInfoID: ChainIDMap[chainID],
 			BlockID:     list[txResp[i].Height].ID,
 			Height:      txResp[i].Height,
@@ -50,8 +50,8 @@ func (ex *Exporter) getTxs(chainID string, list map[int64]*schema.Block, txResp 
 }
 
 // getTxsChunk decodes transactions in a block and return a format of database transaction.
-func (ex *Exporter) getRawTransactions(block *tmctypes.ResultBlock, txResps []*sdktypes.TxResponse) ([]schema.RawTransaction, error) {
-	txChunk := make([]schema.RawTransaction, len(txResps), len(txResps))
+func (ex *Exporter) getRawTransactions(block *tmctypes.ResultBlock, txResps []*sdktypes.TxResponse) ([]mdschema.RawTransaction, error) {
+	txChunk := make([]mdschema.RawTransaction, len(txResps), len(txResps))
 	if len(txResps) <= 0 {
 		return txChunk, nil
 	}
@@ -73,7 +73,7 @@ func (ex *Exporter) getRawTransactions(block *tmctypes.ResultBlock, txResps []*s
 	return txChunk, nil
 }
 
-func (ex *Exporter) disassembleTransaction(txResps []*sdktypes.TxResponse) (uniqTransactionMessageAccounts []schema.TMA) {
+func (ex *Exporter) disassembleTransaction(txResps []*sdktypes.TxResponse) (uniqTransactionMessageAccounts []mdschema.TMA) {
 
 	// 별도의 스키마 필요
 	// id, account, hash, timestamp(불필요, 조인하면 되기 때문)
@@ -91,7 +91,7 @@ func (ex *Exporter) disassembleTransaction(txResps []*sdktypes.TxResponse) (uniq
 
 		for _, msg := range msgs {
 
-			msgType, accounts := types.AccountExporterFromCosmosTxMsg(&msg)
+			msgType, accounts := mbltypes.AccountExporterFromCosmosTxMsg(&msg)
 			// 어떤 msg 타입에 대해서도 signer를 이용해 accounts를 확보하면, 모든 메세지를 파싱할 수 있다.
 			signers := getSignerAddress(msg.GetSigners())
 			accounts = append(accounts, signers...)
@@ -119,11 +119,11 @@ func (ex *Exporter) disassembleTransaction(txResps []*sdktypes.TxResponse) (uniq
 }
 
 // msg - account 매핑 unique
-func parseTransactionMessageAccount(txHash string, msgAccount map[string]map[string]struct{}) []schema.TMA {
-	tma := make([]schema.TMA, 0)
+func parseTransactionMessageAccount(txHash string, msgAccount map[string]map[string]struct{}) []mdschema.TMA {
+	tma := make([]mdschema.TMA, 0)
 	for msg := range msgAccount {
 		for acc := range msgAccount[msg] {
-			ta := schema.TMA{
+			ta := mdschema.TMA{
 				TxHash:         txHash,
 				MsgType:        msg,
 				AccountAddress: acc,

@@ -2,7 +2,7 @@ package exporter
 
 import (
 	"github.com/cosmostation/cosmostation-cosmos/chain-config/custom"
-	"github.com/cosmostation/mintscan-database/schema"
+	mdschema "github.com/cosmostation/mintscan-database/schema"
 	"go.uber.org/zap"
 )
 
@@ -13,7 +13,7 @@ func (ex *Exporter) SaveStatsMarket5M() {
 		return
 	}
 
-	market := &schema.StatsMarket5M{
+	market := &mdschema.StatsMarket5M{
 		Price:             data.MarketData.CurrentPrice.Usd,
 		Currency:          custom.Currency,
 		MarketCapRank:     data.MarketCapRank,
