@@ -7,7 +7,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
 
-	ltypes "github.com/cosmostation/mintscan-backend-library/types"
+	mbltypes "github.com/cosmostation/mintscan-backend-library/types"
 
 	"github.com/stretchr/testify/require"
 )
@@ -51,7 +51,7 @@ func TestPrivValidatorKey(t *testing.T) {
 	valconpub := "cosmosvalconspub1zcjduepq5mhsvc5685267fg2ee5uv30srjjxzetp8msfs3h983vz724496lqtaz884"
 	_, _ = valcon, valconpub
 
-	consAddrStr, err := ltypes.ConvertConsAddrFromConsPubkey(valconpub)
+	consAddrStr, err := mbltypes.ConvertConsAddrFromConsPubkey(valconpub)
 	require.NoError(t, err)
 
 	consAddr, err := sdk.ConsAddressFromHex(consAddrStr)
