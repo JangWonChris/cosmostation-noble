@@ -3,6 +3,7 @@ package common
 import (
 	"testing"
 
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/handler"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
 	"go.uber.org/zap"
 )
@@ -15,7 +16,7 @@ func TestGetBlocksByProposerNew(t *testing.T) {
 	// rb := make([]model.ResultBlock, 0)
 	var rb []model.ResultBlock
 
-	res, err := idb.Query(&rb, "select b.id, b.height, b.proposer, v.operator_address, v.moniker, b.block_hash, identity, num_txs, count(*) OVER() AS total_num_proposer_blocks, b.timestamp"+
+	res, err := tdb.Query(&rb, "select b.id, b.height, b.proposer, v.operator_address, v.moniker, b.block_hash, identity, num_txs, count(*) OVER() AS total_num_proposer_blocks, b.timestamp"+
 		" from block as b, "+
 		" (select proposer, operator_address, Identity, moniker from validator where operator_address = ? limit 1) as v"+
 		" where v.proposer = b.proposer order by height desc limit ?", valAddr, limit)
@@ -31,7 +32,7 @@ func TestGetBlocksByProposerNew(t *testing.T) {
 	for _, b := range rb {
 		var txData model.TxData
 		if b.NumTxs > 0 {
-			txs, err := idb.QueryTransactionsInBlockHeight(b.Height)
+			txs, err := tdb.QueryTransactionsInBlockHeight(handler.ChainIDMap[handler.ChainID], b.Height)
 			if err != nil {
 				zap.L().Error("failed to query transactions in a block", zap.Error(err))
 				return
@@ -39,7 +40,7 @@ func TestGetBlocksByProposerNew(t *testing.T) {
 
 			if len(txs) > 0 {
 				for _, tx := range txs {
-					txData.Txs = append(txData.Txs, tx.TxHash)
+					txData.Txs = append(txData.Txs, tx.Hash)
 				}
 			}
 		}

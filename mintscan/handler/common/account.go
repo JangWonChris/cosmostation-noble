@@ -15,11 +15,9 @@ import (
 
 	//internal
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/errors"
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/handler"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
 
 	//mbl
-	// "github.com/cosmostation/mintscan-backend-library/db"
 	ltypes "github.com/cosmostation/mintscan-backend-library/types"
 
 	"go.uber.org/zap"
@@ -121,14 +119,12 @@ func GetBalance(rw http.ResponseWriter, r *http.Request) {
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
 		return
 	}
-	denom := handler.BondDenom
-	if denom == "" {
-		denom, err = s.Client.GRPC.GetBondDenom(r.Context())
-		if err != nil {
-			zap.L().Debug("failed to get account balance", zap.Error(err))
-			errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
-			return
-		}
+
+	denom, err := s.Client.GRPC.GetBondDenom(r.Context())
+	if err != nil {
+		zap.L().Debug("failed to get account balance", zap.Error(err))
+		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
+		return
 	}
 
 	res, err := s.Client.GRPC.GetBalance(r.Context(), denom, accAddr)
@@ -289,12 +285,9 @@ func GetDelegatorDelegationsLegacy(rw http.ResponseWriter, r *http.Request) {
 
 		resultRewards := make(sdktypes.DecCoins, 0)
 
-		denom := handler.BondDenom
-		if denom == "" {
-			denom, err = s.Client.GRPC.GetBondDenom(r.Context())
-			if err != nil {
-				return
-			}
+		denom, err := s.Client.GRPC.GetBondDenom(r.Context())
+		if err != nil {
+			return
 		}
 
 		// Exception: reward is null when the fee of delegator's validator is 100%
@@ -374,12 +367,9 @@ func GetDelegatorDelegations(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	denom := handler.BondDenom
-	if denom == "" {
-		denom, err = s.Client.GRPC.GetBondDenom(r.Context())
-		if err != nil {
-			return
-		}
+	denom, err := s.Client.GRPC.GetBondDenom(r.Context())
+	if err != nil {
+		return
 	}
 
 	resultDelegations := make([]model.ResultDelegations, 0)
@@ -442,7 +432,7 @@ func GetDelegatorUnbondingDelegations(rw http.ResponseWriter, r *http.Request) {
 
 	result := make([]*model.UnbondingDelegations, 0)
 	for _, u := range res.UnbondingResponses {
-		val, err := s.DB.QueryValidatorByValAddr(u.ValidatorAddress)
+		val, err := s.DB.QueryValidatorByAnyAddr(u.ValidatorAddress)
 		if err != nil {
 			zap.L().Debug("failed to query validator information", zap.Error(err))
 		}
@@ -502,13 +492,10 @@ func GetTotalBalance(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	denom := handler.BondDenom
-	if denom == "" {
-		denom, err = s.Client.GRPC.GetBondDenom(r.Context())
-		if err != nil {
-			zap.S().Errorf("failed to get staking denom: %s", err)
-			return
-		}
+	denom, err := s.Client.GRPC.GetBondDenom(r.Context())
+	if err != nil {
+		zap.S().Errorf("failed to get staking denom: %s", err)
+		return
 	}
 
 	// Initialize all variables
@@ -674,13 +661,10 @@ func GetTotalAllBalances(rw http.ResponseWriter, r *http.Request) {
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
 		return
 	}
-	denom := handler.BondDenom
-	if denom == "" {
-		denom, err = s.Client.GRPC.GetBondDenom(r.Context())
-		if err != nil {
-			zap.S().Errorf("failed to get staking denom: %s", err)
-			return
-		}
+	denom, err := s.Client.GRPC.GetBondDenom(r.Context())
+	if err != nil {
+		zap.S().Errorf("failed to get staking denom: %s", err)
+		return
 	}
 
 	// Initialize all variables

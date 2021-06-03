@@ -39,7 +39,7 @@ func RegisterHandlers(session *handler.Session, r *mux.Router) {
 	// r.HandleFunc("/staking/redelegations", GetRedelegations).Methods("GET")
 	r.HandleFunc("/status", GetStatus).Methods("GET")
 	r.HandleFunc("/stats/market", GetMarketStats).Methods("GET")
-	r.HandleFunc("/stats/network", GetNetworkStats).Methods("GET")
+	// r.HandleFunc("/stats/network", GetNetworkStats).Methods("GET") // 제거 2021.06.02
 
 	// 부연님 커미션 조회할때 사용하는 api
 	r.HandleFunc("/account/validator/commission/{accAddr}", GetValidatorCommission).Methods("GET") // (포함) /account/balances/{accAddr}

@@ -42,61 +42,61 @@ func GetMarketStats(rw http.ResponseWriter, r *http.Request) {
 }
 
 // GetNetworkStats returns network statistics
-func GetNetworkStats(rw http.ResponseWriter, r *http.Request) {
-	// Count network statistics to see if enough data is available to query.
-	networkStatsNum, err := s.DB.CountNetworkStats1H()
-	if err != nil {
-		zap.S().Errorf("failed to count network stats: %s", err)
-		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
-		return
-	}
+// func GetNetworkStats(rw http.ResponseWriter, r *http.Request) {
+// 	// Count network statistics to see if enough data is available to query.
+// 	networkStatsNum, err := s.DB.CountNetworkStats1H()
+// 	if err != nil {
+// 		zap.S().Errorf("failed to count network stats: %s", err)
+// 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
+// 		return
+// 	}
 
-	if networkStatsNum < requiredLimit {
-		zap.S().Debug("network stats num is less than required limit")
-		errors.ErrNoDataAvailable(rw, http.StatusInternalServerError)
-		return
-	}
+// 	if networkStatsNum < requiredLimit {
+// 		zap.S().Debug("network stats num is less than required limit")
+// 		errors.ErrNoDataAvailable(rw, http.StatusInternalServerError)
+// 		return
+// 	}
 
-	network1HStats, err := s.DB.QueryNetworkStats1H(requiredLimit)
-	if err != nil {
-		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
-		return
-	}
+// 	network1HStats, err := s.DB.QueryNetworkStats1H(requiredLimit)
+// 	if err != nil {
+// 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
+// 		return
+// 	}
 
-	bondedTokensStats := make([]*model.BondedTokensStats, 0)
+// 	bondedTokensStats := make([]*model.BondedTokensStats, 0)
 
-	for _, ns := range network1HStats {
-		stats := &model.BondedTokensStats{
-			BondedTokens: ns.BondedTokens,
-			BondedRatio:  ns.BondedRatio,
-			LastUpdated:  ns.Timestamp,
-		}
+// 	for _, ns := range network1HStats {
+// 		stats := &model.BondedTokensStats{
+// 			BondedTokens: ns.BondedTokens,
+// 			BondedRatio:  ns.BondedRatio,
+// 			LastUpdated:  ns.Timestamp,
+// 		}
 
-		bondedTokensStats = append(bondedTokensStats, stats)
-	}
+// 		bondedTokensStats = append(bondedTokensStats, stats)
+// 	}
 
-	// Query two latest network stats from 1D table to calculate bonded change rate within 24 hours.
-	network1Dstats, err := s.DB.QueryNetworkStats1D(2)
-	if err != nil {
-		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
-		return
-	}
+// 	// Query two latest network stats from 1D table to calculate bonded change rate within 24 hours.
+// 	network1Dstats, err := s.DB.QueryNetworkStats1D(2)
+// 	if err != nil {
+// 		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
+// 		return
+// 	}
 
-	if len(network1Dstats) < 2 {
-		zap.S().Debug("network stats data from 1 day table needs at least two")
-		errors.ErrNoDataAvailable(rw, http.StatusInternalServerError)
-		return
-	}
+// 	if len(network1Dstats) < 2 {
+// 		zap.S().Debug("network stats data from 1 day table needs at least two")
+// 		errors.ErrNoDataAvailable(rw, http.StatusInternalServerError)
+// 		return
+// 	}
 
-	// Calculate change rate of bonded tokens in 24hours
-	// (LatestBondedTokens - SecondLatestBondedTokens) / SecondLatestBondedTokens
-	changeRateIn24H := (network1Dstats[0].BondedTokens - network1Dstats[1].BondedTokens) / network1Dstats[1].BondedTokens
+// 	// Calculate change rate of bonded tokens in 24hours
+// 	// (LatestBondedTokens - SecondLatestBondedTokens) / SecondLatestBondedTokens
+// 	changeRateIn24H := (network1Dstats[0].BondedTokens - network1Dstats[1].BondedTokens) / network1Dstats[1].BondedTokens
 
-	result := &model.NetworkInfo{
-		BondendTokensPercentChange24H: changeRateIn24H,
-		BondedTokensStats:             bondedTokensStats,
-	}
+// 	result := &model.NetworkInfo{
+// 		BondendTokensPercentChange24H: changeRateIn24H,
+// 		BondedTokensStats:             bondedTokensStats,
+// 	}
 
-	model.Respond(rw, result)
-	return
-}
+// 	model.Respond(rw, result)
+// 	return
+// }

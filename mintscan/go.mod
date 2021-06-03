@@ -11,8 +11,10 @@ require (
 	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210222091607-09fabc04bacb
 	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210222152052-0c136faaa870
 	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210222154014-46a969835c57
-	github.com/cosmostation/mintscan-backend-library v0.0.0-20210223030701-b5a5378a3309
-	github.com/go-pg/pg v8.0.7+incompatible
+	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210223030701-b5a5378a3309
+	github.com/cosmostation/mintscan-backend-library v0.0.0-20210531025314-04d5451343a2
+	github.com/cosmostation/mintscan-database v0.0.0-20210602183647-a4fedaa9750e
+	github.com/go-pg/pg/v10 v10.9.1
 	github.com/go-resty/resty/v2 v2.4.0
 	github.com/gorilla/mux v1.8.0
 	github.com/stretchr/testify v1.7.0
@@ -21,10 +23,11 @@ require (
 	google.golang.org/grpc v1.35.0
 )
 
-replace google.golang.org/grpc => google.golang.org/grpc v1.33.2
+replace (
+	github.com/cosmostation/cosmostation-cosmos/chain-config => ../chain-config
 
-replace github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
+	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
 
-replace github.com/cosmostation/cosmostation-cosmos/chain-config => ../chain-config
-
-replace github.com/keybase/go-keychain => github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4
+	github.com/keybase/go-keychain => github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4
+	google.golang.org/grpc => google.golang.org/grpc v1.33.2
+)

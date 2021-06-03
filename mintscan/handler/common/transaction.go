@@ -11,8 +11,7 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
 
-	// mbl
-	"github.com/cosmostation/mintscan-backend-library/db/schema"
+	mdschema "github.com/cosmostation/mintscan-database/schema"
 
 	"github.com/gorilla/mux"
 
@@ -43,23 +42,13 @@ func GetTransactions(rw http.ResponseWriter, r *http.Request) {
 
 	if len(txs) <= 0 {
 		zap.L().Debug("found no transactions in database")
-		model.Respond(rw, []schema.Transaction{})
+		model.Respond(rw, []mdschema.Transaction{})
 		return
 	}
 
 	result := make([]*model.ResultTx, 0)
 
-	for _, tx := range txs {
-		t := &model.ResultTx{
-			ID:        tx.ID,
-			Height:    tx.Height,
-			TxHash:    tx.TxHash,
-			Memo:      tx.Memo,
-			Timestamp: tx.Timestamp,
-		}
-
-		result = append(result, t)
-	}
+	result = model.ParseTransactions(txs)
 
 	model.Respond(rw, result)
 	return
@@ -100,11 +89,10 @@ func GetTransactionsList(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// model.ParseTransactions(txs)
-	// result, _ := model.ParseTransactions(txs)
-	// txResp[i] = result
+	model.ParseTransactions(txs)
+	result := model.ParseTransactions(txs)
 
-	model.Respond(rw, txs)
+	model.Respond(rw, result)
 	return
 }
 

@@ -5,7 +5,7 @@ import (
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
-	"github.com/cosmostation/mintscan-backend-library/db/schema"
+	mdschema "github.com/cosmostation/mintscan-database/schema"
 
 	"github.com/gorilla/mux"
 
@@ -42,7 +42,7 @@ func GetBlocks(rw http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		txs, err := s.DB.QueryTransactionsInBlockHeight(block.Height)
+		txs, err := s.DB.QueryTransactionsInBlockHeight(block.ChainInfoID, block.Height)
 		if err != nil {
 			zap.L().Error("failed to query txs", zap.Error(err))
 			errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -51,7 +51,7 @@ func GetBlocks(rw http.ResponseWriter, r *http.Request) {
 
 		var txData model.TxData
 		for _, tx := range txs {
-			txData.Txs = append(txData.Txs, tx.TxHash)
+			txData.Txs = append(txData.Txs, tx.Hash)
 		}
 
 		b := &model.ResultBlock{
@@ -59,7 +59,7 @@ func GetBlocks(rw http.ResponseWriter, r *http.Request) {
 			Proposer:        block.Proposer,
 			OperatorAddress: validator.OperatorAddress,
 			Moniker:         validator.Moniker,
-			BlockHash:       block.BlockHash,
+			BlockHash:       block.Hash,
 			Identity:        validator.Identity,
 			NumSignatures:   block.NumSignatures,
 			NumTxs:          block.NumTxs,
@@ -113,7 +113,7 @@ func GetBlocksByProposer(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(blocks) <= 0 {
-		model.Respond(rw, []schema.Block{})
+		model.Respond(rw, []mdschema.Block{})
 		return
 	}
 
@@ -129,14 +129,14 @@ func GetBlocksByProposer(rw http.ResponseWriter, r *http.Request) {
 	for _, b := range blocks {
 		var txData model.TxData
 		if b.NumTxs > 0 {
-			txs, err := s.DB.QueryTransactionsInBlockHeight(b.Height)
+			txs, err := s.DB.QueryTransactionsInBlockHeight(b.ChainInfoID, b.Height)
 			if err != nil {
 				zap.L().Error("failed to query transactions in a block", zap.Error(err))
 				errors.ErrInternalServer(rw, http.StatusInternalServerError)
 				return
 			}
 			for _, tx := range txs {
-				txData.Txs = append(txData.Txs, tx.TxHash)
+				txData.Txs = append(txData.Txs, tx.Hash)
 			}
 		}
 
@@ -146,7 +146,7 @@ func GetBlocksByProposer(rw http.ResponseWriter, r *http.Request) {
 			Proposer:               val.Proposer,
 			OperatorAddress:        val.OperatorAddress,
 			Moniker:                val.Moniker,
-			BlockHash:              b.BlockHash, // 사용 값
+			BlockHash:              b.Hash, // 사용 값
 			Identity:               val.Identity,
 			NumTxs:                 b.NumTxs, // 사용 값
 			TotalNumProposerBlocks: totalNum,

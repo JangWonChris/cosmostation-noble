@@ -11,8 +11,8 @@ var s *handler.Session
 // RegisterHandlers registers all common query HTTP REST handlers on the provided mux router
 func RegisterHandlers(session *handler.Session, r *mux.Router) {
 	s = session
-
-	r.HandleFunc("/account/txs/{accAddr}", GetAccountTxs).Methods("GET")
-	r.HandleFunc("/account/transfer_txs/{accAddr}", GetAccountTransferTxs).Methods("GET")
-	r.HandleFunc("/account/txs/{accAddr}/{valAddr}", GetTxsBetweenDelegatorAndValidator).Methods("GET")
+	PrePareMsgExp()
+	r.HandleFunc("/account/txs/{accAddr}", GetAccountTxsHistory).Methods("GET")
+	r.HandleFunc("/account/transfer_txs/{accAddr}", GetAccountTransferTxsHistory).Methods("GET")
+	r.HandleFunc("/account/txs/{accAddr}/{valAddr}", GetTxsHistoryBetweenDelegatorAndValidator).Methods("GET")
 }

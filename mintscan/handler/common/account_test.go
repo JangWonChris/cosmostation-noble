@@ -15,13 +15,13 @@ import (
 )
 
 var iclient *client.Client
-var idb *db.Database
+var tdb *db.Database
 
 func TestMain(m *testing.M) {
 	fileBaseName := "mintscan"
 	config := mintscanconfig.ParseConfig(fileBaseName)
 	iclient = client.NewClient(&config.Client)
-	idb = db.Connect(&config.DB)
+	tdb = db.Connect(&config.DB)
 
 	os.Exit(m.Run())
 }

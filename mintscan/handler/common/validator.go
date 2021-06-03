@@ -9,8 +9,9 @@ import (
 
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/errors"
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/handler"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
-	"github.com/cosmostation/mintscan-backend-library/db/schema"
+	mdschema "github.com/cosmostation/mintscan-database/schema"
 
 	"github.com/gorilla/mux"
 
@@ -25,7 +26,7 @@ func GetValidators(rw http.ResponseWriter, r *http.Request) {
 		status = r.URL.Query()["status"][0]
 	}
 
-	vals := make([]schema.Validator, 0)
+	vals := make([]mdschema.Validator, 0)
 
 	switch status {
 	case model.ActiveValidator:
@@ -52,7 +53,7 @@ func GetValidators(rw http.ResponseWriter, r *http.Request) {
 		return tk1 > tk2
 	})
 
-	latestDBHeight, err := s.DB.QueryLatestBlockHeight()
+	latestDBHeight, err := s.DB.QueryLatestBlockHeight(handler.ChainIDMap[handler.ChainID])
 	if err != nil {
 		zap.S().Errorf("failed to query latest block height: %s", err)
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -130,7 +131,7 @@ func GetValidator(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	latestDBHeight, err := s.DB.QueryLatestBlockHeight()
+	latestDBHeight, err := s.DB.QueryLatestBlockHeight(handler.ChainIDMap[handler.ChainID])
 	if err != nil {
 		zap.S().Errorf("failed to query latest block height: %s", err)
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -212,7 +213,7 @@ func GetValidatorUptime(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	latestDBHeight, err := s.DB.QueryLatestBlockHeight()
+	latestDBHeight, err := s.DB.QueryLatestBlockHeight(handler.ChainIDMap[handler.ChainID])
 	if err != nil {
 		zap.S().Errorf("failed to query latest block height: %s", err)
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -534,7 +535,7 @@ func GetValidatorProposedBlocks(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(blocks) <= 0 {
-		model.Respond(rw, []schema.Block{})
+		model.Respond(rw, []mdschema.Block{})
 		return
 	}
 
@@ -555,7 +556,7 @@ func GetValidatorProposedBlocks(rw http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		txs, err := s.DB.QueryTransactionsInBlockHeight(b.Height)
+		txs, err := s.DB.QueryTransactionsInBlockHeight(b.ChainInfoID, b.Height)
 		if err != nil {
 			zap.L().Error("failed to query transactions in a block", zap.Error(err))
 			errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -565,7 +566,7 @@ func GetValidatorProposedBlocks(rw http.ResponseWriter, r *http.Request) {
 		var txData model.TxData
 		if len(txs) > 0 {
 			for _, tx := range txs {
-				txData.Txs = append(txData.Txs, tx.TxHash)
+				txData.Txs = append(txData.Txs, tx.Hash)
 			}
 		}
 
@@ -575,7 +576,7 @@ func GetValidatorProposedBlocks(rw http.ResponseWriter, r *http.Request) {
 			Proposer:               b.Proposer,
 			OperatorAddress:        val.OperatorAddress,
 			Moniker:                val.Moniker,
-			BlockHash:              b.BlockHash,
+			BlockHash:              b.Hash,
 			Identity:               val.Identity,
 			NumTxs:                 b.NumTxs,
 			TotalNumProposerBlocks: totalNum,

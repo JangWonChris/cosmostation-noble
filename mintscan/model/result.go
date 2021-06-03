@@ -8,9 +8,7 @@ import (
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 
-	// distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
-
-	"github.com/cosmostation/mintscan-backend-library/db/schema"
+	mdschema "github.com/cosmostation/mintscan-database/schema"
 )
 
 type ResultAllBalances struct {
@@ -111,11 +109,11 @@ type ResultVote struct {
 
 // ResultProposalDetail defines the structure for deposit detail information result response.
 type ResultProposalDetail struct {
-	ProposalID         int64          `json:"proposal_id"`
-	TotalVotesNum      int            `json:"total_votes_num"`
-	TotalDepositAmount float64        `json:"total_deposit_amount"`
-	ResultVoteInfo     ResultVote     `json:"vote_info"`
-	DepositInfo        schema.Deposit `json:"deposit_info"`
+	ProposalID         int64            `json:"proposal_id"`
+	TotalVotesNum      int              `json:"total_votes_num"`
+	TotalDepositAmount float64          `json:"total_deposit_amount"`
+	ResultVoteInfo     ResultVote       `json:"vote_info"`
+	DepositInfo        mdschema.Deposit `json:"deposit_info"`
 }
 
 // ResultStatus defines the structure for status result response.
@@ -280,18 +278,22 @@ type ResultMarket struct {
 	LastUpdated       time.Time `json:"last_updated"`
 }
 
+type ResultBlockHeader struct {
+	ID        int64  `json:"id"`
+	ChainID   string `json:"chain_id"`
+	Timestamp string `json:"timestamp"`
+}
+type ResultTxHeader struct {
+	ID        int64  `json:"id"`
+	ChainID   string `json:"chain_id"`
+	BlockID   int64  `json:"block_id"`
+	Timestamp string `json:"timestamp"`
+}
+
 // ResultTx defines the structure for txs result response.
 type ResultTx struct {
-	ID        int64     `json:"id"`
-	Height    int64     `json:"height"`
-	TxHash    string    `json:"tx_hash"`
-	Logs      []Log     `json:"logs,omitempty"`
-	Msgs      []Message `json:"msg,omitempty"`
-	Fee       *Fee      `json:"fee,omitempty"`
-	GasWanted int64     `json:"gas_wanted,omitempty"`
-	GasUsed   int64     `json:"gas_used,omitempty"`
-	Memo      string    `json:"memo"`
-	Timestamp string    `json:"timestamp"`
+	ResultTxHeader `json:"header"`
+	Data           json.RawMessage `json:"data"`
 }
 
 // Respond responds result of any data type.

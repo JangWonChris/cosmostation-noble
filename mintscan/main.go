@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/cosmostation/cosmostation-cosmos/chain-config/custom"
+	pg "github.com/go-pg/pg/v10"
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/client"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/db"
@@ -25,12 +26,24 @@ import (
 )
 
 var (
-	// Version is a project's version string.
 	Version = "Development"
-
-	// Commit is commit hash of this project.
-	Commit = ""
+	Commit  = ""
 )
+
+type dbLogger struct{}
+
+func (d dbLogger) BeforeQuery(c context.Context, q *pg.QueryEvent) (context.Context, error) {
+	return c, nil
+}
+
+func (d dbLogger) AfterQuery(c context.Context, q *pg.QueryEvent) error {
+	query, err := q.FormattedQuery()
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(string(query))
+	return nil
+}
 
 func init() {
 	if !custom.IsSetAppConfig() {
@@ -55,21 +68,18 @@ func main() {
 		return
 	}
 
-	s := handler.SetSession(client, db)
+	db.AddQueryHook(dbLogger{}) // debugging 용
 
-	for handler.BondDenom == "" {
-		if err := handler.SetBondDenom(); err != nil {
-			zap.S().Info("fail to set bonded denom ", err)
-		}
-		fmt.Println("denom :", handler.BondDenom)
-		time.Sleep(1 * time.Second)
-	}
+	s := handler.SetSession(client, db)
+	handler.SetChainID()
+	handler.SetMessageInfo()
 
 	r := mux.NewRouter()
 	r = r.PathPrefix("/v1").Subrouter()
 	commonhandler.RegisterHandlers(s, r)
 	customhandler.RegisterHandlers(s, r)
 	mobilehandler.RegisterHandlers(s, r)
+	db.PrepareStmt()
 
 	// r.HandleFunc("/tx/{hash}", common.GetLegacyTransactionFromDB).Methods("GET")                // /tx?hash={hash}
 

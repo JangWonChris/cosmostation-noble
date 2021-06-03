@@ -8,7 +8,7 @@ import (
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
-	"github.com/cosmostation/mintscan-backend-library/db/schema"
+	mdschema "github.com/cosmostation/mintscan-database/schema"
 
 	"github.com/gorilla/mux"
 
@@ -29,7 +29,7 @@ func GetProposals(rw http.ResponseWriter, r *http.Request) {
 
 	if len(proposals) <= 0 {
 		zap.L().Debug("found no proposals saved in database")
-		model.Respond(rw, []schema.Proposal{})
+		model.Respond(rw, []mdschema.Proposal{})
 		return
 	}
 
@@ -60,7 +60,7 @@ func GetProposals(rw http.ResponseWriter, r *http.Request) {
 			TotalDepositAmount:   p.TotalDepositAmount,
 			TotalDepositDenom:    p.TotalDepositDenom,
 			SubmitTime:           p.SubmitTime,
-			DepositEndtime:       p.DepositEndtime,
+			DepositEndtime:       p.DepositEndTime,
 			VotingStartTime:      p.VotingStartTime,
 			VotingEndTime:        p.VotingEndTime,
 		}
@@ -110,7 +110,7 @@ func GetProposal(rw http.ResponseWriter, r *http.Request) {
 		TotalDepositAmount:   p.TotalDepositAmount,
 		TotalDepositDenom:    p.TotalDepositDenom,
 		SubmitTime:           p.SubmitTime,
-		DepositEndtime:       p.DepositEndtime,
+		DepositEndtime:       p.DepositEndTime,
 		VotingStartTime:      p.VotingStartTime,
 		VotingEndTime:        p.VotingEndTime,
 	}
