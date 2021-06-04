@@ -6,14 +6,9 @@ require (
 	github.com/cosmos/cosmos-sdk v0.42.4
 	github.com/cosmos/gaia/v4 v4.2.1
 	github.com/cosmostation/cosmostation-cosmos/chain-config v0.0.0-00010101000000-000000000000
-	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210215124422-0da1f2875834
-	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210221065353-c439d341db6d
-	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210222091607-09fabc04bacb
-	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210222152052-0c136faaa870
-	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210222154014-46a969835c57
-	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210223030701-b5a5378a3309
-	github.com/cosmostation/mintscan-backend-library v0.0.0-20210531025314-04d5451343a2
-	github.com/cosmostation/mintscan-database v0.0.0-20210602183647-a4fedaa9750e
+	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210531025314-04d5451343a2
+	github.com/cosmostation/mintscan-backend-library v0.0.0-20210604074244-3e99b234a4e3
+	github.com/cosmostation/mintscan-database v0.0.0-20210604074757-98671cab816c
 	github.com/go-pg/pg/v10 v10.9.1
 	github.com/go-resty/resty/v2 v2.4.0
 	github.com/gorilla/mux v1.8.0

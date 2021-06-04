@@ -2,13 +2,12 @@ package mobile
 
 import (
 	"net/http"
-	"strconv"
 
 	//internal
-	"github.com/cosmostation/cosmostation-cosmos/mintscan/db"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/handler"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
+	"github.com/cosmostation/mintscan-database/db"
 
 	//mbl
 	mbltypes "github.com/cosmostation/mintscan-backend-library/types"
@@ -38,33 +37,13 @@ func PrePareMsgExp() {
 	)
 }
 
-// ParseHTTPArgsWithBeforeAfterLimit parses the request's URL and returns all arguments pairs.
-// It separates page and limit used for pagination where a default limit can be provided.
-func ParseHTTPArgsWithTxID(r *http.Request) (txID int64, err error) {
-	txidStr := r.FormValue("txid")
-	if txidStr == "" {
-		return txID, nil
-	}
-
-	txID, err = strconv.ParseInt(txidStr, 10, 64)
-	if err != nil {
-		return txID, err
-	}
-
-	if txID < 0 {
-		return 0, nil
-	}
-
-	return txID, nil
-}
-
 // GetAccountTxsHistory returns transactions that are sent by an account
 // 주어진 txID 보다 작은 Transaction account history 반환
 func GetAccountTxsHistory(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	accAddr := vars["accAddr"]
 
-	txID, err := ParseHTTPArgsWithTxID(r)
+	from, limit, err := model.ParseHTTPArgs(r)
 	if err != nil {
 		zap.S().Debug("failed to parse HTTP args ", zap.Error(err))
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "request is invalid")
@@ -85,7 +64,7 @@ func GetAccountTxsHistory(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// Query transactions that are made by the account.
-	txs, err := s.DB.QueryTransactionsByAddr(txID, accAddr)
+	txs, err := s.DB.QueryTransactionsByAddr(from, limit, accAddr)
 	if err != nil {
 		zap.L().Error("failed to query txs", zap.Error(err))
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -109,7 +88,7 @@ func GetAccountTransferTxsHistory(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	accAddr := vars["accAddr"]
 
-	txID, err := ParseHTTPArgsWithTxID(r)
+	from, limit, err := model.ParseHTTPArgs(r)
 	if err != nil {
 		zap.S().Debug("failed to parse HTTP args ", zap.Error(err))
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "request is invalid")
@@ -135,7 +114,7 @@ func GetAccountTransferTxsHistory(rw http.ResponseWriter, r *http.Request) {
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
 		return
 	}
-	txs, err := s.DB.QueryTransferTransactionsByAddr(txID, accAddr)
+	txs, err := s.DB.QueryTransferTransactionsByAddr(from, limit, accAddr)
 	if err != nil {
 		zap.L().Error("failed to query txs", zap.Error(err))
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -155,7 +134,7 @@ func GetTxsHistoryBetweenDelegatorAndValidator(rw http.ResponseWriter, r *http.R
 	accAddr := vars["accAddr"]
 	valAddr := vars["valAddr"]
 
-	txID, err := ParseHTTPArgsWithTxID(r)
+	from, limit, err := model.ParseHTTPArgs(r)
 	if err != nil {
 		zap.S().Debug("failed to parse HTTP args ", zap.Error(err))
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "request is invalid")
@@ -188,7 +167,7 @@ func GetTxsHistoryBetweenDelegatorAndValidator(rw http.ResponseWriter, r *http.R
 		return
 	}
 
-	txs, err := s.DB.QueryTransactionsBetweenAccountAndValidator(txID, accAddr, valAddr)
+	txs, err := s.DB.QueryTransactionsBetweenAccountAndValidator(from, limit, accAddr, valAddr)
 	if err != nil {
 		zap.L().Error("failed to query txs", zap.Error(err))
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)

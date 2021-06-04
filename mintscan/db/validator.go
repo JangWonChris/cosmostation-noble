@@ -4,13 +4,13 @@ import (
 	"strings"
 
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
-	mdschema "github.com/cosmostation/mintscan-database/schema"
+	"github.com/cosmostation/mintscan-database/schema"
 	pg "github.com/go-pg/pg/v10"
 )
 
 // QueryValidatorByAnyAddr returns a validator information by any type of address format
-func (db *Database) QueryValidatorByAnyAddr(anyAddr string) (mdschema.Validator, error) {
-	var val mdschema.Validator
+func (db *Database) QueryValidatorByAnyAddr(anyAddr string) (schema.Validator, error) {
+	var val schema.Validator
 	var err error
 
 	switch {
@@ -45,47 +45,10 @@ func (db *Database) QueryValidatorByAnyAddr(anyAddr string) (mdschema.Validator,
 
 	if err != nil {
 		if err == pg.ErrNoRows {
-			return mdschema.Validator{}, nil
+			return schema.Validator{}, nil
 		}
-		return mdschema.Validator{}, err
+		return schema.Validator{}, err
 	}
 
 	return val, nil
-}
-
-// QueryValidatorStats1D returns validator statistics from 1 day of validator stats table
-func (db *Database) QueryValidatorStats1D(proposerHexStr string, limit int) ([]mdschema.StatsValidators1D, error) {
-	var stats []mdschema.StatsValidators1D
-	err := db.Model(&stats).
-		Where("proposer = ?", proposerHexStr).
-		Order("id DESC").
-		Limit(limit).
-		Select()
-
-	if err != nil {
-		if err == pg.ErrNoRows {
-			return []mdschema.StatsValidators1D{}, nil
-		}
-		return []mdschema.StatsValidators1D{}, err
-	}
-
-	return stats, nil
-}
-
-// QueryValidatorBondedInfo returns a validator's bonded information.
-// sdk 에서 제공하는 IsBonded 함수가 존재한다.
-// 이 함수가 필요한 이유는, 최초 본딩 된 날짜를 알기 위함임(제네시스인지, 그 이후 생성 된 검증인 인지)
-func (db *Database) QueryValidatorBondedInfo(address string) (peh mdschema.PowerEventHistory, err error) {
-	msgType := "create_validator"
-
-	err = db.Model(&peh).
-		Where("proposer = ? AND msg_type = ?", address, msgType).
-		Limit(1).
-		Select()
-
-	if err != nil {
-		return mdschema.PowerEventHistory{}, err
-	}
-
-	return peh, nil
 }

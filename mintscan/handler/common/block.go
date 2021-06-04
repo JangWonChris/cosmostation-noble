@@ -2,6 +2,7 @@ package common
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
@@ -14,22 +15,28 @@ import (
 
 // GetBlocks returns blocks with given params.
 func GetBlocks(rw http.ResponseWriter, r *http.Request) {
-	before, after, limit, err := model.ParseHTTPArgsWithBeforeAfterLimit(r, model.DefaultBefore, model.DefaultAfter, model.DefaultLimit)
+	from, limit, err := model.ParseHTTPArgs(r)
 	if err != nil {
 		zap.S().Debug("failed to parse HTTP args ", zap.Error(err))
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "request is invalid")
 		return
 	}
 
-	if limit > 100 {
-		zap.S().Debug("failed to query with this limit ", zap.Int("request limit", limit))
-		errors.ErrOverMaxLimit(rw, http.StatusUnauthorized)
+	// if limit > 100 {
+	// 	zap.S().Debug("failed to query with this limit ", zap.Int("request limit", limit))
+	// 	errors.ErrOverMaxLimit(rw, http.StatusUnauthorized)
+	// 	return
+	// }
+
+	blocks, err := s.DB.QueryBlocks(from, limit)
+	if err != nil {
+		zap.S().Debug("failed to get blocks ", zap.Error(err))
+		errors.ErrInternalServer(rw, http.StatusInternalServerError)
 		return
 	}
 
-	blocks, _ := s.DB.QueryBlocks(before, after, limit)
 	if len(blocks) <= 0 {
-		model.Respond(rw, []model.ResultBlock{})
+		errors.ErrNotFound(rw, http.StatusNotFound)
 		return
 	}
 
@@ -55,6 +62,144 @@ func GetBlocks(rw http.ResponseWriter, r *http.Request) {
 		}
 
 		b := &model.ResultBlock{
+			ID:              block.ID,
+			Height:          block.Height,
+			Proposer:        block.Proposer,
+			OperatorAddress: validator.OperatorAddress,
+			Moniker:         validator.Moniker,
+			BlockHash:       block.Hash,
+			Identity:        validator.Identity,
+			NumSignatures:   block.NumSignatures,
+			NumTxs:          block.NumTxs,
+			TxData:          txData,
+			Timestamp:       block.Timestamp,
+		}
+
+		result = append(result, b)
+	}
+
+	model.Respond(rw, result)
+	return
+}
+
+// GetBlocks returns blocks with given params.
+func GetBlocksByID(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+
+	// if limit > 100 {
+	// 	zap.S().Debug("failed to query with this limit ", zap.Int("request limit", limit))
+	// 	errors.ErrOverMaxLimit(rw, http.StatusUnauthorized)
+	// 	return
+	// }
+
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		zap.S().Debug("failed to parse int args ", zap.Error(err))
+		errors.ErrInternalServer(rw, http.StatusInternalServerError)
+		return
+	}
+
+	blocks, err := s.DB.QueryBlockByID(id)
+	if err != nil {
+		zap.S().Debug("failed to get blocks ", zap.Error(err))
+		errors.ErrInternalServer(rw, http.StatusInternalServerError)
+		return
+	}
+
+	if len(blocks) <= 0 {
+		errors.ErrNotFound(rw, http.StatusNotFound)
+		return
+	}
+
+	result := make([]*model.ResultBlock, 0)
+
+	for _, block := range blocks {
+		validator, err := s.DB.QueryValidatorByAnyAddr(block.Proposer)
+		if err != nil {
+			zap.S().Error("failed to query validator by proposer", zap.Error(err))
+			return
+		}
+
+		txs, err := s.DB.QueryTransactionsInBlockHeight(block.ChainInfoID, block.Height)
+		if err != nil {
+			zap.L().Error("failed to query txs", zap.Error(err))
+			errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
+			return
+		}
+
+		var txData model.TxData
+		for _, tx := range txs {
+			txData.Txs = append(txData.Txs, tx.Hash)
+		}
+
+		b := &model.ResultBlock{
+			ID:              block.ID,
+			Height:          block.Height,
+			Proposer:        block.Proposer,
+			OperatorAddress: validator.OperatorAddress,
+			Moniker:         validator.Moniker,
+			BlockHash:       block.Hash,
+			Identity:        validator.Identity,
+			NumSignatures:   block.NumSignatures,
+			NumTxs:          block.NumTxs,
+			TxData:          txData,
+			Timestamp:       block.Timestamp,
+		}
+
+		result = append(result, b)
+	}
+
+	model.Respond(rw, result)
+	return
+}
+
+// GetBlocks returns blocks with given params.
+func GetBlocksByHash(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	hashStr := vars["hash"]
+
+	// if limit > 100 {
+	// 	zap.S().Debug("failed to query with this limit ", zap.Int("request limit", limit))
+	// 	errors.ErrOverMaxLimit(rw, http.StatusUnauthorized)
+	// 	return
+	// }
+
+	blocks, err := s.DB.QueryBlockByHash(hashStr)
+	if err != nil {
+		zap.S().Debug("failed to get blocks ", zap.Error(err))
+		errors.ErrInternalServer(rw, http.StatusInternalServerError)
+		return
+	}
+
+	if len(blocks) <= 0 {
+		errors.ErrNotFound(rw, http.StatusNotFound)
+		return
+	}
+
+	result := make([]*model.ResultBlock, 0)
+
+	for _, block := range blocks {
+		validator, err := s.DB.QueryValidatorByAnyAddr(block.Proposer)
+		if err != nil {
+			zap.S().Error("failed to query validator by proposer", zap.Error(err))
+			return
+		}
+
+		txs, err := s.DB.QueryTransactionsInBlockHeight(block.ChainInfoID, block.Height)
+		if err != nil {
+			zap.L().Error("failed to query txs", zap.Error(err))
+			errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
+			return
+		}
+
+		var txData model.TxData
+		for _, tx := range txs {
+			txData.Txs = append(txData.Txs, tx.Hash)
+		}
+
+		b := &model.ResultBlock{
+			ID:              block.ID,
 			Height:          block.Height,
 			Proposer:        block.Proposer,
 			OperatorAddress: validator.OperatorAddress,
@@ -79,7 +224,7 @@ func GetBlocksByProposer(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	proposer := vars["proposer"]
 
-	before, after, limit, err := model.ParseHTTPArgsWithBeforeAfterLimit(r, model.DefaultBefore, model.DefaultAfter, model.DefaultLimit)
+	from, limit, err := model.ParseHTTPArgs(r)
 	if err != nil {
 		zap.S().Debug("failed to parse HTTP args ", zap.Error(err))
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "request is invalid")
@@ -105,7 +250,7 @@ func GetBlocksByProposer(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	blocks, err := s.DB.QueryBlocksByProposer(val.Proposer, before, after, limit)
+	blocks, err := s.DB.QueryBlocksByProposer(val.Proposer, from, limit)
 	if err != nil {
 		zap.L().Error("failed to query blocks", zap.Error(err))
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)

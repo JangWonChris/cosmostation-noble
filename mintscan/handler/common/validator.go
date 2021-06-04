@@ -362,18 +362,19 @@ func GetValidatorPowerHistoryEvents(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	address := vars["address"]
 
-	before, after, limit, err := model.ParseHTTPArgsWithBeforeAfterLimit(r, model.DefaultBefore, model.DefaultAfter, model.DefaultPowerEventHistoryLimit)
+	// before, after, limit, err := model.ParseHTTPArgsWithBeforeAfterLimit(r, model.DefaultBefore, model.DefaultAfter, model.DefaultPowerEventHistoryLimit)
+	from, limit, err := model.ParseHTTPArgs(r)
 	if err != nil {
 		zap.S().Debug("failed to parse HTTP args ", zap.Error(err))
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "request is invalid")
 		return
 	}
 
-	if limit > 50 {
-		zap.S().Debug("failed to query with this limit ", zap.Int("request limit", limit))
-		errors.ErrOverMaxLimit(rw, http.StatusUnauthorized)
-		return
-	}
+	// if limit > 50 {
+	// 	zap.S().Debug("failed to query with this limit ", zap.Int("request limit", limit))
+	// 	errors.ErrOverMaxLimit(rw, http.StatusUnauthorized)
+	// 	return
+	// }
 
 	val, err := s.DB.QueryValidatorByAnyAddr(address)
 	if err != nil {
@@ -399,7 +400,7 @@ func GetValidatorPowerHistoryEvents(rw http.ResponseWriter, r *http.Request) {
 	// 	return
 	// }
 
-	events, err := s.DB.QueryValidatorVotingPowerEventHistory(address, before, after, limit)
+	events, err := s.DB.QueryValidatorVotingPowerEventHistory(address, from, limit)
 	if err != nil {
 		zap.L().Error("failed to query power event history", zap.Error(err))
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -502,18 +503,18 @@ func GetValidatorProposedBlocks(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	proposer := vars["proposer"]
 
-	before, after, limit, err := model.ParseHTTPArgsWithBeforeAfterLimit(r, model.DefaultBefore, model.DefaultAfter, model.DefaultLimit)
+	from, limit, err := model.ParseHTTPArgs(r)
 	if err != nil {
 		zap.S().Debug("failed to parse HTTP args ", zap.Error(err))
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "request is invalid")
 		return
 	}
 
-	if limit > 100 {
-		zap.S().Debug("failed to query with this limit ", zap.Int("request limit", limit))
-		errors.ErrOverMaxLimit(rw, http.StatusUnauthorized)
-		return
-	}
+	// if limit > 100 {
+	// 	zap.S().Debug("failed to query with this limit ", zap.Int("request limit", limit))
+	// 	errors.ErrOverMaxLimit(rw, http.StatusUnauthorized)
+	// 	return
+	// }
 
 	// Query validator information by any type of bech32 address, even moniker.
 	val, err := s.DB.QueryValidatorByAnyAddr(proposer)
@@ -527,7 +528,7 @@ func GetValidatorProposedBlocks(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	blocks, err := s.DB.QueryBlocksByProposer(val.Proposer, before, after, limit)
+	blocks, err := s.DB.QueryBlocksByProposer(val.Proposer, from, limit)
 	if err != nil {
 		zap.L().Error("failed to query blocks", zap.Error(err))
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)

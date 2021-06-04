@@ -18,16 +18,26 @@ func RegisterHandlers(session *handler.Session, r *mux.Router) {
 	r.HandleFunc("/account/balances/{accAddr}", GetAllBalances).Methods("GET")
 	r.HandleFunc("/account/delegations/{accAddr}", GetDelegatorDelegations).Methods("GET")
 	r.HandleFunc("/account/undelegations/{accAddr}", GetDelegatorUnbondingDelegations).Methods("GET")
-	r.HandleFunc("/blocks", GetBlocks).Methods("GET")
+
+	r.HandleFunc("/blocks", GetBlocks).Methods("GET") // ?from=&limit=
+	r.HandleFunc("/blocks/id/{id}", GetBlocksByID).Methods("GET")
+	r.HandleFunc("/blocks/hash/{hash}", GetBlocksByHash).Methods("GET")
+
 	r.HandleFunc("/gov/proposals", GetProposals).Methods("GET")
 	r.HandleFunc("/gov/proposal/{proposal_id}", GetProposal).Methods("GET")
 	r.HandleFunc("/gov/proposal/deposits/{proposal_id}", GetDeposits).Methods("GET")
 	r.HandleFunc("/gov/proposal/votes/{proposal_id}", GetVotes).Methods("GET")
+
 	r.HandleFunc("/minting/inflation", GetMintingInflation).Methods("GET")
-	r.HandleFunc("/txs", GetTransactions).Methods("GET")
+
+	r.HandleFunc("/txs", GetTransactions).Methods("GET") // &from=&limit=
+	r.HandleFunc("/tx/hash/{hash}", GetTransactionByHash).Methods("GET")
+	r.HandleFunc("/tx/id/{id}", GetTransactionByID).Methods("GET")
 	r.HandleFunc("/txs", GetTransactionsList).Methods("POST")
-	r.HandleFunc("/tx", GetTransaction).Methods("GET")
+
+	// r.HandleFunc("/txs", GetTransactions).Methods("GET") //단종
 	r.HandleFunc("/tx/broadcast/{signed_tx}", BroadcastTx).Methods("GET")
+
 	r.HandleFunc("/staking/validators", GetValidators).Methods("GET")
 	r.HandleFunc("/staking/validator/{address}", GetValidator).Methods("GET")
 	r.HandleFunc("/staking/validator/blocks/{proposer}", GetValidatorProposedBlocks).Methods("GET")

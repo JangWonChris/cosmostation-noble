@@ -6,8 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cosmos/cosmos-sdk/types/rest"
-
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/errors"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
 
@@ -20,20 +18,20 @@ import (
 
 // GetTransactions returns transactions with given parameters.
 func GetTransactions(rw http.ResponseWriter, r *http.Request) {
-	before, after, limit, err := model.ParseHTTPArgsWithBeforeAfterLimit(r, model.DefaultBefore, model.DefaultAfter, model.DefaultLimit)
+	from, limit, err := model.ParseHTTPArgs(r)
 	if err != nil {
 		zap.S().Debug("failed to parse HTTP args ", zap.Error(err))
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "request is invalid")
 		return
 	}
 
-	if limit > 100 {
-		zap.L().Debug("request is over max limit ", zap.Int("request limit", limit))
-		errors.ErrOverMaxLimit(rw, http.StatusUnauthorized)
-		return
-	}
+	// if limit > 100 {
+	// 	zap.L().Debug("request is over max limit ", zap.Int("request limit", limit))
+	// 	errors.ErrOverMaxLimit(rw, http.StatusUnauthorized)
+	// 	return
+	// }
 
-	txs, err := s.DB.QueryTransactions(before, after, limit)
+	txs, err := s.DB.QueryTransactions(from, limit)
 	if err != nil {
 		zap.L().Error("failed to query txs", zap.Error(err))
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -97,124 +95,57 @@ func GetTransactionsList(rw http.ResponseWriter, r *http.Request) {
 }
 
 // GetTransaction receives transaction hash and returns that transaction
-func GetTransaction(rw http.ResponseWriter, r *http.Request) {
-	var txID int64
-	var err error
-
-	id := r.FormValue("id")
-	txHashStr := r.FormValue("hash")
-
-	// Request param must have either transaction id or transaction hash.
-	if id == "" && txHashStr == "" {
-		errors.ErrRequiredParam(rw, http.StatusBadRequest, "request must have either transaction id or hash")
-		return
-	}
+func GetTransactionByID(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	idStr := vars["id"]
 
 	// Query transction by transaction id if the request param has id; otherwise query with transaction hash.
-	if id != "" {
-		txID, err = strconv.ParseInt(id, 10, 64)
-		if err != nil {
-			errors.ErrFailedConversion(rw, http.StatusInternalServerError)
-			return
-		}
-
-		tx, err := s.DB.QueryTransactionByID(txID)
-		if err != nil {
-			zap.L().Error("failed to get transaction by tx id", zap.Error(err))
-			errors.ErrServerUnavailable(rw, http.StatusInternalServerError)
-			return
-		}
-
-		// result, _ := model.ParseTransaction(tx)
-
-		model.Respond(rw, tx)
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		errors.ErrFailedConversion(rw, http.StatusInternalServerError)
 		return
 	}
 
-	txHashStr = strings.ToUpper(txHashStr)
-
-	if strings.Contains(txHashStr, "0x") {
-		txHashStr = txHashStr[2:]
+	tx, err := s.DB.QueryTransactionByID(id)
+	if err != nil {
+		zap.L().Error("failed to get transaction by tx id", zap.Error(err))
+		errors.ErrServerUnavailable(rw, http.StatusInternalServerError)
+		return
 	}
 
-	if len(txHashStr) != 64 {
-		zap.L().Debug("tx hash length is invalid", zap.String("txHashStr", txHashStr))
+	result := model.ParseTransaction(tx)
+
+	model.Respond(rw, result)
+	return
+}
+
+// GetTransaction receives transaction hash and returns that transaction
+func GetTransactionByHash(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	hashStr := vars["hash"]
+
+	hashStr = strings.ToUpper(hashStr)
+
+	if strings.Contains(hashStr, "0x") {
+		hashStr = hashStr[2:]
+	}
+
+	if len(hashStr) != 64 {
+		zap.L().Debug("tx hash length is invalid", zap.String("txHashStr", hashStr))
 		errors.ErrInvalidFormat(rw, http.StatusBadRequest)
 		return
 	}
 
-	tx, err := s.DB.QueryTransactionByTxHash(txHashStr)
+	tx, err := s.DB.QueryTransactionByTxHash(hashStr)
 	if err != nil {
 		zap.L().Error("failed to get transaction by tx hash", zap.Error(err))
 		errors.ErrServerUnavailable(rw, http.StatusInternalServerError)
 		return
 	}
 
-	// result, _ := model.ParseTransaction(tx)
+	result := model.ParseTransaction(tx)
 
-	model.Respond(rw, tx)
-	return
-}
-
-// GetLegacyTransactionFromDB receives transaction hash and returns that transaction
-func GetLegacyTransactionFromDB(rw http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	txHashStr := vars["hash"]
-	var err error
-
-	// Request param must have either transaction id or transaction hash.
-	if txHashStr == "" {
-		errors.ErrRequiredParam(rw, http.StatusBadRequest, "request must have either transaction id or hash")
-		return
-	}
-
-	if strings.Contains(txHashStr, "0x") {
-		txHashStr = txHashStr[2:]
-	}
-
-	if len(txHashStr) != 64 {
-		zap.L().Debug("tx hash length is invalid", zap.String("txHashStr", txHashStr))
-		errors.ErrInvalidFormat(rw, http.StatusBadRequest)
-		return
-	}
-
-	tx, err := s.DB.QueryTransactionByTxHash(txHashStr)
-	if err != nil {
-		zap.L().Error("failed to get transaction by tx hash", zap.Error(err))
-		errors.ErrServerUnavailable(rw, http.StatusInternalServerError)
-		return
-	}
-
-	// result, _ := model.ParseTransaction(tx)
-
-	model.Respond(rw, tx)
-	return
-}
-
-// GetLegacyTransaction uses RPC API to parse transaction and return.
-// [NOT USED]
-func GetLegacyTransaction(rw http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	txHashStr := vars["hash"]
-
-	if strings.Contains(txHashStr, "0x") {
-		txHashStr = txHashStr[2:]
-	}
-
-	if len(txHashStr) != 64 {
-		zap.L().Debug("tx hash length is invalid", zap.String("txHashStr", txHashStr))
-		errors.ErrInvalidFormat(rw, http.StatusBadRequest)
-		return
-	}
-
-	resp, err := s.Client.CliCtx.GetTx(txHashStr)
-	if err != nil {
-		zap.L().Error("failed to get tx hash info", zap.Error(err))
-		errors.ErrInternalServer(rw, http.StatusInternalServerError)
-		return
-	}
-
-	rest.PostProcessResponseBare(rw, s.Client.GetCLIContext(), resp) // codec marshalling
+	model.Respond(rw, result)
 	return
 }
 

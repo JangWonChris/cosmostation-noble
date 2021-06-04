@@ -68,7 +68,7 @@ func main() {
 		return
 	}
 
-	db.AddQueryHook(dbLogger{}) // debugging 용
+	// db.AddQueryHook(dbLogger{}) // debugging 용
 
 	s := handler.SetSession(client, db)
 	handler.SetChainID()

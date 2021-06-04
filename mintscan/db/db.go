@@ -17,8 +17,10 @@ type Database struct {
 
 // Connect opens a database connections with the given database connection info from config.
 func Connect(dbcfg *mblconfig.DatabaseConfig) *Database {
-	db := mddb.Connect(dbcfg.Host, dbcfg.Port, dbcfg.User, dbcfg.Password, dbcfg.DBName, dbcfg.Schema, dbcfg.Timeout)
-	mdschema.SetCommonSchema("refine")
+	db := mddb.Connect(dbcfg.Host, dbcfg.Port, dbcfg.User, dbcfg.Password, dbcfg.DBName, dbcfg.ChainSchema, dbcfg.Timeout)
+	mdschema.SetCommonSchema(dbcfg.CommonSchema)
+	fmt.Println("common schema :", dbcfg.CommonSchema)
+	fmt.Println("chain schema :", dbcfg.ChainSchema)
 
 	return &Database{db}
 }
@@ -56,58 +58,4 @@ func (db *Database) QueryBlockTimeDiff() (string, error) {
 // 	}
 
 // 	return networkStats, nil
-// }
-
-// QueryValidatorBondedInfo returns a validator's bonded information.
-// sdk 에서 제공하는 IsBonded 함수가 존재한다.
-// 이 함수가 필요한 이유는, 최초 본딩 된 날짜를 알기 위함임(제네시스인지, 그 이후 생성 된 검증인 인지)
-// func (db *Database) QueryValidatorBondedInfo(address string) (peh schema.PowerEventHistory, err error) {
-// 	msgType := "create_validator"
-
-// 	err = db.Model(&peh).
-// 		Where("proposer = ? AND msg_type = ?", address, msgType).
-// 		Limit(1).
-// 		Select()
-
-// 	if err != nil {
-// 		return schema.PowerEventHistory{}, err
-// 	}
-
-// 	return peh, nil
-// }
-
-// QueryValidatorVotingPowerEventHistory returns a validator's voting power events
-// func (db *Database) QueryValidatorVotingPowerEventHistory(address string, before, after, limit int) ([]schema.PowerEventHistory, error) {
-// 	var peh []schema.PowerEventHistory
-// 	var err error
-
-// 	switch {
-// 	case before > 0:
-// 		err = db.Model(&peh).
-// 			Where("operator_address = ? AND height < ?", address, before).
-// 			Limit(limit).
-// 			Order("id DESC").
-// 			Select()
-// 	case after > 0:
-// 		err = db.Model(&peh).
-// 			Where("operator_address = ? AND height > ?", address, after).
-// 			Limit(limit).
-// 			Order("id ASC").
-// 			Select()
-// 	default:
-// 		err = db.Model(&peh).
-// 			Where("operator_address = ?", address).
-// 			Limit(limit).
-// 			Order("id DESC").
-// 			Select()
-// 	}
-
-// 	if err != nil {
-// 		if err == pg.ErrNoRows {
-// 			return []schema.PowerEventHistory{}, nil
-// 		}
-// 		return []schema.PowerEventHistory{}, err
-// 	}
-
-// 	return peh, nil
 // }
