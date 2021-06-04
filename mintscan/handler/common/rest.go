@@ -20,8 +20,8 @@ func RegisterHandlers(session *handler.Session, r *mux.Router) {
 	r.HandleFunc("/account/undelegations/{accAddr}", GetDelegatorUnbondingDelegations).Methods("GET")
 
 	r.HandleFunc("/blocks", GetBlocks).Methods("GET") // ?from=&limit=
-	r.HandleFunc("/blocks/id/{id}", GetBlocksByID).Methods("GET")
-	r.HandleFunc("/blocks/hash/{hash}", GetBlocksByHash).Methods("GET")
+	r.HandleFunc("/block/id/{id}", GetBlocksByID).Methods("GET")
+	r.HandleFunc("/block/hash/{hash}", GetBlocksByHash).Methods("GET")
 
 	r.HandleFunc("/gov/proposals", GetProposals).Methods("GET")
 	r.HandleFunc("/gov/proposal/{proposal_id}", GetProposal).Methods("GET")
