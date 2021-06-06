@@ -71,8 +71,11 @@ func (ex *Exporter) Refine(op int) error {
 			}
 		}
 	}
-	if err := ex.refineSync(); err != nil {
-		return err
+	for {
+		if err := ex.refineSync(); err != nil {
+			zap.S().Infof("error - sync blockchain: %s\n", err)
+		}
+		time.Sleep(2 * time.Second)
 	}
 	return nil
 }
