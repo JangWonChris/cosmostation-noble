@@ -11,7 +11,7 @@ require (
 	github.com/cosmostation/mintscan-backend-library v0.0.0-20210604074244-3e99b234a4e3
 	// github.com/cosmostation/mintscan-database v0.0.0-20210527160957-d532bacf97e3
 	// github.com/cosmostation/mintscan-database v0.0.0-20210531025050-4bde204e18c6
-	github.com/cosmostation/mintscan-database v0.0.0-20210606052634-74b77d28640e
+	github.com/cosmostation/mintscan-database v0.0.0-20210606062117-4ad4ab46e6b4
 	github.com/go-pg/pg/v10 v10.9.1
 	github.com/go-resty/resty/v2 v2.4.0
 	github.com/stretchr/testify v1.7.0

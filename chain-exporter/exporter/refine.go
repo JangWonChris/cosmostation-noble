@@ -20,7 +20,6 @@ func (ex *Exporter) Refine(op int) error {
 		if rawBlockIDMax == -1 {
 			return fmt.Errorf("fail to get block max(id) in database: %s", err)
 		}
-		rawBlockIDMax = 1281505
 		zap.S().Infof("total count of raw blocks : %d\n", rawBlockIDMax)
 		for i := int64(1); i <= rawBlockIDMax; i++ {
 			zap.S().Info("block working id : ", i)
@@ -45,7 +44,6 @@ func (ex *Exporter) Refine(op int) error {
 		if rawTxIDMax == -1 {
 			return fmt.Errorf("fail to get transaction max(id) in database: %s", err)
 		}
-		rawTxIDMax = 1054686
 		zap.S().Infof("total count of raw_transaction : %d\n", rawTxIDMax)
 		for i := int64(1); i <= rawTxIDMax; i++ {
 			zap.S().Info("transaction working id : ", i)
