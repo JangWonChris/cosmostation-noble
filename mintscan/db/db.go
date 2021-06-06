@@ -17,8 +17,7 @@ type Database struct {
 
 // Connect opens a database connections with the given database connection info from config.
 func Connect(dbcfg *mblconfig.DatabaseConfig) *Database {
-	db := mddb.Connect(dbcfg.Host, dbcfg.Port, dbcfg.User, dbcfg.Password, dbcfg.DBName, dbcfg.ChainSchema, dbcfg.Timeout)
-	mdschema.SetCommonSchema(dbcfg.CommonSchema)
+	db := mddb.Connect(dbcfg.Host, dbcfg.Port, dbcfg.User, dbcfg.Password, dbcfg.DBName, dbcfg.CommonSchema, dbcfg.ChainSchema, dbcfg.Timeout)
 	fmt.Println("common schema :", dbcfg.CommonSchema)
 	fmt.Println("chain schema :", dbcfg.ChainSchema)
 
