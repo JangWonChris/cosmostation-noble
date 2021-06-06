@@ -2,10 +2,12 @@ package exporter
 
 import (
 	"fmt"
+	"time"
 
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmostation/cosmostation-cosmos/chain-config/custom"
 	mdschema "github.com/cosmostation/mintscan-database/schema"
+	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 	"go.uber.org/zap"
 )
 
@@ -18,7 +20,7 @@ func (ex *Exporter) Refine(op int) error {
 		if rawBlockIDMax == -1 {
 			return fmt.Errorf("fail to get block max(id) in database: %s", err)
 		}
-
+		rawBlockIDMax = 1281505
 		zap.S().Infof("total count of raw blocks : %d\n", rawBlockIDMax)
 		for i := int64(1); i <= rawBlockIDMax; i++ {
 			zap.S().Info("block working id : ", i)
@@ -43,6 +45,7 @@ func (ex *Exporter) Refine(op int) error {
 		if rawTxIDMax == -1 {
 			return fmt.Errorf("fail to get transaction max(id) in database: %s", err)
 		}
+		rawTxIDMax = 1054686
 		zap.S().Infof("total count of raw_transaction : %d\n", rawTxIDMax)
 		for i := int64(1); i <= rawTxIDMax; i++ {
 			zap.S().Info("transaction working id : ", i)
@@ -70,6 +73,9 @@ func (ex *Exporter) Refine(op int) error {
 			}
 		}
 	}
+	if err := ex.refineSync(); err != nil {
+		return err
+	}
 	return nil
 }
 func (ex *Exporter) refineRawTransactions(chainID string, txs []*sdktypes.TxResponse) (err error) {
@@ -94,10 +100,10 @@ func (ex *Exporter) refineRawTransactions(chainID string, txs []*sdktypes.TxResp
 		return fmt.Errorf("failed to get txs: %s", err)
 	}
 
-	refineData.SourceTransactionMessageAccounts = ex.disassembleTransaction(txs)
+	refineData.TMAs = ex.disassembleTransaction(txs)
 
 	if true {
-		return ex.db.InsertExportedRefineData(refineData)
+		return ex.db.InsertRefineData(refineData)
 	}
 	return fmt.Errorf("currently, disabled to store data into database\n")
 
@@ -122,14 +128,109 @@ func (ex *Exporter) getBlocksHasTxs(chainID string, begin, end int64) (list map[
 func (ex *Exporter) refineRawBlocks(block []mdschema.RawBlock) (err error) {
 	refineData := new(mdschema.RefineData)
 
-	refineData.Block, err = ex.getBlockFromDB(block)
+	refineData.Blocks, err = ex.getBlockFromDB(block)
 	if err != nil {
 		return fmt.Errorf("failed to get block: %s", err)
 	}
 
 	if true {
-		return ex.db.InsertExportedRefineData(refineData)
+		return ex.db.InsertRefineData(refineData)
 	}
 	return fmt.Errorf("currently do not store any data\n")
 
+}
+
+func (ex *Exporter) refineSync() error {
+	// Query latest block height saved in database
+	dbHeight, err := ex.db.QueryLatestBlockHeight(ChainIDMap[ChainID])
+	if dbHeight == -1 {
+		return fmt.Errorf("unexpected error in database: %s", err)
+	}
+
+	// Query latest block height on the active network
+	latestBlockHeight, err := ex.client.RPC.GetLatestBlockHeight()
+	if latestBlockHeight == -1 {
+		return fmt.Errorf("failed to query the latest block height on the active network: %s", err)
+	}
+
+	if dbHeight == 0 && InitialHeight != 0 {
+		dbHeight = InitialHeight - 1
+		zap.S().Info("initial Height set : ", InitialHeight)
+	}
+
+	beginHeight := dbHeight
+
+	zap.S().Infof("dbHeight %d\n", dbHeight)
+
+	for i := beginHeight + 1; i <= latestBlockHeight; i++ {
+		block, err := ex.client.RPC.GetBlock(i)
+		if err != nil {
+			return fmt.Errorf("failed to query block: %s", err)
+		}
+		retryFlag := false
+		zap.S().Infof("number of Transactions : %d", len(block.Block.Txs))
+		txList := block.Block.Txs
+		txs := make([]*sdktypes.TxResponse, len(block.Block.Txs))
+
+		for idx, tx := range txList {
+			hex := fmt.Sprintf("%X", tx.Hash())
+			controler <- struct{}{}
+			wg.Add(1)
+			go func(i int, hex string) {
+				zap.S().Info(i, hex)
+				defer func() {
+					<-controler
+					wg.Done()
+				}()
+
+				txs[i], err = ex.client.CliCtx.GetTx(hex)
+				if err != nil {
+					zap.S().Error("Error while getting tx ", hex)
+					retryFlag = true
+					return
+				}
+			}(idx, hex)
+		}
+		wg.Wait()
+
+		if retryFlag {
+			zap.S().Error("can not get all of tx, retry get tx in block height = ", i)
+			i--
+			time.Sleep(1 * time.Second)
+			continue
+		}
+
+		if i > dbHeight {
+			err = ex.refineRealTimeprocess(block, txs)
+			if err != nil {
+				return err
+			}
+		}
+		zap.S().Infof("synced block %d/%d", i, latestBlockHeight)
+	}
+	return nil
+}
+func (ex *Exporter) refineRealTimeprocess(block *tmctypes.ResultBlock, txs []*sdktypes.TxResponse) (err error) {
+	basic := new(mdschema.BasicData)
+
+	basic.Block, err = ex.getBlock(block)
+	if err != nil {
+		return fmt.Errorf("failed to get block: %s", err)
+	}
+
+	if basic.Block.NumTxs > 0 {
+		// 시작
+		// block-id 추출을 위해 사용
+		list := make(map[int64]*mdschema.Block)
+		list[block.Block.Height] = basic.Block
+		// 종료
+
+		basic.Transactions, err = ex.getTxs(block.Block.ChainID, list, txs)
+		if err != nil {
+			return fmt.Errorf("failed to get txs: %s", err)
+		}
+		basic.TMAs = ex.disassembleTransaction(txs)
+	}
+
+	return ex.db.InsertRefineRealTimeData(basic)
 }

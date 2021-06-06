@@ -7,9 +7,11 @@ require (
 	github.com/cosmos/gaia/v4 v4.2.1
 	github.com/cosmostation/cosmostation-cosmos/chain-config v0.0.0-00010101000000-000000000000
 	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210324082716-ab8cf6f38a06
-	github.com/cosmostation/mintscan-backend-library v0.0.0-20210531025314-04d5451343a2
+	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210531025314-04d5451343a2
+	github.com/cosmostation/mintscan-backend-library v0.0.0-20210604074244-3e99b234a4e3
 	// github.com/cosmostation/mintscan-database v0.0.0-20210527160957-d532bacf97e3
-	github.com/cosmostation/mintscan-database v0.0.0-20210531025050-4bde204e18c6
+	// github.com/cosmostation/mintscan-database v0.0.0-20210531025050-4bde204e18c6
+	github.com/cosmostation/mintscan-database v0.0.0-20210606052634-74b77d28640e
 	github.com/go-pg/pg/v10 v10.9.1
 	github.com/go-resty/resty/v2 v2.4.0
 	github.com/stretchr/testify v1.7.0

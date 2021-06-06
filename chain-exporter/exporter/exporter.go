@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap"
 
 	//internal
-	"github.com/cosmostation/cosmostation-cosmos/chain-config/custom"
+
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/client"
 	"github.com/cosmostation/cosmostation-cosmos/chain-exporter/db"
 
@@ -71,18 +71,18 @@ func NewExporter(op int) *Exporter {
 		return &Exporter{}
 	}
 
-	switch op {
-	case REFINE_MODE:
-		mdschema.SetCommonSchema("refine")
-		// database.CreateRefineTables()
-	case BASIC_MODE, RAW_MODE, GENESIS_MODE:
-		mdschema.SetCommonSchema("public")
-		// database.CreateTables()
-		// rawdb.CreateTables()
-	default:
-		zap.S().Panic("Unknow operator type :", op)
-		os.Exit(1)
-	}
+	// switch op {
+	// case REFINE_MODE:
+	// 	mdschema.SetCommonSchema(config.DB.CommonSchema)
+	// 	// database.CreateRefineTables()
+	// case BASIC_MODE, RAW_MODE, GENESIS_MODE:
+	// 	mdschema.SetCommonSchema(config.DB.CommonSchema)
+	// 	// database.CreateTables()
+	// 	// rawdb.CreateTables()
+	// default:
+	// 	zap.S().Panic("Unknow operator type :", op)
+	// 	os.Exit(1)
+	// }
 
 	return &Exporter{config, client, database, rawdb}
 }
@@ -202,51 +202,6 @@ func (ex *Exporter) Start(op int) {
 	zap.S().Infof("shutdown signal received")
 }
 
-func (ex *Exporter) ReproducePowerEventHistory(op int) error {
-	// Query latest block height saved in database
-	dbHeight, err := ex.db.QueryLatestBlockHeight(ChainIDMap[ChainID])
-	if dbHeight == -1 {
-		return fmt.Errorf("unexpected error in database: %s", err)
-	}
-
-	zap.S().Infof("dst db %d \n", dbHeight)
-
-	i := int64(1)
-	endHeight := int64(200)
-	for ; i <= dbHeight; i += endHeight {
-		zap.S().Info("working height : ", i)
-		rawTxs, err := ex.db.QueryTxForPowerEventHistory(i, i+endHeight) // 1 <= x < 201, 201 <= x < 201+200
-		if err != nil {
-			return err
-		}
-
-		rawTxsLen := len(rawTxs)
-		if rawTxsLen > 0 {
-
-			txs := make([]*sdktypes.TxResponse, len(rawTxs))
-			for i := range rawTxs {
-				zap.S().Info("height : ", i, ", num_txs : ")
-				tx := new(sdktypes.TxResponse)
-				if err := custom.AppCodec.UnmarshalJSON([]byte(rawTxs[i].Chunk), tx); err != nil {
-					return err
-				}
-				txs[i] = tx
-			}
-
-			exportData := new(mdschema.BasicData)
-			exportData.ValidatorsPowerEventHistory, err = ex.getPowerEventHistoryNew(txs)
-			if err != nil {
-				return err
-			}
-			return ex.db.InsertExportedData(exportData)
-
-		}
-
-	}
-	return nil
-
-}
-
 // sync compares block height between the height saved in your database and
 // the latest block height on the active chain and calls process to start ingesting data.
 func (ex *Exporter) sync(op int) error {
@@ -344,17 +299,17 @@ func (ex *Exporter) sync(op int) error {
 }
 
 func (ex *Exporter) rawProcess(block *tmctypes.ResultBlock, txs []*sdktypes.TxResponse) (err error) {
-	exportRawData := new(mdschema.RawData)
+	rawData := new(mdschema.RawData)
 
-	exportRawData.Block, err = ex.getRawBlock(block)
+	rawData.Block, err = ex.getRawBlock(block)
 	if err != nil {
 		return fmt.Errorf("failed to get block: %s", err)
 	}
-	exportRawData.Transactions, err = ex.getRawTransactions(block, txs)
+	rawData.Transactions, err = ex.getRawTransactions(block, txs)
 	if err != nil {
 		return fmt.Errorf("failed to get txs: %s", err)
 	}
-	return ex.rawdb.InsertExportedData(exportRawData)
+	return ex.rawdb.InsertExportedData(rawData)
 }
 
 // process ingests chain data, such as block, transaction, validator, evidence information and
@@ -414,7 +369,7 @@ func (ex *Exporter) process(block *tmctypes.ResultBlock, txs []*sdktypes.TxRespo
 		if err != nil {
 			return fmt.Errorf("failed to get txs: %s", err)
 		}
-		basic.SourceTransactionMessageAccounts = ex.disassembleTransaction(txs)
+		basic.TMAs = ex.disassembleTransaction(txs)
 	}
 
 	// TODO: is this right place to be?

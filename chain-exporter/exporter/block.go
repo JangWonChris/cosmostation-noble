@@ -74,7 +74,7 @@ func (ex *Exporter) getBlockFromDB(rawBlocks []mdschema.RawBlock) (blocks []mdsc
 				ns++
 			}
 		}
-		if block.Block.Height == 1 {
+		if block.Block.Height == 1 || block.Block.Height == InitialHeight {
 			ph = "genesis"
 		}
 		b := mdschema.Block{
