@@ -205,6 +205,7 @@ type (
 
 	// ResultUptime defines the structure for validator's uptime (last 100 blocks from the latest block).
 	ResultUptime struct {
+		ID        int64     `json:"id"`
 		Height    int64     `json:"height"`
 		Timestamp time.Time `json:"timestamp"`
 	}

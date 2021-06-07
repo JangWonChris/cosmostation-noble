@@ -239,6 +239,7 @@ func GetValidatorUptime(rw http.ResponseWriter, r *http.Request) {
 
 	for _, block := range blocks {
 		uptime := &model.ResultUptime{
+			ID:        block.ID,
 			Height:    block.Height,
 			Timestamp: block.Timestamp,
 		}
