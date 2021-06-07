@@ -199,6 +199,7 @@ type ResultMisses struct {
 type (
 	// ResultMissesDetail defines the structure for validator miss block detail result response.
 	ResultMissesDetail struct {
+		ID           int64          `json:"id"`
 		LatestHeight int64          `json:"latest_height"`
 		ResultUptime []ResultUptime `json:"uptime"`
 	}

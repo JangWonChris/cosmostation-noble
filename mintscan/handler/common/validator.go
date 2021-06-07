@@ -213,31 +213,37 @@ func GetValidatorUptime(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	latestDBHeight, err := s.DB.QueryLatestBlockHeight(handler.ChainIDMap[handler.ChainID])
+	latestBlock, err := s.DB.QueryLatestBlocks(handler.ChainIDMap[handler.ChainID], 1)
 	if err != nil {
-		zap.S().Errorf("failed to query latest block height: %s", err)
+		zap.S().Errorf("failed to get latest block : %s", err)
+		errors.ErrInternalServer(rw, http.StatusInternalServerError)
+		return
+	}
+
+	if len(latestBlock) < 1 {
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
 		return
 	}
 
 	var result model.ResultMissesDetail
-	result.LatestHeight = latestDBHeight - 1
+	result.LatestHeight = latestBlock[0].Height - 1
+	result.ID = latestBlock[0].ID
 
 	// Query missing blocks for the last 100 blocks
-	blocks, err := s.DB.QueryValidatorUptime(val.Proposer, result.LatestHeight)
+	MissDetail, err := s.DB.QueryValidatorUptime(val.Proposer, result.LatestHeight)
 	if err != nil {
 		zap.S().Errorf("failed to query validator's missing blocks: %s", err)
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
 		return
 	}
 
-	if len(blocks) <= 0 {
+	if len(MissDetail) <= 0 {
 		result.ResultUptime = []model.ResultUptime{} // empty array
 		model.Respond(rw, result)
 		return
 	}
 
-	for _, block := range blocks {
+	for _, block := range MissDetail {
 		uptime := &model.ResultUptime{
 			ID:        block.ID,
 			Height:    block.Height,
