@@ -406,7 +406,6 @@ func GetValidatorPowerHistoryEvents(rw http.ResponseWriter, r *http.Request) {
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
 		return
 	}
-	fmt.Println(len(events))
 
 	result := make([]*model.ResultPowerEventHistory, 0)
 
