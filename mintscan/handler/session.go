@@ -3,6 +3,7 @@ package handler
 import (
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/client"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/db"
+	"go.uber.org/zap"
 )
 
 // Sessions is shorten for s will be used throughout this handler pakcage.
@@ -28,10 +29,12 @@ func SetSession(client *client.Client, db *db.Database) *Session {
 }
 
 func SetChainID() {
-	ChainID, err := s.Client.RPC.GetNetworkChainID()
+	chainID, err := s.Client.RPC.GetNetworkChainID()
 	if err != nil {
 		panic(err)
 	}
+
+	ChainID = chainID
 
 	chainInfo, err := s.DB.QueryChainInfo()
 	if err != nil {
@@ -45,6 +48,13 @@ func SetChainID() {
 	if !ok {
 		panic("chain id does not exist")
 	}
+
+	zap.S().Info(ChainIDMap)
+	zap.S().Info("Current Chain-id : ", ChainID)
+}
+
+func GetChainID() string {
+	return ChainID
 }
 
 func SetMessageInfo() {

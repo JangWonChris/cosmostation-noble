@@ -9,7 +9,7 @@ import (
 
 // TxData defines the structure for transction data list.
 type TxData struct {
-	Txs []string `json:"txs"`
+	Txs []json.RawMessage `json:"txs"`
 }
 
 // TxList defines the structure for transaction list.

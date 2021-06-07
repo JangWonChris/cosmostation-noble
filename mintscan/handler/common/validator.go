@@ -550,26 +550,20 @@ func GetValidatorProposedBlocks(rw http.ResponseWriter, r *http.Request) {
 	result := make([]*model.ResultBlock, 0)
 
 	for _, b := range blocks {
-		val, err := s.DB.QueryValidatorByAnyAddr(b.Proposer)
-		if err != nil {
-			zap.L().Error("failed to query validator", zap.Error(err))
-			errors.ErrInternalServer(rw, http.StatusInternalServerError)
-			return
-		}
 
-		txs, err := s.DB.QueryTransactionsInBlockHeight(b.ChainInfoID, b.Height)
-		if err != nil {
-			zap.L().Error("failed to query transactions in a block", zap.Error(err))
-			errors.ErrInternalServer(rw, http.StatusInternalServerError)
-			return
-		}
+		// txs, err := s.DB.QueryTransactionsInBlockHeight(b.ChainInfoID, b.Height)
+		// if err != nil {
+		// 	zap.L().Error("failed to query transactions in a block", zap.Error(err))
+		// 	errors.ErrInternalServer(rw, http.StatusInternalServerError)
+		// 	return
+		// }
 
-		var txData model.TxData
-		if len(txs) > 0 {
-			for _, tx := range txs {
-				txData.Txs = append(txData.Txs, tx.Hash)
-			}
-		}
+		// var txData model.TxData
+		// if len(txs) > 0 {
+		// 	for _, tx := range txs {
+		// 		txData.Txs = append(txData.Txs, tx.Chunk)
+		// 	}
+		// }
 
 		b := &model.ResultBlock{
 			ID:                     b.ID,
@@ -581,7 +575,7 @@ func GetValidatorProposedBlocks(rw http.ResponseWriter, r *http.Request) {
 			Identity:               val.Identity,
 			NumTxs:                 b.NumTxs,
 			TotalNumProposerBlocks: totalNum,
-			TxData:                 txData,
+			Txs:                    nil,
 			Timestamp:              b.Timestamp,
 		}
 

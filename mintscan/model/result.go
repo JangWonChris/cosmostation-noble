@@ -44,18 +44,18 @@ type ResultTotalBalance struct {
 
 // ResultBlock defines the structure for block result response.
 type ResultBlock struct {
-	ID                     int64     `json:"id,omitempty"`
-	Height                 int64     `json:"height"`
-	Proposer               string    `json:"proposer"`
-	OperatorAddress        string    `json:"operator_address,omitempty"`
-	Moniker                string    `json:"moniker"`
-	BlockHash              string    `json:"block_hash"`
-	Identity               string    `json:"identity,omitempty"`
-	NumSignatures          int64     `json:"num_signatures,omitempty" sql:",notnull"`
-	NumTxs                 int64     `json:"num_txs"`
-	TotalNumProposerBlocks int       `json:"total_num_proposer_blocks,omitempty"`
-	TxData                 TxData    `json:"tx_data"`
-	Timestamp              time.Time `json:"timestamp"`
+	ID                     int64             `json:"id,omitempty"`
+	Height                 int64             `json:"height"`
+	Proposer               string            `json:"proposer"`
+	OperatorAddress        string            `json:"operator_address,omitempty"`
+	Moniker                string            `json:"moniker"`
+	BlockHash              string            `json:"block_hash"`
+	Identity               string            `json:"identity,omitempty"`
+	NumSignatures          int64             `json:"num_signatures,omitempty" sql:",notnull"`
+	NumTxs                 int64             `json:"num_txs"`
+	TotalNumProposerBlocks int               `json:"total_num_proposer_blocks,omitempty"`
+	Txs                    []json.RawMessage `json:"txs"`
+	Timestamp              time.Time         `json:"timestamp"`
 }
 
 // ResultDelegations defines the structure for delegations result response.

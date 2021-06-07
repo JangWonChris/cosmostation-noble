@@ -1,6 +1,7 @@
 package common
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -21,12 +22,6 @@ func GetBlocks(rw http.ResponseWriter, r *http.Request) {
 		errors.ErrInvalidParam(rw, http.StatusBadRequest, "request is invalid")
 		return
 	}
-
-	// if limit > 100 {
-	// 	zap.S().Debug("failed to query with this limit ", zap.Int("request limit", limit))
-	// 	errors.ErrOverMaxLimit(rw, http.StatusUnauthorized)
-	// 	return
-	// }
 
 	blocks, err := s.DB.QueryBlocks(from, limit)
 	if err != nil {
@@ -49,18 +44,6 @@ func GetBlocks(rw http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		txs, err := s.DB.QueryTransactionsInBlockHeight(block.ChainInfoID, block.Height)
-		if err != nil {
-			zap.L().Error("failed to query txs", zap.Error(err))
-			errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
-			return
-		}
-
-		var txData model.TxData
-		for _, tx := range txs {
-			txData.Txs = append(txData.Txs, tx.Hash)
-		}
-
 		b := &model.ResultBlock{
 			ID:              block.ID,
 			Height:          block.Height,
@@ -71,7 +54,7 @@ func GetBlocks(rw http.ResponseWriter, r *http.Request) {
 			Identity:        validator.Identity,
 			NumSignatures:   block.NumSignatures,
 			NumTxs:          block.NumTxs,
-			TxData:          txData,
+			Txs:             nil,
 			Timestamp:       block.Timestamp,
 		}
 
@@ -86,12 +69,6 @@ func GetBlocks(rw http.ResponseWriter, r *http.Request) {
 func GetBlocksByID(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	idStr := vars["id"]
-
-	// if limit > 100 {
-	// 	zap.S().Debug("failed to query with this limit ", zap.Int("request limit", limit))
-	// 	errors.ErrOverMaxLimit(rw, http.StatusUnauthorized)
-	// 	return
-	// }
 
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
@@ -108,6 +85,7 @@ func GetBlocksByID(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(blocks) <= 0 {
+		zap.S().Error("failed to get block length : 0", zap.Error(err))
 		errors.ErrNotFound(rw, http.StatusNotFound)
 		return
 	}
@@ -121,16 +99,18 @@ func GetBlocksByID(rw http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		txs, err := s.DB.QueryTransactionsInBlockHeight(block.ChainInfoID, block.Height)
-		if err != nil {
-			zap.L().Error("failed to query txs", zap.Error(err))
-			errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
-			return
-		}
+		var txData []json.RawMessage
+		if block.NumTxs > 0 {
+			txs, err := s.DB.QueryTransactionsByBlockID(block.ID)
+			if err != nil {
+				zap.L().Error("failed to query txs", zap.Error(err))
+				errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
+				return
+			}
 
-		var txData model.TxData
-		for _, tx := range txs {
-			txData.Txs = append(txData.Txs, tx.Hash)
+			for _, tx := range txs {
+				txData = append(txData, tx.Chunk)
+			}
 		}
 
 		b := &model.ResultBlock{
@@ -143,7 +123,7 @@ func GetBlocksByID(rw http.ResponseWriter, r *http.Request) {
 			Identity:        validator.Identity,
 			NumSignatures:   block.NumSignatures,
 			NumTxs:          block.NumTxs,
-			TxData:          txData,
+			Txs:             txData,
 			Timestamp:       block.Timestamp,
 		}
 
@@ -158,12 +138,6 @@ func GetBlocksByID(rw http.ResponseWriter, r *http.Request) {
 func GetBlocksByHash(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	hashStr := vars["hash"]
-
-	// if limit > 100 {
-	// 	zap.S().Debug("failed to query with this limit ", zap.Int("request limit", limit))
-	// 	errors.ErrOverMaxLimit(rw, http.StatusUnauthorized)
-	// 	return
-	// }
 
 	blocks, err := s.DB.QueryBlockByHash(hashStr)
 	if err != nil {
@@ -186,16 +160,18 @@ func GetBlocksByHash(rw http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		txs, err := s.DB.QueryTransactionsInBlockHeight(block.ChainInfoID, block.Height)
-		if err != nil {
-			zap.L().Error("failed to query txs", zap.Error(err))
-			errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
-			return
-		}
+		var txData []json.RawMessage
+		if block.NumTxs > 0 {
+			txs, err := s.DB.QueryTransactionsByBlockID(block.ID)
+			if err != nil {
+				zap.L().Error("failed to query txs", zap.Error(err))
+				errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
+				return
+			}
 
-		var txData model.TxData
-		for _, tx := range txs {
-			txData.Txs = append(txData.Txs, tx.Hash)
+			for _, tx := range txs {
+				txData = append(txData, tx.Chunk)
+			}
 		}
 
 		b := &model.ResultBlock{
@@ -208,7 +184,7 @@ func GetBlocksByHash(rw http.ResponseWriter, r *http.Request) {
 			Identity:        validator.Identity,
 			NumSignatures:   block.NumSignatures,
 			NumTxs:          block.NumTxs,
-			TxData:          txData,
+			Txs:             txData,
 			Timestamp:       block.Timestamp,
 		}
 
@@ -272,18 +248,6 @@ func GetBlocksByProposer(rw http.ResponseWriter, r *http.Request) {
 	result := make([]*model.ResultBlock, 0)
 
 	for _, b := range blocks {
-		var txData model.TxData
-		if b.NumTxs > 0 {
-			txs, err := s.DB.QueryTransactionsInBlockHeight(b.ChainInfoID, b.Height)
-			if err != nil {
-				zap.L().Error("failed to query transactions in a block", zap.Error(err))
-				errors.ErrInternalServer(rw, http.StatusInternalServerError)
-				return
-			}
-			for _, tx := range txs {
-				txData.Txs = append(txData.Txs, tx.Hash)
-			}
-		}
 
 		b := &model.ResultBlock{
 			ID:                     b.ID,
@@ -295,7 +259,7 @@ func GetBlocksByProposer(rw http.ResponseWriter, r *http.Request) {
 			Identity:               val.Identity,
 			NumTxs:                 b.NumTxs, // 사용 값
 			TotalNumProposerBlocks: totalNum,
-			TxData:                 txData,
+			Txs:                    nil,
 			Timestamp:              b.Timestamp, // 사용 값
 		}
 
