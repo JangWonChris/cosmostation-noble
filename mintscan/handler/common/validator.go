@@ -230,24 +230,24 @@ func GetValidatorUptime(rw http.ResponseWriter, r *http.Request) {
 	result.ID = latestBlock[0].ID
 
 	// Query missing blocks for the last 100 blocks
-	MissDetail, err := s.DB.QueryValidatorUptime(val.Proposer, result.LatestHeight)
+	missDetails, err := s.DB.QueryValidatorUptime(val.Proposer, result.LatestHeight)
 	if err != nil {
 		zap.S().Errorf("failed to query validator's missing blocks: %s", err)
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)
 		return
 	}
 
-	if len(MissDetail) <= 0 {
+	if len(missDetails) <= 0 {
 		result.ResultUptime = []model.ResultUptime{} // empty array
 		model.Respond(rw, result)
 		return
 	}
 
-	for _, block := range MissDetail {
+	for _, md := range missDetails {
 		uptime := &model.ResultUptime{
-			ID:        block.ID,
-			Height:    block.Height,
-			Timestamp: block.Timestamp,
+			ID:        md.ID,
+			Height:    md.Height,
+			Timestamp: md.Timestamp,
 		}
 
 		result.ResultUptime = append(result.ResultUptime, *uptime)

@@ -1,7 +1,6 @@
 package common
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/handler"
@@ -31,7 +30,7 @@ func TestGetBlocksByProposerNew(t *testing.T) {
 	result := make([]*model.ResultBlock, 0)
 
 	for _, b := range rb {
-		var txData []json.RawMessage
+		var txResps []*model.ResultTx
 		if b.NumTxs > 0 {
 			txs, err := tdb.QueryTransactionsInBlockHeight(handler.ChainIDMap[handler.ChainID], b.Height)
 			if err != nil {
@@ -39,11 +38,7 @@ func TestGetBlocksByProposerNew(t *testing.T) {
 				return
 			}
 
-			if len(txs) > 0 {
-				for _, tx := range txs {
-					txData = append(txData, tx.Chunk)
-				}
-			}
+			txResps = model.ParseTransactions(txs)
 		}
 
 		b := &model.ResultBlock{
@@ -56,7 +51,7 @@ func TestGetBlocksByProposerNew(t *testing.T) {
 			Identity:               b.Identity,
 			NumTxs:                 b.NumTxs,
 			TotalNumProposerBlocks: b.TotalNumProposerBlocks,
-			Txs:                    txData,
+			Txs:                    txResps,
 			Timestamp:              b.Timestamp,
 		}
 

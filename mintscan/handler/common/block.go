@@ -1,7 +1,6 @@
 package common
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -99,7 +98,7 @@ func GetBlocksByID(rw http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		var txData []json.RawMessage
+		var txResps []*model.ResultTx
 		if block.NumTxs > 0 {
 			txs, err := s.DB.QueryTransactionsByBlockID(block.ID)
 			if err != nil {
@@ -108,9 +107,7 @@ func GetBlocksByID(rw http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			for _, tx := range txs {
-				txData = append(txData, tx.Chunk)
-			}
+			txResps = model.ParseTransactions(txs)
 		}
 
 		b := &model.ResultBlock{
@@ -123,7 +120,7 @@ func GetBlocksByID(rw http.ResponseWriter, r *http.Request) {
 			Identity:        validator.Identity,
 			NumSignatures:   block.NumSignatures,
 			NumTxs:          block.NumTxs,
-			Txs:             txData,
+			Txs:             txResps,
 			Timestamp:       block.Timestamp,
 		}
 
@@ -160,7 +157,7 @@ func GetBlocksByHash(rw http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		var txData []json.RawMessage
+		var txResps []*model.ResultTx
 		if block.NumTxs > 0 {
 			txs, err := s.DB.QueryTransactionsByBlockID(block.ID)
 			if err != nil {
@@ -169,9 +166,7 @@ func GetBlocksByHash(rw http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			for _, tx := range txs {
-				txData = append(txData, tx.Chunk)
-			}
+			txResps = model.ParseTransactions(txs)
 		}
 
 		b := &model.ResultBlock{
@@ -184,7 +179,7 @@ func GetBlocksByHash(rw http.ResponseWriter, r *http.Request) {
 			Identity:        validator.Identity,
 			NumSignatures:   block.NumSignatures,
 			NumTxs:          block.NumTxs,
-			Txs:             txData,
+			Txs:             txResps,
 			Timestamp:       block.Timestamp,
 		}
 
