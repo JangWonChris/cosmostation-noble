@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/errors"
+	"github.com/cosmostation/cosmostation-cosmos/mintscan/handler"
 	"github.com/cosmostation/cosmostation-cosmos/mintscan/model"
 	mdschema "github.com/cosmostation/mintscan-database/schema"
 
@@ -137,6 +138,72 @@ func GetBlocksByHash(rw http.ResponseWriter, r *http.Request) {
 	hashStr := vars["hash"]
 
 	blocks, err := s.DB.QueryBlockByHash(hashStr)
+	if err != nil {
+		zap.S().Debug("failed to get blocks ", zap.Error(err))
+		errors.ErrInternalServer(rw, http.StatusInternalServerError)
+		return
+	}
+
+	if len(blocks) <= 0 {
+		errors.ErrNotFound(rw, http.StatusNotFound)
+		return
+	}
+
+	result := make([]*model.ResultBlock, 0)
+
+	for _, block := range blocks {
+		validator, err := s.DB.QueryValidatorByAnyAddr(block.Proposer)
+		if err != nil {
+			zap.S().Error("failed to query validator by proposer", zap.Error(err))
+			return
+		}
+
+		var txResps []*model.ResultTx
+		if block.NumTxs > 0 {
+			txs, err := s.DB.QueryTransactionsByBlockID(block.ID)
+			if err != nil {
+				zap.L().Error("failed to query txs", zap.Error(err))
+				errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
+				return
+			}
+
+			txResps = model.ParseTransactions(txs)
+		}
+
+		b := &model.ResultBlock{
+			ID:              block.ID,
+			Height:          block.Height,
+			Proposer:        block.Proposer,
+			OperatorAddress: validator.OperatorAddress,
+			Moniker:         validator.Moniker,
+			BlockHash:       block.Hash,
+			Identity:        validator.Identity,
+			NumSignatures:   block.NumSignatures,
+			NumTxs:          block.NumTxs,
+			Txs:             txResps,
+			Timestamp:       block.Timestamp,
+		}
+
+		result = append(result, b)
+	}
+
+	model.Respond(rw, result)
+	return
+}
+
+func GetBlockByChainIDHeight(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	chainIDStr := vars["chainid"]
+	heightStr := vars["height"]
+
+	height, err := strconv.ParseInt(heightStr, 10, 64)
+	if err != nil {
+		zap.S().Debug("failed to parse int block height", zap.Error(err))
+		errors.ErrInternalServer(rw, http.StatusInternalServerError)
+		return
+	}
+
+	blocks, err := s.DB.QueryBlockByChainIDHeight(handler.ChainIDMap[chainIDStr], height)
 	if err != nil {
 		zap.S().Debug("failed to get blocks ", zap.Error(err))
 		errors.ErrInternalServer(rw, http.StatusInternalServerError)

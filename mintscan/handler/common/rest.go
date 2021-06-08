@@ -22,6 +22,7 @@ func RegisterHandlers(session *handler.Session, r *mux.Router) {
 	r.HandleFunc("/blocks", GetBlocks).Methods("GET") // ?from=&limit=
 	r.HandleFunc("/block/id/{id}", GetBlocksByID).Methods("GET")
 	r.HandleFunc("/block/hash/{hash}", GetBlocksByHash).Methods("GET")
+	r.HandleFunc("/block/{chainid}/{height}", GetBlockByChainIDHeight).Methods("GET")
 
 	r.HandleFunc("/gov/proposals", GetProposals).Methods("GET")
 	r.HandleFunc("/gov/proposal/{proposal_id}", GetProposal).Methods("GET")

@@ -9,7 +9,7 @@ require (
 	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210531025314-04d5451343a2
 	github.com/cosmostation/mintscan-backend-library v0.0.0-20210604074244-3e99b234a4e3
 	// github.com/cosmostation/mintscan-database v0.0.0-20210604074757-98671cab816c
-	github.com/cosmostation/mintscan-database v0.0.0-20210607091759-ae708b485f9c
+	github.com/cosmostation/mintscan-database v0.0.0-20210608062714-c0d48492254d
 	github.com/go-pg/pg/v10 v10.9.1
 	github.com/go-resty/resty/v2 v2.4.0
 	github.com/gorilla/mux v1.8.0

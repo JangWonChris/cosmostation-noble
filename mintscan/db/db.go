@@ -24,25 +24,6 @@ func Connect(dbcfg *mblconfig.DatabaseConfig) *Database {
 	return &Database{db}
 }
 
-// QueryTransactionsInBlockHeight returns transactions that are included in a single block.
-//QueryTransactionsByBlockHeight 에서 이름 변경
-func (db *Database) QueryTransactionsInBlockHeight(chain_info_id int, height int64) ([]mdschema.Transaction, error) {
-	var txs []mdschema.Transaction
-	err := db.Model(&txs).
-		Column("chunk").
-		Where("height = ? and chain_info_id = ?", height, chain_info_id).
-		Select()
-
-	if err != nil {
-		if err == pg.ErrNoRows {
-			return []mdschema.Transaction{}, nil
-		}
-		return []mdschema.Transaction{}, err
-	}
-
-	return txs, nil
-}
-
 // QueryLatestTwoBlocks() 대체용 함수 - 응답 구조체 파싱 오류
 /*
 	Error:      	Received unexpected error:
