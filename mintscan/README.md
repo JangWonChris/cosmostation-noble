@@ -1,1 +1,0 @@
-# cosmostation-mintscan-api

@@ -23,6 +23,10 @@
 **/chain-exporter.yaml
 **/mintscan.yaml
 
+**/mintscan
+**/chain-exporter
+
 # genesis.json
 genesis.json
 ignoredir/
+deprecated/
