@@ -46,6 +46,7 @@ func GetBlocks(rw http.ResponseWriter, r *http.Request) {
 
 		b := &model.ResultBlock{
 			ID:              block.ID,
+			ChainID:         handler.ChainNumMap[block.ChainInfoID],
 			Height:          block.Height,
 			Proposer:        block.Proposer,
 			OperatorAddress: validator.OperatorAddress,
@@ -113,6 +114,7 @@ func GetBlocksByID(rw http.ResponseWriter, r *http.Request) {
 
 		b := &model.ResultBlock{
 			ID:              block.ID,
+			ChainID:         handler.ChainNumMap[block.ChainInfoID],
 			Height:          block.Height,
 			Proposer:        block.Proposer,
 			OperatorAddress: validator.OperatorAddress,
@@ -172,6 +174,7 @@ func GetBlocksByHash(rw http.ResponseWriter, r *http.Request) {
 
 		b := &model.ResultBlock{
 			ID:              block.ID,
+			ChainID:         handler.ChainNumMap[block.ChainInfoID],
 			Height:          block.Height,
 			Proposer:        block.Proposer,
 			OperatorAddress: validator.OperatorAddress,
@@ -238,6 +241,7 @@ func GetBlockByChainIDHeight(rw http.ResponseWriter, r *http.Request) {
 
 		b := &model.ResultBlock{
 			ID:              block.ID,
+			ChainID:         handler.ChainNumMap[block.ChainInfoID],
 			Height:          block.Height,
 			Proposer:        block.Proposer,
 			OperatorAddress: validator.OperatorAddress,
@@ -313,6 +317,7 @@ func GetBlocksByProposer(rw http.ResponseWriter, r *http.Request) {
 
 		b := &model.ResultBlock{
 			ID:                     b.ID,
+			ChainID:                handler.ChainNumMap[b.ChainInfoID],
 			Height:                 b.Height, // 사용 값
 			Proposer:               val.Proposer,
 			OperatorAddress:        val.OperatorAddress,

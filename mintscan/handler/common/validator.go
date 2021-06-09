@@ -573,6 +573,7 @@ func GetValidatorProposedBlocks(rw http.ResponseWriter, r *http.Request) {
 
 		b := &model.ResultBlock{
 			ID:                     b.ID,
+			ChainID:                handler.ChainNumMap[b.ChainInfoID],
 			Height:                 b.Height,
 			Proposer:               b.Proposer,
 			OperatorAddress:        val.OperatorAddress,

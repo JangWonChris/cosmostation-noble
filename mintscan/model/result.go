@@ -45,6 +45,7 @@ type ResultTotalBalance struct {
 // ResultBlock defines the structure for block result response.
 type ResultBlock struct {
 	ID                     int64       `json:"id,omitempty"`
+	ChainID                string      `json:"chainid"`
 	Height                 int64       `json:"height"`
 	Proposer               string      `json:"proposer"`
 	OperatorAddress        string      `json:"operator_address,omitempty"`
