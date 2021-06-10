@@ -8,6 +8,7 @@ import (
 	mddb "github.com/cosmostation/mintscan-database/db"
 	"github.com/cosmostation/mintscan-database/schema"
 	mdschema "github.com/cosmostation/mintscan-database/schema"
+	"go.uber.org/zap"
 
 	pg "github.com/go-pg/pg/v10"
 )
@@ -26,6 +27,10 @@ type Database struct {
 // Connect opens a database connections with the given database connection info from config.
 func Connect(dbcfg *mblconfig.DatabaseConfig) *Database {
 	db := mddb.Connect(dbcfg.Host, dbcfg.Port, dbcfg.User, dbcfg.Password, dbcfg.DBName, dbcfg.CommonSchema, dbcfg.ChainSchema, dbcfg.Timeout)
+	zap.S().Info("db package :", schema.GetCommonSchema())
+	zap.S().Info("db package :", schema.GetChainSchema())
+	mdschema.SetCommonSchema(dbcfg.CommonSchema)
+	mdschema.SetChainSchema(dbcfg.ChainSchema)
 	return &Database{db}
 }
 

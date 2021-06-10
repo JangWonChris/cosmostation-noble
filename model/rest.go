@@ -10,18 +10,7 @@ import (
 )
 
 const (
-	// DefaultLimit is the default limit of response items for APIs.
-	DefaultLimit = 100
 	defaultLimit = 50
-
-	// DefaultPowerEventHistoryLimit is the default limit for Power Event History API.
-	DefaultPowerEventHistoryLimit = 50
-
-	// DefaultBefore is the default parameter that will be used to query database previous items from the default param.
-	DefaultBefore = 0
-
-	// DefaultAfter is he default parameter that will be used to query database next items from the default param.
-	DefaultAfter = -1
 )
 
 // ResponseWithHeight is a wrapper for returned values from REST API calls.
@@ -40,7 +29,7 @@ func ReadRespWithHeight(resp *resty.Response) ResponseWithHeight {
 	return responseWithHeight
 }
 
-// ParseHTTPArgsWithBeforeAfterLimit parses the request's URL and returns all arguments pairs.
+// ParseHTTPArgs parses the request's URL and returns all arguments pairs.
 // It separates page and limit used for pagination where a default limit can be provided.
 func ParseHTTPArgs(r *http.Request) (from int64, limit int, err error) {
 	fromStr := r.FormValue("from")
@@ -58,9 +47,6 @@ func ParseHTTPArgs(r *http.Request) (from int64, limit int, err error) {
 	}
 
 	limitStr := r.FormValue("limit")
-	// if limitStr == "" {
-	// 	return from, limit, nil
-	// }
 
 	limit, err = strconv.Atoi(limitStr) // ParseInt(limitStr, 10, 0)
 	if err != nil {
@@ -77,51 +63,3 @@ func ParseHTTPArgs(r *http.Request) (from int64, limit int, err error) {
 
 	return from, limit, nil
 }
-
-// ParseHTTPArgsWithBeforeAfterLimit parses the request's URL and returns all arguments pairs.
-// It separates page and limit used for pagination where a default limit can be provided.
-// func ParseHTTPArgsWithBeforeAfterLimit(r *http.Request, defaultBefore, defaultAfter, defaultLimit int) (before, after, limit int, err error) {
-// 	beforeStr := r.FormValue("before")
-// 	if beforeStr == "" {
-// 		before = defaultBefore
-// 	} else {
-// 		before, err = strconv.Atoi(beforeStr)
-// 		if err != nil {
-// 			return before, after, limit, errors.New("failed to convert to integer type")
-// 		}
-
-// 		if before < 0 {
-// 			return before, after, limit, errors.New("before param must be equal or greater than 0")
-// 		}
-// 	}
-
-// 	afterStr := r.FormValue("after")
-// 	if afterStr == "" {
-// 		after = defaultAfter
-// 	} else {
-// 		after, err = strconv.Atoi(afterStr)
-// 		if err != nil {
-// 			return before, after, limit, errors.New("failed to convert to integer type")
-// 		}
-
-// 		if after < 0 {
-// 			return before, after, limit, errors.New("after param must be equal or greater than 0")
-// 		}
-// 	}
-
-// 	limitStr := r.FormValue("limit")
-// 	if limitStr == "" {
-// 		limit = defaultLimit
-// 	} else {
-// 		limit, err = strconv.Atoi(limitStr)
-// 		if err != nil {
-// 			return before, after, limit, errors.New("failed to convert to integer type")
-// 		}
-
-// 		if limit <= 0 {
-// 			return before, after, limit, errors.New("limit param must be greater than 0")
-// 		}
-// 	}
-
-// 	return before, after, limit, nil
-// }

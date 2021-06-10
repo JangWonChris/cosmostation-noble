@@ -52,12 +52,12 @@ func (ex *Exporter) getAccounts(block *tmctypes.ResultBlock, txResps []*sdk.TxRe
 
 				// msgSend := m.(bank.MsgSend)
 
-				fromAcct, err := ex.client.CliCtx.GetAccount(m.FromAddress)
+				fromAcct, err := ex.Client.CliCtx.GetAccount(m.FromAddress)
 				if err != nil {
 					return []mdschema.AccountCoin{}, err
 				}
 
-				toAcct, err := ex.client.CliCtx.GetAccount(m.ToAddress)
+				toAcct, err := ex.Client.CliCtx.GetAccount(m.ToAddress)
 				if err != nil {
 					return []mdschema.AccountCoin{}, err
 				}
@@ -79,7 +79,7 @@ func (ex *Exporter) getAccounts(block *tmctypes.ResultBlock, txResps []*sdk.TxRe
 				var exportedAccts []sdkclient.Account
 
 				for _, input := range m.Inputs {
-					inputAcct, err := ex.client.CliCtx.GetAccount(input.Address)
+					inputAcct, err := ex.Client.CliCtx.GetAccount(input.Address)
 					if err != nil {
 						return []mdschema.AccountCoin{}, err
 					}
@@ -88,7 +88,7 @@ func (ex *Exporter) getAccounts(block *tmctypes.ResultBlock, txResps []*sdk.TxRe
 				}
 
 				for _, output := range m.Outputs {
-					outputAcct, err := ex.client.CliCtx.GetAccount(output.Address)
+					outputAcct, err := ex.Client.CliCtx.GetAccount(output.Address)
 					if err != nil {
 						return []mdschema.AccountCoin{}, err
 					}
@@ -106,7 +106,7 @@ func (ex *Exporter) getAccounts(block *tmctypes.ResultBlock, txResps []*sdk.TxRe
 
 				// msgDelegate := m.(staking.MsgDelegate)
 
-				delegatorAddr, err := ex.client.CliCtx.GetAccount(m.DelegatorAddress)
+				delegatorAddr, err := ex.Client.CliCtx.GetAccount(m.DelegatorAddress)
 				if err != nil {
 					return []mdschema.AccountCoin{}, err
 				}
@@ -116,7 +116,7 @@ func (ex *Exporter) getAccounts(block *tmctypes.ResultBlock, txResps []*sdk.TxRe
 					return []mdschema.AccountCoin{}, err
 				}
 
-				valAddr, err := ex.client.CliCtx.GetAccount(valAccAddr)
+				valAddr, err := ex.Client.CliCtx.GetAccount(valAccAddr)
 				if err != nil {
 					return []mdschema.AccountCoin{}, err
 				}
@@ -135,7 +135,7 @@ func (ex *Exporter) getAccounts(block *tmctypes.ResultBlock, txResps []*sdk.TxRe
 
 				// msgUndelegate := m.(staking.MsgUndelegate)
 
-				delegatorAddr, err := ex.client.CliCtx.GetAccount(m.DelegatorAddress)
+				delegatorAddr, err := ex.Client.CliCtx.GetAccount(m.DelegatorAddress)
 				if err != nil {
 					return []mdschema.AccountCoin{}, err
 				}
@@ -145,7 +145,7 @@ func (ex *Exporter) getAccounts(block *tmctypes.ResultBlock, txResps []*sdk.TxRe
 					return []mdschema.AccountCoin{}, err
 				}
 
-				valAddr, err := ex.client.CliCtx.GetAccount(valAccAddr)
+				valAddr, err := ex.Client.CliCtx.GetAccount(valAccAddr)
 				if err != nil {
 					return []mdschema.AccountCoin{}, err
 				}
@@ -164,7 +164,7 @@ func (ex *Exporter) getAccounts(block *tmctypes.ResultBlock, txResps []*sdk.TxRe
 
 				// msgBeginRedelegate := m.(staking.MsgBeginRedelegate)
 
-				delegatorAddr, err := ex.client.CliCtx.GetAccount(m.DelegatorAddress)
+				delegatorAddr, err := ex.Client.CliCtx.GetAccount(m.DelegatorAddress)
 				if err != nil {
 					return []mdschema.AccountCoin{}, err
 				}
@@ -179,12 +179,12 @@ func (ex *Exporter) getAccounts(block *tmctypes.ResultBlock, txResps []*sdk.TxRe
 					return []mdschema.AccountCoin{}, err
 				}
 
-				srcAddr, err := ex.client.CliCtx.GetAccount(valSrcAccAddr)
+				srcAddr, err := ex.Client.CliCtx.GetAccount(valSrcAccAddr)
 				if err != nil {
 					return []mdschema.AccountCoin{}, err
 				}
 
-				dstAddr, err := ex.client.CliCtx.GetAccount(valDstAccAddr)
+				dstAddr, err := ex.Client.CliCtx.GetAccount(valDstAccAddr)
 				if err != nil {
 					return []mdschema.AccountCoin{}, err
 				}
@@ -208,22 +208,22 @@ func (ex *Exporter) getAccounts(block *tmctypes.ResultBlock, txResps []*sdk.TxRe
 }
 
 func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHashStr, txTime string) (accounts []mdschema.AccountCoin, err error) {
-	// chainID, err := ex.client.GetNetworkChainID()
+	// chainID, err := ex.Client.GetNetworkChainID()
 	if err != nil {
 		return []mdschema.AccountCoin{}, err
 	}
 
-	denom, err := ex.client.GRPC.GetBondDenom(context.Background())
+	denom, err := ex.Client.GRPC.GetBondDenom(context.Background())
 	if err != nil {
 		return []mdschema.AccountCoin{}, err
 	}
 
-	latestBlockHeight, err := ex.client.RPC.GetLatestBlockHeight()
+	latestBlockHeight, err := ex.Client.RPC.GetLatestBlockHeight()
 	if err != nil {
 		return []mdschema.AccountCoin{}, err
 	}
 
-	block, err := ex.client.RPC.GetBlock(latestBlockHeight)
+	block, err := ex.Client.RPC.GetBlock(latestBlockHeight)
 	if err != nil {
 		return []mdschema.AccountCoin{}, err
 	}
@@ -235,7 +235,7 @@ func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHas
 
 			// acc := account.(*authtypes.BaseAccount)
 
-			available, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(acc.GetAddress().String())
+			available, rewards, commission, delegated, undelegated, err := ex.Client.GetBaseAccountTotalAsset(acc.GetAddress().String())
 			if err != nil {
 				return []mdschema.AccountCoin{}, err
 			}
@@ -276,7 +276,7 @@ func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHas
 
 			// acc := account.(authtypes.ModuleAccountI)
 
-			available, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(acc.GetAddress().String())
+			available, rewards, commission, delegated, undelegated, err := ex.Client.GetBaseAccountTotalAsset(acc.GetAddress().String())
 			if err != nil {
 				return []mdschema.AccountCoin{}, err
 			}
@@ -317,7 +317,7 @@ func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHas
 
 			// acc := account.(*authvestingtypes.PeriodicVestingAccount)
 
-			available, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(acc.GetAddress().String())
+			available, rewards, commission, delegated, undelegated, err := ex.Client.GetBaseAccountTotalAsset(acc.GetAddress().String())
 			if err != nil {
 				return []mdschema.AccountCoin{}, err
 			}
@@ -387,7 +387,7 @@ func (ex *Exporter) getAccountAllAssets(exportedAccts []sdkclient.Account, txHas
 
 			// acc := account.(*authvestingtypes.DelayedVestingAccount)
 
-			available, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(acc.GetAddress().String())
+			available, rewards, commission, delegated, undelegated, err := ex.Client.GetBaseAccountTotalAsset(acc.GetAddress().String())
 			if err != nil {
 				return []mdschema.AccountCoin{}, err
 			}

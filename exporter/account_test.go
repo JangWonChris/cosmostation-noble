@@ -19,7 +19,7 @@ func TestAccounts(t *testing.T) {
 
 	address := "cosmos1x5wgh6vwye60wv3dtshs9dmqggwfx2ldnqvev0"
 
-	queryClient := authtypes.NewQueryClient(ex.client.GetGRPCClient())
+	queryClient := authtypes.NewQueryClient(ex.Client.GetGRPCClient())
 
 	accountResp, err := queryClient.Account(context.Background(), &authtypes.QueryAccountRequest{Address: address})
 	if err != nil {

@@ -8,6 +8,7 @@ import (
 	sdkTypes "github.com/cosmos/cosmos-sdk/types"
 	sdktypestx "github.com/cosmos/cosmos-sdk/types"
 	legacytx "github.com/cosmos/cosmos-sdk/x/auth/legacy/legacytx"
+	"github.com/cosmostation/cosmostation-cosmos/app"
 )
 
 var (
@@ -15,13 +16,14 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	ex = NewExporter(BASIC_MODE)
+	chainEx := app.NewApp("chain-exporter")
+	ex = NewExporter(chainEx)
 
 	os.Exit(m.Run())
 }
 
 func commonTxParser(txHash string) (*sdkTypes.TxResponse, sdktypestx.Tx, error) {
-	txResponse, err := ex.client.CliCtx.GetTx(txHash)
+	txResponse, err := ex.Client.CliCtx.GetTx(txHash)
 	if err != nil {
 		return &sdkTypes.TxResponse{}, legacytx.StdTx{}, err
 	}

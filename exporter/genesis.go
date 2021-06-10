@@ -119,24 +119,24 @@ func (ex *Exporter) GetGenesisStateFromGenesisFile(genesisPath string) (err erro
 		log.Println(acc)
 	}
 
-	ex.db.InsertGenesisAccount(accounts)
+	ex.DB.InsertGenesisAccount(accounts)
 
 	return
 }
 
 // deprecated
 func (ex *Exporter) getGenesisAccounts(genesisAccts authtypes.GenesisAccounts) (accounts []mdschema.AccountCoin, err error) {
-	// chainID, err := ex.client.GetNetworkChainID()
+	// chainID, err := ex.Client.GetNetworkChainID()
 	if err != nil {
 		return []mdschema.AccountCoin{}, err
 	}
 
-	block, err := ex.client.RPC.GetBlock(startingHeight)
+	block, err := ex.Client.RPC.GetBlock(startingHeight)
 	if err != nil {
 		return []mdschema.AccountCoin{}, err
 	}
 
-	denom, err := ex.client.GRPC.GetBondDenom(context.Background())
+	denom, err := ex.Client.GRPC.GetBondDenom(context.Background())
 	if err != nil {
 		return []mdschema.AccountCoin{}, err
 	}
@@ -148,7 +148,7 @@ func (ex *Exporter) getGenesisAccounts(genesisAccts authtypes.GenesisAccounts) (
 
 			// acc := account.(*authtypes.BaseAccount)
 
-			spendable, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(account.GetAddress().String())
+			spendable, rewards, commission, delegated, undelegated, err := ex.Client.GetBaseAccountTotalAsset(account.GetAddress().String())
 			if err != nil {
 				return []mdschema.AccountCoin{}, err
 			}
@@ -182,7 +182,7 @@ func (ex *Exporter) getGenesisAccounts(genesisAccts authtypes.GenesisAccounts) (
 
 			// acc := account.(authtypes.ModuleAccountI)
 
-			spendable, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(account.GetAddress().String())
+			spendable, rewards, commission, delegated, undelegated, err := ex.Client.GetBaseAccountTotalAsset(account.GetAddress().String())
 			if err != nil {
 				return []mdschema.AccountCoin{}, err
 			}
@@ -216,7 +216,7 @@ func (ex *Exporter) getGenesisAccounts(genesisAccts authtypes.GenesisAccounts) (
 
 			// acc := account.(*authvestingtypes.PeriodicVestingAccount)
 
-			spendable, rewards, commission, delegated, undelegated, err := ex.client.GetBaseAccountTotalAsset(account.GetAddress().String())
+			spendable, rewards, commission, delegated, undelegated, err := ex.Client.GetBaseAccountTotalAsset(account.GetAddress().String())
 			if err != nil {
 				return []mdschema.AccountCoin{}, err
 			}
@@ -290,7 +290,7 @@ func (ex *Exporter) getGenesisValidatorsSet(block *tmctypes.ResultBlock, vals *t
 		return []mdschema.PowerEventHistory{}, nil
 	}
 
-	denom, err := ex.client.GRPC.GetBondDenom(context.Background())
+	denom, err := ex.Client.GRPC.GetBondDenom(context.Background())
 	if err != nil {
 		return []mdschema.PowerEventHistory{}, err
 	}

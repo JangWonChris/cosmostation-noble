@@ -61,7 +61,7 @@ func (ex *Exporter) handlePushNotification(block *tmctypes.ResultBlock, txResp [
 
 				fromAccountStatus := notification.VerifyAccountStatus(m.FromAddress)
 				if fromAccountStatus {
-					tokens, _ := ex.db.QueryAlarmTokens(m.FromAddress)
+					tokens, _ := ex.DB.QueryAlarmTokens(m.FromAddress)
 					if len(tokens) > 0 {
 						notification.Push(*payload, tokens, types.From)
 					}
@@ -69,7 +69,7 @@ func (ex *Exporter) handlePushNotification(block *tmctypes.ResultBlock, txResp [
 
 				toAccountStatus := notification.VerifyAccountStatus(m.ToAddress)
 				if toAccountStatus {
-					tokens, _ := ex.db.QueryAlarmTokens(m.ToAddress)
+					tokens, _ := ex.DB.QueryAlarmTokens(m.ToAddress)
 					if len(tokens) > 0 {
 						notification.Push(*payload, tokens, types.To)
 					}
@@ -101,7 +101,7 @@ func (ex *Exporter) handlePushNotification(block *tmctypes.ResultBlock, txResp [
 
 					fromAccountStatus := notification.VerifyAccountStatus(input.Address)
 					if fromAccountStatus {
-						tokens, _ := ex.db.QueryAlarmTokens(input.Address)
+						tokens, _ := ex.DB.QueryAlarmTokens(input.Address)
 						if len(tokens) > 0 {
 							notification.Push(*payload, tokens, types.From)
 						}
@@ -127,7 +127,7 @@ func (ex *Exporter) handlePushNotification(block *tmctypes.ResultBlock, txResp [
 
 					toAcctStatus := notification.VerifyAccountStatus(output.Address)
 					if toAcctStatus {
-						tokens, _ := ex.db.QueryAlarmTokens(output.Address)
+						tokens, _ := ex.DB.QueryAlarmTokens(output.Address)
 						if len(tokens) > 0 {
 							notification.Push(*payload, tokens, types.To)
 						}

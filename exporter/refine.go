@@ -16,14 +16,14 @@ func (ex *Exporter) Refine(op int) error {
 	aminoUnmarshal := custom.AppCodec.UnmarshalJSON
 
 	if true { // 블록 가공 시작
-		rawBlockIDMax, err := ex.rawdb.QueryBlockIDMax()
+		rawBlockIDMax, err := ex.RawDB.QueryBlockIDMax()
 		if rawBlockIDMax == -1 {
 			return fmt.Errorf("fail to get block max(id) in database: %s", err)
 		}
 		zap.S().Infof("total count of raw blocks : %d\n", rawBlockIDMax)
 		for i := int64(1); i <= rawBlockIDMax; i++ {
 			zap.S().Info("block working id : ", i)
-			rb, err := ex.rawdb.GetBlockByID(i)
+			rb, err := ex.RawDB.GetBlockByID(i)
 			if err != nil {
 				return err
 			}
@@ -40,7 +40,7 @@ func (ex *Exporter) Refine(op int) error {
 	}
 
 	if true { // 트랜잭션 가공 시작
-		rawTxIDMax, err := ex.rawdb.QueryTxIDMax()
+		rawTxIDMax, err := ex.RawDB.QueryTxIDMax()
 		if rawTxIDMax == -1 {
 			return fmt.Errorf("fail to get transaction max(id) in database: %s", err)
 		}
@@ -48,7 +48,7 @@ func (ex *Exporter) Refine(op int) error {
 		for i := int64(1); i <= rawTxIDMax; i++ {
 			zap.S().Info("transaction working id : ", i)
 
-			ts, err := ex.rawdb.GetTransactionsByID(i)
+			ts, err := ex.RawDB.GetTransactionsByID(i)
 			if err != nil {
 				return err
 			}
@@ -104,7 +104,7 @@ func (ex *Exporter) refineRawTransactions(chainID string, txs []*sdktypes.TxResp
 	refineData.TMAs = ex.disassembleTransaction(txs)
 
 	if true {
-		return ex.db.InsertRefineData(refineData)
+		return ex.DB.InsertRefineData(refineData)
 	}
 	return fmt.Errorf("currently, disabled to store data into database\n")
 
@@ -113,7 +113,7 @@ func (ex *Exporter) refineRawTransactions(chainID string, txs []*sdktypes.TxResp
 // getBlockHasTxs()는 database로부터 chainID, 시작 블록 높이, 종료 블록 높이의 범위 내에서 []블록 슬라이스를 리턴(id, height, timestamp)를 리턴한다.
 // schema.Block의 나머지 구조체는 nil 임에 주의한다.
 func (ex *Exporter) getBlocksHasTxs(chainID string, begin, end int64) (list map[int64]*mdschema.Block, err error) {
-	blocks, err := ex.db.GetBlockHasTxs(ChainIDMap[chainID], begin, end)
+	blocks, err := ex.DB.GetBlockHasTxs(ex.ChainIDMap[chainID], begin, end)
 	if err != nil {
 		return list, err
 	}
@@ -135,7 +135,7 @@ func (ex *Exporter) refineRawBlocks(block []mdschema.RawBlock) (err error) {
 	}
 
 	if true {
-		return ex.db.InsertRefineData(refineData)
+		return ex.DB.InsertRefineData(refineData)
 	}
 	return fmt.Errorf("currently do not store any data\n")
 
@@ -143,20 +143,20 @@ func (ex *Exporter) refineRawBlocks(block []mdschema.RawBlock) (err error) {
 
 func (ex *Exporter) refineSync() error {
 	// Query latest block height saved in database
-	dbHeight, err := ex.db.QueryLatestBlockHeight(ChainIDMap[ChainID])
+	dbHeight, err := ex.DB.QueryLatestBlockHeight(ex.ChainIDMap[ex.Config.Chain.ChainID])
 	if dbHeight == -1 {
 		return fmt.Errorf("unexpected error in database: %s", err)
 	}
 
 	// Query latest block height on the active network
-	latestBlockHeight, err := ex.client.RPC.GetLatestBlockHeight()
+	latestBlockHeight, err := ex.Client.RPC.GetLatestBlockHeight()
 	if latestBlockHeight == -1 {
 		return fmt.Errorf("failed to query the latest block height on the active network: %s", err)
 	}
 
-	if dbHeight == 0 && InitialHeight != 0 {
-		dbHeight = InitialHeight - 1
-		zap.S().Info("initial Height set : ", InitialHeight)
+	if dbHeight == 0 && initialHeight != 0 {
+		dbHeight = initialHeight - 1
+		zap.S().Info("initial Height set : ", initialHeight)
 	}
 
 	beginHeight := dbHeight
@@ -164,7 +164,7 @@ func (ex *Exporter) refineSync() error {
 	zap.S().Infof("dbHeight %d\n", dbHeight)
 
 	for i := beginHeight + 1; i <= latestBlockHeight; i++ {
-		block, err := ex.client.RPC.GetBlock(i)
+		block, err := ex.Client.RPC.GetBlock(i)
 		if err != nil {
 			return fmt.Errorf("failed to query block: %s", err)
 		}
@@ -184,7 +184,7 @@ func (ex *Exporter) refineSync() error {
 					wg.Done()
 				}()
 
-				txs[i], err = ex.client.CliCtx.GetTx(hex)
+				txs[i], err = ex.Client.CliCtx.GetTx(hex)
 				if err != nil {
 					zap.S().Error("Error while getting tx ", hex)
 					retryFlag = true
@@ -233,5 +233,5 @@ func (ex *Exporter) refineRealTimeprocess(block *tmctypes.ResultBlock, txs []*sd
 		basic.TMAs = ex.disassembleTransaction(txs)
 	}
 
-	return ex.db.InsertRefineRealTimeData(basic)
+	return ex.DB.InsertRefineRealTimeData(basic)
 }

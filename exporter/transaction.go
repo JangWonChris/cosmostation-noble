@@ -34,7 +34,7 @@ func (ex *Exporter) getTxs(chainID string, list map[int64]*mdschema.Block, txRes
 		}
 
 		t := mdschema.Transaction{
-			ChainInfoID: ChainIDMap[chainID],
+			ChainInfoID: ex.ChainIDMap[chainID],
 			BlockID:     list[txResp[i].Height].ID,
 			Height:      txResp[i].Height,
 			Code:        txResp[i].Code,

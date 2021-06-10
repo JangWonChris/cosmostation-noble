@@ -199,7 +199,7 @@ func (ex *Exporter) getValidatorsUptime(prevBlock *tmctypes.ResultBlock,
 			missingCount := int64(1)
 
 			// Query if a validator hash missed previous block.
-			prevMiss := ex.db.QueryMissingPreviousBlock(val.Address.String(), endHeight-int64(1))
+			prevMiss := ex.DB.QueryMissingPreviousBlock(val.Address.String(), endHeight-int64(1))
 
 			// Validator hasn't missed previous block.
 			if prevMiss.Address == "" {
@@ -261,20 +261,20 @@ func (ex *Exporter) getEvidence(block *tmctypes.ResultBlock) ([]mdschema.Evidenc
 // bonded, unbonding, unbonded and save them in database.
 func (ex *Exporter) saveValidators() {
 	ctx := context.Background()
-	bondedVals, err := ex.client.GetValidatorsByStatus(ctx, stakingtypes.Bonded)
+	bondedVals, err := ex.Client.GetValidatorsByStatus(ctx, stakingtypes.Bonded)
 	if err != nil {
 		zap.S().Errorf("failed to get bonded validators: %s", err)
 		return
 	}
 
 	// Handle bonded validators sorted by highest tokens and insert or update them.
-	err = ex.db.InsertOrUpdateValidators(bondedVals)
+	err = ex.DB.InsertOrUpdateValidators(bondedVals)
 	if err != nil {
 		zap.S().Errorf("failed to insert or update bonded validators: %s", err)
 		return
 	}
 
-	unbondingVals, err := ex.client.GetValidatorsByStatus(ctx, stakingtypes.Unbonding)
+	unbondingVals, err := ex.Client.GetValidatorsByStatus(ctx, stakingtypes.Unbonding)
 	if err != nil {
 		zap.S().Errorf("failed to get unbonding validators: %s", err)
 		return
@@ -282,20 +282,20 @@ func (ex *Exporter) saveValidators() {
 
 	// Handle unbonding validators sorted by highest tokens and insert or update them.
 	if len(unbondingVals) > 0 {
-		highestBondedRank := ex.db.QueryHighestRankValidatorByStatus(mbltypes.BondedValidatorStatus)
+		highestBondedRank := ex.DB.QueryHighestRankValidatorByStatus(mbltypes.BondedValidatorStatus)
 
 		for i := range unbondingVals {
 			unbondingVals[i].Rank = (highestBondedRank + 1 + i)
 		}
 
-		err := ex.db.InsertOrUpdateValidators(unbondingVals)
+		err := ex.DB.InsertOrUpdateValidators(unbondingVals)
 		if err != nil {
 			zap.S().Errorf("failed to insert or update unbonding validators: %s", err)
 			return
 		}
 	}
 
-	unbondedVals, err := ex.client.GetValidatorsByStatus(ctx, stakingtypes.Unbonded)
+	unbondedVals, err := ex.Client.GetValidatorsByStatus(ctx, stakingtypes.Unbonded)
 	if err != nil {
 		zap.S().Errorf("failed to get unbonded validators: %s", err)
 		return
@@ -303,17 +303,17 @@ func (ex *Exporter) saveValidators() {
 
 	// Handle unbonded validators sorted by highest tokens and insert or update them.
 	if len(unbondedVals) > 0 {
-		unbondingHighestRank := ex.db.QueryHighestRankValidatorByStatus(mbltypes.UnbondingValidatorStatus)
+		unbondingHighestRank := ex.DB.QueryHighestRankValidatorByStatus(mbltypes.UnbondingValidatorStatus)
 
 		if unbondingHighestRank == 0 {
-			unbondingHighestRank = ex.db.QueryHighestRankValidatorByStatus(mbltypes.BondedValidatorStatus)
+			unbondingHighestRank = ex.DB.QueryHighestRankValidatorByStatus(mbltypes.BondedValidatorStatus)
 		}
 
 		for i := range unbondedVals {
 			unbondedVals[i].Rank = (unbondingHighestRank + 1 + i)
 		}
 
-		err := ex.db.InsertOrUpdateValidators(unbondedVals)
+		err := ex.DB.InsertOrUpdateValidators(unbondedVals)
 		if err != nil {
 			zap.S().Errorf("failed to insert or update unbonded validators: %s", err)
 			return
@@ -323,16 +323,16 @@ func (ex *Exporter) saveValidators() {
 
 // saveValidatorsIdentities saves all KeyBase URLs of validators
 func (ex *Exporter) saveValidatorsIdentities() {
-	vals, _ := ex.db.QueryValidators()
+	vals, _ := ex.DB.QueryValidators()
 
-	result, err := ex.client.GetValidatorsIdentities(vals)
+	result, err := ex.Client.GetValidatorsIdentities(vals)
 	if err != nil {
 		zap.S().Errorf("failed to get validator identities: %s", err)
 		return
 	}
 
 	if len(result) > 0 {
-		ex.db.UpdateValidatorsKeyBaseURL(result)
+		ex.DB.UpdateValidatorsKeyBaseURL(result)
 		return
 	}
 }

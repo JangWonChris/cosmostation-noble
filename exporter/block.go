@@ -35,11 +35,11 @@ func (ex *Exporter) getBlock(block *tmctypes.ResultBlock) (*mdschema.Block, erro
 			ns++
 		}
 	}
-	if block.Block.Height == 1 || block.Block.Height == InitialHeight {
+	if block.Block.Height == 1 || block.Block.Height == initialHeight {
 		ph = "genesis"
 	}
 	b := &mdschema.Block{
-		ChainInfoID:   ChainIDMap[block.Block.Header.ChainID],
+		ChainInfoID:   ex.ChainIDMap[block.Block.Header.ChainID],
 		Height:        block.Block.Height,
 		Proposer:      block.Block.ProposerAddress.String(),
 		Hash:          block.BlockID.Hash.String(),
@@ -74,11 +74,11 @@ func (ex *Exporter) getBlockFromDB(rawBlocks []mdschema.RawBlock) (blocks []mdsc
 				ns++
 			}
 		}
-		if block.Block.Height == 1 || block.Block.Height == InitialHeight {
+		if block.Block.Height == 1 || block.Block.Height == initialHeight {
 			ph = "genesis"
 		}
 		b := mdschema.Block{
-			ChainInfoID:   ChainIDMap[block.Block.Header.ChainID],
+			ChainInfoID:   ex.ChainIDMap[block.Block.Header.ChainID],
 			Height:        block.Block.Height,
 			Proposer:      block.Block.ProposerAddress.String(),
 			Hash:          block.BlockID.Hash.String(),

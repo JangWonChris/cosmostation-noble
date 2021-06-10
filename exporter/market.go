@@ -7,7 +7,7 @@ import (
 )
 
 func (ex *Exporter) SaveStatsMarket5M() {
-	data, err := ex.client.GetCoinGeckoMarketData(custom.CoinGeckgoCoinID)
+	data, err := ex.Client.GetCoinGeckoMarketData(custom.CoinGeckgoCoinID)
 	if err != nil {
 		zap.S().Errorf("failed to get market data: %s", err)
 		return
@@ -27,7 +27,7 @@ func (ex *Exporter) SaveStatsMarket5M() {
 		LastUpdated:       data.LastUpdated,
 	}
 
-	err = ex.db.InsertMarket5M(market)
+	err = ex.DB.InsertMarket5M(market)
 	if err != nil {
 		zap.S().Errorf("failed to save market data: %s", err)
 		return

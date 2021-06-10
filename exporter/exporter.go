@@ -10,11 +10,10 @@ import (
 
 	//internal
 
-	"github.com/cosmostation/cosmostation-cosmos/client"
-	"github.com/cosmostation/cosmostation-cosmos/db"
+	"github.com/cosmostation/cosmostation-cosmos/app"
 
 	// mbl
-	mblconfig "github.com/cosmostation/mintscan-backend-library/config"
+
 	mbltypes "github.com/cosmostation/mintscan-backend-library/types"
 	mdschema "github.com/cosmostation/mintscan-database/schema"
 
@@ -32,116 +31,24 @@ var (
 
 	controler     = make(chan struct{}, 20)
 	wg            = new(sync.WaitGroup)
-	ChainNumMap   = map[int]string{}
-	ChainIDMap    = map[string]int{}
-	ChainID       string
-	InitialHeight = int64(0)
+	initialHeight = int64(0)
 )
 
 // Exporter is
 type Exporter struct {
-	config *mblconfig.Config
-	client *client.Client
-	db     *db.Database
-	rawdb  *db.RawDatabase
+	*app.App
 }
 
 // NewExporter returns new Exporter instance
-func NewExporter(op int) *Exporter {
-	l, _ := zap.NewDevelopment()
-	zap.ReplaceGlobals(l)
-	defer l.Sync()
-
-	fileBaseName := "chain-exporter"
-	config := mblconfig.ParseConfig(fileBaseName)
-
-	client := client.NewClient(&config.Client)
-
-	database := db.Connect(&config.DB)
-	err := database.Ping()
-	if err != nil {
-		zap.L().Error("failed to ping database", zap.Error(err))
-		return &Exporter{}
-	}
-
-	rawdb := db.RawDBConnect(&config.RAWDB)
-	err = rawdb.Ping()
-	if err != nil {
-		zap.L().Error("failed to ping database", zap.Error(err))
-		return &Exporter{}
-	}
-
-	// switch op {
-	// case REFINE_MODE:
-	// 	mdschema.SetCommonSchema(config.DB.CommonSchema)
-	// 	// database.CreateRefineTables()
-	// case BASIC_MODE, RAW_MODE, GENESIS_MODE:
-	// 	mdschema.SetCommonSchema(config.DB.CommonSchema)
-	// 	// database.CreateTables()
-	// 	// rawdb.CreateTables()
-	// default:
-	// 	zap.S().Panic("Unknow operator type :", op)
-	// 	os.Exit(1)
-	// }
-
-	return &Exporter{config, client, database, rawdb}
+func NewExporter(a *app.App) *Exporter {
+	return &Exporter{a}
 }
 
 // preProcess 는 실제 프로세스 수행 전, 필요한 설정 환경 등을 동적으로 설정
-func (ex *Exporter) PreProcess(initialHeight int64) {
+func SetInitialHeight(height int64) {
+	initialHeight = height
 
-	var err error
-
-	// chain id map 설정
-	/*
-		1. 현재 체인 ID를 Database에 조회 후 없으면 저장
-		2. (1)이 완료되면, database에 저장된 모든 체인ID를 가져온다.
-		ChainNumMap map[int]string : chainNum을 통해 chain-id를 가져옴
-		ChainIDMap map[string]int : chainid를 통해 chainnum을 가져옴(chainNum은 chain-info의 id 컬럼)
-	*/
-
-	// ChainID, err := ex.client.GetNetworkChainID()
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	ChainID = "cosmoshub-4"
-	InitialHeight = initialHeight
-
-	exist, err := ex.db.ExistChainID(ChainID)
-	if err != nil {
-		panic(err)
-	}
-
-	if !exist {
-		// insert db
-		if err := ex.db.InsertChainID(ChainID); err != nil {
-			panic(err)
-		}
-	}
-
-	chainInfo, err := ex.db.QueryChainInfo()
-	if err != nil {
-		panic(err)
-	}
-
-	for _, c := range chainInfo {
-		ChainNumMap[int(c.ID)] = c.ChainID
-		ChainIDMap[c.ChainID] = int(c.ID)
-	}
-
-	// bonded denom 설정 (1회 호출하면, MBL에서 캐싱 됨)
-	// ex.client.GetStakingDenom() // legacy 체인 client를 연결해놓지 않으면 문제가 될 수 있음. 최신 체인에서만 사용
-
-	// 마지막 chain-id의 마지막 블록 넘버 설정(1회 호출해서, block id를 받아옴)
-	// chaininfoid <= 1 이면, LastBlockID == 0임
-	// if len(chainInfo) > 1 {
-	// 	LastBlockID, err = ex.db.GetPrevChainLastBlockID(ChainIDMap[ChainID])
-	// }
-
-	// fmt.Println("LastBlockID :", LastBlockID)
-	fmt.Println("ChainIDMap :", ChainIDMap)
-	fmt.Println("ChainNumMap :", ChainNumMap)
+	fmt.Println("InitialHeight :", initialHeight)
 }
 
 // Start starts to synchronize blockchain data
@@ -150,7 +57,7 @@ func (ex *Exporter) Start(op int) {
 	zap.S().Infof("Version: %s | Commit: %s", Version, Commit)
 
 	//close grpc
-	// defer ex.client.Close()
+	// defer ex.Client.Close()
 
 	tick7Sec := time.NewTicker(time.Second * 7)
 	tick5Min := time.NewTicker(time.Minute * 5)
@@ -205,26 +112,30 @@ func (ex *Exporter) Start(op int) {
 // sync compares block height between the height saved in your database and
 // the latest block height on the active chain and calls process to start ingesting data.
 func (ex *Exporter) sync(op int) error {
+
+	zap.S().Info("exporter package :", mdschema.GetCommonSchema())
+	zap.S().Info("exprter package :", mdschema.GetChainSchema())
+
 	// Query latest block height saved in database
-	dbHeight, err := ex.db.QueryLatestBlockHeight(ChainIDMap[ChainID])
+	dbHeight, err := ex.DB.QueryLatestBlockHeight(ex.ChainIDMap[ex.Config.Chain.ChainID])
 	if dbHeight == -1 {
 		return fmt.Errorf("unexpected error in database: %s", err)
 	}
-	rawDBHeight, err := ex.rawdb.QueryLatestBlockHeight()
+	rawDBHeight, err := ex.RawDB.QueryLatestBlockHeight()
 	if rawDBHeight == -1 {
 		return fmt.Errorf("unexpected error in database: %s", err)
 	}
 
 	// Query latest block height on the active network
-	latestBlockHeight, err := ex.client.RPC.GetLatestBlockHeight()
+	latestBlockHeight, err := ex.Client.RPC.GetLatestBlockHeight()
 	if latestBlockHeight == -1 {
 		return fmt.Errorf("failed to query the latest block height on the active network: %s", err)
 	}
 
-	if dbHeight == 0 && InitialHeight != 0 {
-		dbHeight = InitialHeight - 1
-		rawDBHeight = InitialHeight - 1
-		zap.S().Info("initial Height set : ", InitialHeight)
+	if dbHeight == 0 && initialHeight != 0 {
+		dbHeight = initialHeight - 1
+		rawDBHeight = initialHeight - 1
+		zap.S().Info("initial Height set : ", initialHeight)
 	}
 
 	beginHeight := dbHeight
@@ -235,7 +146,7 @@ func (ex *Exporter) sync(op int) error {
 	zap.S().Infof("dbHeight %d, rawHeight %d \n", dbHeight, rawDBHeight)
 
 	for i := beginHeight + 1; i <= latestBlockHeight; i++ {
-		block, err := ex.client.RPC.GetBlock(i)
+		block, err := ex.Client.RPC.GetBlock(i)
 		if err != nil {
 			return fmt.Errorf("failed to query block: %s", err)
 		}
@@ -255,7 +166,7 @@ func (ex *Exporter) sync(op int) error {
 					wg.Done()
 				}()
 
-				txs[i], err = ex.client.CliCtx.GetTx(hex)
+				txs[i], err = ex.Client.CliCtx.GetTx(hex)
 				if err != nil {
 					zap.S().Error("Error while getting tx ", hex)
 					retryFlag = true
@@ -309,7 +220,7 @@ func (ex *Exporter) rawProcess(block *tmctypes.ResultBlock, txs []*sdktypes.TxRe
 	if err != nil {
 		return fmt.Errorf("failed to get txs: %s", err)
 	}
-	return ex.rawdb.InsertExportedData(rawData)
+	return ex.RawDB.InsertExportedData(rawData)
 }
 
 // process ingests chain data, such as block, transaction, validator, evidence information and
@@ -328,12 +239,12 @@ func (ex *Exporter) process(block *tmctypes.ResultBlock, txs []*sdktypes.TxRespo
 	}
 
 	if block.Block.LastCommit.Height != 0 {
-		prevBlock, err := ex.client.RPC.GetBlock(block.Block.LastCommit.Height)
+		prevBlock, err := ex.Client.RPC.GetBlock(block.Block.LastCommit.Height)
 		if err != nil {
 			return fmt.Errorf("failed to query previous block: %s", err)
 		}
 
-		vals, err := ex.client.RPC.GetValidatorsInHeight(block.Block.LastCommit.Height, mbltypes.DefaultQueryValidatorsPage, mbltypes.DefaultQueryValidatorsPerPage)
+		vals, err := ex.Client.RPC.GetValidatorsInHeight(block.Block.LastCommit.Height, mbltypes.DefaultQueryValidatorsPage, mbltypes.DefaultQueryValidatorsPerPage)
 		if err != nil {
 			return fmt.Errorf("failed to query validators: %s", err)
 		}
@@ -373,9 +284,9 @@ func (ex *Exporter) process(block *tmctypes.ResultBlock, txs []*sdktypes.TxRespo
 	}
 
 	// TODO: is this right place to be?
-	if ex.config.Alarm.Switch {
+	if ex.Config.Alarm.Switch {
 		ex.handlePushNotification(block, txs)
 	}
 
-	return ex.db.InsertExportedData(basic)
+	return ex.DB.InsertExportedData(basic)
 }

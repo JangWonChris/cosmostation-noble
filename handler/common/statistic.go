@@ -3,6 +3,7 @@ package common
 import (
 	"net/http"
 
+	"github.com/cosmostation/cosmostation-cosmos/app"
 	"github.com/cosmostation/cosmostation-cosmos/errors"
 	"github.com/cosmostation/cosmostation-cosmos/model"
 
@@ -16,29 +17,31 @@ const (
 
 // GetMarketStats returns market statistics
 // TODO: find better and cleaner way to handle this API.
-func GetMarketStats(rw http.ResponseWriter, r *http.Request) {
-	currentPrice, err := s.DB.QueryPriceFromMarketStat5M()
-	if err != nil {
-		zap.S().Errorf("failed to query current price from stat market 5m: %s", err)
-		errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
+func GetMarketStats(a *app.App) http.HandlerFunc {
+	return func(rw http.ResponseWriter, r *http.Request) {
+		currentPrice, err := a.DB.QueryPriceFromMarketStat5M()
+		if err != nil {
+			zap.S().Errorf("failed to query current price from stat market 5m: %s", err)
+			errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
+			return
+		}
+
+		result := &model.ResultMarket{
+			Price:             currentPrice.Price,
+			Currency:          currentPrice.Currency,
+			MarketCapRank:     currentPrice.MarketCapRank,
+			PercentChange1H:   currentPrice.PercentChange1H,
+			PercentChange24H:  currentPrice.PercentChange24H,
+			PercentChange7D:   currentPrice.PercentChange7D,
+			PercentChange30D:  currentPrice.PercentChange30D,
+			TotalVolume:       currentPrice.TotalVolume,
+			CirculatingSupply: currentPrice.CirculatingSupply,
+			LastUpdated:       currentPrice.LastUpdated,
+		}
+
+		model.Respond(rw, result)
 		return
 	}
-
-	result := &model.ResultMarket{
-		Price:             currentPrice.Price,
-		Currency:          currentPrice.Currency,
-		MarketCapRank:     currentPrice.MarketCapRank,
-		PercentChange1H:   currentPrice.PercentChange1H,
-		PercentChange24H:  currentPrice.PercentChange24H,
-		PercentChange7D:   currentPrice.PercentChange7D,
-		PercentChange30D:  currentPrice.PercentChange30D,
-		TotalVolume:       currentPrice.TotalVolume,
-		CirculatingSupply: currentPrice.CirculatingSupply,
-		LastUpdated:       currentPrice.LastUpdated,
-	}
-
-	model.Respond(rw, result)
-	return
 }
 
 // GetNetworkStats returns network statistics

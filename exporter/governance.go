@@ -142,7 +142,7 @@ func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txResp []*sdkType
 
 // saveProposals saves all governance proposals
 func (ex *Exporter) saveProposals() {
-	proposals, err := ex.client.GetProposals()
+	proposals, err := ex.Client.GetProposals()
 	if err != nil {
 		zap.S().Errorf("failed to get proposals: %s", err)
 		return
@@ -153,7 +153,7 @@ func (ex *Exporter) saveProposals() {
 		return
 	}
 
-	err = ex.db.InsertOrUpdateProposals(proposals)
+	err = ex.DB.InsertOrUpdateProposals(proposals)
 	if err != nil {
 		zap.S().Errorf("failed to insert or update proposal: %s", err)
 		return

@@ -77,10 +77,10 @@ func TestValidatorRank(t *testing.T) {
 
 func TestGetPowerEventHistory(t *testing.T) {
 
-	b, err := ex.client.RPC.GetBlock(5103)
+	b, err := ex.Client.RPC.GetBlock(5103)
 	require.NoError(t, err)
 
-	stdTx, err := ex.client.CliCtx.GetTxs(b)
+	stdTx, err := ex.Client.CliCtx.GetTxs(b)
 	require.NoError(t, err)
 	// b.Block.Data.Txs
 	// _, stdTx, err := commonTxParser(SampleMsgCreateValidatorTxHash)
