@@ -23,8 +23,7 @@
 **/chain-exporter.yaml
 **/mintscan.yaml
 
-**/mintscan
-**/chain-exporter
+build/*
 
 # genesis.json
 genesis.json

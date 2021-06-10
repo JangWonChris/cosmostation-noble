@@ -21,11 +21,11 @@ build: build_exporter build_mintscan
 
 build_exporter: go.sum
 	@echo "-> Building chain-exporter"
-	@go build -mod=readonly $(BUILD_FLAGS) -o . ./cmd/chain-exporter
+	@go build -mod=readonly $(BUILD_FLAGS) -o ./build ./cmd/chain-exporter
 
 build_mintscan: go.sum
 	@echo "-> Building mintscan"
-	@go build -mod=readonly $(BUILD_FLAGS) -o . ./cmd/mintscan
+	@go build -mod=readonly $(BUILD_FLAGS) -o ./build ./cmd/mintscan
 
 ## Install executable file in $GOBIN direcotry. 
 install: install_exporter install_mintscan
