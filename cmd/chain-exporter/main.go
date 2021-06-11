@@ -21,10 +21,10 @@ func main() {
 	log.Println("initial-height :", *initialHeight)
 
 	fileBaseName := "chain-exporter"
-	chainExporter := app.NewApp(fileBaseName)
+	cApp := app.NewApp(fileBaseName)
 
 	exporter.SetInitialHeight(*initialHeight)
-	ex := exporter.NewExporter(chainExporter)
+	ex := exporter.NewExporter(cApp)
 	ex.SetChainID()
 
 	switch *mode {

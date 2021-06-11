@@ -1,4 +1,4 @@
-package handler
+package mintscan
 
 import (
 	"net/http"

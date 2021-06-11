@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/cosmostation/cosmostation-cosmos/app"
-	"github.com/cosmostation/cosmostation-cosmos/handler"
-	commonhandler "github.com/cosmostation/cosmostation-cosmos/handler/common"
-	customhandler "github.com/cosmostation/cosmostation-cosmos/handler/custom"
+	"github.com/cosmostation/cosmostation-cosmos/mintscan"
+	commonhandler "github.com/cosmostation/cosmostation-cosmos/mintscan/common"
+	customhandler "github.com/cosmostation/cosmostation-cosmos/mintscan/custom"
 
 	"go.uber.org/zap"
 
@@ -25,27 +25,27 @@ var (
 
 func main() {
 	fileBaseName := "mintscan"
-	mintscan := app.NewApp(fileBaseName)
+	mApp := app.NewApp(fileBaseName)
 
-	mintscan.SetChainID()
-	mintscan.SetMessageInfo()
+	mApp.SetChainID()
+	mApp.SetMessageInfo()
 
 	r := mux.NewRouter()
 	r = r.PathPrefix("/v1").Subrouter()
-	commonhandler.RegisterHandlers(mintscan, r)
-	customhandler.RegisterHandlers(mintscan, r)
-	mintscan.DB.PrepareStmt()
+	commonhandler.RegisterHandlers(mApp, r)
+	customhandler.RegisterHandlers(mApp, r)
+	mApp.DB.PrepareStmt()
 
 	sm := &http.Server{
-		Addr:         ":" + mintscan.Config.Web.Port,
-		Handler:      handler.Middleware(r),
+		Addr:         ":" + mApp.Config.Web.Port,
+		Handler:      mintscan.Middleware(r),
 		ReadTimeout:  10 * time.Second, // max time to read request from the client
 		WriteTimeout: 10 * time.Second, // max time to write response to the client
 	}
 
 	go func() {
 		for {
-			if err := commonhandler.SetStatus(mintscan); err != nil {
+			if err := commonhandler.SetStatus(mApp); err != nil {
 				time.Sleep(1 * time.Second)
 				continue
 			}
@@ -55,7 +55,7 @@ func main() {
 
 	// Start the Mintscan API server.
 	go func() {
-		zap.S().Infof("Server is running on http://localhost:%s", mintscan.Config.Web.Port)
+		zap.S().Infof("Server is running on http://localhost:%s", mApp.Config.Web.Port)
 		zap.S().Infof("Version: %s | Commit: %s", Version, Commit)
 
 		err := sm.ListenAndServe()

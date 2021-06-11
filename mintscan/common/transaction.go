@@ -152,7 +152,7 @@ func GetTransactionByHash(a *app.App) http.HandlerFunc {
 		}
 
 		if tx.ID == 0 {
-			zap.S().Infof("tx not found tx id : %s", hashStr)
+			zap.S().Infof("tx not found tx hash : %s", hashStr)
 			errors.ErrNotFound(rw, http.StatusNotFound)
 			return
 		}
