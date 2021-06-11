@@ -54,16 +54,18 @@ func ParseTransaction(a *app.App, tx mdschema.Transaction) (result *ResultTx) {
 
 	jsonRaws = tx.Chunk
 
-	header := ResultTxHeader{
-		ID:        tx.ID,
-		ChainID:   a.ChainNumMap[tx.ChainInfoID],
-		BlockID:   tx.BlockID,
-		Timestamp: tx.Timestamp.String(),
-	}
+	if tx.ID != 0 {
+		header := ResultTxHeader{
+			ID:        tx.ID,
+			ChainID:   a.ChainNumMap[tx.ChainInfoID],
+			BlockID:   tx.BlockID,
+			Timestamp: tx.Timestamp.String(),
+		}
 
-	result = &ResultTx{
-		ResultTxHeader: header,
-		Data:           jsonRaws,
+		result = &ResultTx{
+			ResultTxHeader: header,
+			Data:           jsonRaws,
+		}
 	}
 
 	return result

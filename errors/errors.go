@@ -90,6 +90,8 @@ func ErrorCodeToErrorMsg(code ErrorCode) ErrorMsg {
 		return "ServerUnavailable"
 	case NoDataAvailable:
 		return "NoDataAvailable"
+	case NotFound:
+		return "NotFound"
 	default:
 		return "Unknown"
 	}

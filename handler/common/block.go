@@ -7,7 +7,6 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/app"
 	"github.com/cosmostation/cosmostation-cosmos/errors"
 	"github.com/cosmostation/cosmostation-cosmos/model"
-	mdschema "github.com/cosmostation/mintscan-database/schema"
 
 	"github.com/gorilla/mux"
 
@@ -309,7 +308,7 @@ func GetBlocksByProposer(a *app.App) http.HandlerFunc {
 		}
 
 		if len(blocks) <= 0 {
-			model.Respond(rw, []mdschema.Block{})
+			errors.ErrNotFound(rw, http.StatusNotFound)
 			return
 		}
 

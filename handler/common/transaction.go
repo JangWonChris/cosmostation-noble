@@ -10,8 +10,6 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/errors"
 	"github.com/cosmostation/cosmostation-cosmos/model"
 
-	mdschema "github.com/cosmostation/mintscan-database/schema"
-
 	"github.com/gorilla/mux"
 
 	"go.uber.org/zap"
@@ -27,12 +25,6 @@ func GetTransactions(a *app.App) http.HandlerFunc {
 			return
 		}
 
-		// if limit > 100 {
-		// 	zap.L().Debug("request is over max limit ", zap.Int("request limit", limit))
-		// 	errors.ErrOverMaxLimit(rw, http.StatusUnauthorized)
-		// 	return
-		// }
-
 		txs, err := a.DB.QueryTransactions(from, limit)
 		if err != nil {
 			zap.L().Error("failed to query txs", zap.Error(err))
@@ -41,14 +33,12 @@ func GetTransactions(a *app.App) http.HandlerFunc {
 		}
 
 		if len(txs) <= 0 {
-			zap.L().Debug("found no transactions in database")
-			model.Respond(rw, []mdschema.Transaction{})
+			zap.L().Debug("transactions not found in database")
+			errors.ErrNotFound(rw, http.StatusNotFound)
 			return
 		}
 
-		result := make([]*model.ResultTx, 0)
-
-		result = model.ParseTransactions(a, txs)
+		result := model.ParseTransactions(a, txs)
 
 		model.Respond(rw, result)
 		return
@@ -91,6 +81,12 @@ func GetTransactionsList(a *app.App) http.HandlerFunc {
 			return
 		}
 
+		if len(txs) <= 0 {
+			zap.L().Debug("transactions not found in database")
+			errors.ErrNotFound(rw, http.StatusNotFound)
+			return
+		}
+
 		result := model.ParseTransactions(a, txs)
 
 		model.Respond(rw, result)
@@ -104,7 +100,6 @@ func GetTransactionByID(a *app.App) http.HandlerFunc {
 		vars := mux.Vars(r)
 		idStr := vars["id"]
 
-		// Query transction by transaction id if the request param has id; otherwise query with transaction hash.
 		id, err := strconv.ParseInt(idStr, 10, 64)
 		if err != nil {
 			errors.ErrFailedConversion(rw, http.StatusInternalServerError)
@@ -115,6 +110,12 @@ func GetTransactionByID(a *app.App) http.HandlerFunc {
 		if err != nil {
 			zap.L().Error("failed to get transaction by tx id", zap.Error(err))
 			errors.ErrServerUnavailable(rw, http.StatusInternalServerError)
+			return
+		}
+
+		if tx.ID == 0 {
+			zap.S().Infof("tx not found tx id : %s", idStr)
+			errors.ErrNotFound(rw, http.StatusNotFound)
 			return
 		}
 
@@ -147,6 +148,12 @@ func GetTransactionByHash(a *app.App) http.HandlerFunc {
 		if err != nil {
 			zap.L().Error("failed to get transaction by tx hash", zap.Error(err))
 			errors.ErrServerUnavailable(rw, http.StatusInternalServerError)
+			return
+		}
+
+		if tx.ID == 0 {
+			zap.S().Infof("tx not found tx id : %s", hashStr)
+			errors.ErrNotFound(rw, http.StatusNotFound)
 			return
 		}
 
