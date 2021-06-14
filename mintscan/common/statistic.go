@@ -19,7 +19,7 @@ const (
 // TODO: find better and cleaner way to handle this API.
 func GetMarketStats(a *app.App) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
-		currentPrice, err := a.DB.QueryPriceFromMarketStat5M()
+		currentPrice, err := a.DB.GetPriceFromMarketStat5M()
 		if err != nil {
 			zap.S().Errorf("failed to query current price from stat market 5m: %s", err)
 			errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)

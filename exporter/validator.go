@@ -323,7 +323,7 @@ func (ex *Exporter) saveValidators() {
 
 // saveValidatorsIdentities saves all KeyBase URLs of validators
 func (ex *Exporter) saveValidatorsIdentities() {
-	vals, _ := ex.DB.QueryValidators()
+	vals, _ := ex.DB.GetValidators()
 
 	result, err := ex.Client.GetValidatorsIdentities(vals)
 	if err != nil {

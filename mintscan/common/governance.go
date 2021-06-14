@@ -22,7 +22,7 @@ import (
 // GetProposals returns all existing proposals
 func GetProposals(a *app.App) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
-		proposals, err := a.DB.QueryProposals()
+		proposals, err := a.DB.GetProposals()
 		if err != nil {
 			zap.L().Error("failed to query proposals", zap.Error(err))
 			errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -38,7 +38,7 @@ func GetProposals(a *app.App) http.HandlerFunc {
 		result := make([]*model.ResultProposal, 0)
 
 		for _, p := range proposals {
-			val, err := a.DB.QueryValidatorByAnyAddr(p.Proposer)
+			val, err := a.DB.GetValidatorByAnyAddr(p.Proposer)
 			if err != nil {
 				zap.S().Errorf("failed to query validator information: %s", err)
 				return
@@ -82,7 +82,7 @@ func GetProposal(a *app.App) http.HandlerFunc {
 		id := vars["proposal_id"]
 
 		// Query particular proposal
-		p, _ := a.DB.QueryProposal(id)
+		p, _ := a.DB.GetProposal(id)
 		if p.ID == 0 {
 			zap.L().Debug("this proposal does not exist", zap.String("id", id))
 			errors.ErrNotExist(rw, http.StatusNotFound)
@@ -90,7 +90,7 @@ func GetProposal(a *app.App) http.HandlerFunc {
 		}
 
 		// Error doesn't need to be handled since any accoount can propose proposal
-		val, err := a.DB.QueryValidatorByAnyAddr(p.Proposer)
+		val, err := a.DB.GetValidatorByAnyAddr(p.Proposer)
 		if err != nil {
 			zap.S().Errorf("failed to query validator information: %s", err)
 			return
@@ -131,7 +131,7 @@ func GetDeposits(a *app.App) http.HandlerFunc {
 		id := vars["proposal_id"]
 
 		// Query particular proposal
-		p, _ := a.DB.QueryProposal(id)
+		p, _ := a.DB.GetProposal(id)
 		if p.ID == 0 {
 			zap.L().Debug("this proposal does not exist", zap.String("id", id))
 			errors.ErrNotExist(rw, http.StatusNotFound)
@@ -140,7 +140,7 @@ func GetDeposits(a *app.App) http.HandlerFunc {
 
 		result := make([]*model.ResultDeposit, 0)
 
-		deposits, _ := a.DB.QueryDeposits(id)
+		deposits, _ := a.DB.GetDeposits(id)
 		if len(deposits) <= 0 {
 			zap.L().Debug("this proposal does not have any deposit yet", zap.String("id", id))
 			model.Respond(rw, result)
@@ -148,7 +148,7 @@ func GetDeposits(a *app.App) http.HandlerFunc {
 		}
 
 		for _, d := range deposits {
-			val, err := a.DB.QueryValidatorByAnyAddr(d.Depositor)
+			val, err := a.DB.GetValidatorByAnyAddr(d.Depositor)
 			if err != nil {
 				zap.S().Errorf("failed to query validator information: %s", err)
 				return
@@ -179,7 +179,7 @@ func GetVotes(a *app.App) http.HandlerFunc {
 		id := vars["proposal_id"]
 
 		// Query particular proposal
-		p, _ := a.DB.QueryProposal(id)
+		p, _ := a.DB.GetProposal(id)
 		if p.ID == 0 {
 			zap.L().Debug("this proposal does not exist", zap.String("id", id))
 			errors.ErrNotExist(rw, http.StatusNotFound)
@@ -187,7 +187,7 @@ func GetVotes(a *app.App) http.HandlerFunc {
 		}
 
 		// Query all votes
-		votes, _ := a.DB.QueryVotes(id)
+		votes, _ := a.DB.GetVotes(id)
 		if len(votes) <= 0 {
 			model.Respond(rw, &model.ResultVote{
 				Tally: &model.ResultTally{},
@@ -199,7 +199,7 @@ func GetVotes(a *app.App) http.HandlerFunc {
 		rv := make([]*model.Votes, 0)
 
 		for _, v := range votes {
-			val, err := a.DB.QueryValidatorByAnyAddr(v.Voter)
+			val, err := a.DB.GetValidatorByAnyAddr(v.Voter)
 			if err != nil {
 				zap.S().Errorf("failed to query validator information: %s", err)
 				return

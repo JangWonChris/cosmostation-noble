@@ -446,7 +446,7 @@ func GetDelegatorUnbondingDelegations(a *app.App) http.HandlerFunc {
 
 		result := make([]*model.UnbondingDelegations, 0)
 		for _, u := range res.UnbondingResponses {
-			val, err := a.DB.QueryValidatorByAnyAddr(u.ValidatorAddress)
+			val, err := a.DB.GetValidatorByAnyAddr(u.ValidatorAddress)
 			if err != nil {
 				zap.L().Debug("failed to query validator information", zap.Error(err))
 			}

@@ -117,11 +117,11 @@ func (ex *Exporter) sync(op int) error {
 	zap.S().Info("exprter package :", mdschema.GetChainSchema())
 
 	// Query latest block height saved in database
-	dbHeight, err := ex.DB.QueryLatestBlockHeight(ex.ChainIDMap[ex.Config.Chain.ChainID])
+	dbHeight, err := ex.DB.GetLatestBlockHeight(ex.ChainIDMap[ex.Config.Chain.ChainID])
 	if dbHeight == -1 {
 		return fmt.Errorf("unexpected error in database: %s", err)
 	}
-	rawDBHeight, err := ex.RawDB.QueryLatestBlockHeight()
+	rawDBHeight, err := ex.RawDB.GetLatestBlockHeight()
 	if rawDBHeight == -1 {
 		return fmt.Errorf("unexpected error in database: %s", err)
 	}

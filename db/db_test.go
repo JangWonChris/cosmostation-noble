@@ -40,7 +40,7 @@ func TestUpdate_Validator(t *testing.T) {
 		Rank:    5,
 	}
 
-	validator, err := db.QueryValidatorByAnyAddr(val.Address)
+	validator, err := db.GetValidatorByAnyAddr(val.Address)
 	require.NoError(t, err)
 
 	result, err := db.Model(&validator).

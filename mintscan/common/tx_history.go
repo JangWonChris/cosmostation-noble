@@ -65,7 +65,7 @@ func GetAccountTxsHistory(a *app.App) http.HandlerFunc {
 		}
 
 		// Query transactions that are made by the account.
-		txs, err := a.DB.QueryTransactionsByAddr(from, limit, accAddr)
+		txs, err := a.DB.GetAccountTransactionHistory(from, limit, accAddr)
 		if err != nil {
 			zap.L().Error("failed to query txs", zap.Error(err))
 			errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -117,7 +117,7 @@ func GetAccountTransferTxsHistory(a *app.App) http.HandlerFunc {
 			errors.ErrInvalidParam(rw, http.StatusBadRequest, "account address is invalid")
 			return
 		}
-		txs, err := a.DB.QueryTransferTransactionsByAddr(from, limit, accAddr)
+		txs, err := a.DB.GetTransferTransactionHistory(from, limit, accAddr)
 		if err != nil {
 			zap.L().Error("failed to query txs", zap.Error(err))
 			errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -160,7 +160,7 @@ func GetTxsHistoryBetweenDelegatorAndValidator(a *app.App) http.HandlerFunc {
 			return
 		}
 
-		txs, err := a.DB.QueryTransactionsBetweenAccountAndValidator(from, limit, accAddr, valAddr)
+		txs, err := a.DB.GetTransactionHistoryBetweenAccAndVal(from, limit, accAddr, valAddr)
 		if err != nil {
 			zap.L().Error("failed to query txs", zap.Error(err))
 			errors.ErrInternalServer(rw, http.StatusInternalServerError)

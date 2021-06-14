@@ -8,8 +8,8 @@ import (
 	pg "github.com/go-pg/pg/v10"
 )
 
-// QueryValidatorByAnyAddr returns a validator information by any type of address format
-func (db *Database) QueryValidatorByAnyAddr(anyAddr string) (schema.Validator, error) {
+// GetValidatorByAnyAddr returns a validator information by any type of address format
+func (db *Database) GetValidatorByAnyAddr(anyAddr string) (schema.Validator, error) {
 	var val schema.Validator
 	var err error
 

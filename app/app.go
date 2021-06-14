@@ -89,7 +89,7 @@ func (a *App) SetChainID() {
 		}
 	}
 
-	chainInfo, err := a.DB.QueryChainInfo()
+	chainInfo, err := a.DB.GetChainInfo()
 	if err != nil {
 		panic(err)
 	}
@@ -106,7 +106,7 @@ func (a *App) SetChainID() {
 func (a *App) SetMessageInfo() {
 	a.MessageIDMap = make(map[int]string)
 	a.MessageTypeMap = make(map[string]int)
-	messageInfo, err := a.DB.QueryMessageInfo()
+	messageInfo, err := a.DB.GetMessageInfo()
 	if err != nil {
 		panic(err)
 	}

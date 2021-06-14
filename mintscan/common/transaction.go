@@ -25,7 +25,7 @@ func GetTransactions(a *app.App) http.HandlerFunc {
 			return
 		}
 
-		txs, err := a.DB.QueryTransactions(from, limit)
+		txs, err := a.DB.GetTransactions(from, limit)
 		if err != nil {
 			zap.L().Error("failed to query txs", zap.Error(err))
 			errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -74,7 +74,7 @@ func GetTransactionsList(a *app.App) http.HandlerFunc {
 			respTxs.TxHash = append(respTxs.TxHash, reqTxs.TxHash[i])
 		}
 
-		txs, err := a.DB.QueryTransactionByTxHashes(respTxs.TxHash)
+		txs, err := a.DB.GetTransactionByTxHashes(respTxs.TxHash)
 		if err != nil {
 			errors.ErrNotFound(rw, http.StatusNotFound)
 			zap.L().Error("failed to get transactions by tx hashes", zap.Error(err))
@@ -106,7 +106,7 @@ func GetTransactionByID(a *app.App) http.HandlerFunc {
 			return
 		}
 
-		tx, err := a.DB.QueryTransactionByID(id)
+		tx, err := a.DB.GetTransactionByID(id)
 		if err != nil {
 			zap.L().Error("failed to get transaction by tx id", zap.Error(err))
 			errors.ErrServerUnavailable(rw, http.StatusInternalServerError)
@@ -144,7 +144,7 @@ func GetTransactionByHash(a *app.App) http.HandlerFunc {
 			return
 		}
 
-		tx, err := a.DB.QueryTransactionByTxHash(hashStr)
+		tx, err := a.DB.GetTransactionByTxHash(hashStr)
 		if err != nil {
 			zap.L().Error("failed to get transaction by tx hash", zap.Error(err))
 			errors.ErrServerUnavailable(rw, http.StatusInternalServerError)

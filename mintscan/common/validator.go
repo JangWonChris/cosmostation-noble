@@ -31,14 +31,14 @@ func GetValidators(a *app.App) http.HandlerFunc {
 
 		switch status {
 		case model.ActiveValidator:
-			vals, _ = a.DB.QueryValidatorsByStatus(int(stakingtypes.Bonded))
+			vals, _ = a.DB.GetValidatorsByStatus(int(stakingtypes.Bonded))
 		case model.InactiveValidator:
-			unbondingVals, _ := a.DB.QueryValidatorsByStatus(int(stakingtypes.Unbonding))
-			unbondedVals, _ := a.DB.QueryValidatorsByStatus(int(stakingtypes.Unbonded))
+			unbondingVals, _ := a.DB.GetValidatorsByStatus(int(stakingtypes.Unbonding))
+			unbondedVals, _ := a.DB.GetValidatorsByStatus(int(stakingtypes.Unbonded))
 			vals = append(vals, unbondingVals...)
 			vals = append(vals, unbondedVals...)
 		default:
-			vals, _ = a.DB.QueryValidators()
+			vals, _ = a.DB.GetValidators()
 		}
 
 		if len(vals) <= 0 {
@@ -54,7 +54,7 @@ func GetValidators(a *app.App) http.HandlerFunc {
 			return tk1 > tk2
 		})
 
-		latestDBHeight, err := a.DB.QueryLatestBlockHeight(a.ChainIDMap[a.Config.Chain.ChainID])
+		latestDBHeight, err := a.DB.GetLatestBlockHeight(a.ChainIDMap[a.Config.Chain.ChainID])
 		if err != nil {
 			zap.S().Errorf("failed to query latest block height: %s", err)
 			errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -68,7 +68,7 @@ func GetValidators(a *app.App) http.HandlerFunc {
 			missBlockCount := model.MissingAllBlocks
 
 			if val.Status == int(stakingtypes.Bonded) {
-				blocks, err := a.DB.QueryValidatorUptime(val.Proposer, latestDBHeight-1)
+				blocks, err := a.DB.GetValidatorUptime(val.Proposer, latestDBHeight-1)
 				if err != nil {
 					zap.S().Errorf("failed to query validator's missing blocks: %s", err)
 					errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -122,7 +122,7 @@ func GetValidator(a *app.App) http.HandlerFunc {
 		vars := mux.Vars(r)
 		address := vars["address"]
 
-		val, err := a.DB.QueryValidatorByAnyAddr(address)
+		val, err := a.DB.GetValidatorByAnyAddr(address)
 		if err != nil {
 			zap.S().Errorf("failed to query validator information: %s", err)
 			errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -134,7 +134,7 @@ func GetValidator(a *app.App) http.HandlerFunc {
 			return
 		}
 
-		latestDBHeight, err := a.DB.QueryLatestBlockHeight(a.ChainIDMap[a.Config.Chain.ChainID])
+		latestDBHeight, err := a.DB.GetLatestBlockHeight(a.ChainIDMap[a.Config.Chain.ChainID])
 		if err != nil {
 			zap.S().Errorf("failed to query latest block height: %s", err)
 			errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -145,7 +145,7 @@ func GetValidator(a *app.App) http.HandlerFunc {
 		missBlockCount := model.MissingAllBlocks
 
 		if val.Status == int(stakingtypes.Bonded) {
-			blocks, err := a.DB.QueryValidatorUptime(val.Proposer, latestDBHeight-1)
+			blocks, err := a.DB.GetValidatorUptime(val.Proposer, latestDBHeight-1)
 			if err != nil {
 				zap.S().Errorf("failed to query validator's missing blocks: %s", err)
 				errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -206,7 +206,7 @@ func GetValidatorUptime(a *app.App) http.HandlerFunc {
 		vars := mux.Vars(r)
 		address := vars["address"]
 
-		val, err := a.DB.QueryValidatorByAnyAddr(address)
+		val, err := a.DB.GetValidatorByAnyAddr(address)
 		if err != nil {
 			zap.S().Errorf("failed to query validator information: %s", err)
 			errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -218,7 +218,7 @@ func GetValidatorUptime(a *app.App) http.HandlerFunc {
 			return
 		}
 
-		latestBlock, err := a.DB.QueryLatestBlocks(a.ChainIDMap[a.Config.Chain.ChainID], 1)
+		latestBlock, err := a.DB.GetLatestBlocks(a.ChainIDMap[a.Config.Chain.ChainID], 1)
 		if err != nil {
 			zap.S().Errorf("failed to get latest block : %s", err)
 			errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -235,7 +235,7 @@ func GetValidatorUptime(a *app.App) http.HandlerFunc {
 		result.ID = latestBlock[0].ID
 
 		// Query missing blocks for the last 100 blocks
-		missDetails, err := a.DB.QueryValidatorUptime(val.Proposer, result.LatestHeight)
+		missDetails, err := a.DB.GetValidatorUptime(val.Proposer, result.LatestHeight)
 		if err != nil {
 			zap.S().Errorf("failed to query validator's missing blocks: %s", err)
 			errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -269,7 +269,7 @@ func GetValidatorUptimeRange(a *app.App) http.HandlerFunc {
 		vars := mux.Vars(r)
 		address := vars["address"]
 
-		val, err := a.DB.QueryValidatorByAnyAddr(address)
+		val, err := a.DB.GetValidatorByAnyAddr(address)
 		if err != nil {
 			zap.L().Debug("failed to query validator info", zap.Error(err))
 			errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -281,7 +281,7 @@ func GetValidatorUptimeRange(a *app.App) http.HandlerFunc {
 			return
 		}
 
-		blocks, err := a.DB.QueryValidatorUptimeRange(val.Proposer)
+		blocks, err := a.DB.GetValidatorUptimeRange(val.Proposer)
 		if len(blocks) <= 0 {
 			errors.ErrInternalServer(rw, http.StatusInternalServerError)
 			return
@@ -316,7 +316,7 @@ func GetValidatorDelegations(a *app.App) http.HandlerFunc {
 		model.Respond(rw, temp)
 		return
 
-		val, err := a.DB.QueryValidatorByAnyAddr(address)
+		val, err := a.DB.GetValidatorByAnyAddr(address)
 		if err != nil {
 			zap.L().Error("failed to query validator info", zap.Error(err))
 			errors.ErrNotExist(rw, http.StatusNotFound)
@@ -387,7 +387,7 @@ func GetValidatorPowerHistoryEvents(a *app.App) http.HandlerFunc {
 			return
 		}
 
-		val, err := a.DB.QueryValidatorByAnyAddr(address)
+		val, err := a.DB.GetValidatorByAnyAddr(address)
 		if err != nil {
 			zap.S().Errorf("failed to query validator information: %s", err)
 			return
@@ -444,7 +444,7 @@ func GetValidatorEventsTotalCount(a *app.App) http.HandlerFunc {
 		vars := mux.Vars(r)
 		address := vars["address"]
 
-		val, err := a.DB.QueryValidatorByAnyAddr(address)
+		val, err := a.DB.GetValidatorByAnyAddr(address)
 		if err != nil {
 			zap.S().Errorf("failed to query validator information: %s", err)
 			return
@@ -535,7 +535,7 @@ func GetValidatorProposedBlocks(a *app.App) http.HandlerFunc {
 		// }
 
 		// Query validator information by any type of bech32 address, even moniker.
-		val, err := a.DB.QueryValidatorByAnyAddr(proposer)
+		val, err := a.DB.GetValidatorByAnyAddr(proposer)
 		if err != nil {
 			zap.S().Errorf("failed to query validator information: %s", err)
 			return
@@ -546,7 +546,7 @@ func GetValidatorProposedBlocks(a *app.App) http.HandlerFunc {
 			return
 		}
 
-		blocks, err := a.DB.QueryBlocksByProposer(val.Proposer, from, limit)
+		blocks, err := a.DB.GetBlocksByProposer(val.Proposer, from, limit)
 		if err != nil {
 			zap.L().Error("failed to query blocks", zap.Error(err))
 			errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -568,20 +568,6 @@ func GetValidatorProposedBlocks(a *app.App) http.HandlerFunc {
 		result := make([]*model.ResultBlock, 0)
 
 		for _, b := range blocks {
-
-			// txs, err := s.DB.QueryTransactionsInBlockHeight(b.ChainInfoID, b.Height)
-			// if err != nil {
-			// 	zap.L().Error("failed to query transactions in a block", zap.Error(err))
-			// 	errors.ErrInternalServer(rw, http.StatusInternalServerError)
-			// 	return
-			// }
-
-			// var txData model.TxData
-			// if len(txs) > 0 {
-			// 	for _, tx := range txs {
-			// 		txData.Txs = append(txData.Txs, tx.Chunk)
-			// 	}
-			// }
 
 			b := &model.ResultBlock{
 				ID:                     b.ID,

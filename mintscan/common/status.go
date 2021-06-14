@@ -63,7 +63,7 @@ func SetStatus(a *app.App) error {
 	bondedValsNum, _ := a.DB.CountValidatorsByStatus(int(stakingtypes.Bonded))
 	unbondingValsNum, _ := a.DB.CountValidatorsByStatus(int(stakingtypes.Unbonding))
 	unbondedValsNum, _ := a.DB.CountValidatorsByStatus(int(stakingtypes.Unbonded))
-	totalTxsNum := a.DB.QueryTotalTransactionNum()
+	totalTxsNum := a.DB.GetTotalTransactionNum()
 
 	status, err := a.Client.RPC.GetStatus()
 	if err != nil {
@@ -72,7 +72,7 @@ func SetStatus(a *app.App) error {
 	}
 
 	// Query two latest blocks to calculate block time.
-	latestTwoBlocks, _ := a.DB.QueryLastestTwoBlocks()
+	latestTwoBlocks, _ := a.DB.GetLastestTwoBlocks()
 	if len(latestTwoBlocks) <= 1 {
 		zap.L().Debug("failed to query two latest blocks", zap.Any("blocks", latestTwoBlocks))
 		return err

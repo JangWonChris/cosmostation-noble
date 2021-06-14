@@ -23,7 +23,7 @@ func GetBlocks(a *app.App) http.HandlerFunc {
 			return
 		}
 
-		blocks, err := a.DB.QueryBlocks(from, limit)
+		blocks, err := a.DB.GetBlocks(from, limit)
 		if err != nil {
 			zap.S().Debug("failed to get blocks ", zap.Error(err))
 			errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -38,7 +38,7 @@ func GetBlocks(a *app.App) http.HandlerFunc {
 		result := make([]*model.ResultBlock, 0)
 
 		for _, block := range blocks {
-			validator, err := a.DB.QueryValidatorByAnyAddr(block.Proposer)
+			validator, err := a.DB.GetValidatorByAnyAddr(block.Proposer)
 			if err != nil {
 				zap.S().Error("failed to query validator by proposer", zap.Error(err))
 				return
@@ -80,7 +80,7 @@ func GetBlocksByID(a *app.App) http.HandlerFunc {
 			return
 		}
 
-		blocks, err := a.DB.QueryBlockByID(id)
+		blocks, err := a.DB.GetBlockByID(id)
 		if err != nil {
 			zap.S().Debug("failed to get blocks ", zap.Error(err))
 			errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -96,7 +96,7 @@ func GetBlocksByID(a *app.App) http.HandlerFunc {
 		result := make([]*model.ResultBlock, 0)
 
 		for _, block := range blocks {
-			validator, err := a.DB.QueryValidatorByAnyAddr(block.Proposer)
+			validator, err := a.DB.GetValidatorByAnyAddr(block.Proposer)
 			if err != nil {
 				zap.S().Error("failed to query validator by proposer", zap.Error(err))
 				return
@@ -104,7 +104,7 @@ func GetBlocksByID(a *app.App) http.HandlerFunc {
 
 			var txResps []*model.ResultTx
 			if block.NumTxs > 0 {
-				txs, err := a.DB.QueryTransactionsByBlockID(block.ID)
+				txs, err := a.DB.GetTransactionsByBlockID(block.ID)
 				if err != nil {
 					zap.L().Error("failed to query txs", zap.Error(err))
 					errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -143,7 +143,7 @@ func GetBlocksByHash(a *app.App) http.HandlerFunc {
 		vars := mux.Vars(r)
 		hashStr := vars["hash"]
 
-		blocks, err := a.DB.QueryBlockByHash(hashStr)
+		blocks, err := a.DB.GetBlockByHash(hashStr)
 		if err != nil {
 			zap.S().Debug("failed to get blocks ", zap.Error(err))
 			errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -158,7 +158,7 @@ func GetBlocksByHash(a *app.App) http.HandlerFunc {
 		result := make([]*model.ResultBlock, 0)
 
 		for _, block := range blocks {
-			validator, err := a.DB.QueryValidatorByAnyAddr(block.Proposer)
+			validator, err := a.DB.GetValidatorByAnyAddr(block.Proposer)
 			if err != nil {
 				zap.S().Error("failed to query validator by proposer", zap.Error(err))
 				return
@@ -166,7 +166,7 @@ func GetBlocksByHash(a *app.App) http.HandlerFunc {
 
 			var txResps []*model.ResultTx
 			if block.NumTxs > 0 {
-				txs, err := a.DB.QueryTransactionsByBlockID(block.ID)
+				txs, err := a.DB.GetTransactionsByBlockID(block.ID)
 				if err != nil {
 					zap.L().Error("failed to query txs", zap.Error(err))
 					errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -212,7 +212,7 @@ func GetBlockByChainIDHeight(a *app.App) http.HandlerFunc {
 			return
 		}
 
-		blocks, err := a.DB.QueryBlockByChainIDHeight(a.ChainIDMap[chainIDStr], height)
+		blocks, err := a.DB.GetBlockByChainIDHeight(a.ChainIDMap[chainIDStr], height)
 		if err != nil {
 			zap.S().Debug("failed to get blocks ", zap.Error(err))
 			errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -227,7 +227,7 @@ func GetBlockByChainIDHeight(a *app.App) http.HandlerFunc {
 		result := make([]*model.ResultBlock, 0)
 
 		for _, block := range blocks {
-			validator, err := a.DB.QueryValidatorByAnyAddr(block.Proposer)
+			validator, err := a.DB.GetValidatorByAnyAddr(block.Proposer)
 			if err != nil {
 				zap.S().Error("failed to query validator by proposer", zap.Error(err))
 				return
@@ -235,7 +235,7 @@ func GetBlockByChainIDHeight(a *app.App) http.HandlerFunc {
 
 			var txResps []*model.ResultTx
 			if block.NumTxs > 0 {
-				txs, err := a.DB.QueryTransactionsByBlockID(block.ID)
+				txs, err := a.DB.GetTransactionsByBlockID(block.ID)
 				if err != nil {
 					zap.L().Error("failed to query txs", zap.Error(err))
 					errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
@@ -288,7 +288,7 @@ func GetBlocksByProposer(a *app.App) http.HandlerFunc {
 		}
 
 		// Query validator information by any type of bech32 address, even moniker.
-		val, err := a.DB.QueryValidatorByAnyAddr(proposer)
+		val, err := a.DB.GetValidatorByAnyAddr(proposer)
 		if err != nil {
 			zap.S().Errorf("failed to query validator information: %s", err)
 			errors.ErrInternalServer(rw, http.StatusInternalServerError)
@@ -300,7 +300,7 @@ func GetBlocksByProposer(a *app.App) http.HandlerFunc {
 			return
 		}
 
-		blocks, err := a.DB.QueryBlocksByProposer(val.Proposer, from, limit)
+		blocks, err := a.DB.GetBlocksByProposer(val.Proposer, from, limit)
 		if err != nil {
 			zap.L().Error("failed to query blocks", zap.Error(err))
 			errors.ErrInternalServer(rw, http.StatusInternalServerError)
