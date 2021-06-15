@@ -16,38 +16,38 @@ func (ex *Exporter) Refine(op int) error {
 	aminoUnmarshal := custom.AppCodec.UnmarshalJSON
 
 	// 프로그램이 기동 되고, rawdb로부터 동기화 할 목표 높이
-	latestRawBlockHeight, err := ex.RawDB.GetLatestBlockHeight()
+	srcRawBlockHeight, err := ex.RawDB.GetLatestBlockHeight()
 	if err != nil {
 		zap.S().Info("raw_block have no blocks to refine")
 		return err
 	}
 
 	// db에 저장된 블록 높이 chain_info_id = x order by id desc limit 1
-	latestBlockHeight, err := ex.DB.GetLatestBlockHeight(ex.ChainIDMap[ex.Config.Chain.ChainID])
+	dstCurrentBlockHeight, err := ex.DB.GetLatestBlockHeight(ex.ChainIDMap[ex.Config.Chain.ChainID])
 	if err != nil {
 		zap.S().Info("failed to get latest block height")
 		return err
 	}
 
 	// db에 저장된 마지막 transaction
-	latestTransaction, err := ex.DB.GetLatestTransaction(ex.ChainIDMap[ex.Config.Chain.ChainID])
+	dstCurrentTransaction, err := ex.DB.GetLatestTransaction(ex.ChainIDMap[ex.Config.Chain.ChainID])
 	if err != nil {
 		zap.S().Info("failed to get latest transaction")
 		return err
 	}
 
-	if latestRawBlockHeight > latestBlockHeight {
-		beginRawBlock, err := ex.RawDB.GetBlockByHeight(latestBlockHeight)
+	if srcRawBlockHeight > dstCurrentBlockHeight {
+		beginRawBlock, err := ex.RawDB.GetBlockByHeight(dstCurrentBlockHeight)
 		beginRawBlockID := beginRawBlock.ID + 1
-		rawBlockIDMax, err := ex.RawDB.GetBlockIDMax(latestRawBlockHeight)
+		rawBlockIDMax, err := ex.RawDB.GetBlockIDMax(srcRawBlockHeight)
 		if rawBlockIDMax == -1 {
 			return fmt.Errorf("fail to get block max(id) in database: %s", err)
 		}
 
-		zap.S().Infof("total count of raw blocks : %d\n", rawBlockIDMax)
+		zap.S().Infof("will be refine blocks based on id from %d to %d\n", beginRawBlockID, rawBlockIDMax)
 		for i := beginRawBlockID; i <= rawBlockIDMax; i++ {
 			zap.S().Info("block working id : ", i)
-			rb, err := ex.RawDB.GetBlockByID(i, latestRawBlockHeight) // height 제약 추가 해야 함
+			rb, err := ex.RawDB.GetBlockByID(i, srcRawBlockHeight)
 			if err != nil {
 				return err
 			}
@@ -63,18 +63,18 @@ func (ex *Exporter) Refine(op int) error {
 		}
 	}
 
-	if latestRawBlockHeight > latestTransaction.Height {
-		beginRawTransaction, err := ex.RawDB.GetTransactionByHash(latestTransaction.Height, latestTransaction.Hash)
+	if srcRawBlockHeight > dstCurrentTransaction.Height {
+		beginRawTransaction, err := ex.RawDB.GetTransactionByHash(dstCurrentTransaction.Height, dstCurrentTransaction.Hash)
 		beginRawTransactionID := beginRawTransaction.ID + 1
-		rawTxIDMax, err := ex.RawDB.GetTxIDMax(latestRawBlockHeight)
+		rawTxIDMax, err := ex.RawDB.GetTxIDMax(srcRawBlockHeight)
 		if rawTxIDMax == -1 {
 			return fmt.Errorf("fail to get transaction max(id) in database: %s", err)
 		}
-		zap.S().Infof("total count of raw_transaction : %d\n", rawTxIDMax)
+		zap.S().Infof("will be refine transactions based on id from %d to %d\n", beginRawTransactionID, rawTxIDMax)
 		for i := beginRawTransactionID; i <= rawTxIDMax; i++ {
-			zap.S().Info("transaction working id : ", i)
+			zap.S().Info("tx working id : ", i)
 
-			ts, err := ex.RawDB.GetTransactionsByID(i, latestRawBlockHeight) // height 제약 추가 해야 함
+			ts, err := ex.RawDB.GetTransactionsByID(i, srcRawBlockHeight)
 			if err != nil {
 				return err
 			}
