@@ -5,8 +5,10 @@ go 1.15
 require (
 	github.com/cosmos/cosmos-sdk v0.42.4
 	github.com/cosmos/gaia/v4 v4.2.1
-	github.com/cosmostation/mintscan-backend-library v0.0.0-20210609122107-607af66ead19
-	github.com/cosmostation/mintscan-database v0.0.0-20210614090412-dbd2826ec4d9
+	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210609122107-607af66ead19
+	github.com/cosmostation/mintscan-backend-library v0.0.0-20210615083719-9ce78896626e
+	// github.com/cosmostation/mintscan-database v0.0.0-20210614090412-dbd2826ec4d9
+	github.com/cosmostation/mintscan-database v0.0.0-20210615051646-f80c2a1fdf9e
 	github.com/go-pg/pg/v10 v10.9.1
 	github.com/go-resty/resty/v2 v2.4.0
 	github.com/gorilla/mux v1.8.0

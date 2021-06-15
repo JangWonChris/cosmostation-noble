@@ -137,3 +137,17 @@ func TestUnmarshalMessageString(t *testing.T) {
 	}
 
 }
+
+func TestMap(t *testing.T) {
+	m := make(map[string]struct{})
+
+	key1 := ""
+	key2 := "abcd"
+
+	m[key1] = struct{}{}
+	m[key2] = struct{}{}
+
+	for k, v := range m {
+		t.Log("key :", k, " value :", v)
+	}
+}

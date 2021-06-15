@@ -75,9 +75,6 @@ func (ex *Exporter) getRawTransactions(block *tmctypes.ResultBlock, txResps []*s
 
 func (ex *Exporter) disassembleTransaction(txResps []*sdktypes.TxResponse) (uniqTransactionMessageAccounts []mdschema.TMA) {
 
-	// 별도의 스키마 필요
-	// id, account, hash, timestamp(불필요, 조인하면 되기 때문)
-	// id, tx_hash(id는 불가능, db에 저장할 때 알 수 없음)
 	if len(txResps) <= 0 {
 		return nil
 	}
@@ -97,7 +94,9 @@ func (ex *Exporter) disassembleTransaction(txResps []*sdktypes.TxResponse) (uniq
 			accounts = append(accounts, signers...)
 
 			if msgType == "" {
-				msgType, accounts = custom.AccountExporterFromCustomTxMsg(&msg, txHash)
+				customMsgType, account := custom.AccountExporterFromCustomTxMsg(&msg, txHash)
+				msgType = customMsgType
+				accounts = append(accounts, account...)
 			}
 
 			for i := range accounts {
@@ -136,7 +135,9 @@ func parseTransactionMessageAccount(txHash string, msgAccount map[string]map[str
 
 func getSignerAddress(accAddrs []sdktypes.AccAddress) (address []string) {
 	for _, addr := range accAddrs {
-		address = append(address, addr.String())
+		if addr.String() != "" {
+			address = append(address, addr.String())
+		}
 	}
 
 	return address

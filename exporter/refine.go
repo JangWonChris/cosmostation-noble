@@ -15,49 +15,39 @@ func (ex *Exporter) Refine(op int) error {
 	var chainID string
 	aminoUnmarshal := custom.AppCodec.UnmarshalJSON
 
-	var latestRawBlockHeight, latestBlockHeight int64
-	var latestTransactionHash string // select hash from transaction where height <= latestBlockHeight order by id desc limit 1
-	var beginRawBlockID, beginRawTransactionID, endRawBlockHeight, endRawTransactionHeight int64
-	_, _ = latestRawBlockHeight, latestBlockHeight
-	_ = latestTransactionHash
-	_, _, _, _ = beginRawBlockID, beginRawTransactionID, endRawBlockHeight, endRawTransactionHeight
-	// 최초 앱이 구동 될 때 받아와야 함
-
-	// latest block.height
-	// latest block.height ( because block and transaction will be processed on database transaction)
-
-	// 프로그램 실행 -> refine 할 블록 높이 설정(block, transaction)
-	// refine 완료, 노드로부터 데이터를 받아와 동기화 시작
-
-	// 데이터 동기화 목표 값
-	// 1. dst.block.height = raw_block 의 최종 height : select height from raw_block where chain_info_id = x order by id desc limit 1
-	// 2. (1)의 height을 raw_block, raw_transaction 에서 refine 할 때 사용
-	// select * from raw_block order by id desc limit 1
-	// select * from raw_transaction where height <= dst.block.height order by id desc limit 1
-
-	// raw_table의 시작 id 계산
-	// 3-1. source.block.height = select id from block order by id desc limit 1
-	// 3-2. source.transaction.hash = select chain_info_id, hash from transaction order by id desc limit 1
-	// 4-1. source.raw_block.id = select id from raw_block where height = source.block.height order by id desc limit 1
-	// 4-2. source.raw_transaction.id = select hash from transaction where chain_info_id = source.transaction.chain_info_id and hash = source.transaction.hash order by id desc limit 1
-
-	// 5. (4)에서 구한 id 값을 시작으로 동기화 (limit 값을 어떻게?)
-	// 6. (1) ~ (5)의 과정을 반복하여 refine 테이블을 최신 상태와 동기화 되도록 함
-
-	rawBlockIDMax, err := ex.RawDB.GetBlockIDMax()
-	if rawBlockIDMax == -1 {
-		return fmt.Errorf("fail to get block max(id) in database: %s", err)
-	}
-	rawTxIDMax, err := ex.RawDB.GetTxIDMax()
-	if rawTxIDMax == -1 {
-		return fmt.Errorf("fail to get transaction max(id) in database: %s", err)
+	// 프로그램이 기동 되고, rawdb로부터 동기화 할 목표 높이
+	latestRawBlockHeight, err := ex.RawDB.GetLatestBlockHeight()
+	if err != nil {
+		zap.S().Info("raw_block have no blocks to refine")
+		return err
 	}
 
-	if true { // 블록 가공 시작
+	// db에 저장된 블록 높이 chain_info_id = x order by id desc limit 1
+	latestBlockHeight, err := ex.DB.GetLatestBlockHeight(ex.ChainIDMap[ex.Config.Chain.ChainID])
+	if err != nil {
+		zap.S().Info("failed to get latest block height")
+		return err
+	}
+
+	// db에 저장된 마지막 transaction
+	latestTransaction, err := ex.DB.GetLatestTransaction(ex.ChainIDMap[ex.Config.Chain.ChainID])
+	if err != nil {
+		zap.S().Info("failed to get latest transaction")
+		return err
+	}
+
+	if latestRawBlockHeight > latestBlockHeight {
+		beginRawBlock, err := ex.RawDB.GetBlockByHeight(latestBlockHeight)
+		beginRawBlockID := beginRawBlock.ID + 1
+		rawBlockIDMax, err := ex.RawDB.GetBlockIDMax(latestRawBlockHeight)
+		if rawBlockIDMax == -1 {
+			return fmt.Errorf("fail to get block max(id) in database: %s", err)
+		}
+
 		zap.S().Infof("total count of raw blocks : %d\n", rawBlockIDMax)
-		for i := int64(1); i <= rawBlockIDMax; i++ {
+		for i := beginRawBlockID; i <= rawBlockIDMax; i++ {
 			zap.S().Info("block working id : ", i)
-			rb, err := ex.RawDB.GetBlockByID(i)
+			rb, err := ex.RawDB.GetBlockByID(i, latestRawBlockHeight) // height 제약 추가 해야 함
 			if err != nil {
 				return err
 			}
@@ -73,13 +63,18 @@ func (ex *Exporter) Refine(op int) error {
 		}
 	}
 
-	if true { // 트랜잭션 가공 시작
-
+	if latestRawBlockHeight > latestTransaction.Height {
+		beginRawTransaction, err := ex.RawDB.GetTransactionByHash(latestTransaction.Height, latestTransaction.Hash)
+		beginRawTransactionID := beginRawTransaction.ID + 1
+		rawTxIDMax, err := ex.RawDB.GetTxIDMax(latestRawBlockHeight)
+		if rawTxIDMax == -1 {
+			return fmt.Errorf("fail to get transaction max(id) in database: %s", err)
+		}
 		zap.S().Infof("total count of raw_transaction : %d\n", rawTxIDMax)
-		for i := int64(1); i <= rawTxIDMax; i++ {
+		for i := beginRawTransactionID; i <= rawTxIDMax; i++ {
 			zap.S().Info("transaction working id : ", i)
 
-			ts, err := ex.RawDB.GetTransactionsByID(i)
+			ts, err := ex.RawDB.GetTransactionsByID(i, latestRawBlockHeight) // height 제약 추가 해야 함
 			if err != nil {
 				return err
 			}
@@ -102,13 +97,14 @@ func (ex *Exporter) Refine(op int) error {
 			}
 		}
 	}
+
+	// 실시간 refine
 	for {
 		if err := ex.refineSync(); err != nil {
 			zap.S().Infof("error - sync blockchain: %s\n", err)
 		}
 		time.Sleep(2 * time.Second)
 	}
-	return nil
 }
 func (ex *Exporter) refineRawTransactions(chainID string, txs []*sdktypes.TxResponse) (err error) {
 	refineData := new(mdschema.RefineData)
