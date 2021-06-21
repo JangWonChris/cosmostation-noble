@@ -6,16 +6,17 @@ require (
 	github.com/cosmos/cosmos-sdk v0.42.4
 	github.com/cosmos/gaia/v4 v4.2.1
 	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210609122107-607af66ead19
-	github.com/cosmostation/mintscan-backend-library v0.0.0-20210615083719-9ce78896626e
-	// github.com/cosmostation/mintscan-database v0.0.0-20210614090412-dbd2826ec4d9
+	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210615083719-9ce78896626e
+	github.com/cosmostation/mintscan-backend-library v0.0.0-20210616095652-cd86c0e1cd86
 	github.com/cosmostation/mintscan-database v0.0.0-20210615051646-f80c2a1fdf9e
+	github.com/cosmostation/mintscan-prometheus v0.0.0-20210616095618-b14862ad83a2
 	github.com/go-pg/pg/v10 v10.9.1
 	github.com/go-resty/resty/v2 v2.4.0
 	github.com/gorilla/mux v1.8.0
 	github.com/stretchr/testify v1.7.0
 	github.com/tendermint/tendermint v0.34.9
 	github.com/tomasen/realip v0.0.0-20180522021738-f0c99a92ddce
-	go.uber.org/zap v1.16.0
+	go.uber.org/zap v1.17.0
 	google.golang.org/grpc v1.35.0
 )
 

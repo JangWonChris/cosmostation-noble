@@ -32,7 +32,6 @@ func TestGetTxsChunk(t *testing.T) {
 
 	tma := ex.disassembleTransaction(txResps)
 	log.Println(tma)
-	return
 
 	// assume that following expression is for inserting db
 	jsonString, err := InsertJSONStringToDB(txResps)
@@ -86,11 +85,11 @@ func TestGetMessage(t *testing.T) {
 	// 122499 (multi msg type)
 	block, err := ex.Client.RPC.GetBlock(970957)
 	if err != nil {
-		log.Println(err)
+		t.Log(err)
 	}
 	txResps, err := ex.Client.CliCtx.GetTxs(block)
 	if err != nil {
-		log.Println(err)
+		t.Log(err)
 	}
 
 	for _, txResp := range txResps {
@@ -105,12 +104,12 @@ func TestGetMessage(t *testing.T) {
 		for i, msg := range getMessages {
 			msgjson[i], err = custom.AppCodec.MarshalJSON(msg)
 			if err != nil {
-				fmt.Println(err)
+				t.Log(err)
 				return
 			}
 		}
 		jsonraws, err := json.Marshal(msgjson)
-		fmt.Println(string(jsonraws))
+		t.Log(string(jsonraws))
 	}
 
 	return
@@ -123,17 +122,17 @@ func TestUnmarshalMessageString(t *testing.T) {
 	json.Unmarshal([]byte(msgStr), &jsonRaws)
 
 	for _, raw := range jsonRaws {
-		fmt.Println(string(raw))
+		t.Log(string(raw))
 		var any codectypes.Any
 		custom.AppCodec.UnmarshalJSON(raw, &any)
-		fmt.Println(any.TypeUrl)
+		t.Log(any.TypeUrl)
 		// any.GetCachedValue().(type)
-		fmt.Println(any.GetCachedValue())
+		t.Log(any.GetCachedValue())
 		b, err := json.Marshal(any)
 		require.NoError(t, err)
-		fmt.Println(string(any.Value))
+		t.Log(string(any.Value))
 
-		fmt.Println(string(b))
+		t.Log(string(b))
 	}
 
 }

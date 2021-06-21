@@ -66,15 +66,12 @@ func (ex *Exporter) getRawTransactions(block *tmctypes.ResultBlock, txResps []*s
 		txChunk[i].Height = txResp.Height
 		txChunk[i].TxHash = txResp.TxHash
 		txChunk[i].Chunk = chunk
-		// show result
-		// fmt.Println(jsonString[i])
 	}
 
 	return txChunk, nil
 }
 
 func (ex *Exporter) disassembleTransaction(txResps []*sdktypes.TxResponse) (uniqTransactionMessageAccounts []mdschema.TMA) {
-
 	if len(txResps) <= 0 {
 		return nil
 	}
@@ -98,7 +95,10 @@ func (ex *Exporter) disassembleTransaction(txResps []*sdktypes.TxResponse) (uniq
 				msgType = customMsgType
 				accounts = append(accounts, account...)
 			}
-
+			if msgType == "" {
+				// msgType 이 없을 경우, 해당 건은 수집하지 않는다.
+				continue
+			}
 			for i := range accounts {
 				ma, ok := uniqueMsgAccount[msgType]
 				if !ok {

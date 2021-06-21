@@ -10,17 +10,20 @@ import (
 	"go.uber.org/zap"
 
 	mblconfig "github.com/cosmostation/mintscan-backend-library/config"
+
+	mp "github.com/cosmostation/mintscan-prometheus/prometheus"
 )
 
 type App struct {
-	Config         *mblconfig.Config
-	Client         *client.Client
-	DB             *db.Database
-	RawDB          *db.RawDatabase
-	ChainNumMap    map[int]string
-	ChainIDMap     map[string]int
-	MessageIDMap   map[int]string
-	MessageTypeMap map[string]int
+	Config          *mblconfig.Config
+	Client          *client.Client
+	DB              *db.Database
+	RawDB           *db.RawDatabase
+	ExporterMetrics mp.ExporterMetrics
+	ChainNumMap     map[int]string
+	ChainIDMap      map[string]int
+	MessageIDMap    map[int]string
+	MessageTypeMap  map[string]int
 }
 
 func init() {
@@ -55,6 +58,9 @@ func NewApp(fileBaseName string) *App {
 		if err != nil {
 			panic(err)
 		}
+		app.ExporterMetrics = mp.NewMetricsForExporter(app.Config.Prometheus.Namespace)
+		mp.RegisterMetricForExporter(&app.ExporterMetrics)
+		go mp.StartMetricsScraping(app.Config.Prometheus.Path, app.Config.Prometheus.Port)
 	}
 	mdschema.SetCommonSchema(app.Config.DB.CommonSchema)
 	mdschema.SetChainSchema(app.Config.DB.ChainSchema)

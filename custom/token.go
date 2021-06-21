@@ -13,5 +13,7 @@ const (
 var (
 	// config로 빼자
 	NonNativeAssets = []string{}
-	PowerReduction  = sdktypes.PowerReduction // 1e6;
+
+	//ex) 18자리인 경우 : PowerReduction = sdktypes.NewIntFromBigInt(new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil))
+	PowerReduction = sdktypes.PowerReduction // 1e6;
 )

@@ -8,12 +8,9 @@ import (
 
 	"go.uber.org/zap"
 
-	//internal
-
 	"github.com/cosmostation/cosmostation-cosmos/app"
 
 	// mbl
-
 	mbltypes "github.com/cosmostation/mintscan-backend-library/types"
 	mdschema "github.com/cosmostation/mintscan-database/schema"
 
@@ -205,6 +202,7 @@ func (ex *Exporter) sync(op int) error {
 			os.Exit(1)
 		}
 		zap.S().Infof("synced block %d/%d", i, latestBlockHeight)
+		ex.App.ExporterMetrics.BlockHeight.WithLabelValues().Set(float64(i))
 	}
 	return nil
 }
