@@ -69,7 +69,12 @@ func RegisterHandlers(a *app.App, r *mux.Router) {
 	// r.HandleFunc("/distribution/delegators/{delAddr}/rewards/{valAddr}", GetRewardsBetweenDelegatorAndValidator).Methods("GET") // (확인)
 	r.HandleFunc("/staking/validator/uptime/range/{address}", GetValidatorUptimeRange(a)).Methods("GET") // (나중)
 
-	r.HandleFunc("/account/txs/{accAddr}", GetAccountTxsHistory(a)).Methods("GET")
-	r.HandleFunc("/account/transfer_txs/{accAddr}", GetAccountTransferTxsHistory(a)).Methods("GET")
-	r.HandleFunc("/account/txs/{accAddr}/{valAddr}", GetTxsHistoryBetweenDelegatorAndValidator(a)).Methods("GET")
+	r.HandleFunc("/account/new_txs/{accAddr}", NewGetAccountTxsHistory(a)).Methods("GET")
+	r.HandleFunc("/account/new_transfer_txs/{accAddr}", NewGetAccountTransferTxsHistory(a)).Methods("GET")
+	r.HandleFunc("/account/new_txs/{accAddr}/{valAddr}", NewGetTxsHistoryBetweenDelegatorAndValidator(a)).Methods("GET")
+
+	// legacy 모바일 호환용
+	r.HandleFunc("/account/txs/{accAddr}", GetAccountTxs(a)).Methods("GET")
+	r.HandleFunc("/account/transfer_txs/{accAddr}", GetAccountTransferTxs(a)).Methods("GET")
+	r.HandleFunc("/account/txs/{accAddr}/{valAddr}", GetTxsBetweenDelegatorAndValidator(a)).Methods("GET")
 }
