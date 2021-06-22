@@ -3,8 +3,11 @@ package model
 import (
 	"encoding/json"
 
-	// sdktypes "github.com/cosmos/cosmos-sdk/types"
+	sdktypes "github.com/cosmos/cosmos-sdk/types"
+	sdktypestx "github.com/cosmos/cosmos-sdk/types/tx"
+
 	"github.com/cosmostation/cosmostation-cosmos/app"
+	"github.com/cosmostation/cosmostation-cosmos/custom"
 	mdschema "github.com/cosmostation/mintscan-database/schema"
 )
 
@@ -54,12 +57,12 @@ type OldMobileTransactionHistory struct {
 	ID         int64  `json:"id"`
 	ChainID    string `json:"chain_id"`
 	Height     int64  `json:"height"`
-	Code       uint32 `json:"code"`
+	Code       uint32 `json:"code"` // grpc 이후 안씀
 	TxHash     string `json:"tx_hash"`
-	Messages   string `json:"messages"`
-	Fee        string `json:"fee"`
-	Signatures string `json:"signatures"`
-	Memo       string `json:"memo"`
+	Messages   string `json:"messages"`   // grpc 이후 사용
+	Fee        string `json:"fee"`        // grpc이후 안씀
+	Signatures string `json:"signatures"` // 안씀
+	Memo       string `json:"memo"`       // grpc 이후 안씀
 	GasWanted  int64  `json:"gas_wanted"`
 	GasUsed    int64  `json:"gas_used"`
 	Logs       string `json:"logs"`
@@ -67,22 +70,67 @@ type OldMobileTransactionHistory struct {
 	Timestamp  string `json:"timestamp"`
 }
 
-// ParseTransaction receives single transaction from database and return it after unmarshal them.
+// OldMobileParseTransaction tx를 민트스캔 응답구조에 맞게 파싱하여 리턴
 func OldMobileParseTransaction(a *app.App, tx mdschema.Transaction) (result *OldMobileTransactionHistory) {
 	if tx.ID == 0 {
 		return
 	}
-	// var txResp sdktypes.TxResponse
+	var txResp sdktypes.TxResponse
+	unmarshal := custom.AppCodec.UnmarshalJSON
+	unmarshal(tx.Chunk, &txResp)
 
-	// custom.AppCodec.UnmarshalJSON(tx.Chunk, &txResp)
+	txI := txResp.GetTx()
+	sdkTx, ok := txI.(*sdktypestx.Tx)
+	if !ok {
+		return
+	}
+	msgs := sdkTx.GetBody().GetMessages()
+	jsonRaws := make([]json.RawMessage, len(msgs), len(msgs))
+	var err error
+	for i, msg := range msgs {
+		jsonRaws[i], err = custom.AppCodec.MarshalJSON(msg)
+		if err != nil {
+			return
+		}
+	}
+	msgsBz, err := json.Marshal(jsonRaws)
+	if err != nil {
+		return
+	}
 
-	result.ChainID = a.ChainNumMap[tx.ChainInfoID]
-	result.Code = tx.Code
-	result.TxHash = tx.Hash
-	result.Timestamp = tx.Timestamp.String()
-	// result.Height = txResp.Height
+	feeBz, err := custom.AppCodec.MarshalJSON(sdkTx.GetAuthInfo().GetFee())
+	if err != nil {
+		return
+	}
+
+	temp := OldMobileTransactionHistory{
+		ChainID:   a.ChainNumMap[tx.ChainInfoID],
+		Height:    txResp.Height,
+		Code:      txResp.Code,
+		TxHash:    txResp.TxHash,
+		Messages:  string(msgsBz),
+		Fee:       string(feeBz),
+		GasWanted: txResp.GasWanted,
+		GasUsed:   txResp.GasUsed,
+		Logs:      txResp.Logs.String(),
+		RawLog:    txResp.RawLog,
+		Memo:      sdkTx.GetBody().GetMemo(),
+		Timestamp: txResp.Timestamp,
+	}
+
+	result = &temp
 
 	return
+}
+
+// OldMobileParseTransactions []txs를 파싱하여 리턴
+func OldMobileParseTransactions(a *app.App, txs []mdschema.Transaction) (results []*OldMobileTransactionHistory) {
+	for i := range txs {
+		if txs[i].ChainInfoID == 4 {
+			results = append(results, OldMobileParseTransaction(a, txs[i]))
+		}
+	}
+	return results
 }
 
 // ParseTransaction receives single transaction from database and return it after unmarshal them.

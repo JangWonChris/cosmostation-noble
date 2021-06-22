@@ -46,11 +46,11 @@ func GetAccountTxs(a *app.App) http.HandlerFunc {
 		}
 
 		if len(txs) <= 0 {
-			model.Respond(rw, []model.ResultTx{})
+			model.Respond(rw, []model.OldMobileTransactionHistory{})
 			return
 		}
 
-		result := model.ParseTransactions(a, txs)
+		result := model.OldMobileParseTransactions(a, txs)
 
 		model.Respond(rw, result)
 		return
@@ -84,7 +84,12 @@ func GetAccountTransferTxs(a *app.App) http.HandlerFunc {
 			return
 		}
 
-		result := model.ParseTransactions(a, txs)
+		if len(txs) <= 0 {
+			model.Respond(rw, []model.OldMobileTransactionHistory{})
+			return
+		}
+
+		result := model.OldMobileParseTransactions(a, txs)
 
 		model.Respond(rw, result)
 		return
@@ -127,7 +132,12 @@ func GetTxsBetweenDelegatorAndValidator(a *app.App) http.HandlerFunc {
 			return
 		}
 
-		result := model.ParseTransactions(a, txs)
+		if len(txs) <= 0 {
+			model.Respond(rw, []model.OldMobileTransactionHistory{})
+			return
+		}
+
+		result := model.OldMobileParseTransactions(a, txs)
 
 		model.Respond(rw, result)
 		return
