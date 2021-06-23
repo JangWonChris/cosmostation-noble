@@ -47,13 +47,16 @@ func ParseHTTPArgs(r *http.Request) (from int64, limit int, err error) {
 	}
 
 	limitStr := r.FormValue("limit")
+	if limitStr == "" {
+		limitStr = "0"
+	}
 
 	limit, err = strconv.Atoi(limitStr) // ParseInt(limitStr, 10, 0)
 	if err != nil {
 		return from, limit, err
 	}
 
-	if limit < 0 {
+	if limit <= 0 {
 		return from, limit, fmt.Errorf("invalid value from : %d", limit)
 	}
 
