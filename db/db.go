@@ -99,3 +99,22 @@ func (db *Database) QueryAlarmTokens(address string) ([]string, error) {
 
 	return result, nil
 }
+
+func (db *Database) TestGetRecvPacketTransaction(beginTxID int64) (txs []mdschema.Transaction, err error) {
+	// var txs []mdschema.Transaction
+	// var err error
+
+	limit := 100
+
+	_, err = db.Query(&txs, "select id, hash, chunk from public.transaction where id in ( "+
+		"select distinct(tx_id) from public.transaction_message where msg_id = 34 and tx_id > ? order by tx_id asc limit ?)", beginTxID, limit)
+
+	if err != nil {
+		if err == pg.ErrNoRows {
+			return txs, nil
+		}
+		return txs, err
+	}
+
+	return txs, nil
+}
