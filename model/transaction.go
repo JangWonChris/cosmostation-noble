@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/json"
+	"time"
 
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	sdktypestx "github.com/cosmos/cosmos-sdk/types/tx"
@@ -146,7 +147,7 @@ func ParseTransaction(a *app.App, tx mdschema.Transaction) (result *ResultTx) {
 		ID:        tx.ID,
 		ChainID:   a.ChainNumMap[tx.ChainInfoID],
 		BlockID:   tx.BlockID,
-		Timestamp: tx.Timestamp.String(),
+		Timestamp: tx.Timestamp.Format(time.RFC3339),
 	}
 
 	result = &ResultTx{
