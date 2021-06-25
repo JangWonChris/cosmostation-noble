@@ -7,7 +7,7 @@ require (
 	github.com/cosmos/gaia/v4 v4.2.1
 	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210609122107-607af66ead19
 	// github.com/cosmostation/mintscan-backend-library v0.0.0-20210615083719-9ce78896626e
-	github.com/cosmostation/mintscan-backend-library v0.0.0-20210616095652-cd86c0e1cd86
+	github.com/cosmostation/mintscan-backend-library v0.0.0-20210625020943-883cdaf72750
 	github.com/cosmostation/mintscan-database v0.0.0-20210624053100-4110b2442284 //v0.0.0-20210615051646-f80c2a1fdf9e
 	github.com/cosmostation/mintscan-prometheus v0.0.0-20210616095618-b14862ad83a2
 	github.com/go-pg/pg/v10 v10.9.1

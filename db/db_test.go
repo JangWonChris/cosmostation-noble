@@ -1,12 +1,17 @@
 package db
 
 import (
+	"encoding/json"
 	"os"
 	"testing"
 
 	//mbl
+	"github.com/cosmostation/cosmostation-cosmos/custom"
 	mblconfig "github.com/cosmostation/mintscan-backend-library/config"
 	mdschema "github.com/cosmostation/mintscan-database/schema"
+
+	sdktypes "github.com/cosmos/cosmos-sdk/types"
+	ibcchanneltypes "github.com/cosmos/cosmos-sdk/x/ibc/core/04-channel/types"
 
 	pg "github.com/go-pg/pg/v10"
 
@@ -18,7 +23,7 @@ var db *Database
 func TestMain(m *testing.M) {
 	// types.SetAppConfig()
 
-	fileBaseName := "chain-exporter"
+	fileBaseName := "mintscan"
 	cfg := mblconfig.ParseConfig(fileBaseName)
 	db = Connect(&cfg.DB)
 
@@ -58,4 +63,43 @@ func TestConnection(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, n, 1, "failed to ping database")
+}
+
+func TestGetTx(t *testing.T) {
+	id := int64(4318956)
+	txs, err := db.GetTransactionByID(id)
+	require.NoError(t, err)
+
+	t.Log(txs.Hash)
+
+	unmarshaler := custom.EncodingConfig.Marshaler.UnmarshalJSON
+	var txResp sdktypes.TxResponse
+	err = unmarshaler(txs.Chunk, &txResp)
+	require.NoError(t, err)
+
+	tx := txResp.GetTx()
+	msgs := tx.GetMsgs()
+
+	type IBCRecvPacketData struct {
+		Denom    string       `json:"denom,omitempty"`
+		Amount   sdktypes.Int `json:"amount"`
+		Sender   string       `json:"sender,omitempty"`
+		Receiver string       `json:"receiver,omitempty"`
+	}
+
+	var pd IBCRecvPacketData
+
+	for _, msg := range msgs {
+		switch m := msg.(type) {
+		case *ibcchanneltypes.MsgRecvPacket:
+			t.Log(m.Packet)
+			t.Log(string(m.Packet.GetData()))
+			json.Unmarshal(m.Packet.GetData(), &pd)
+			t.Log("sender :", pd.Sender)
+			t.Log("receiver :", pd.Receiver)
+			t.Log("denom :", pd.Denom)
+			t.Log("amount :", pd.Amount)
+		}
+	}
+
 }
