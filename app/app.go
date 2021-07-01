@@ -2,6 +2,8 @@ package app
 
 import (
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"net/http"
 
 	"github.com/cosmostation/cosmostation-cosmos/client"
 	"github.com/cosmostation/cosmostation-cosmos/custom"
@@ -60,7 +62,15 @@ func NewApp(fileBaseName string) *App {
 		}
 		app.ExporterMetrics = mp.NewMetricsForExporter(app.Config.Prometheus.Namespace)
 		mp.RegisterMetricForExporter(&app.ExporterMetrics)
-		go mp.StartMetricsScraping(app.Config.Prometheus.Path, app.Config.Prometheus.Port)
+		if app.Config.Prometheus.Use == true {
+			go func() {
+				http.Handle(app.Config.Prometheus.Path, promhttp.Handler())
+				err := http.ListenAndServe(":"+app.Config.Prometheus.Port, nil)
+				if err !=nil{
+					panic(err)
+				}
+			}()
+		}
 	}
 	mdschema.SetCommonSchema(app.Config.DB.CommonSchema)
 	mdschema.SetChainSchema(app.Config.DB.ChainSchema)

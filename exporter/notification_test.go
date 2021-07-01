@@ -1,7 +1,9 @@
 package exporter
 
 import (
+	"github.com/cosmostation/cosmostation-cosmos/app"
 	"testing"
+	"time"
 
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 
@@ -29,4 +31,11 @@ func TestParseMsgSend(t *testing.T) {
 func TestParseMsgMultiSend(t *testing.T) {
 	_, _, err := commonTxParser(SampleMsgMultiSendTxHash)
 	require.NoError(t, err)
+}
+
+func TestProposalAlarm(t *testing.T){
+	chainEx := app.NewApp("chain-exporter")
+	ex = NewExporter(chainEx)
+	go ex.ProposalNotificationToSlack(51)
+	time.Sleep(5*time.Second)
 }

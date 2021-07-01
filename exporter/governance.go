@@ -90,6 +90,8 @@ func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txResp []*sdkType
 
 				deposits = append(deposits, d)
 
+				go ex.ProposalNotificationToSlack(p.ID)
+
 			case *govtypes.MsgDeposit:
 				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
 
@@ -114,6 +116,8 @@ func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txResp []*sdkType
 				}
 
 				deposits = append(deposits, d)
+
+				go ex.ProposalNotificationToSlack(d.ProposalID)
 
 			case *govtypes.MsgVote:
 				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)

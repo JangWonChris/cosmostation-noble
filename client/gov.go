@@ -104,3 +104,70 @@ func (c *Client) GetProposals() (result []mdschema.Proposal, err error) {
 
 	return result, nil
 }
+// GetProposal은 특정 프로포절 정보를 GRPC 얻어온다.
+func (c *Client) GetProposal(id uint64) (result mdschema.Proposal, err error) {
+
+	queryClient := c.GetGovQueryClient()
+	resp, err := queryClient.Proposal(context.Background(), &govtypes.QueryProposalRequest{ProposalId: id})
+	if err != nil {
+		return mdschema.Proposal{}, fmt.Errorf("failed to request gov proposals: %s", err)
+	}
+
+	var contentI govtypes.Content
+	err = custom.AppCodec.UnpackAny(resp.Proposal.Content, &contentI)
+	if err != nil {
+		log.Println(err)
+	}
+
+	var proposalType string
+	switch i := contentI.(type) {
+	case *govtypes.TextProposal:
+		proposalType = i.ProposalType()
+	case *distributiontypes.CommunityPoolSpendProposal:
+		proposalType = i.ProposalType()
+	case *ibccoretypes.ClientUpdateProposal:
+		proposalType = i.ProposalType()
+	case *paramstypesproposal.ParameterChangeProposal:
+		proposalType = i.ProposalType()
+	case *upgradetypes.SoftwareUpgradeProposal:
+		proposalType = i.ProposalType()
+	case *upgradetypes.CancelSoftwareUpgradeProposal:
+		proposalType = i.ProposalType()
+	default:
+		log.Printf("unrecognized type : %T\n", i)
+	}
+
+	totalDepositAmount := make([]string, len(resp.Proposal.TotalDeposit))
+	totalDepositDenom := make([]string, len(resp.Proposal.TotalDeposit))
+	for i, td := range resp.Proposal.TotalDeposit {
+		totalDepositAmount[i] = td.Amount.String()
+		totalDepositDenom[i] = td.Denom
+	}
+
+	request := govtypes.QueryTallyResultRequest{ProposalId: resp.Proposal.ProposalId}
+	tallyResultResp, err := queryClient.TallyResult(context.Background(), &request)
+	if err != nil {
+		return mdschema.Proposal{}, fmt.Errorf("failed to request gov proposals: %s", err)
+	}
+	tally := tallyResultResp.Tally
+
+	p := mdschema.Proposal{
+		ID:           resp.Proposal.ProposalId,
+		Title:        resp.Proposal.GetTitle(),
+		Description:  contentI.GetDescription(),
+		ProposalType: proposalType,
+		ProposalStatus:     resp.Proposal.Status.String(),
+		Yes:                tally.Yes.String(),
+		Abstain:            tally.Abstain.String(),
+		No:                 tally.No.String(),
+		NoWithVeto:         tally.NoWithVeto.String(),
+		SubmitTime:         resp.Proposal.SubmitTime,
+		DepositEndTime:     resp.Proposal.DepositEndTime,
+		TotalDepositAmount: totalDepositAmount,
+		TotalDepositDenom:  totalDepositDenom,
+		VotingStartTime:    resp.Proposal.VotingStartTime,
+		VotingEndTime:      resp.Proposal.VotingEndTime,
+	}
+
+	return p, nil
+}

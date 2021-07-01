@@ -80,9 +80,14 @@ func GetProposal(a *app.App) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		id := vars["proposal_id"]
-
+		new_id, err := strconv.ParseUint(id,10,64)
+		if err !=nil{
+			zap.S().Errorf("failed to convert proposal parameter(string to int): %s",err)
+			errors.ErrInternalServer(rw, http.StatusInternalServerError)
+			return
+		}
 		// Query particular proposal
-		p, _ := a.DB.GetProposal(id)
+		p, _ := a.DB.GetProposal(new_id)
 		if p.ID == 0 {
 			zap.L().Debug("this proposal does not exist", zap.String("id", id))
 			errors.ErrNotExist(rw, http.StatusNotFound)
@@ -129,9 +134,14 @@ func GetDeposits(a *app.App) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		id := vars["proposal_id"]
-
+		new_id, err := strconv.ParseUint(id,10,64)
+		if err !=nil{
+			zap.S().Errorf("failed to convert proposal parameter(string to int): %s",err)
+			errors.ErrInternalServer(rw, http.StatusInternalServerError)
+			return
+		}
 		// Query particular proposal
-		p, _ := a.DB.GetProposal(id)
+		p, _ := a.DB.GetProposal(new_id)
 		if p.ID == 0 {
 			zap.L().Debug("this proposal does not exist", zap.String("id", id))
 			errors.ErrNotExist(rw, http.StatusNotFound)
@@ -140,7 +150,7 @@ func GetDeposits(a *app.App) http.HandlerFunc {
 
 		result := make([]*model.ResultDeposit, 0)
 
-		deposits, _ := a.DB.GetDeposits(id)
+		deposits, _ := a.DB.GetDeposits(new_id)
 		if len(deposits) <= 0 {
 			zap.L().Debug("this proposal does not have any deposit yet", zap.String("id", id))
 			model.Respond(rw, result)
@@ -177,9 +187,14 @@ func GetVotes(a *app.App) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		id := vars["proposal_id"]
-
+		new_id, err := strconv.ParseUint(id,10,64)
+		if err !=nil{
+			zap.S().Errorf("failed to convert proposal parameter(string to int): %s",err)
+			errors.ErrInternalServer(rw, http.StatusInternalServerError)
+			return
+		}
 		// Query particular proposal
-		p, _ := a.DB.GetProposal(id)
+		p, _ := a.DB.GetProposal(new_id)
 		if p.ID == 0 {
 			zap.L().Debug("this proposal does not exist", zap.String("id", id))
 			errors.ErrNotExist(rw, http.StatusNotFound)
@@ -187,7 +202,7 @@ func GetVotes(a *app.App) http.HandlerFunc {
 		}
 
 		// Query all votes
-		votes, _ := a.DB.GetVotes(id)
+		votes, _ := a.DB.GetVotes(new_id)
 		if len(votes) <= 0 {
 			model.Respond(rw, &model.ResultVote{
 				Tally: &model.ResultTally{},
