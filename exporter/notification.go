@@ -5,15 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/cosmostation/cosmostation-cosmos/notification"
 	"github.com/cosmostation/cosmostation-cosmos/types"
 	mbltypes "github.com/cosmostation/mintscan-backend-library/types"
 	mdschema "github.com/cosmostation/mintscan-database/schema"
-	"net/http"
-	"strings"
-	"time"
 
 	"go.uber.org/zap"
 
@@ -188,30 +189,31 @@ func (ex *Exporter) NotificationToSlack(msg, url string) error {
 }
 
 // SetMessageForProposalOccur is a function that sets a message to notify that a proposal has occurred.
-func (ex *Exporter) SetMessageForProposalOccur(proposal mdschema.Proposal) string{
-	net := ex.Config.Web.URI
+func (ex *Exporter) SetMessageForProposalOccur(proposal mdschema.Proposal) string {
+	uri := ex.Config.Web.URI
 
-	msg := fmt.Sprintf("[%s] 새로운 프로포절이 생성되었습니다.\n" +
-		"Number : %d\n" +
-		"Title : %s\n" +
-		"Submit Time : %s\n" +
-		"Deposit End Time : %s\n" +
-		"[https://mintscan.io/%s/proposals/%d]\n",
-		strings.ToUpper(net), proposal.ID, proposal.Title,
-		proposal.SubmitTime, proposal.DepositEndTime, net, proposal.ID)
+	msg := fmt.Sprintf("[%s] 새로운 프로포절이 생성되었습니다.\n"+
+		"Number : %d\n"+
+		"Title : %s\n"+
+		"Submit Time : %s\n"+
+		"Deposit End Time : %s\n"+
+		"[%s/proposals/%d]\n",
+		strings.ToUpper(uri), proposal.ID, proposal.Title,
+		proposal.SubmitTime, proposal.DepositEndTime, uri, proposal.ID)
 
 	return msg
 }
+
 // SetMessageForVoting is a function that sets a message asking you to vote on a proposal.
-func (ex *Exporter) SetMessageForVoting(proposal mdschema.Proposal) string{
-	net := ex.Config.Web.URI
-	return fmt.Sprintf("[%s] 투표가 진행중입니다.\n" +
-		"Number : %d\n" +
-		"Proposal Title : %s\n" +
-		"Voting End Time : %s\n" +
-		"[https://mintscan.io/%s/proposals/%d]\n",
-		strings.ToUpper(net), proposal.ID, proposal.Title,
-		proposal.VotingEndTime, net, proposal.ID)
+func (ex *Exporter) SetMessageForVoting(proposal mdschema.Proposal) string {
+	uri := ex.Config.Web.URI
+	return fmt.Sprintf("[%s] 투표가 진행중입니다.\n"+
+		"Number : %d\n"+
+		"Proposal Title : %s\n"+
+		"Voting End Time : %s\n"+
+		"[%s/proposals/%d]\n",
+		strings.ToUpper(uri), proposal.ID, proposal.Title,
+		proposal.VotingEndTime, uri, proposal.ID)
 }
 
 // ProposalNotificationToSlack 함수는 슬랙에 메시지를 보내기 위한 함수로 고루틴을 사용해서 실행해야함
@@ -236,7 +238,7 @@ func (ex *Exporter) ProposalNotificationToSlack(id uint64) {
 
 	propStatus := proposalByLCD.ProposalStatus
 	notificationStatus := proposalByDB.NotificationStatus
-	if (propStatus == mbltypes.StatusRejected || propStatus == mbltypes.StatusPassed ) && (notificationStatus != mbltypes.VOTINGNOTIFIED) {
+	if (propStatus == mbltypes.StatusRejected || propStatus == mbltypes.StatusPassed) && (notificationStatus != mbltypes.VOTINGNOTIFIED) {
 		err := ex.DB.UpdateProposalNotiStatus(id, mbltypes.VOTINGNOTIFIED)
 		if err != nil {
 			zap.L().Error("failed insert or update proposal noti status", zap.Error(err))
@@ -246,7 +248,7 @@ func (ex *Exporter) ProposalNotificationToSlack(id uint64) {
 		if err != nil {
 			zap.L().Error("failed proposal voting notification to slack ", zap.Error(err))
 		}
-		err = ex.DB.UpdateProposalNotiStatus(id,mbltypes.VOTINGNOTIFIED)
+		err = ex.DB.UpdateProposalNotiStatus(id, mbltypes.VOTINGNOTIFIED)
 		if err != nil {
 			zap.L().Error("failed insert or update proposal noti status", zap.Error(err))
 		}
