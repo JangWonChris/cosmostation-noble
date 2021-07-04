@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -192,13 +193,23 @@ func (ex *Exporter) NotificationToSlack(msg, url string) error {
 func (ex *Exporter) SetMessageForProposalOccur(proposal mdschema.Proposal) string {
 	uri := ex.Config.Web.URI
 
+	chainID, err := ex.App.Client.RPC.GetNetworkChainID()
+	if err != nil {
+		url, err := url.Parse(uri)
+		if err != nil {
+			chainID = uri
+		} else {
+			chainID = strings.TrimPrefix(url.RequestURI(), "/")
+		}
+	}
+
 	msg := fmt.Sprintf("[%s] 새로운 프로포절이 생성되었습니다.\n"+
 		"Number : %d\n"+
 		"Title : %s\n"+
 		"Submit Time : %s\n"+
 		"Deposit End Time : %s\n"+
 		"[%s/proposals/%d]\n",
-		strings.ToUpper(uri), proposal.ID, proposal.Title,
+		chainID, proposal.ID, proposal.Title,
 		proposal.SubmitTime, proposal.DepositEndTime, uri, proposal.ID)
 
 	return msg
@@ -207,12 +218,22 @@ func (ex *Exporter) SetMessageForProposalOccur(proposal mdschema.Proposal) strin
 // SetMessageForVoting is a function that sets a message asking you to vote on a proposal.
 func (ex *Exporter) SetMessageForVoting(proposal mdschema.Proposal) string {
 	uri := ex.Config.Web.URI
+
+	chainID, err := ex.App.Client.RPC.GetNetworkChainID()
+	if err != nil {
+		url, err := url.Parse(uri)
+		if err != nil {
+			chainID = uri
+		} else {
+			chainID = strings.TrimPrefix(url.RequestURI(), "/")
+		}
+	}
 	return fmt.Sprintf("[%s] 투표가 진행중입니다.\n"+
 		"Number : %d\n"+
 		"Proposal Title : %s\n"+
 		"Voting End Time : %s\n"+
 		"[%s/proposals/%d]\n",
-		strings.ToUpper(uri), proposal.ID, proposal.Title,
+		chainID, proposal.ID, proposal.Title,
 		proposal.VotingEndTime, uri, proposal.ID)
 }
 
