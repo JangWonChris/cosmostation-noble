@@ -8,7 +8,7 @@ import (
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	vestingtypes "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
-	gaiaapp "github.com/cosmos/gaia/v4/app"
+	chainapp "github.com/cosmos/gaia/v4/app"
 
 	//internal
 	"github.com/cosmostation/cosmostation-cosmos/app"
@@ -29,7 +29,7 @@ var (
 )
 
 func init() {
-	maccPerms := gaiaapp.GetMaccPerms()
+	maccPerms := chainapp.GetMaccPerms()
 	for name := range maccPerms {
 		moduleAccounts[name] = authtypes.NewModuleAddress(name).String()
 	}
@@ -435,34 +435,45 @@ func GetTotalBalance(a *app.App) http.HandlerFunc {
 			return
 		}
 
-		// Vesting, vested
+		// vesting account 계산 시작
+		var vestingCoins, vestedCoins, delegatedVesting sdktypes.Coins
+
 		switch acct := account.(type) {
+		case *vestingtypes.ContinuousVestingAccount:
+			// 시작 ST, 끝 ET 동안, vested = vesting / ((현재-ST) / (ET-ST)), 즉 선형적으로 vested 됨
+			vestingCoins = acct.GetVestingCoins(time.Now())
+			vestedCoins = acct.GetVestedCoins(time.Now())
+			delegatedVesting = acct.GetDelegatedVesting()
+		case *vestingtypes.DelayedVestingAccount:
+			// 시작 ST, 끝 ET 동안, ET가 지나면 전부 vested 됨
+			vestingCoins = acct.GetVestingCoins(time.Now())
+			vestedCoins = acct.GetVestedCoins(time.Now())
+			delegatedVesting = acct.GetDelegatedVesting()
+
 		case *vestingtypes.PeriodicVestingAccount:
-			vestingCoins := acct.GetVestingCoins(time.Now())
-			vestedCoins := acct.GetVestedCoins(time.Now())
-			delegatedVesting := acct.GetDelegatedVesting()
+			// 시작 ST, 끝 ET 동안, 일정 주기로 vested 됨
+			vestingCoins = acct.GetVestingCoins(time.Now())
+			vestedCoins = acct.GetVestedCoins(time.Now())
+			delegatedVesting = acct.GetDelegatedVesting()
+		}
 
-			// vesting 수량은 delegate 한 수량은 제외한다. (vesting 중이어도 delegate 한 수량은 delegate에 표시)
-			if len(vestingCoins) > 0 {
-				if vestingCoins.IsAllGT(delegatedVesting) {
-					vestingCoins = vestingCoins.Sub(delegatedVesting)
-					for _, vc := range vestingCoins {
-						if vc.Denom == denom {
-							vesting = vesting.Add(vc)
-							available = available.Sub(vc) // available should deduct vesting amount
-						}
-					}
-				}
-			}
+		// node에서 주는 available = transferable + vesting
 
-			if len(vestedCoins) > 0 {
-				for _, vc := range vestedCoins {
-					if vc.Denom == denom {
-						vested = vested.Add(vc)
-					}
-				}
+		// vestingCoins >= delegatedVesting 이면, 현재 delegate하지 않은 일부 vesting이 available에 함께 나온다.(available이지만 transfer 불가)
+		// vestingCoins = vesting 총 양
+		// delegatedVesting = delegated 한 총 양(이 값이 vesting보다 크면, vesting+available 로 delegate 한 것)
+		if !vestingCoins.IsZero() {
+			if vestingCoins.IsAllGTE(delegatedVesting) {
+				stillVesting := vestingCoins.Sub(delegatedVesting)
+				vesting = vesting.Add(sdktypes.NewCoin(denom, stillVesting.AmountOf(denom)))
+				available = available.Sub(sdktypes.NewCoin(denom, stillVesting.AmountOf(denom)))
 			}
 		}
+
+		if !vestedCoins.IsZero() {
+			vested = vested.Add(sdktypes.NewCoin(denom, vestedCoins.AmountOf(denom)))
+		}
+		// vesting 계산 끝
 
 		// Sum up all
 		total = total.Add(available).

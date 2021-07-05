@@ -13,8 +13,7 @@ import (
 	mdschema "github.com/cosmostation/mintscan-database/schema"
 	"go.uber.org/zap"
 
-	//gaia
-	gaia "github.com/cosmos/gaia/v4/app"
+	chainapp "github.com/cosmos/gaia/v4/app"
 
 	//cosmos-sdk
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
@@ -39,7 +38,7 @@ const (
 func (ex *Exporter) GetGenesisStateFromGenesisFile(genesisPath string) (err error) {
 	// genesisFile := os.Getenv("PWD") + "/genesis.json"
 	baseConfig := tmconfig.DefaultBaseConfig()
-	genesisFile := filepath.Join(gaia.DefaultNodeHome, baseConfig.Genesis)
+	genesisFile := filepath.Join(chainapp.DefaultNodeHome, baseConfig.Genesis)
 
 	if genesisPath == "" {
 		genesisPath = genesisFile

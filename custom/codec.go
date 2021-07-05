@@ -2,19 +2,19 @@ package custom
 
 import (
 	"github.com/cosmos/cosmos-sdk/codec"
-	gaia "github.com/cosmos/gaia/v4/app"
-	"github.com/cosmos/gaia/v4/app/params"
+	chainapp "github.com/cosmos/gaia/v4/app"
+	chainparams "github.com/cosmos/gaia/v4/app/params"
 )
 
 // Codec is the application-wide Amino codec and is initialized upon package loading.
 var (
 	AppCodec       codec.Marshaler
 	AminoCodec     *codec.LegacyAmino
-	EncodingConfig params.EncodingConfig
+	EncodingConfig chainparams.EncodingConfig
 )
 
 func init() {
-	EncodingConfig = gaia.MakeEncodingConfig()
+	EncodingConfig = chainapp.MakeEncodingConfig()
 	AppCodec = EncodingConfig.Marshaler
 	AminoCodec = EncodingConfig.Amino
 }
