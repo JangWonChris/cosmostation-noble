@@ -11,7 +11,7 @@ func RegisterHandlers(a *app.App, r *mux.Router) {
 	r.HandleFunc("/auth/accounts/{accAddr}", GetAuthAccount(a)).Methods("GET")
 	r.HandleFunc("/account/module_accounts", GetModuleAccounts(a)).Methods("GET")
 	// r.HandleFunc("/account/balances/{accAddr}", GetBalance).Methods("GET")
-	r.HandleFunc("/account/balances/{accAddr}", GetAllBalances(a)).Methods("GET")
+	r.HandleFunc("/account/balances/{accAddr}", GetAllBalances(a)).Methods("GET") //안씀
 	r.HandleFunc("/account/delegations/{accAddr}", GetDelegatorDelegations(a)).Methods("GET")
 	r.HandleFunc("/account/undelegations/{accAddr}", GetDelegatorUnbondingDelegations(a)).Methods("GET")
 
@@ -28,11 +28,10 @@ func RegisterHandlers(a *app.App, r *mux.Router) {
 	r.HandleFunc("/minting/inflation", GetMintingInflation(a)).Methods("GET")
 
 	r.HandleFunc("/txs", GetTransactions(a)).Methods("GET") // &from=&limit=
+	r.HandleFunc("/txs", GetTransactionsList(a)).Methods("POST")
 	r.HandleFunc("/tx/hash/{hash}", GetTransactionByHash(a)).Methods("GET")
 	r.HandleFunc("/tx/id/{id}", GetTransactionByID(a)).Methods("GET")
-	r.HandleFunc("/txs", GetTransactionsList(a)).Methods("POST")
 
-	// r.HandleFunc("/txs", GetTransactions).Methods("GET") //단종
 	r.HandleFunc("/tx/broadcast/{signed_tx}", BroadcastTx(a)).Methods("GET")
 
 	r.HandleFunc("/staking/validators", GetValidators(a)).Methods("GET")
