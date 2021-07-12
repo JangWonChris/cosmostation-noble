@@ -8,7 +8,7 @@ import (
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	vestingtypes "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
-	chainapp "github.com/cosmos/gaia/v4/app"
+	chainapp "github.com/cosmos/gaia/v5/app"
 
 	//internal
 	"github.com/cosmostation/cosmostation-cosmos/app"

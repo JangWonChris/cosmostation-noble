@@ -13,7 +13,7 @@ import (
 	mdschema "github.com/cosmostation/mintscan-database/schema"
 	"go.uber.org/zap"
 
-	chainapp "github.com/cosmos/gaia/v4/app"
+	chainapp "github.com/cosmos/gaia/v5/app"
 
 	//cosmos-sdk
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
