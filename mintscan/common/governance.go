@@ -80,9 +80,9 @@ func GetProposal(a *app.App) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		id := vars["proposal_id"]
-		new_id, err := strconv.ParseUint(id,10,64)
-		if err !=nil{
-			zap.S().Errorf("failed to convert proposal parameter(string to int): %s",err)
+		new_id, err := strconv.ParseUint(id, 10, 64)
+		if err != nil {
+			zap.S().Errorf("failed to convert proposal parameter(string to int): %s", err)
 			errors.ErrInternalServer(rw, http.StatusInternalServerError)
 			return
 		}
@@ -134,9 +134,9 @@ func GetDeposits(a *app.App) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		id := vars["proposal_id"]
-		new_id, err := strconv.ParseUint(id,10,64)
-		if err !=nil{
-			zap.S().Errorf("failed to convert proposal parameter(string to int): %s",err)
+		new_id, err := strconv.ParseUint(id, 10, 64)
+		if err != nil {
+			zap.S().Errorf("failed to convert proposal parameter(string to int): %s", err)
 			errors.ErrInternalServer(rw, http.StatusInternalServerError)
 			return
 		}
@@ -187,9 +187,9 @@ func GetVotes(a *app.App) http.HandlerFunc {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		id := vars["proposal_id"]
-		new_id, err := strconv.ParseUint(id,10,64)
-		if err !=nil{
-			zap.S().Errorf("failed to convert proposal parameter(string to int): %s",err)
+		new_id, err := strconv.ParseUint(id, 10, 64)
+		if err != nil {
+			zap.S().Errorf("failed to convert proposal parameter(string to int): %s", err)
 			errors.ErrInternalServer(rw, http.StatusInternalServerError)
 			return
 		}
@@ -214,15 +214,16 @@ func GetVotes(a *app.App) http.HandlerFunc {
 		rv := make([]*model.Votes, 0)
 
 		for _, v := range votes {
-			val, err := a.DB.GetValidatorByAnyAddr(v.Voter)
-			if err != nil {
-				zap.S().Errorf("failed to query validator information: %s", err)
-				return
-			}
+			// val, err := a.DB.GetValidatorByAnyAddr(v.Voter)
+			// if err != nil {
+			// 	zap.S().Errorf("failed to query validator information: %s", err)
+			// 	return
+			// }
 
 			vote := &model.Votes{
-				Voter:   v.Voter,
-				Moniker: val.Moniker,
+				Voter: v.Voter,
+				// Moniker: val.Moniker,
+				Moniker: "",
 				Option:  v.Option,
 				TxHash:  v.TxHash,
 				Time:    v.Timestamp,
