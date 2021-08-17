@@ -3,6 +3,7 @@ package exporter
 import (
 	"fmt"
 	"log"
+	"time"
 
 	// internal
 	"github.com/cosmostation/cosmostation-cosmos/custom"
@@ -17,7 +18,7 @@ import (
 )
 
 // getTxs decodes transactions in a block and return a format of database transaction.
-func (ex *Exporter) getTxs(chainID string, list map[int64]*mdschema.Block, txResp []*sdktypes.TxResponse) ([]mdschema.Transaction, error) {
+func (ex *Exporter) getTxs(chainID string, list map[int64]*mdschema.Block, txResp []*sdktypes.TxResponse, useList bool) ([]mdschema.Transaction, error) {
 	txs := make([]mdschema.Transaction, 0)
 
 	if len(txResp) <= 0 {
@@ -33,14 +34,24 @@ func (ex *Exporter) getTxs(chainID string, list map[int64]*mdschema.Block, txRes
 			return txs, fmt.Errorf("failed to marshal tx : %s", err)
 		}
 
+		ts, err := time.Parse(time.RFC3339Nano, txResp[i].Timestamp)
+		if err != nil {
+			return txs, fmt.Errorf("failed to parse timestamp : %s", err)
+		}
+
+		var blockID int64
+		if useList {
+			blockID = list[txResp[i].Height].ID
+		}
+
 		t := mdschema.Transaction{
 			ChainInfoID: ex.ChainIDMap[chainID],
-			BlockID:     list[txResp[i].Height].ID,
+			BlockID:     blockID,
 			Height:      txResp[i].Height,
 			Code:        txResp[i].Code,
 			Hash:        txResp[i].TxHash,
 			Chunk:       chunk,
-			Timestamp:   list[txResp[i].Height].Timestamp,
+			Timestamp:   ts,
 		}
 
 		txs = append(txs, t)

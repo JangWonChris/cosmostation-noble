@@ -26,7 +26,7 @@ var (
 	// Commit is commit hash of this project.
 	Commit = ""
 
-	controler     = make(chan struct{}, 20)
+	controler     = make(chan struct{}, 60)
 	wg            = new(sync.WaitGroup)
 	initialHeight = int64(0)
 )
@@ -274,7 +274,7 @@ func (ex *Exporter) process(block *tmctypes.ResultBlock, txs []*sdktypes.TxRespo
 		list[block.Block.Height] = basic.Block
 		// 종료
 
-		basic.Transactions, err = ex.getTxs(block.Block.ChainID, list, txs)
+		basic.Transactions, err = ex.getTxs(block.Block.ChainID, list, txs, false)
 		if err != nil {
 			return fmt.Errorf("failed to get txs: %s", err)
 		}

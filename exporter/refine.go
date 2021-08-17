@@ -123,7 +123,7 @@ func (ex *Exporter) refineRawTransactions(chainID string, txs []*sdktypes.TxResp
 	}
 	// 추가 로직 종료
 
-	refineData.Transactions, err = ex.getTxs(chainID, blockList, txs)
+	refineData.Transactions, err = ex.getTxs(chainID, blockList, txs, true)
 	if err != nil {
 		return fmt.Errorf("failed to get txs: %s", err)
 	}
@@ -253,7 +253,7 @@ func (ex *Exporter) refineRealTimeprocess(block *tmctypes.ResultBlock, txs []*sd
 		list[block.Block.Height] = basic.Block
 		// 종료
 
-		basic.Transactions, err = ex.getTxs(block.Block.ChainID, list, txs)
+		basic.Transactions, err = ex.getTxs(block.Block.ChainID, list, txs, false)
 		if err != nil {
 			return fmt.Errorf("failed to get txs: %s", err)
 		}
