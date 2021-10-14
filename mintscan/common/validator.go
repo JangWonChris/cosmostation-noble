@@ -11,6 +11,7 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/app"
 	"github.com/cosmostation/cosmostation-cosmos/errors"
 	"github.com/cosmostation/cosmostation-cosmos/model"
+	mbltypes "github.com/cosmostation/mintscan-backend-library/types"
 	mdschema "github.com/cosmostation/mintscan-database/schema"
 
 	"github.com/gorilla/mux"
@@ -162,7 +163,7 @@ func GetValidator(a *app.App) http.HandlerFunc {
 
 		// Query a validator's bonded information
 		// sdk에서 제공하는 IsBonded() 함수를 활용할 수 있는 방안을 고민한다.
-		powerEventHistory, _ := a.DB.QueryValidatorBondedInfo(val.Proposer)
+		powerEventHistory, _ := a.DB.QueryValidatorBondedInfo(val.Proposer, mbltypes.StakingMsgCreateValidator)
 
 		result := &model.ResultValidatorDetail{
 			Rank:            val.Rank,

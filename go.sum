@@ -179,6 +179,8 @@ github.com/cosmostation/mintscan-backend-library v0.0.0-20210630022738-4a764a0f0
 github.com/cosmostation/mintscan-database v0.0.0-20210531025050-4bde204e18c6/go.mod h1:+EgLTUlmDypHHZjxpxL5jmHf3AvpmVFxp6MjEXTM57o=
 github.com/cosmostation/mintscan-database v0.0.0-20210901150309-3b609bfee1d2 h1:8iFBcWLfMoxPz4ngT1ABFBXihT75/WFshEJeyiyuuAE=
 github.com/cosmostation/mintscan-database v0.0.0-20210901150309-3b609bfee1d2/go.mod h1:QNFgmw0G8JF8gj7XjVFThqJf7TYwf/AA/dzdEhIeemA=
+github.com/cosmostation/mintscan-database v0.0.0-20211014105802-46173c0abdeb h1:tZhSye8DbOw9U5bq1eWQQK0FDrI5RyKRvesjjVqTVlQ=
+github.com/cosmostation/mintscan-database v0.0.0-20211014105802-46173c0abdeb/go.mod h1:QNFgmw0G8JF8gj7XjVFThqJf7TYwf/AA/dzdEhIeemA=
 github.com/cosmostation/mintscan-prometheus v0.0.0-20210628093844-2404f3c78830 h1:1DpstYk4JQ1K6ukHnGr6HyFaTKpq32E63dI54hTdn88=
 github.com/cosmostation/mintscan-prometheus v0.0.0-20210628093844-2404f3c78830/go.mod h1:zIXRfq9xczW+yIlbgfgJo4+TYUaU8okDOSdikA6pgrU=
 github.com/cpuguy83/go-md2man v1.0.10/go.mod h1:SmD6nW6nTyfqj6ABTjUi3V3JVMnlJmwcJI5acqYI6dE=
