@@ -163,7 +163,7 @@ func GetValidator(a *app.App) http.HandlerFunc {
 
 		// Query a validator's bonded information
 		// sdk에서 제공하는 IsBonded() 함수를 활용할 수 있는 방안을 고민한다.
-		powerEventHistory, _ := a.DB.QueryValidatorBondedInfo(val.Proposer, mbltypes.StakingMsgCreateValidator)
+		powerEventHistory, _ := a.DB.QueryValidatorBondedInfo(val.OperatorAddress, mbltypes.StakingMsgCreateValidator)
 
 		result := &model.ResultValidatorDetail{
 			Rank:            val.Rank,
