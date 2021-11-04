@@ -34,7 +34,6 @@ func main() {
 	r = r.PathPrefix("/v1").Subrouter()
 	commonhandler.RegisterHandlers(mApp, r)
 	customhandler.RegisterHandlers(mApp, r)
-	mApp.DB.PrepareStmt()
 
 	sm := &http.Server{
 		Addr:         ":" + mApp.Config.Web.Port,
