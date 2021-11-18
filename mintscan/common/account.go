@@ -8,7 +8,7 @@ import (
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	vestingtypes "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
-	chainapp "github.com/cosmos/gaia/v5/app"
+	chainapp "github.com/cosmos/gaia/v6/app"
 
 	//internal
 	"github.com/cosmostation/cosmostation-cosmos/app"
@@ -91,15 +91,15 @@ func GetAuthAccount(a *app.App) http.HandlerFunc {
 		var b []byte
 		switch account := account.(type) {
 		case *authtypes.ModuleAccount:
-			b, err = a.Client.GetCLIContext().JSONMarshaler.MarshalJSON(account)
+			b, err = a.Client.GetCLIContext().Codec.MarshalJSON(account)
 		case *authtypes.BaseAccount:
-			b, err = a.Client.GetCLIContext().JSONMarshaler.MarshalJSON(account)
+			b, err = a.Client.GetCLIContext().Codec.MarshalJSON(account)
 		case *vestingtypes.ContinuousVestingAccount:
-			b, err = a.Client.GetCLIContext().JSONMarshaler.MarshalJSON(account)
+			b, err = a.Client.GetCLIContext().Codec.MarshalJSON(account)
 		case *vestingtypes.DelayedVestingAccount:
-			b, err = a.Client.GetCLIContext().JSONMarshaler.MarshalJSON(account)
+			b, err = a.Client.GetCLIContext().Codec.MarshalJSON(account)
 		case *vestingtypes.PeriodicVestingAccount:
-			b, err = a.Client.GetCLIContext().JSONMarshaler.MarshalJSON(account)
+			b, err = a.Client.GetCLIContext().Codec.MarshalJSON(account)
 		default:
 			zap.L().Error("unknown account type :", zap.String("info", account.GetAddress().String()), zap.Error(err))
 			errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)

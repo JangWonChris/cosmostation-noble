@@ -25,7 +25,7 @@ func NewClient(cfg *mblconfig.ClientConfig) *Client {
 	client := mblclient.NewClient(cfg)
 
 	client.CliCtx.Context = client.CliCtx.Context.
-		WithJSONMarshaler(custom.EncodingConfig.Marshaler).
+		WithCodec(custom.EncodingConfig.Marshaler).
 		WithLegacyAmino(custom.EncodingConfig.Amino).
 		WithTxConfig(custom.EncodingConfig.TxConfig).
 		WithInterfaceRegistry(custom.EncodingConfig.InterfaceRegistry).

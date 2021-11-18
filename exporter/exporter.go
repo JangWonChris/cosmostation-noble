@@ -57,7 +57,6 @@ func (ex *Exporter) Start(op int) {
 	// defer ex.Client.Close()
 
 	tick7Sec := time.NewTicker(time.Second * 7)
-	tick5Min := time.NewTicker(time.Minute * 5)
 	tick20Min := time.NewTicker(time.Minute * 20)
 
 	done := make(chan struct{})
@@ -78,7 +77,6 @@ func (ex *Exporter) Start(op int) {
 
 	if op == BASIC_MODE {
 		go func() {
-			ex.SaveStatsMarket5M()
 			ex.saveValidators()
 			ex.saveProposals()
 			for {
@@ -88,9 +86,6 @@ func (ex *Exporter) Start(op int) {
 					ex.saveValidators()
 					ex.saveProposals()
 					zap.S().Infof("finish sync governance and validators")
-				case <-tick5Min.C:
-					ex.SaveStatsMarket5M()
-					zap.S().Info("successfully saved market data @every 5m ")
 				case <-tick20Min.C:
 					zap.S().Infof("start sync validators keybase identities")
 					ex.saveValidatorsIdentities()

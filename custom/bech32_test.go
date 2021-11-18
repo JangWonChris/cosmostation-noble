@@ -7,8 +7,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/bech32"
 
-	mbltypes "github.com/cosmostation/mintscan-backend-library/types"
-
 	"github.com/stretchr/testify/require"
 )
 
@@ -41,30 +39,4 @@ func TestBech32PrefixesToAcctAddr(t *testing.T) {
 	require.NotNil(t, bech1)
 	require.NotNil(t, bech2)
 	require.NotNil(t, bech3)
-}
-
-func TestPrivValidatorKey(t *testing.T) {
-	// bech32hex := "AE61EC6FA0450C6327288B946E233A88683C478A"
-	// gaiad tendermint show-address : cosmosvalcons14es7cmaqg5xxxfeg3w2xuge63p5rc3u2vt8ym4
-	// gaiad tendermint show-validator : cosmosvalconspub1zcjduepq5mhsvc5685267fg2ee5uv30srjjxzetp8msfs3h983vz724496lqtaz884
-	valcon := "cosmosvalcons14es7cmaqg5xxxfeg3w2xuge63p5rc3u2vt8ym4"
-	valconpub := "cosmosvalconspub1zcjduepq5mhsvc5685267fg2ee5uv30srjjxzetp8msfs3h983vz724496lqtaz884"
-	_, _ = valcon, valconpub
-
-	consAddrStr, err := mbltypes.ConvertConsAddrFromConsPubkey(valconpub)
-	require.NoError(t, err)
-
-	consAddr, err := sdk.ConsAddressFromHex(consAddrStr)
-	require.NoError(t, err)
-
-	madevalcon, err := bech32.ConvertAndEncode(sdk.GetConfig().GetBech32ConsensusAddrPrefix(), consAddr.Bytes())
-	require.NoError(t, err)
-	require.Equal(t, valcon, madevalcon)
-
-	pubkey, err := sdk.GetPubKeyFromBech32(sdk.Bech32PubKeyTypeConsPub, valconpub)
-	require.NoError(t, err)
-
-	madevalconpub, err := sdk.Bech32ifyPubKey(sdk.Bech32PubKeyTypeConsPub, pubkey)
-	require.NoError(t, err)
-	require.Equal(t, valconpub, madevalconpub)
 }

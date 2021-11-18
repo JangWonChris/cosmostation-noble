@@ -100,7 +100,12 @@ func (ex *Exporter) disassembleTransaction(txResps []*sdktypes.TxResponse) (uniq
 			// 어떤 msg 타입에 대해서도 signer를 이용해 accounts를 확보하면, 모든 메세지를 파싱할 수 있다.
 			signers := getSignerAddress(msg.GetSigners())
 			accounts = append(accounts, signers...)
-
+			if msgType == "" {
+				customMsgType, account := custom.AccountExporterFromIBCMsg(&msg, txHash)
+				// AccountExporterFromCustomTxMsg(&msg, txHash)
+				msgType = customMsgType
+				accounts = append(accounts, account...)
+			}
 			if msgType == "" {
 				customMsgType, account := custom.AccountExporterFromCustomTxMsg(&msg, txHash)
 				msgType = customMsgType

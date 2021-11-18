@@ -11,9 +11,9 @@ import (
 	// cosmos-sdk
 	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
-	ibccoretypes "github.com/cosmos/cosmos-sdk/x/ibc/core/02-client/types"
 	paramstypesproposal "github.com/cosmos/cosmos-sdk/x/params/types/proposal"
 	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
+	ibccoretypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
 )
 
 // GetGovQueryClient returns a object of queryClient
@@ -40,13 +40,6 @@ func (c *Client) GetProposals() (result []mdschema.Proposal, err error) {
 			log.Println(err)
 		}
 
-		// kind of proposals
-		// distributiontypes.CommunityPoolSpendProposal
-		// govtypes.TextProposal
-		// ibccoretypes.ClientUpdateProposal
-		// paramstypes.ParameterChangeProposal
-		// upgradetypes.SoftwareUpgradeProposal
-		// upgradetypes.CancelSoftwareUpgradeProposal
 		var proposalType string
 		switch i := contentI.(type) {
 		case *govtypes.TextProposal:
@@ -104,6 +97,7 @@ func (c *Client) GetProposals() (result []mdschema.Proposal, err error) {
 
 	return result, nil
 }
+
 // GetProposal은 특정 프로포절 정보를 GRPC 얻어온다.
 func (c *Client) GetProposal(id uint64) (result mdschema.Proposal, err error) {
 
@@ -152,10 +146,10 @@ func (c *Client) GetProposal(id uint64) (result mdschema.Proposal, err error) {
 	tally := tallyResultResp.Tally
 
 	p := mdschema.Proposal{
-		ID:           resp.Proposal.ProposalId,
-		Title:        resp.Proposal.GetTitle(),
-		Description:  contentI.GetDescription(),
-		ProposalType: proposalType,
+		ID:                 resp.Proposal.ProposalId,
+		Title:              resp.Proposal.GetTitle(),
+		Description:        contentI.GetDescription(),
+		ProposalType:       proposalType,
 		ProposalStatus:     resp.Proposal.Status.String(),
 		Yes:                tally.Yes.String(),
 		Abstain:            tally.Abstain.String(),
