@@ -63,7 +63,8 @@ func SetStatus(a *app.App) error {
 	bondedValsNum, _ := a.DB.CountValidatorsByStatus(int(stakingtypes.Bonded))
 	unbondingValsNum, _ := a.DB.CountValidatorsByStatus(int(stakingtypes.Unbonding))
 	unbondedValsNum, _ := a.DB.CountValidatorsByStatus(int(stakingtypes.Unbonded))
-	totalTxsNum, err := a.DB.GetCurrentChainTotalTransactionNum(a.ChainIDMap[a.Config.Chain.ChainID])
+	chainInfo, err := a.DB.GetCurrentChainInfo(a.Config.Chain.ChainID)
+	totalTxsNum := int(chainInfo.NumberOfTxs)
 	if err != nil {
 		zap.L().Error("failed to get number of total transaction", zap.Error(err))
 		return err
