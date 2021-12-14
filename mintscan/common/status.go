@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/cosmos/cosmos-sdk/types/query"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
@@ -52,11 +53,11 @@ func SetStatus(a *app.App) error {
 	}
 
 	bankQueryClient := banktypes.NewQueryClient(a.Client.GRPC)
-	coins, err := bankQueryClient.TotalSupply(context.Background(), &banktypes.QueryTotalSupplyRequest{})
-	if err != nil {
-		zap.L().Error("failed to get supply total", zap.Error(err))
-		return err
-	}
+	coins, err := bankQueryClient.TotalSupply(context.Background(), &banktypes.QueryTotalSupplyRequest{
+		Pagination: &query.PageRequest{
+			Limit: 2000,
+		},
+	})
 
 	notBondedTokens, _ := strconv.ParseFloat(pool.Pool.NotBondedTokens.String(), 64)
 	bondedTokens, _ := strconv.ParseFloat(pool.Pool.BondedTokens.String(), 64)
