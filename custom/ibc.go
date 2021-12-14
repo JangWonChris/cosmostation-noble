@@ -1,8 +1,6 @@
 package custom
 
 import (
-	"encoding/json"
-
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	mbltypes "github.com/cosmostation/mintscan-backend-library/types"
 
@@ -83,13 +81,19 @@ func AccountExporterFromIBCMsg(msg *sdktypes.Msg, txHash string) (msgType string
 		msgType = IBCChannelMsgChannelCloseConfirm
 	case *ibcchanneltypes.MsgRecvPacket:
 		msgType = IBCChannelMsgRecvPacket
-		var pd mbltypes.IBCRecvPacketData
-		json.Unmarshal(msg.Packet.GetData(), &pd)
+		var pd ibctransfertypes.FungibleTokenPacketData
+		AppCodec.UnmarshalJSON(msg.Packet.GetData(), &pd)
 		accounts = mbltypes.AddNotNullAccount(pd.Receiver)
 	case *ibcchanneltypes.MsgTimeout:
 		msgType = IBCChannelMsgTimeout
+		var pd ibctransfertypes.FungibleTokenPacketData
+		AppCodec.UnmarshalJSON(msg.Packet.GetData(), &pd)
+		accounts = mbltypes.AddNotNullAccount(pd.Sender)
 	case *ibcchanneltypes.MsgTimeoutOnClose:
 		msgType = IBCChannelMsgTimeoutOnClose
+		var pd ibctransfertypes.FungibleTokenPacketData
+		AppCodec.UnmarshalJSON(msg.Packet.GetData(), &pd)
+		accounts = mbltypes.AddNotNullAccount(pd.Sender)
 	case *ibcchanneltypes.MsgAcknowledgement:
 		msgType = IBCChannelMsgAcknowledgement
 
