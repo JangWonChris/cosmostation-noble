@@ -226,14 +226,6 @@ func (ex *Exporter) process(block *tmctypes.ResultBlock, txs []*sdktypes.TxRespo
 		return fmt.Errorf("failed to get block: %s", err)
 	}
 
-	if basic.Block.NumTxs > 0 {
-		basic.ChainInfo, err = ex.DB.GetCurrentChainInfo(ex.Config.Chain.ChainID)
-		if err != nil {
-			return fmt.Errorf("failed to current chaininfo: %s", err)
-		}
-		basic.ChainInfo.NumberOfTxs += basic.Block.NumTxs
-	}
-
 	basic.Evidence, err = ex.getEvidence(block)
 	if err != nil {
 		return fmt.Errorf("failed to get evidence: %s", err)
@@ -261,6 +253,12 @@ func (ex *Exporter) process(block *tmctypes.ResultBlock, txs []*sdktypes.TxRespo
 	}
 
 	if basic.Block.NumTxs > 0 {
+		basic.ChainInfo, err = ex.DB.GetCurrentChainInfo(ex.Config.Chain.ChainID)
+		if err != nil {
+			return fmt.Errorf("failed to current chaininfo: %s", err)
+		}
+		basic.ChainInfo.NumberOfTxs += basic.Block.NumTxs
+
 		basic.Proposals, basic.Deposits, basic.Votes, err = ex.getGovernance(block, txs)
 		if err != nil {
 			return fmt.Errorf("failed to get governance: %s", err)
