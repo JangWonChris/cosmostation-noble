@@ -6,8 +6,7 @@ require (
 	github.com/cosmos/cosmos-sdk v0.44.3
 	github.com/cosmos/gaia/v6 v6.0.0-rc3
 	github.com/cosmos/ibc-go/v2 v2.0.0
-	// github.com/cosmostation/mintscan-backend-library v0.0.0-20211110132343-27b4736e3051 // sdk044/remove-ibc-go
-	github.com/cosmostation/mintscan-backend-library v0.0.0-20211214191629-a61811fe5457
+	github.com/cosmostation/mintscan-backend-library v0.0.0-20211215124459-d76b493d1f63
 	github.com/cosmostation/mintscan-database v0.0.0-20211201162627-2754c0586f28 // num txs 업데이트
 	github.com/cosmostation/mintscan-prometheus v0.0.0-20210628093844-2404f3c78830
 	github.com/go-pg/pg/v10 v10.9.3
