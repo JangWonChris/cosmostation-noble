@@ -11,7 +11,7 @@ import (
 	"github.com/cosmostation/cosmostation-cosmos/app"
 
 	// mbl
-	mbltypes "github.com/cosmostation/mintscan-backend-library/types"
+
 	mdschema "github.com/cosmostation/mintscan-database/schema"
 
 	// sdk
@@ -237,7 +237,7 @@ func (ex *Exporter) process(block *tmctypes.ResultBlock, txs []*sdktypes.TxRespo
 			return fmt.Errorf("failed to query previous block: %s", err)
 		}
 
-		vals, err := ex.Client.RPC.GetValidatorsInHeight(block.Block.LastCommit.Height, mbltypes.DefaultQueryValidatorsPage, mbltypes.DefaultQueryValidatorsPerPage)
+		vals, err := ex.Client.RPC.GetValidatorsInHeight(block.Block.LastCommit.Height)
 		if err != nil {
 			return fmt.Errorf("failed to query validators: %s", err)
 		}
