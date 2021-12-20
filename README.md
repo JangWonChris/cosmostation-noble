@@ -22,3 +22,13 @@ branch 이름 규칙 : `<chain-id>-<app version>-<block height>`
 이름/기능 으로 branch를 만들어 작업 후 최신 브런치에 머지한다. (예, jeonghwan/featureX)
 
 ## 참고 사항
+
+
+### block / transaction 정보
+
+| chain-id | initial-height | num. of blocks | num. of txs | 
+|---|---|---|---|
+| cosmoshub-1 | 1 | 500,000 | 20,228 |
+| cosmoshub-2 | 1 | 2,902,000 | 662,621 |
+| cosmoshub-3 | 1 | 5,200,790 | 2,420,082 |
+| cosmoshub-4 |5,200,791 | | |
