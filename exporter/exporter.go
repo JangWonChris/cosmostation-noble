@@ -142,7 +142,6 @@ func (ex *Exporter) sync(op int) error {
 		if err != nil {
 			return fmt.Errorf("failed to query block: %s", err)
 		}
-		retryFlag := false
 		zap.S().Infof("number of Transactions : %d", len(block.Block.Txs))
 		txList := block.Block.Txs
 		txs := make([]*sdktypes.TxResponse, len(block.Block.Txs))
@@ -157,23 +156,16 @@ func (ex *Exporter) sync(op int) error {
 					<-controler
 					wg.Done()
 				}()
-
+			RETRY:
 				txs[i], err = ex.Client.CliCtx.GetTx(hex)
 				if err != nil {
 					zap.S().Error("Error while getting tx ", hex)
-					retryFlag = true
-					return
+					time.Sleep(1 * time.Second)
+					goto RETRY
 				}
 			}(idx, hex)
 		}
 		wg.Wait()
-
-		if retryFlag {
-			zap.S().Error("can not get all of tx, retry get tx in block height = ", i)
-			i--
-			time.Sleep(1 * time.Second)
-			continue
-		}
 
 		switch op {
 		case BASIC_MODE:
