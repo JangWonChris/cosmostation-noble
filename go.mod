@@ -4,10 +4,10 @@ go 1.17
 
 require (
 	github.com/cosmos/cosmos-sdk v0.44.3
-	github.com/cosmos/gaia/v6 v6.0.0-rc3
+	github.com/cosmos/gaia/v6 v6.0.0
 	github.com/cosmos/ibc-go/v2 v2.0.0
 	github.com/cosmostation/mintscan-backend-library v0.0.0-20211215124459-d76b493d1f63
-	github.com/cosmostation/mintscan-database v0.0.0-20211201162627-2754c0586f28 // num txs 업데이트
+	github.com/cosmostation/mintscan-database v0.0.0-20220117143135-44aa6030e2a6 // number of proposals
 	github.com/cosmostation/mintscan-prometheus v0.0.0-20210628093844-2404f3c78830
 	github.com/go-pg/pg/v10 v10.9.3
 	github.com/go-resty/resty/v2 v2.4.0

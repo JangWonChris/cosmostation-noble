@@ -26,6 +26,7 @@ type App struct {
 	ChainIDMap      map[string]int
 	MessageIDMap    map[int]string
 	MessageTypeMap  map[string]int
+	CatchingUp      bool // exporter가 최신 블록을 트레킹 중이면 false
 }
 
 func init() {
@@ -44,6 +45,7 @@ func init() {
 // NewApp
 func NewApp(fileBaseName string) *App {
 	app := new(App)
+	app.CatchingUp = false
 	app.Config = mblconfig.ParseConfig(fileBaseName)
 
 	app.Client = client.NewClient(&app.Config.Client)
@@ -62,15 +64,17 @@ func NewApp(fileBaseName string) *App {
 		}
 		app.ExporterMetrics = mp.NewMetricsForExporter(app.Config.Prometheus.Namespace)
 		mp.RegisterMetricForExporter(&app.ExporterMetrics)
+
 		if app.Config.Prometheus.Use == true {
 			go func() {
 				http.Handle(app.Config.Prometheus.Path, promhttp.Handler())
 				err := http.ListenAndServe(":"+app.Config.Prometheus.Port, nil)
-				if err !=nil{
+				if err != nil {
 					panic(err)
 				}
 			}()
 		}
+
 	}
 	mdschema.SetCommonSchema(app.Config.DB.CommonSchema)
 	mdschema.SetChainSchema(app.Config.DB.ChainSchema)

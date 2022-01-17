@@ -100,17 +100,16 @@ func (ex *Exporter) disassembleTransaction(txResps []*sdktypes.TxResponse) (uniq
 			// 어떤 msg 타입에 대해서도 signer를 이용해 accounts를 확보하면, 모든 메세지를 파싱할 수 있다.
 			signers := getSignerAddress(msg.GetSigners())
 			accounts = append(accounts, signers...)
-			if msgType == "" {
-				customMsgType, account := custom.AccountExporterFromIBCMsg(&msg, txHash)
-				// AccountExporterFromCustomTxMsg(&msg, txHash)
+
+			for _, txParser := range custom.CustomTxParsers {
+				if msgType != "" {
+					break
+				}
+				customMsgType, account := txParser(&msg, txHash)
 				msgType = customMsgType
 				accounts = append(accounts, account...)
 			}
-			if msgType == "" {
-				customMsgType, account := custom.AccountExporterFromCustomTxMsg(&msg, txHash)
-				msgType = customMsgType
-				accounts = append(accounts, account...)
-			}
+
 			if msgType == "" {
 				// msgType 이 없을 경우, 해당 건은 수집하지 않는다.
 				continue
@@ -126,7 +125,7 @@ func (ex *Exporter) disassembleTransaction(txResps []*sdktypes.TxResponse) (uniq
 		} // end msgs for loop
 
 		// msg 별 유일 어카운트 수집
-		tma := parseTransactionMessageAccount(txHash, uniqueMsgAccount)
+		tma := parseTransactionMessageAccount(txHash, uniqueMsgAccount, txResp.Height)
 		uniqTransactionMessageAccounts = append(uniqTransactionMessageAccounts, tma...)
 	} // 모든 tx 완료
 
@@ -134,7 +133,7 @@ func (ex *Exporter) disassembleTransaction(txResps []*sdktypes.TxResponse) (uniq
 }
 
 // msg - account 매핑 unique
-func parseTransactionMessageAccount(txHash string, msgAccount map[string]map[string]struct{}) []mdschema.TMA {
+func parseTransactionMessageAccount(txHash string, msgAccount map[string]map[string]struct{}, height int64) []mdschema.TMA {
 	tma := make([]mdschema.TMA, 0)
 	for msg := range msgAccount {
 		for acc := range msgAccount[msg] {
@@ -142,6 +141,7 @@ func parseTransactionMessageAccount(txHash string, msgAccount map[string]map[str
 				TxHash:         txHash,
 				MsgType:        msg,
 				AccountAddress: acc,
+				Height:         height,
 			}
 			tma = append(tma, ta)
 		}

@@ -105,9 +105,13 @@ func GetAuthAccount(a *app.App) http.HandlerFunc {
 			errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
 			return
 		}
+		if err != nil {
+			zap.L().Error("failed to marshal account ", zap.Error(err))
+			errors.ErrServerUnavailable(rw, http.StatusServiceUnavailable)
+			return
+		}
 
 		model.Respond(rw, b)
-		return
 	}
 }
 

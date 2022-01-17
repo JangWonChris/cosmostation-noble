@@ -53,10 +53,7 @@ func (ex *Exporter) Start(op int) {
 	zap.S().Info("Starting Chain Exporter...")
 	zap.S().Infof("Version: %s | Commit: %s", Version, Commit)
 
-	//close grpc
-	// defer ex.Client.Close()
-
-	tick7Sec := time.NewTicker(time.Second * 7)
+	tick7Sec := time.NewTicker(time.Second * 10)
 	tick20Min := time.NewTicker(time.Minute * 20)
 
 	done := make(chan struct{})
@@ -75,17 +72,20 @@ func (ex *Exporter) Start(op int) {
 		}
 	}()
 
+	// app init 시 최초 전체 프로포절 업데이트
+	ex.saveAllProposals()
+	go ex.WatchLiveProposals()
+	go ex.updateProposals()
+
 	if op == BASIC_MODE {
 		go func() {
-			ex.saveValidators()
-			ex.saveProposals()
 			for {
 				select {
 				case <-tick7Sec.C:
-					zap.S().Infof("start sync governance and validators")
+					zap.S().Infof("start sync validators")
 					ex.saveValidators()
-					ex.saveProposals()
-					zap.S().Infof("finish sync governance and validators")
+					// ex.saveLiveProposals()
+					zap.S().Infof("finish sync validators")
 				case <-tick20Min.C:
 					zap.S().Infof("start sync validators keybase identities")
 					ex.saveValidatorsIdentities()
@@ -156,6 +156,7 @@ func (ex *Exporter) sync(op int) error {
 					<-controler
 					wg.Done()
 				}()
+
 			RETRY:
 				txs[i], err = ex.Client.CliCtx.GetTx(gHex)
 				if err != nil {
@@ -218,6 +219,12 @@ func (ex *Exporter) process(block *tmctypes.ResultBlock, txs []*sdktypes.TxRespo
 		return fmt.Errorf("failed to get block: %s", err)
 	}
 
+	if time.Since(basic.Block.Timestamp.UTC()).Seconds() > 60 {
+		ex.App.CatchingUp = true
+	} else {
+		ex.App.CatchingUp = false
+	}
+
 	basic.Evidence, err = ex.getEvidence(block)
 	if err != nil {
 		return fmt.Errorf("failed to get evidence: %s", err)
@@ -247,7 +254,7 @@ func (ex *Exporter) process(block *tmctypes.ResultBlock, txs []*sdktypes.TxRespo
 	if basic.Block.NumTxs > 0 {
 		basic.ChainInfo, err = ex.DB.GetCurrentChainInfo(ex.Config.Chain.ChainID)
 		if err != nil {
-			return fmt.Errorf("failed to current chaininfo: %s", err)
+			return fmt.Errorf("failed to get current chaininfo: %s", err)
 		}
 		basic.ChainInfo.NumberOfTxs += basic.Block.NumTxs
 

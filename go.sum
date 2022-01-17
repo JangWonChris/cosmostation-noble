@@ -207,8 +207,8 @@ github.com/coreos/pkg v0.0.0-20160727233714-3ac0863d7acf/go.mod h1:E3G3o1h8I7cfc
 github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f/go.mod h1:E3G3o1h8I7cfcXa63jLwjI0eiQQMgzzUDFVpN/nH/eA=
 github.com/cosmos/cosmos-sdk v0.44.2 h1:EWoj9h9Q9t7uqS3LyqzZWWwnSEodUJlYDMloDoPBD3Y=
 github.com/cosmos/cosmos-sdk v0.44.2/go.mod h1:fwQJdw+aECatpTvQTo1tSfHEsxACdZYU80QCZUPnHr4=
-github.com/cosmos/gaia/v6 v6.0.0-rc3 h1:lflRYvV32YANZB6iL5PkU8yfNYhWR9312zmfLO1EMo0=
-github.com/cosmos/gaia/v6 v6.0.0-rc3/go.mod h1:l1dKwdPQi9ai3UmR6YeD/cIVzfspwElp7agzgVJtB0Q=
+github.com/cosmos/gaia/v6 v6.0.0 h1:DRoLJ+AjVhxrJBHKmGHssw4jIAVtGsKY8boYG8BDX2o=
+github.com/cosmos/gaia/v6 v6.0.0/go.mod h1:l1dKwdPQi9ai3UmR6YeD/cIVzfspwElp7agzgVJtB0Q=
 github.com/cosmos/go-bip39 v0.0.0-20180819234021-555e2067c45d/go.mod h1:tSxLoYXyBmiFeKpvmq4dzayMdCjCnu8uqmCysIGBT2Y=
 github.com/cosmos/go-bip39 v1.0.0 h1:pcomnQdrdH22njcAatO0yWojsUnCO3y2tNoV1cb6hHY=
 github.com/cosmos/go-bip39 v1.0.0/go.mod h1:RNJv0H/pOIVgxw6KS7QeX2a0Uo0aKUlfhZ4xuwvCdJw=
@@ -225,8 +225,8 @@ github.com/cosmos/ledger-go v0.9.2 h1:Nnao/dLwaVTk1Q5U9THldpUMMXU94BOTWPddSmVB6p
 github.com/cosmos/ledger-go v0.9.2/go.mod h1:oZJ2hHAZROdlHiwTg4t7kP+GKIIkBT+o6c9QWFanOyI=
 github.com/cosmostation/mintscan-backend-library v0.0.0-20211215124459-d76b493d1f63 h1:WjXKSmcDhyo106k7KtGUF+30CT3MbmUKSezkl67435U=
 github.com/cosmostation/mintscan-backend-library v0.0.0-20211215124459-d76b493d1f63/go.mod h1:cbLCdx0UBa6PG3GAvjVXjbON4cGPOD6Hqy81En9xPvs=
-github.com/cosmostation/mintscan-database v0.0.0-20211201162627-2754c0586f28 h1:7iVD6Wc+y6/uj2tM4pnlP1DHEDDwoL7L/29xd4Nb4jQ=
-github.com/cosmostation/mintscan-database v0.0.0-20211201162627-2754c0586f28/go.mod h1:QNFgmw0G8JF8gj7XjVFThqJf7TYwf/AA/dzdEhIeemA=
+github.com/cosmostation/mintscan-database v0.0.0-20220117143135-44aa6030e2a6 h1:y/Y8s9L1v/MWMp3NZRvvrbFO8lxihACqrm1b2PfH9bg=
+github.com/cosmostation/mintscan-database v0.0.0-20220117143135-44aa6030e2a6/go.mod h1:QNFgmw0G8JF8gj7XjVFThqJf7TYwf/AA/dzdEhIeemA=
 github.com/cosmostation/mintscan-prometheus v0.0.0-20210628093844-2404f3c78830 h1:1DpstYk4JQ1K6ukHnGr6HyFaTKpq32E63dI54hTdn88=
 github.com/cosmostation/mintscan-prometheus v0.0.0-20210628093844-2404f3c78830/go.mod h1:zIXRfq9xczW+yIlbgfgJo4+TYUaU8okDOSdikA6pgrU=
 github.com/cpuguy83/go-md2man v1.0.10/go.mod h1:SmD6nW6nTyfqj6ABTjUi3V3JVMnlJmwcJI5acqYI6dE=
@@ -437,7 +437,6 @@ github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf/go.mod h1:HP5RmnzzSN
 github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
 github.com/google/gofuzz v1.1.1-0.20200604201612-c04b05f3adfa/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
 github.com/google/gofuzz v1.2.0 h1:xRy4A+RhZaiKjJ1bPfwQ8sedCA+YS2YcCHW6ec7JMi0=
-github.com/google/gofuzz v1.2.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
 github.com/google/martian v2.1.0+incompatible/go.mod h1:9I4somxYTbIHy5NJKHRl3wXiIaQGbYVAs8BPL6v8lEs=
 github.com/google/martian/v3 v3.0.0/go.mod h1:y5Zk1BBys9G+gd6Jrk0W3cC1+ELVxBWuIGO+w/tUAp0=
 github.com/google/martian/v3 v3.1.0/go.mod h1:y5Zk1BBys9G+gd6Jrk0W3cC1+ELVxBWuIGO+w/tUAp0=

@@ -190,7 +190,7 @@ func (ex *Exporter) NotificationToSlack(msg, url string) error {
 }
 
 // SetMessageForProposalOccur is a function that sets a message to notify that a proposal has occurred.
-func (ex *Exporter) SetMessageForProposalOccur(proposal mdschema.Proposal) string {
+func (ex *Exporter) SetMessageForProposalOccur(proposal *mdschema.Proposal) string {
 	uri := ex.Config.Web.URI
 
 	chainID, err := ex.App.Client.RPC.GetNetworkChainID()
@@ -216,7 +216,7 @@ func (ex *Exporter) SetMessageForProposalOccur(proposal mdschema.Proposal) strin
 }
 
 // SetMessageForVoting is a function that sets a message asking you to vote on a proposal.
-func (ex *Exporter) SetMessageForVoting(proposal mdschema.Proposal) string {
+func (ex *Exporter) SetMessageForVoting(proposal *mdschema.Proposal) string {
 	uri := ex.Config.Web.URI
 
 	chainID, err := ex.App.Client.RPC.GetNetworkChainID()
@@ -246,9 +246,8 @@ func (ex *Exporter) ProposalNotificationToSlack(id uint64) {
 		zap.L().Error("failed get proposal info from lcd", zap.Error(err))
 	}
 
-	proposalByDB := mdschema.Proposal{}
 	//TODO : 추후 버전을 위해 noti 상태 + 프로포절 상태 받아오는 함수 만들기
-	proposalByDB, err = ex.DB.GetProposal(id)
+	proposalByDB, err := ex.DB.GetProposal(id)
 
 	if err != nil {
 		zap.L().Error("failed query proposal noti status", zap.Error(err))

@@ -260,6 +260,10 @@ func (ex *Exporter) getEvidence(block *tmctypes.ResultBlock) ([]mdschema.Evidenc
 // saveValidators parses all validators which are in three different status
 // bonded, unbonding, unbonded and save them in database.
 func (ex *Exporter) saveValidators() {
+	if ex.App.CatchingUp {
+		zap.S().Info("app is catching up")
+		return
+	}
 	ctx := context.Background()
 	bondedVals, err := ex.Client.GetValidatorsByStatus(ctx, stakingtypes.Bonded)
 	if err != nil {

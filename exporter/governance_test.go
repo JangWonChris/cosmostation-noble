@@ -60,3 +60,14 @@ func TestParseMsgVote(t *testing.T) {
 		require.NotNil(t, msgVote)
 	}
 }
+
+func TestSaveAllProposals(t *testing.T) {
+	ex.saveAllProposals()
+}
+
+func TestGetProposalVyStatus(t *testing.T) {
+	ex.saveAllProposals()
+	dp, err := ex.Client.GetProposalsByStatus(govtypes.StatusDepositPeriod)
+	require.NoError(t, err)
+	t.Log(dp)
+}

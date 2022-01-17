@@ -2,6 +2,8 @@ package exporter
 
 import (
 	"strconv"
+	"sync"
+	"time"
 
 	mdschema "github.com/cosmostation/mintscan-database/schema"
 
@@ -13,6 +15,50 @@ import (
 
 	"go.uber.org/zap"
 )
+
+var muProp sync.RWMutex
+var propList = make(map[uint64]struct{})
+
+func (ex *Exporter) WatchLiveProposals() {
+	for {
+		p, err := ex.DB.GetLiveProposalIDs()
+		if err != nil {
+			zap.S().Info("failed to get live proposals")
+			time.Sleep(2 * time.Second)
+			continue
+		}
+		muProp.Lock()
+		for i := range p {
+			_, ok := propList[p[i].ID]
+			if !ok {
+				propList[p[i].ID] = struct{}{}
+			}
+		}
+		muProp.Unlock()
+		zap.S().Info("proposal list updated")
+		time.Sleep(6 * time.Second)
+	}
+}
+
+func (ex *Exporter) updateProposals() {
+	for {
+		if !ex.App.CatchingUp {
+			zap.S().Info("start updating proposals : ", propList)
+			muProp.RLock()
+			for id := range propList {
+				if err := ex.updateProposal(id); err != nil {
+					continue
+				}
+				delete(propList, id)
+			}
+			muProp.RUnlock()
+			zap.S().Info("finish update proposals : ", propList)
+		} else {
+			zap.S().Info("pending update proposals, app is catching up")
+		}
+		time.Sleep(10 * time.Second)
+	}
+}
 
 // getGovernance returns governance by decoding governance related transactions in a block.
 func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txResp []*sdkTypes.TxResponse) ([]mdschema.Proposal, []mdschema.Deposit, []mdschema.Vote, error) {
@@ -29,11 +75,6 @@ func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txResp []*sdkType
 		if tx.Code != 0 {
 			continue
 		}
-
-		// stdTx, ok := tx.Tx.(auth.StdTx)
-		// if !ok {
-		// 	return proposals, deposits, votes, fmt.Errorf("unsupported tx type: %s", tx.Tx)
-		// }
 
 		msgs := tx.GetTx().GetMsgs()
 
@@ -145,8 +186,24 @@ func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txResp []*sdkType
 }
 
 // saveProposals saves all governance proposals
-func (ex *Exporter) saveProposals() {
-	proposals, err := ex.Client.GetProposals()
+func (ex *Exporter) saveAllProposals() {
+	NodePropCount, err := ex.Client.GetNumberofProposals()
+	if err != nil {
+		zap.S().Errorf("failed to get number of proposal from DB: %s", err)
+		return
+	}
+	DBPropCount, err := ex.DB.GetNumberofValidProposal()
+	if err != nil {
+		zap.S().Errorf("failed to get number of proposal from Node: %s", err)
+		return
+	}
+	// database에 저장된 프로포절의 수와 노드의 수가 같으면 업데이트 하지 않는다.
+	if NodePropCount == uint64(DBPropCount) {
+		zap.S().Info("skip saveAllProposals, all proposals have already been stored in database, count : ", NodePropCount)
+		return
+	}
+
+	proposals, err := ex.Client.GetAllProposals()
 	if err != nil {
 		zap.S().Errorf("failed to get proposals: %s", err)
 		return
@@ -162,4 +219,44 @@ func (ex *Exporter) saveProposals() {
 		zap.S().Errorf("failed to insert or update proposal: %s", err)
 		return
 	}
+}
+
+// saveLiveProposals saves live governance proposals
+func (ex *Exporter) saveLiveProposals() {
+	vp, err := ex.Client.GetProposalsByStatus(govtypes.StatusVotingPeriod)
+	if err != nil {
+		zap.S().Errorf("failed to get proposals: %s", err)
+		return
+	}
+	// 2022.01.17 deposit period 인 프로포절을 가져오는데 행이 걸림
+	dp, err := ex.Client.GetProposalsByStatus(govtypes.StatusDepositPeriod)
+	if err != nil {
+		zap.S().Errorf("failed to get proposals: %s", err)
+		return
+	}
+	proposals := make([]mdschema.Proposal, 0)
+	proposals = append(proposals, vp...)
+	proposals = append(proposals, dp...)
+
+	if len(proposals) <= 0 {
+		zap.S().Info("found empty proposals")
+		return
+	}
+
+	err = ex.DB.InsertOrUpdateProposals(proposals)
+	if err != nil {
+		zap.S().Errorf("failed to insert or update proposal: %s", err)
+		return
+	}
+}
+
+// updateProposal update proposal which is passed voting end time
+func (ex *Exporter) updateProposal(id uint64) error {
+	p, err := ex.Client.GetProposal(id)
+	if err != nil {
+		zap.S().Errorf("failed to get proposal: %s", err)
+		return err
+	}
+
+	return ex.DB.InsertOrUpdateProposal(p)
 }

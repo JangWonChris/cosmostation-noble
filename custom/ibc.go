@@ -40,6 +40,15 @@ const (
 	IBCChannelMsgAcknowledgement     = "ibcchannel/acknowledgement"
 )
 
+type txParser func(msg *sdktypes.Msg, txHash string) (msgType string, accounts []string)
+
+var CustomTxParsers = make([]txParser, 0)
+
+func init() {
+	CustomTxParsers = append(CustomTxParsers, AccountExporterFromIBCMsg)
+	CustomTxParsers = append(CustomTxParsers, AccountExporterFromCustomTxMsg)
+}
+
 func AccountExporterFromIBCMsg(msg *sdktypes.Msg, txHash string) (msgType string, accounts []string) {
 	switch msg := (*msg).(type) {
 	//ibc transfer (1)

@@ -1,10 +1,10 @@
 package exporter
 
 import (
-	"encoding/json"
 	"fmt"
 
 	mdschema "github.com/cosmostation/mintscan-database/schema"
+	tmjson "github.com/tendermint/tendermint/libs/json"
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
@@ -48,7 +48,7 @@ func (ex *Exporter) getBlockFromDB(rawBlocks []mdschema.RawBlock) (blocks []mdsc
 
 	for i := range rawBlocks {
 		var block tmctypes.ResultBlock
-		err := json.Unmarshal(rawBlocks[i].Chunk, &block)
+		err := tmjson.Unmarshal(rawBlocks[i].Chunk, &block)
 		if err != nil {
 			return blocks, fmt.Errorf("failed to marshal block : %s", err)
 		}
@@ -81,7 +81,7 @@ func (ex *Exporter) getBlockFromDB(rawBlocks []mdschema.RawBlock) (blocks []mdsc
 // getRawBlock decodes transactions in a block and return a format of database transaction.
 func (ex *Exporter) getRawBlock(block *tmctypes.ResultBlock) (*mdschema.RawBlock, error) {
 	b := new(mdschema.RawBlock)
-	chunk, err := json.Marshal(block)
+	chunk, err := tmjson.Marshal(block)
 	if err != nil {
 		return &mdschema.RawBlock{}, fmt.Errorf("failed to marshal block : %s", err)
 	}
