@@ -137,8 +137,8 @@ func (ex *Exporter) sync(op int) error {
 
 	zap.S().Infof("dbHeight %d, rawHeight %d \n", dbHeight, rawDBHeight)
 
-	for i := beginHeight + 1; i <= latestBlockHeight; i++ {
-		block, err := ex.Client.RPC.GetBlock(i)
+	for h := beginHeight + 1; h <= latestBlockHeight; h++ {
+		block, err := ex.Client.RPC.GetBlock(h)
 		if err != nil {
 			return fmt.Errorf("failed to query block: %s", err)
 		}
@@ -150,16 +150,16 @@ func (ex *Exporter) sync(op int) error {
 			hex := fmt.Sprintf("%X", tx.Hash())
 			controler <- struct{}{}
 			wg.Add(1)
-			go func(i int, hex string) {
-				zap.S().Info(i, hex)
+			go func(i int, gHex string) {
+				zap.S().Info(i, gHex)
 				defer func() {
 					<-controler
 					wg.Done()
 				}()
 			RETRY:
-				txs[i], err = ex.Client.CliCtx.GetTx(hex)
+				txs[i], err = ex.Client.CliCtx.GetTx(gHex)
 				if err != nil {
-					zap.S().Error("Error while getting tx ", hex)
+					zap.S().Errorf("failed to get tx height=%d, hash=%s", h, gHex)
 					time.Sleep(1 * time.Second)
 					goto RETRY
 				}
@@ -169,7 +169,7 @@ func (ex *Exporter) sync(op int) error {
 
 		switch op {
 		case BASIC_MODE:
-			if i > dbHeight {
+			if h > dbHeight {
 				err = ex.process(block, txs, op)
 				if err != nil {
 					return err
@@ -177,7 +177,7 @@ func (ex *Exporter) sync(op int) error {
 			}
 			fallthrough //continue to case RAW_MODE
 		case RAW_MODE:
-			if i > rawDBHeight {
+			if h > rawDBHeight {
 				err = ex.rawProcess(block, txs)
 				if err != nil {
 					return err
@@ -188,8 +188,8 @@ func (ex *Exporter) sync(op int) error {
 			zap.S().Info("unknown mode = ", op)
 			os.Exit(1)
 		}
-		zap.S().Infof("synced block %d/%d", i, latestBlockHeight)
-		ex.App.ExporterMetrics.BlockHeight.WithLabelValues().Set(float64(i))
+		zap.S().Infof("synced block %d/%d", h, latestBlockHeight)
+		ex.App.ExporterMetrics.BlockHeight.WithLabelValues().Set(float64(h))
 	}
 	return nil
 }
