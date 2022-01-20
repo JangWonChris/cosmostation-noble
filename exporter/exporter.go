@@ -52,6 +52,7 @@ func SetInitialHeight(height int64) {
 func (ex *Exporter) Start(op int) {
 	zap.S().Info("Starting Chain Exporter...")
 	zap.S().Infof("Version: %s | Commit: %s", Version, Commit)
+	zap.S().Infof("schema Info : %s, %s", mdschema.GetCommonSchema(), mdschema.GetChainSchema())
 
 	tick10Sec := time.NewTicker(time.Second * 10)
 	tick20Min := time.NewTicker(time.Minute * 20)
@@ -104,10 +105,6 @@ func (ex *Exporter) Start(op int) {
 // sync compares block height between the height saved in your database and
 // the latest block height on the active chain and calls process to start ingesting data.
 func (ex *Exporter) sync(op int) error {
-
-	zap.S().Info("exporter package :", mdschema.GetCommonSchema())
-	zap.S().Info("exprter package :", mdschema.GetChainSchema())
-
 	// Query latest block height saved in database
 	dbHeight, err := ex.DB.GetLatestBlockHeight(ex.ChainIDMap[ex.Config.Chain.ChainID])
 	if dbHeight == -1 {
