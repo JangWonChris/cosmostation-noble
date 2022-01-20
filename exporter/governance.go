@@ -19,7 +19,7 @@ import (
 var muProp sync.RWMutex
 var propList = make(map[uint64]struct{})
 
-func (ex *Exporter) WatchLiveProposals() {
+func (ex *Exporter) watchLiveProposals() {
 	for {
 		p, err := ex.DB.GetLiveProposalIDs()
 		if err != nil {

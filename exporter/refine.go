@@ -190,51 +190,19 @@ func (ex *Exporter) refineSync() error {
 
 	zap.S().Infof("dbHeight %d\n", dbHeight)
 
-	for i := beginHeight + 1; i <= latestBlockHeight; i++ {
-		block, err := ex.Client.RPC.GetBlock(i)
+	for h := beginHeight + 1; h <= latestBlockHeight; h++ {
+		block, txs, err := ex.getBlockAndTxsFromNode(h)
 		if err != nil {
-			return fmt.Errorf("failed to query block: %s", err)
-		}
-		retryFlag := false
-		zap.S().Infof("number of Transactions : %d", len(block.Block.Txs))
-		txList := block.Block.Txs
-		txs := make([]*sdktypes.TxResponse, len(block.Block.Txs))
-
-		for idx, tx := range txList {
-			hex := fmt.Sprintf("%X", tx.Hash())
-			controler <- struct{}{}
-			wg.Add(1)
-			go func(i int, hex string) {
-				zap.S().Info(i, hex)
-				defer func() {
-					<-controler
-					wg.Done()
-				}()
-
-				txs[i], err = ex.Client.CliCtx.GetTx(hex)
-				if err != nil {
-					zap.S().Error("Error while getting tx ", hex)
-					retryFlag = true
-					return
-				}
-			}(idx, hex)
-		}
-		wg.Wait()
-
-		if retryFlag {
-			zap.S().Error("can not get all of tx, retry get tx in block height = ", i)
-			i--
-			time.Sleep(1 * time.Second)
-			continue
+			return fmt.Errorf("failed to get block and txs from node : %s", err)
 		}
 
-		if i > dbHeight {
+		if h > dbHeight {
 			err = ex.refineRealTimeprocess(block, txs)
 			if err != nil {
 				return err
 			}
 		}
-		zap.S().Infof("synced block %d/%d", i, latestBlockHeight)
+		zap.S().Infof("synced block %d/%d", h, latestBlockHeight)
 	}
 	return nil
 }

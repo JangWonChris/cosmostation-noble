@@ -53,7 +53,7 @@ func (ex *Exporter) Start(op int) {
 	zap.S().Info("Starting Chain Exporter...")
 	zap.S().Infof("Version: %s | Commit: %s", Version, Commit)
 
-	tick7Sec := time.NewTicker(time.Second * 10)
+	tick10Sec := time.NewTicker(time.Second * 10)
 	tick20Min := time.NewTicker(time.Minute * 20)
 
 	done := make(chan struct{})
@@ -74,14 +74,14 @@ func (ex *Exporter) Start(op int) {
 
 	// app init 시 최초 전체 프로포절 업데이트
 	ex.saveAllProposals()
-	go ex.WatchLiveProposals()
+	go ex.watchLiveProposals()
 	go ex.updateProposals()
 
 	if op == BASIC_MODE {
 		go func() {
 			for {
 				select {
-				case <-tick7Sec.C:
+				case <-tick10Sec.C:
 					zap.S().Infof("start sync validators")
 					ex.saveValidators()
 					// ex.saveLiveProposals()
@@ -138,35 +138,10 @@ func (ex *Exporter) sync(op int) error {
 	zap.S().Infof("dbHeight %d, rawHeight %d \n", dbHeight, rawDBHeight)
 
 	for h := beginHeight + 1; h <= latestBlockHeight; h++ {
-		block, err := ex.Client.RPC.GetBlock(h)
+		block, txs, err := ex.getBlockAndTxsFromNode(h)
 		if err != nil {
-			return fmt.Errorf("failed to query block: %s", err)
+			return fmt.Errorf("failed to get block and txs : %s", err)
 		}
-		zap.S().Infof("number of Transactions : %d", len(block.Block.Txs))
-		txList := block.Block.Txs
-		txs := make([]*sdktypes.TxResponse, len(block.Block.Txs))
-
-		for idx, tx := range txList {
-			hex := fmt.Sprintf("%X", tx.Hash())
-			controler <- struct{}{}
-			wg.Add(1)
-			go func(i int, gHex string) {
-				zap.S().Info(i, gHex)
-				defer func() {
-					<-controler
-					wg.Done()
-				}()
-
-			RETRY:
-				txs[i], err = ex.Client.CliCtx.GetTx(gHex)
-				if err != nil {
-					zap.S().Errorf("failed to get tx height=%d, hash=%s", h, gHex)
-					time.Sleep(1 * time.Second)
-					goto RETRY
-				}
-			}(idx, hex)
-		}
-		wg.Wait()
 
 		switch op {
 		case BASIC_MODE:
@@ -216,7 +191,7 @@ func (ex *Exporter) process(block *tmctypes.ResultBlock, txs []*sdktypes.TxRespo
 
 	basic.Block, err = ex.getBlock(block)
 	if err != nil {
-		return fmt.Errorf("failed to get block: %s", err)
+		return fmt.Errorf("failed to parse block: %s", err)
 	}
 
 	if time.Since(basic.Block.Timestamp.UTC()).Seconds() > 60 {
@@ -281,10 +256,43 @@ func (ex *Exporter) process(block *tmctypes.ResultBlock, txs []*sdktypes.TxRespo
 		basic.TMAs = ex.disassembleTransaction(txs)
 	}
 
-	// TODO: is this right place to be?
 	if ex.Config.Alarm.Switch {
 		ex.handlePushNotification(block, txs)
 	}
 
 	return ex.DB.InsertExportedData(basic)
+}
+
+// getBlockAndTxsFromNode returns block and transactions from node.
+func (ex *Exporter) getBlockAndTxsFromNode(h int64) (block *tmctypes.ResultBlock, txs []*sdktypes.TxResponse, err error) {
+	block, err = ex.Client.RPC.GetBlock(h)
+	if err != nil {
+		return block, txs, fmt.Errorf("failed to get block : %s", err)
+	}
+	zap.S().Infof("number of Transactions : %d", len(block.Block.Txs))
+	txs = make([]*sdktypes.TxResponse, len(block.Block.Txs))
+
+	for idx, tx := range block.Block.Txs {
+		hex := fmt.Sprintf("%X", tx.Hash())
+		controler <- struct{}{}
+		wg.Add(1)
+		go func(i int, gHex string) {
+			zap.S().Info(i, gHex)
+			defer func() {
+				<-controler
+				wg.Done()
+			}()
+
+		RETRY:
+			txs[i], err = ex.Client.CliCtx.GetTx(gHex)
+			if err != nil {
+				zap.S().Errorf("failed to get tx height=%d, hash=%s", h, gHex)
+				time.Sleep(1 * time.Second)
+				goto RETRY
+			}
+		}(idx, hex)
+	}
+	wg.Wait()
+
+	return block, txs, nil
 }
