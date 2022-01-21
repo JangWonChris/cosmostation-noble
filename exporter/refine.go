@@ -38,10 +38,16 @@ func (ex *Exporter) Refine(op int) error {
 
 	if srcRawBlockHeight > dstCurrentBlockHeight {
 		beginRawBlock, err := ex.RawDB.GetBlockByHeight(dstCurrentBlockHeight)
+		if err != nil {
+			return fmt.Errorf("fail to get begin raw block in database: %s", err)
+		}
 		beginRawBlockID := beginRawBlock.ID + 1
 		rawBlockIDMax, err := ex.RawDB.GetBlockIDMax(srcRawBlockHeight)
+		if err != nil {
+			return fmt.Errorf("fail to get max block ID in database: %s", err)
+		}
 		if rawBlockIDMax == -1 {
-			return fmt.Errorf("fail to get block max(id) in database: %s", err)
+			return fmt.Errorf("fail to get block max(id) in database")
 		}
 
 		zap.S().Infof("will be refine blocks based on id from %d to %d\n", beginRawBlockID, rawBlockIDMax)
@@ -65,10 +71,16 @@ func (ex *Exporter) Refine(op int) error {
 
 	if srcRawBlockHeight > dstCurrentTransaction.Height {
 		beginRawTransaction, err := ex.RawDB.GetTransactionByHash(dstCurrentTransaction.Height, dstCurrentTransaction.Hash)
+		if err != nil {
+			return fmt.Errorf("fail to get begin raw transaction in database: %s", err)
+		}
 		beginRawTransactionID := beginRawTransaction.ID + 1
 		rawTxIDMax, err := ex.RawDB.GetTxIDMax(srcRawBlockHeight)
+		if err != nil {
+			return fmt.Errorf("fail to get max transaction ID in database: %s", err)
+		}
 		if rawTxIDMax == -1 {
-			return fmt.Errorf("fail to get transaction max(id) in database: %s", err)
+			return fmt.Errorf("fail to get transaction max(id) in database")
 		}
 		zap.S().Infof("will be refine transactions based on id from %d to %d\n", beginRawTransactionID, rawTxIDMax)
 		for i := beginRawTransactionID; i <= rawTxIDMax; i++ {
@@ -133,7 +145,7 @@ func (ex *Exporter) refineRawTransactions(chainID string, txs []*sdktypes.TxResp
 	if true {
 		return ex.DB.InsertRefineData(refineData)
 	}
-	return fmt.Errorf("currently, disabled to store data into database\n")
+	return fmt.Errorf("currently, disabled to store data into database")
 
 }
 
@@ -164,7 +176,7 @@ func (ex *Exporter) refineRawBlocks(block []mdschema.RawBlock) (err error) {
 	if true {
 		return ex.DB.InsertRefineData(refineData)
 	}
-	return fmt.Errorf("currently do not store any data\n")
+	return fmt.Errorf("currently do not store any data")
 
 }
 
