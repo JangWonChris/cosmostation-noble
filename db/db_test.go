@@ -14,7 +14,7 @@ import (
 	mdschema "github.com/cosmostation/mintscan-database/schema"
 
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
-	ibcchanneltypes "github.com/cosmos/ibc-go/v2/modules/core/04-channel/types"
+	ibcchanneltypes "github.com/cosmos/ibc-go/v3/modules/core/04-channel/types"
 
 	pg "github.com/go-pg/pg/v10"
 

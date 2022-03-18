@@ -15,7 +15,7 @@ import (
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	paramstypesproposal "github.com/cosmos/cosmos-sdk/x/params/types/proposal"
 	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
-	ibccoretypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
+	ibccoretypes "github.com/cosmos/ibc-go/v3/modules/core/02-client/types"
 )
 
 // GetGovQueryClient returns a object of queryClient
