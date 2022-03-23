@@ -6,7 +6,7 @@ require (
 	github.com/cosmos/cosmos-sdk v0.45.1
 	github.com/cosmos/gaia/v7 v7.0.0-rc0
 	github.com/cosmos/ibc-go/v3 v3.0.0
-	github.com/cosmostation/mintscan-backend-library v0.0.0-20220125160545-45bdcd75545b //sdk-0.45.x
+	github.com/cosmostation/mintscan-backend-library v0.0.0-20220125160545-45bdcd75545b // sdk 0.45.x
 	github.com/cosmostation/mintscan-database v1.0.1-0.20220318074150-75984b887a39
 	github.com/cosmostation/mintscan-prometheus v0.0.0-20210628093844-2404f3c78830
 	github.com/go-pg/pg/v10 v10.9.3
