@@ -3,7 +3,11 @@ package exporter
 import (
 	"testing"
 
+	sdkTypes "github.com/cosmos/cosmos-sdk/types"
+	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
+	"github.com/cosmostation/cosmostation-cosmos/custom"
+	mdschema "github.com/cosmostation/mintscan-database/schema"
 
 	"github.com/stretchr/testify/require"
 )
@@ -70,4 +74,61 @@ func TestGetProposalVyStatus(t *testing.T) {
 	dp, err := ex.Client.GetProposalsByStatus(govtypes.StatusDepositPeriod)
 	require.NoError(t, err)
 	t.Log(dp)
+}
+
+func TestExec(t *testing.T) {
+	msgType := "authz/exec"
+	limit := 50
+	beginID, err := ex.DB.GetBeginTxIDByMsgType(msgType)
+	require.NoError(t, err)
+	// beginID = int64(4701382)
+	t.Log(beginID)
+
+	bid := beginID
+	cnt_msgs := 0
+	for {
+		rawTxs, err := ex.DB.GetTransactionsByMsgType(bid, msgType, limit)
+		if err != nil {
+			t.Log("error occured beigin id : ", bid)
+		}
+		require.NoError(t, err)
+		if len(rawTxs) == 0 {
+			t.Log("len of txs is zero")
+			break
+		}
+		cnt_msgs = 0
+		txResps := make([]*sdkTypes.TxResponse, 0)
+		for i := range rawTxs {
+			tx := &sdktypes.TxResponse{}
+			err := custom.AppCodec.UnmarshalJSON(rawTxs[i].Chunk, tx)
+			require.NoError(t, err)
+			txResps = append(txResps, tx)
+			cnt_msg := len(tx.GetTx().GetMsgs())
+			cnt_msgs += cnt_msg
+		}
+		t.Log("bid : ", bid, " len of txs : ", len(txResps), " len of msgs :", cnt_msgs)
+		p, d, v, err := ex.getGovernance(nil, txResps)
+		require.NoError(t, err)
+		if len(v) > 0 {
+			if len(p) > 0 || len(d) > 0 {
+				t.Log("P :", len(p), " d :", len(d), " v :", len(v))
+			} else {
+				t.Log("v :", len(v))
+			}
+			// 	for i := range v {
+			// 		t.Log(v[i].Voter, v[i].TxHash, v[i].Option, v[i].ProposalID)
+			// 	}
+
+			basic := new(mdschema.BasicData)
+			basic.Votes = v
+			// t.Log(basic.Votes)
+			err = ex.DB.InsertExportedData(basic)
+			require.NoError(t, err)
+			t.Log("vote updated")
+		}
+
+		bid = rawTxs[len(rawTxs)-1].ID + 1
+		// time.Sleep(200 * time.Millisecond)
+	}
+
 }

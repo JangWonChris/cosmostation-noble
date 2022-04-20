@@ -2,8 +2,9 @@ package app
 
 import (
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/cosmostation/cosmostation-cosmos/client"
 	"github.com/cosmostation/cosmostation-cosmos/custom"

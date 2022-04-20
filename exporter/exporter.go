@@ -230,7 +230,7 @@ func (ex *Exporter) process(block *tmctypes.ResultBlock, txs []*sdktypes.TxRespo
 		}
 		basic.ChainInfo.NumberOfTxs += basic.Block.NumTxs
 
-		basic.Proposals, basic.Deposits, basic.Votes, err = ex.getGovernance(block, txs)
+		basic.Proposals, basic.Deposits, basic.Votes, err = ex.getGovernance(&block.Block.Header.Time, txs)
 		if err != nil {
 			return fmt.Errorf("failed to get governance: %s", err)
 		}

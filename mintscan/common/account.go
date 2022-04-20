@@ -8,7 +8,11 @@ import (
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	vestingtypes "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
-	chainapp "github.com/cosmos/gaia/v6/app"
+	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
+	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	ibctransfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
 
 	//internal
 	"github.com/cosmostation/cosmostation-cosmos/app"
@@ -29,8 +33,16 @@ var (
 )
 
 func init() {
-	maccPerms := chainapp.GetMaccPerms()
-	for name := range maccPerms {
+	moduleAccountName := []string{
+		authtypes.FeeCollectorName,
+		distrtypes.ModuleName,
+		minttypes.ModuleName,
+		stakingtypes.BondedPoolName,
+		stakingtypes.NotBondedPoolName,
+		govtypes.ModuleName,
+		ibctransfertypes.ModuleName,
+	}
+	for _, name := range moduleAccountName {
 		moduleAccounts[name] = authtypes.NewModuleAddress(name).String()
 	}
 }

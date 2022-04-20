@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	chainapp "github.com/cosmos/gaia/v6/app"
 	"github.com/cosmostation/cosmostation-cosmos/client"
 	"github.com/cosmostation/cosmostation-cosmos/db"
 	mintscanconfig "github.com/cosmostation/mintscan-backend-library/config"
@@ -33,9 +32,7 @@ func (g gaiaInit) Get(s string) interface{} {
 }
 
 func TestModuleAccounts(t *testing.T) {
-	maccPerms := chainapp.GetMaccPerms()
-
-	for name := range maccPerms {
+	for name := range moduleAccounts {
 		maccAddr := authtypes.NewModuleAddress(name).String()
 		// require.Equal(t, true, permission)
 		account, err := iclient.CliCtx.GetAccount(maccAddr)

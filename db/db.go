@@ -118,3 +118,18 @@ func (db *Database) TestGetRecvPacketTransaction(beginTxID int64) (txs []mdschem
 
 	return txs, nil
 }
+
+// GetTransactionsByMsgType returns transactions with txid ascending order satifying txid >= beginTxID and msg == msgType
+func (db *Database) GetTransactionsByMsgType(beginTxID int64, msgType string, limit int) (txs []schema.Transaction, err error) {
+	// _, err = db.Query(&txs, "select * from transaction where id in (select tx_id from transaction_message where tx_id >= ? and msg_id = (select id from message_info where type = ?)) order by id asc limit ?; ", beginTxID, msgType, limit)
+	_, err = db.Query(&txs, "select * from transaction where id in (select tx_id from transaction_message where tx_id >= ? and msg_id = (select id from message_info where type = ?) order by tx_id asc limit ?) order by id asc", beginTxID, msgType, limit)
+
+	if err != nil {
+		if err == pg.ErrNoRows {
+			return txs, nil
+		}
+		return txs, err
+	}
+
+	return txs, nil
+}

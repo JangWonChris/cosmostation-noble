@@ -9,9 +9,8 @@ import (
 
 	//cosmos-sdk
 	sdkTypes "github.com/cosmos/cosmos-sdk/types"
+	authztypes "github.com/cosmos/cosmos-sdk/x/authz"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
-
-	tmcTypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	"go.uber.org/zap"
 )
@@ -61,7 +60,7 @@ func (ex *Exporter) updateProposals() {
 }
 
 // getGovernance returns governance by decoding governance related transactions in a block.
-func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txResp []*sdkTypes.TxResponse) ([]mdschema.Proposal, []mdschema.Deposit, []mdschema.Vote, error) {
+func (ex *Exporter) getGovernance(blockTimeStamp *time.Time, txResp []*sdkTypes.TxResponse) ([]mdschema.Proposal, []mdschema.Deposit, []mdschema.Vote, error) {
 	proposals := make([]mdschema.Proposal, 0)
 	deposits := make([]mdschema.Deposit, 0)
 	votes := make([]mdschema.Vote, 0)
@@ -74,6 +73,17 @@ func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txResp []*sdkType
 		// code == 0 이면, 오류 트랜잭션이다.
 		if tx.Code != 0 {
 			continue
+		}
+
+		var ts time.Time
+
+		//blockTimeStamp가 nil 인 경우 각 tx의 timestamp로 처리한다.
+		if blockTimeStamp == nil {
+			t, err := time.Parse(time.RFC3339, tx.Timestamp)
+			if err != nil {
+				return proposals, deposits, votes, nil
+			}
+			ts = t
 		}
 
 		msgs := tx.GetTx().GetMsgs()
@@ -126,7 +136,7 @@ func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txResp []*sdkType
 					TxHash:     tx.TxHash,
 					GasWanted:  tx.GasWanted,
 					GasUsed:    tx.GasUsed,
-					Timestamp:  block.Block.Header.Time,
+					Timestamp:  ts,
 				}
 
 				deposits = append(deposits, d)
@@ -153,7 +163,7 @@ func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txResp []*sdkType
 					TxHash:     tx.TxHash,
 					GasWanted:  tx.GasWanted,
 					GasUsed:    tx.GasUsed,
-					Timestamp:  block.Block.Header.Time,
+					Timestamp:  ts,
 				}
 
 				deposits = append(deposits, d)
@@ -171,10 +181,30 @@ func (ex *Exporter) getGovernance(block *tmcTypes.ResultBlock, txResp []*sdkType
 					TxHash:     tx.TxHash,
 					GasWanted:  tx.GasWanted,
 					GasUsed:    tx.GasUsed,
-					Timestamp:  block.Block.Header.Time,
+					Timestamp:  ts,
 				}
 
 				votes = append(votes, v)
+
+			case *authztypes.MsgExec:
+				for j := range m.Msgs {
+					c := m.Msgs[j].GetCachedValue()
+					switch im := (c).(type) {
+					case *govtypes.MsgVote:
+						zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
+						v := mdschema.Vote{
+							Height:     tx.Height,
+							ProposalID: im.ProposalId,
+							Voter:      im.Voter,
+							Option:     im.Option.String(),
+							TxHash:     tx.TxHash,
+							GasWanted:  tx.GasWanted,
+							GasUsed:    tx.GasUsed,
+							Timestamp:  ts,
+						}
+						votes = append(votes, v)
+					}
+				}
 
 			default:
 				continue
