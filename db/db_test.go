@@ -26,7 +26,7 @@ var db *Database
 func TestMain(m *testing.M) {
 	// types.SetAppConfig()
 
-	fileBaseName := "mintscan"
+	fileBaseName := "chain-exporter"
 	cfg := mblconfig.ParseConfig(fileBaseName)
 	db = Connect(&cfg.DB)
 
