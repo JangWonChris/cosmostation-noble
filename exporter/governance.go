@@ -81,7 +81,7 @@ func (ex *Exporter) getGovernance(blockTimeStamp *time.Time, txResp []*sdkTypes.
 		if blockTimeStamp == nil {
 			t, err := time.Parse(time.RFC3339, tx.Timestamp)
 			if err != nil {
-				return proposals, deposits, votes, nil
+				return proposals, deposits, votes, err
 			}
 			ts = t
 		}
