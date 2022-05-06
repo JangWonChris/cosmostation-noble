@@ -283,7 +283,7 @@ func (ex *Exporter) getBlockAndTxsFromNode(h int64) (block *tmctypes.ResultBlock
 		RETRY:
 			txs[i], err = ex.Client.CliCtx.GetTx(gHex)
 			if err != nil {
-				zap.S().Errorf("failed to get tx height=%d, hash=%s", h, gHex)
+				zap.S().Errorf("failed to get tx height=%d, hash=%s, err=%v", h, gHex, err)
 				time.Sleep(6 * time.Second)
 				goto RETRY
 			}
