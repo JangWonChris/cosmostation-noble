@@ -5,6 +5,7 @@ import (
 	mbltypes "github.com/cosmostation/mintscan-backend-library/types"
 
 	//ibc
+	interchainaccountstypes "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/types"
 	ibctransfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
 	ibcclienttypes "github.com/cosmos/ibc-go/v3/modules/core/02-client/types"
 	ibcconnectiontypes "github.com/cosmos/ibc-go/v3/modules/core/03-connection/types"
@@ -90,9 +91,35 @@ func AccountExporterFromIBCMsg(msg *sdktypes.Msg, txHash string) (msgType string
 		msgType = IBCChannelMsgChannelCloseConfirm
 	case *ibcchanneltypes.MsgRecvPacket:
 		msgType = IBCChannelMsgRecvPacket
-		var pd ibctransfertypes.FungibleTokenPacketData
-		AppCodec.UnmarshalJSON(msg.Packet.GetData(), &pd)
-		accounts = mbltypes.AddNotNullAccount(pd.Receiver)
+		switch msg.Packet.SourcePort {
+		case "transfer":
+			var pd ibctransfertypes.FungibleTokenPacketData
+			AppCodec.UnmarshalJSON(msg.Packet.GetData(), &pd)
+			accounts = mbltypes.AddNotNullAccount(pd.Receiver)
+		case "icahost":
+			var pd interchainaccountstypes.InterchainAccountPacketData
+			AppCodec.UnmarshalJSON(msg.Packet.GetData(), &pd)
+			icaMsgs, err := interchainaccountstypes.DeserializeCosmosTx(EncodingConfig.Marshaler, pd.GetData())
+			if err != nil {
+				// TODO :
+				// catch error
+			}
+			for i := range icaMsgs {
+				msgType, accounts := mbltypes.AccountExporterFromCosmosTxMsg(&icaMsgs[i])
+				for _, customTxParser := range CustomTxParsers {
+					if msgType != "" {
+						break
+					}
+					customMsgType, account := customTxParser(&icaMsgs[i], txHash)
+					msgType = customMsgType
+					accounts = append(accounts, account...)
+				}
+				if msgType == "" {
+					// msgType 이 없을 경우, 해당 건은 수집하지 않는다.
+					continue
+				}
+			}
+		}
 	case *ibcchanneltypes.MsgTimeout:
 		msgType = IBCChannelMsgTimeout
 		var pd ibctransfertypes.FungibleTokenPacketData
