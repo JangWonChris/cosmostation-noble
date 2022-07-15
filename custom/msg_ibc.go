@@ -3,6 +3,7 @@ package custom
 import (
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	mbltypes "github.com/cosmostation/mintscan-backend-library/types"
+	"go.uber.org/zap"
 
 	//ibc
 	interchainaccountstypes "github.com/cosmos/ibc-go/v3/modules/apps/27-interchain-accounts/types"
@@ -48,6 +49,7 @@ var CustomTxParsers = make([]txParser, 0)
 func init() {
 	CustomTxParsers = append(CustomTxParsers, AccountExporterFromIBCMsg)
 	CustomTxParsers = append(CustomTxParsers, AccountExporterFromCustomTxMsg)
+	CustomTxParsers = append(CustomTxParsers, AccountExporterFromUndefinedTxMsg) // <-- 이 파서는 undefined는 마지막에 명세해야 함
 }
 
 func AccountExporterFromIBCMsg(msg *sdktypes.Msg, txHash string) (msgType string, accounts []string) {
@@ -103,6 +105,7 @@ func AccountExporterFromIBCMsg(msg *sdktypes.Msg, txHash string) (msgType string
 			if err != nil {
 				// TODO :
 				// catch error
+				zap.S().Errorf("failed to deserialize tx, error : ", err)
 			}
 			for i := range icaMsgs {
 				msgType, accounts := mbltypes.AccountExporterFromCosmosTxMsg(&icaMsgs[i])
@@ -134,8 +137,7 @@ func AccountExporterFromIBCMsg(msg *sdktypes.Msg, txHash string) (msgType string
 		msgType = IBCChannelMsgAcknowledgement
 
 	default:
-		// 전체 case에서 msg를 찾지 못했을 때만, 로깅하도록 하기 위해 주석
-		// zap.S().Infof("undefined message type in cosmos : %T, will search msg type in custom module", msg)
+		// AccountExporterFromCustomTxMsg() 에서 처리
 	}
 
 	return

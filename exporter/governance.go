@@ -88,7 +88,7 @@ func (ex *Exporter) getGovernance(blockTimeStamp *time.Time, txResp []*sdkTypes.
 
 		msgs := tx.GetTx().GetMsgs()
 
-		for _, msg := range msgs {
+		for i, msg := range msgs {
 
 			switch m := msg.(type) {
 			case *govtypes.MsgSubmitProposal:
@@ -97,13 +97,11 @@ func (ex *Exporter) getGovernance(blockTimeStamp *time.Time, txResp []*sdkTypes.
 				// Get proposal id for this proposal.
 				// Handle case of multiple messages which has multiple events and attributes.
 				var proposalID uint64
-				for _, log := range tx.Logs {
-					for _, event := range log.Events {
-						if event.Type == "submit_proposal" {
-							for _, attribute := range event.Attributes {
-								if attribute.Key == "proposal_id" {
-									proposalID, _ = strconv.ParseUint(attribute.Value, 10, 64)
-								}
+				for _, event := range tx.Logs[i].Events {
+					if event.Type == "submit_proposal" {
+						for _, attribute := range event.Attributes {
+							if attribute.Key == "proposal_id" {
+								proposalID, _ = strconv.ParseUint(attribute.Value, 10, 64)
 							}
 						}
 					}
@@ -178,13 +176,31 @@ func (ex *Exporter) getGovernance(blockTimeStamp *time.Time, txResp []*sdkTypes.
 					ProposalID: m.ProposalId,
 					Voter:      m.Voter,
 					Option:     m.Option.String(),
-					TxHash:     tx.TxHash,
-					GasWanted:  tx.GasWanted,
-					GasUsed:    tx.GasUsed,
-					Timestamp:  ts,
+					// Weight:     sdktypes.OneDec().String(),
+					TxHash:    tx.TxHash,
+					GasWanted: tx.GasWanted,
+					GasUsed:   tx.GasUsed,
+					Timestamp: ts,
 				}
 
 				votes = append(votes, v)
+
+			case *govtypes.MsgVoteWeighted:
+				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
+				for i := range m.Options {
+					v := mdschema.Vote{
+						Height:     tx.Height,
+						ProposalID: m.ProposalId,
+						Voter:      m.Voter,
+						Option:     m.Options[i].Option.String(),
+						// Weight:     m.Options[i].Weight.String(),
+						TxHash:    tx.TxHash,
+						GasWanted: tx.GasWanted,
+						GasUsed:   tx.GasUsed,
+						Timestamp: ts,
+					}
+					votes = append(votes, v)
+				}
 
 			case *authztypes.MsgExec:
 				for j := range m.Msgs {

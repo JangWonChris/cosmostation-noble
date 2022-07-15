@@ -1,12 +1,9 @@
 package custom
 
 import (
-	"fmt"
-
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	mbltypes "github.com/cosmostation/mintscan-backend-library/types"
 	liquiditytypes "github.com/gravity-devs/liquidity/x/liquidity/types"
-	"go.uber.org/zap"
 )
 
 const (
@@ -33,9 +30,7 @@ func AccountExporterFromCustomTxMsg(msg *sdktypes.Msg, txHash string) (msgType s
 		accounts = mbltypes.AddNotNullAccount(msg.SwapRequesterAddress)
 
 	default:
-		// 전체 case에서 이 msg를 찾지 못하였기 때문에 에러 로깅한다.
-		msgType = fmt.Sprintf("%T", msg)
-		zap.S().Errorf("Undefined msg Type : %T(hash = %s)\n", msg, txHash)
+		// AccountExporterFromCustomTxMsg() 에서 처리
 	}
 
 	return
