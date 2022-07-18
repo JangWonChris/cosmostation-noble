@@ -212,12 +212,30 @@ func (ex *Exporter) getGovernance(blockTimeStamp *time.Time, txResp []*sdktypes.
 							ProposalID: im.ProposalId,
 							Voter:      im.Voter,
 							Option:     im.Option.String(),
+							Weight:     sdktypes.OneDec().String(),
 							TxHash:     tx.TxHash,
 							GasWanted:  tx.GasWanted,
 							GasUsed:    tx.GasUsed,
 							Timestamp:  *ts,
 						}
 						votes = append(votes, v)
+
+					case *govtypes.MsgVoteWeighted:
+						zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
+						for i := range im.Options {
+							v := mdschema.Vote{
+								Height:     tx.Height,
+								ProposalID: im.ProposalId,
+								Voter:      im.Voter,
+								Option:     im.Options[i].Option.String(),
+								Weight:     im.Options[i].Weight.String(),
+								TxHash:     tx.TxHash,
+								GasWanted:  tx.GasWanted,
+								GasUsed:    tx.GasUsed,
+								Timestamp:  *ts,
+							}
+							votes = append(votes, v)
+						}
 					}
 				}
 
