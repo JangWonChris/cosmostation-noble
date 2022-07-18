@@ -13,12 +13,6 @@ import (
 	pg "github.com/go-pg/pg/v10"
 )
 
-var (
-	// columnLength is the column length of varchar type in every table.
-	// This needs to be considered again to set it to what specific length is needed, but right now set it to 99999.
-	columnLength = 99999
-)
-
 // Database implements a wrapper of golang ORM with focus on PostgreSQL.
 type Database struct {
 	*mddb.Database
@@ -100,6 +94,7 @@ func (db *Database) QueryAlarmTokens(address string) ([]string, error) {
 	return result, nil
 }
 
+//
 func (db *Database) TestGetRecvPacketTransaction(beginTxID int64) (txs []mdschema.Transaction, err error) {
 	// var txs []mdschema.Transaction
 	// var err error
@@ -121,7 +116,6 @@ func (db *Database) TestGetRecvPacketTransaction(beginTxID int64) (txs []mdschem
 
 // GetTransactionsByMsgType returns transactions with txid ascending order satifying txid >= beginTxID and msg == msgType
 func (db *Database) GetTransactionsByMsgType(beginTxID int64, msgType string, limit int) (txs []schema.Transaction, err error) {
-	// _, err = db.Query(&txs, "select * from transaction where id in (select tx_id from transaction_message where tx_id >= ? and msg_id = (select id from message_info where type = ?)) order by id asc limit ?; ", beginTxID, msgType, limit)
 	_, err = db.Query(&txs, "select * from transaction where id in (select tx_id from transaction_message where tx_id >= ? and msg_id = (select id from message_info where type = ?) order by tx_id asc limit ?) order by id asc", beginTxID, msgType, limit)
 
 	if err != nil {

@@ -108,18 +108,17 @@ func AccountExporterFromIBCMsg(msg *sdktypes.Msg, txHash string) (msgType string
 				zap.S().Errorf("failed to deserialize tx, error : ", err)
 			}
 			for i := range icaMsgs {
-				msgType, accounts := mbltypes.AccountExporterFromCosmosTxMsg(&icaMsgs[i])
+				var icaMsgType string
+				// TODO
+				// icaMsgType을 수집해야 할지 여부를 결정하지 못함
+				icaMsgType, accounts = mbltypes.AccountExporterFromCosmosTxMsg(&icaMsgs[i])
 				for _, customTxParser := range CustomTxParsers {
-					if msgType != "" {
+					if icaMsgType != "" {
 						break
 					}
 					customMsgType, account := customTxParser(&icaMsgs[i], txHash)
-					msgType = customMsgType
+					_ = customMsgType
 					accounts = append(accounts, account...)
-				}
-				if msgType == "" {
-					// msgType 이 없을 경우, 해당 건은 수집하지 않는다.
-					continue
 				}
 			}
 		}

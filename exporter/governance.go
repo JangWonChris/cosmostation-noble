@@ -8,7 +8,7 @@ import (
 	mdschema "github.com/cosmostation/mintscan-database/schema"
 
 	//cosmos-sdk
-	sdkTypes "github.com/cosmos/cosmos-sdk/types"
+	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	authztypes "github.com/cosmos/cosmos-sdk/x/authz"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 
@@ -60,7 +60,7 @@ func (ex *Exporter) updateProposals() {
 }
 
 // getGovernance returns governance by decoding governance related transactions in a block.
-func (ex *Exporter) getGovernance(blockTimeStamp *time.Time, txResp []*sdkTypes.TxResponse) ([]mdschema.Proposal, []mdschema.Deposit, []mdschema.Vote, error) {
+func (ex *Exporter) getGovernance(blockTimeStamp *time.Time, txResp []*sdktypes.TxResponse) ([]mdschema.Proposal, []mdschema.Deposit, []mdschema.Vote, error) {
 	proposals := make([]mdschema.Proposal, 0)
 	deposits := make([]mdschema.Deposit, 0)
 	votes := make([]mdschema.Vote, 0)
@@ -75,15 +75,14 @@ func (ex *Exporter) getGovernance(blockTimeStamp *time.Time, txResp []*sdkTypes.
 			continue
 		}
 
-		var ts time.Time
-
+		ts := blockTimeStamp
 		//blockTimeStamp가 nil 인 경우 각 tx의 timestamp로 처리한다.
-		if blockTimeStamp == nil {
+		if ts == nil {
 			t, err := time.Parse(time.RFC3339, tx.Timestamp)
 			if err != nil {
 				return proposals, deposits, votes, err
 			}
-			ts = t
+			ts = &t
 		}
 
 		msgs := tx.GetTx().GetMsgs()
@@ -134,7 +133,7 @@ func (ex *Exporter) getGovernance(blockTimeStamp *time.Time, txResp []*sdkTypes.
 					TxHash:     tx.TxHash,
 					GasWanted:  tx.GasWanted,
 					GasUsed:    tx.GasUsed,
-					Timestamp:  ts,
+					Timestamp:  *ts,
 				}
 
 				deposits = append(deposits, d)
@@ -161,7 +160,7 @@ func (ex *Exporter) getGovernance(blockTimeStamp *time.Time, txResp []*sdkTypes.
 					TxHash:     tx.TxHash,
 					GasWanted:  tx.GasWanted,
 					GasUsed:    tx.GasUsed,
-					Timestamp:  ts,
+					Timestamp:  *ts,
 				}
 
 				deposits = append(deposits, d)
@@ -176,11 +175,11 @@ func (ex *Exporter) getGovernance(blockTimeStamp *time.Time, txResp []*sdkTypes.
 					ProposalID: m.ProposalId,
 					Voter:      m.Voter,
 					Option:     m.Option.String(),
-					// Weight:     sdktypes.OneDec().String(),
-					TxHash:    tx.TxHash,
-					GasWanted: tx.GasWanted,
-					GasUsed:   tx.GasUsed,
-					Timestamp: ts,
+					Weight:     sdktypes.OneDec().String(),
+					TxHash:     tx.TxHash,
+					GasWanted:  tx.GasWanted,
+					GasUsed:    tx.GasUsed,
+					Timestamp:  *ts,
 				}
 
 				votes = append(votes, v)
@@ -193,11 +192,11 @@ func (ex *Exporter) getGovernance(blockTimeStamp *time.Time, txResp []*sdkTypes.
 						ProposalID: m.ProposalId,
 						Voter:      m.Voter,
 						Option:     m.Options[i].Option.String(),
-						// Weight:     m.Options[i].Weight.String(),
-						TxHash:    tx.TxHash,
-						GasWanted: tx.GasWanted,
-						GasUsed:   tx.GasUsed,
-						Timestamp: ts,
+						Weight:     m.Options[i].Weight.String(),
+						TxHash:     tx.TxHash,
+						GasWanted:  tx.GasWanted,
+						GasUsed:    tx.GasUsed,
+						Timestamp:  *ts,
 					}
 					votes = append(votes, v)
 				}
@@ -216,7 +215,7 @@ func (ex *Exporter) getGovernance(blockTimeStamp *time.Time, txResp []*sdkTypes.
 							TxHash:     tx.TxHash,
 							GasWanted:  tx.GasWanted,
 							GasUsed:    tx.GasUsed,
-							Timestamp:  ts,
+							Timestamp:  *ts,
 						}
 						votes = append(votes, v)
 					}

@@ -10,7 +10,6 @@ import (
 	//mbl
 	"github.com/cosmostation/cosmostation-cosmos/custom"
 	mblconfig "github.com/cosmostation/mintscan-backend-library/config"
-	"github.com/cosmostation/mintscan-database/schema"
 	mdschema "github.com/cosmostation/mintscan-database/schema"
 
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
@@ -135,7 +134,7 @@ func TestGetTx(t *testing.T) {
 	t.Log("parse complete")
 }
 
-func insert(tmas []mdschema.TMA) error {
+func insert(tmas mdschema.TMAs) error {
 	err := db.RunInTransaction(context.Background(), func(tx *pg.Tx) error {
 		lenTMA := len(tmas)
 		if lenTMA > 0 {
@@ -145,7 +144,7 @@ func insert(tmas []mdschema.TMA) error {
 				if i+limit > lenTMA {
 					limit = lenTMA - i
 				}
-				args = append(args, parseTMAToArg(tmas[i:i+limit]))
+				args = append(args, tmas[i:i+limit].Extend())
 			}
 			for i := range args {
 				query := "select public.f_insert_tx_msg_acc" + args[i]
@@ -161,17 +160,4 @@ func insert(tmas []mdschema.TMA) error {
 		return err
 	}
 	return nil
-}
-
-func parseTMAToArg(tma []schema.TMA) string {
-	arg := "("
-	fmt.Println("len of partial tma", len(tma))
-	for i := range tma {
-		if i != 0 {
-			arg += ","
-		}
-		arg += fmt.Sprintf("('%s', '%s', '%s')", tma[i].TxHash, tma[i].MsgType, tma[i].AccountAddress)
-	}
-	arg += ")"
-	return arg
 }

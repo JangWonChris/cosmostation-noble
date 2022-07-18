@@ -1,15 +1,19 @@
 package exporter
 
 import (
+	"os"
 	"testing"
-	"time"
 
 	"github.com/cosmostation/cosmostation-cosmos/app"
 )
 
-func TestProposalAlarm(t *testing.T) {
+var (
+	ex *Exporter
+)
+
+func TestMain(m *testing.M) {
 	chainEx := app.NewApp("chain-exporter")
 	ex = NewExporter(chainEx)
-	go ex.ProposalNotificationToSlack(51)
-	time.Sleep(5 * time.Second)
+
+	os.Exit(m.Run())
 }
