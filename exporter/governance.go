@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cosmostation/cosmostation-cosmos/custom"
 	mdschema "github.com/cosmostation/mintscan-database/schema"
 
 	//cosmos-sdk
@@ -88,164 +89,136 @@ func (ex *Exporter) getGovernance(blockTimeStamp *time.Time, txResp []*sdktypes.
 		msgs := tx.GetTx().GetMsgs()
 
 		for i, msg := range msgs {
-
 			switch m := msg.(type) {
-			case *govtypes.MsgSubmitProposal:
-				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
-
-				// Get proposal id for this proposal.
-				// Handle case of multiple messages which has multiple events and attributes.
-				var proposalID uint64
-				for _, event := range tx.Logs[i].Events {
-					if event.Type == "submit_proposal" {
-						for _, attribute := range event.Attributes {
-							if attribute.Key == "proposal_id" {
-								proposalID, _ = strconv.ParseUint(attribute.Value, 10, 64)
-							}
-						}
-					}
-				}
-
-				var initialDepositAmount string
-				var initialDepositDenom string
-
-				if len(m.InitialDeposit) > 0 {
-					initialDepositAmount = m.InitialDeposit[0].Amount.String()
-					initialDepositDenom = m.InitialDeposit[0].Denom
-				}
-
-				p := mdschema.Proposal{
-					ID:                   proposalID,
-					TxHash:               tx.TxHash,
-					Proposer:             m.Proposer,
-					InitialDepositAmount: initialDepositAmount,
-					InitialDepositDenom:  initialDepositDenom,
-				}
-
-				proposals = append(proposals, p)
-
-				d := mdschema.Deposit{
-					Height:     tx.Height,
-					ProposalID: proposalID,
-					Depositor:  m.Proposer,
-					Amount:     initialDepositAmount,
-					Denom:      initialDepositDenom,
-					TxHash:     tx.TxHash,
-					GasWanted:  tx.GasWanted,
-					GasUsed:    tx.GasUsed,
-					Timestamp:  *ts,
-				}
-
-				deposits = append(deposits, d)
-
-				go ex.ProposalNotificationToSlack(p.ID)
-
-			case *govtypes.MsgDeposit:
-				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
-
-				var amount string
-				var denom string
-
-				if len(m.Amount) > 0 {
-					amount = m.Amount[0].Amount.String()
-					denom = m.Amount[0].Denom
-				}
-
-				d := mdschema.Deposit{
-					Height:     tx.Height,
-					ProposalID: m.ProposalId,
-					Depositor:  m.Depositor,
-					Amount:     amount,
-					Denom:      denom,
-					TxHash:     tx.TxHash,
-					GasWanted:  tx.GasWanted,
-					GasUsed:    tx.GasUsed,
-					Timestamp:  *ts,
-				}
-
-				deposits = append(deposits, d)
-
-				go ex.ProposalNotificationToSlack(d.ProposalID)
-
-			case *govtypes.MsgVote:
-				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
-
-				v := mdschema.Vote{
-					Height:     tx.Height,
-					ProposalID: m.ProposalId,
-					Voter:      m.Voter,
-					Option:     m.Option.String(),
-					Weight:     sdktypes.OneDec().String(),
-					TxHash:     tx.TxHash,
-					GasWanted:  tx.GasWanted,
-					GasUsed:    tx.GasUsed,
-					Timestamp:  *ts,
-				}
-
-				votes = append(votes, v)
-
-			case *govtypes.MsgVoteWeighted:
-				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
-				for i := range m.Options {
-					v := mdschema.Vote{
-						Height:     tx.Height,
-						ProposalID: m.ProposalId,
-						Voter:      m.Voter,
-						Option:     m.Options[i].Option.String(),
-						Weight:     m.Options[i].Weight.String(),
-						TxHash:     tx.TxHash,
-						GasWanted:  tx.GasWanted,
-						GasUsed:    tx.GasUsed,
-						Timestamp:  *ts,
-					}
-					votes = append(votes, v)
-				}
-
 			case *authztypes.MsgExec:
 				for j := range m.Msgs {
-					c := m.Msgs[j].GetCachedValue()
-					switch im := (c).(type) {
-					case *govtypes.MsgVote:
-						zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
-						v := mdschema.Vote{
-							Height:     tx.Height,
-							ProposalID: im.ProposalId,
-							Voter:      im.Voter,
-							Option:     im.Option.String(),
-							Weight:     sdktypes.OneDec().String(),
-							TxHash:     tx.TxHash,
-							GasWanted:  tx.GasWanted,
-							GasUsed:    tx.GasUsed,
-							Timestamp:  *ts,
-						}
-						votes = append(votes, v)
-
-					case *govtypes.MsgVoteWeighted:
-						zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
-						for i := range im.Options {
-							v := mdschema.Vote{
-								Height:     tx.Height,
-								ProposalID: im.ProposalId,
-								Voter:      im.Voter,
-								Option:     im.Options[i].Option.String(),
-								Weight:     im.Options[i].Weight.String(),
-								TxHash:     tx.TxHash,
-								GasWanted:  tx.GasWanted,
-								GasUsed:    tx.GasUsed,
-								Timestamp:  *ts,
-							}
-							votes = append(votes, v)
-						}
-					}
+					var msgExecAuthorized sdktypes.Msg
+					custom.AppCodec.UnpackAny(m.Msgs[j], &msgExecAuthorized)
+					ex.govRoute(&proposals, &deposits, &votes, ts, msgExecAuthorized, i, tx)
 				}
 
 			default:
-				continue
+				ex.govRoute(&proposals, &deposits, &votes, ts, msg, i, tx)
 			}
 		}
 	}
 
 	return proposals, deposits, votes, nil
+}
+
+func (ex *Exporter) govRoute(ps *[]mdschema.Proposal, ds *[]mdschema.Deposit, vs *[]mdschema.Vote, ts *time.Time, msg sdktypes.Msg, logIndex int, tx *sdktypes.TxResponse) {
+
+	switch m := msg.(type) {
+	case *govtypes.MsgSubmitProposal:
+		zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
+
+		// Get proposal id for this proposal.
+		// Handle case of multiple messages which has multiple events and attributes.
+		var proposalID uint64
+		for _, event := range tx.Logs[logIndex].Events {
+			if event.Type == "submit_proposal" {
+				for _, attribute := range event.Attributes {
+					if attribute.Key == "proposal_id" {
+						proposalID, _ = strconv.ParseUint(attribute.Value, 10, 64)
+					}
+				}
+			}
+		}
+
+		var initialDepositAmount string
+		var initialDepositDenom string
+
+		if len(m.InitialDeposit) > 0 {
+			initialDepositAmount = m.InitialDeposit[0].Amount.String()
+			initialDepositDenom = m.InitialDeposit[0].Denom
+		}
+
+		p := mdschema.Proposal{
+			ID:                   proposalID,
+			TxHash:               tx.TxHash,
+			Proposer:             m.Proposer,
+			InitialDepositAmount: initialDepositAmount,
+			InitialDepositDenom:  initialDepositDenom,
+		}
+
+		*ps = append(*ps, p)
+
+		d := mdschema.Deposit{
+			Height:     tx.Height,
+			ProposalID: proposalID,
+			Depositor:  m.Proposer,
+			Amount:     initialDepositAmount,
+			Denom:      initialDepositDenom,
+			TxHash:     tx.TxHash,
+			GasWanted:  tx.GasWanted,
+			GasUsed:    tx.GasUsed,
+			Timestamp:  *ts,
+		}
+		*ds = append(*ds, d)
+
+		go ex.ProposalNotificationToSlack(p.ID)
+
+	case *govtypes.MsgDeposit:
+		zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
+
+		var amount string
+		var denom string
+
+		if len(m.Amount) > 0 {
+			amount = m.Amount[0].Amount.String()
+			denom = m.Amount[0].Denom
+		}
+
+		d := mdschema.Deposit{
+			Height:     tx.Height,
+			ProposalID: m.ProposalId,
+			Depositor:  m.Depositor,
+			Amount:     amount,
+			Denom:      denom,
+			TxHash:     tx.TxHash,
+			GasWanted:  tx.GasWanted,
+			GasUsed:    tx.GasUsed,
+			Timestamp:  *ts,
+		}
+
+		*ds = append(*ds, d)
+		go ex.ProposalNotificationToSlack(d.ProposalID)
+
+	case *govtypes.MsgVote:
+		zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
+
+		v := mdschema.Vote{
+			Height:     tx.Height,
+			ProposalID: m.ProposalId,
+			Voter:      m.Voter,
+			Option:     m.Option.String(),
+			Weight:     sdktypes.OneDec().String(),
+			TxHash:     tx.TxHash,
+			GasWanted:  tx.GasWanted,
+			GasUsed:    tx.GasUsed,
+			Timestamp:  *ts,
+		}
+
+		*vs = append(*vs, v)
+
+	case *govtypes.MsgVoteWeighted:
+		zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
+		for i := range m.Options {
+			v := mdschema.Vote{
+				Height:     tx.Height,
+				ProposalID: m.ProposalId,
+				Voter:      m.Voter,
+				Option:     m.Options[i].Option.String(),
+				Weight:     m.Options[i].Weight.String(),
+				TxHash:     tx.TxHash,
+				GasWanted:  tx.GasWanted,
+				GasUsed:    tx.GasUsed,
+				Timestamp:  *ts,
+			}
+			*vs = append(*vs, v)
+		}
+
+	}
 }
 
 // saveProposals saves all governance proposals
