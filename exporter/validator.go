@@ -14,6 +14,7 @@ import (
 
 	// cosmos-sdk
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
+	authztypes "github.com/cosmos/cosmos-sdk/x/authz"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
@@ -56,113 +57,127 @@ func (ex *Exporter) getPowerEventHistoryNew( /*block *tmctypes.ResultBlock,*/ tx
 		}
 
 		timestamp, _ := time.Parse(time.RFC3339, tx.Timestamp) // 임시
+
 		msgs := tx.GetTx().GetMsgs()
 
 		for _, msg := range msgs {
-
 			switch m := msg.(type) {
-			case *stakingtypes.MsgCreateValidator:
-				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
-
-				// newVotingPowerAmount := float64(m.Value.Amount.Quo(custom.PowerReduction).Int64())
-				amount := new(big.Float).SetInt(m.Value.Amount.BigInt())
-				newVotingPowerAmount, _ := new(big.Float).Quo(amount, powerReduction).Float64()
-
-				peh := &mdschema.PowerEventHistory{
-					Height:               tx.Height,
-					OperatorAddress:      m.ValidatorAddress,
-					MsgType:              mbltypes.StakingMsgCreateValidator,
-					NewVotingPowerAmount: newVotingPowerAmount,
-					NewVotingPowerDenom:  m.Value.Denom,
-					TxHash:               tx.TxHash,
-					// Timestamp:            block.Block.Header.Time,
-					Timestamp: timestamp,
+			case *authztypes.MsgExec:
+				for j := range m.Msgs {
+					var msgExecAuthorized sdktypes.Msg
+					custom.AppCodec.UnpackAny(m.Msgs[j], &msgExecAuthorized)
+					powerEventRoute(&powerEventHistory, &msgExecAuthorized, tx, timestamp)
 				}
-
-				powerEventHistory = append(powerEventHistory, *peh)
-
-			case *stakingtypes.MsgDelegate:
-				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
-
-				// newVotingPowerAmount := float64(m.Amount.Amount.Quo(custom.PowerReduction).Int64())
-				amount := new(big.Float).SetInt(m.Amount.Amount.BigInt())
-				newVotingPowerAmount, _ := new(big.Float).Quo(amount, powerReduction).Float64()
-
-				peh := &mdschema.PowerEventHistory{
-					Height:               tx.Height,
-					OperatorAddress:      m.ValidatorAddress,
-					MsgType:              mbltypes.StakingMsgDelegate,
-					NewVotingPowerAmount: newVotingPowerAmount,
-					NewVotingPowerDenom:  m.Amount.Denom,
-					TxHash:               tx.TxHash,
-					// Timestamp:            block.Block.Header.Time,
-					Timestamp: timestamp,
-				}
-
-				powerEventHistory = append(powerEventHistory, *peh)
-
-			case *stakingtypes.MsgUndelegate:
-				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
-
-				// newVotingPowerAmount := float64(m.Amount.Amount.Quo(custom.PowerReduction).Int64())
-				amount := new(big.Float).SetInt(m.Amount.Amount.BigInt())
-				newVotingPowerAmount, _ := new(big.Float).Quo(amount, powerReduction).Float64()
-
-				peh := &mdschema.PowerEventHistory{
-					Height:               tx.Height,
-					OperatorAddress:      m.ValidatorAddress,
-					MsgType:              mbltypes.StakingMsgUndelegate,
-					NewVotingPowerAmount: -newVotingPowerAmount,
-					NewVotingPowerDenom:  m.Amount.Denom,
-					TxHash:               tx.TxHash,
-					// Timestamp:            block.Block.Header.Time,
-					Timestamp: timestamp,
-				}
-
-				powerEventHistory = append(powerEventHistory, *peh)
-
-			case *stakingtypes.MsgBeginRedelegate:
-				zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
-
-				// newVotingPowerAmount := float64(m.Amount.Amount.Quo(custom.PowerReduction).Int64())
-				amount := new(big.Float).SetInt(m.Amount.Amount.BigInt())
-				newVotingPowerAmount, _ := new(big.Float).Quo(amount, powerReduction).Float64()
-
-				// destination (add power)
-				dpeh := &mdschema.PowerEventHistory{
-					Height:               tx.Height,
-					OperatorAddress:      m.ValidatorDstAddress,
-					MsgType:              mbltypes.StakingMsgBeginRedelegate,
-					NewVotingPowerAmount: newVotingPowerAmount,
-					NewVotingPowerDenom:  m.Amount.Denom,
-					TxHash:               tx.TxHash,
-					// Timestamp:            block.Block.Header.Time,
-					Timestamp: timestamp,
-				}
-
-				powerEventHistory = append(powerEventHistory, *dpeh)
-
-				//source (subtract power)
-				speh := &mdschema.PowerEventHistory{
-					Height:               tx.Height,
-					OperatorAddress:      m.ValidatorSrcAddress,
-					MsgType:              mbltypes.StakingMsgBeginRedelegate,
-					NewVotingPowerAmount: -newVotingPowerAmount,
-					NewVotingPowerDenom:  m.Amount.Denom,
-					TxHash:               tx.TxHash,
-					// Timestamp:            block.Block.Header.Time,
-					Timestamp: timestamp,
-				}
-
-				powerEventHistory = append(powerEventHistory, *speh)
 
 			default:
-				continue
+				powerEventRoute(&powerEventHistory, &msg, tx, timestamp)
 			}
+
 		}
 	}
 
 	return powerEventHistory, nil
+}
+
+func powerEventRoute(powerEventHistory *[]mdschema.PowerEventHistory, msg *sdktypes.Msg, tx *sdktypes.TxResponse, timestamp time.Time) {
+	switch m := (*msg).(type) {
+	case *stakingtypes.MsgCreateValidator:
+		zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
+
+		// newVotingPowerAmount := float64(m.Value.Amount.Quo(custom.PowerReduction).Int64())
+		amount := new(big.Float).SetInt(m.Value.Amount.BigInt())
+		newVotingPowerAmount, _ := new(big.Float).Quo(amount, powerReduction).Float64()
+
+		peh := &mdschema.PowerEventHistory{
+			Height:               tx.Height,
+			OperatorAddress:      m.ValidatorAddress,
+			MsgType:              mbltypes.StakingMsgCreateValidator,
+			NewVotingPowerAmount: newVotingPowerAmount,
+			NewVotingPowerDenom:  m.Value.Denom,
+			TxHash:               tx.TxHash,
+			// Timestamp:            block.Block.Header.Time,
+			Timestamp: timestamp,
+		}
+
+		*powerEventHistory = append(*powerEventHistory, *peh)
+
+	case *stakingtypes.MsgDelegate:
+		zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
+
+		// newVotingPowerAmount := float64(m.Amount.Amount.Quo(custom.PowerReduction).Int64())
+		amount := new(big.Float).SetInt(m.Amount.Amount.BigInt())
+		newVotingPowerAmount, _ := new(big.Float).Quo(amount, powerReduction).Float64()
+
+		peh := &mdschema.PowerEventHistory{
+			Height:               tx.Height,
+			OperatorAddress:      m.ValidatorAddress,
+			MsgType:              mbltypes.StakingMsgDelegate,
+			NewVotingPowerAmount: newVotingPowerAmount,
+			NewVotingPowerDenom:  m.Amount.Denom,
+			TxHash:               tx.TxHash,
+			// Timestamp:            block.Block.Header.Time,
+			Timestamp: timestamp,
+		}
+
+		*powerEventHistory = append(*powerEventHistory, *peh)
+
+	case *stakingtypes.MsgUndelegate:
+		zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
+
+		// newVotingPowerAmount := float64(m.Amount.Amount.Quo(custom.PowerReduction).Int64())
+		amount := new(big.Float).SetInt(m.Amount.Amount.BigInt())
+		newVotingPowerAmount, _ := new(big.Float).Quo(amount, powerReduction).Float64()
+
+		peh := &mdschema.PowerEventHistory{
+			Height:               tx.Height,
+			OperatorAddress:      m.ValidatorAddress,
+			MsgType:              mbltypes.StakingMsgUndelegate,
+			NewVotingPowerAmount: -newVotingPowerAmount,
+			NewVotingPowerDenom:  m.Amount.Denom,
+			TxHash:               tx.TxHash,
+			// Timestamp:            block.Block.Header.Time,
+			Timestamp: timestamp,
+		}
+
+		*powerEventHistory = append(*powerEventHistory, *peh)
+
+	case *stakingtypes.MsgBeginRedelegate:
+		zap.S().Infof("MsgType: %s | Hash: %s", m.Type(), tx.TxHash)
+
+		// newVotingPowerAmount := float64(m.Amount.Amount.Quo(custom.PowerReduction).Int64())
+		amount := new(big.Float).SetInt(m.Amount.Amount.BigInt())
+		newVotingPowerAmount, _ := new(big.Float).Quo(amount, powerReduction).Float64()
+
+		// destination (add power)
+		dpeh := &mdschema.PowerEventHistory{
+			Height:               tx.Height,
+			OperatorAddress:      m.ValidatorDstAddress,
+			MsgType:              mbltypes.StakingMsgBeginRedelegate,
+			NewVotingPowerAmount: newVotingPowerAmount,
+			NewVotingPowerDenom:  m.Amount.Denom,
+			TxHash:               tx.TxHash,
+			// Timestamp:            block.Block.Header.Time,
+			Timestamp: timestamp,
+		}
+
+		*powerEventHistory = append(*powerEventHistory, *dpeh)
+
+		//source (subtract power)
+		speh := &mdschema.PowerEventHistory{
+			Height:               tx.Height,
+			OperatorAddress:      m.ValidatorSrcAddress,
+			MsgType:              mbltypes.StakingMsgBeginRedelegate,
+			NewVotingPowerAmount: -newVotingPowerAmount,
+			NewVotingPowerDenom:  m.Amount.Denom,
+			TxHash:               tx.TxHash,
+			// Timestamp:            block.Block.Header.Time,
+			Timestamp: timestamp,
+		}
+
+		*powerEventHistory = append(*powerEventHistory, *speh)
+
+	default:
+	}
 }
 
 // getValidatorsUptime has three slices

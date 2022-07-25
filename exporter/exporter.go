@@ -16,7 +16,6 @@ import (
 
 	// sdk
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
-	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 )
 
@@ -262,44 +261,78 @@ func (ex *Exporter) process(block *tmctypes.ResultBlock, txs []*sdktypes.TxRespo
 }
 
 // getBlockAndTxsFromNode returns block and transactions from node.
-func (ex *Exporter) getBlockAndTxsFromNode(h int64) (*tmctypes.ResultBlock, []*sdktypes.TxResponse, error) {
-	block, err := ex.Client.RPC.GetBlock(h)
+func (ex *Exporter) getBlockAndTxsFromNode(h int64) (block *tmctypes.ResultBlock, txs []*sdktypes.TxResponse, err error) {
+	block, err = ex.Client.RPC.GetBlock(h)
 	if err != nil {
-		return &tmctypes.ResultBlock{}, []*sdktypes.TxResponse{}, fmt.Errorf("failed to get block : %s", err)
+		return block, txs, fmt.Errorf("failed to get block : %s", err)
 	}
 	zap.S().Infof("number of Transactions : %d", len(block.Block.Txs))
+	txs = make([]*sdktypes.TxResponse, len(block.Block.Txs))
 
-	result := ex.getTxsInHeight(block.Block.Header.Height)
+	for idx, tx := range block.Block.Txs {
+		hex := fmt.Sprintf("%X", tx.Hash())
+		controler <- struct{}{}
+		wg.Add(1)
+		go func(i int, gHex string) {
+			zap.S().Info(i, gHex)
+			defer func() {
+				<-controler
+				wg.Done()
+			}()
 
-	return block, result.Txs, nil
-}
-
-func (ex *Exporter) getTxsInHeight(height int64) *sdktypes.SearchTxsResult {
-	limit := 100
-	pageNumber := 1
-	var pageTotal uint64
-	tmEvents := []string{fmt.Sprintf("tx.height=%d", height)}
-
-	var result sdktypes.SearchTxsResult
-
-	for {
-		paginatedResult, err := authtx.QueryTxsByEvents(ex.App.Client.CliCtx.Context, tmEvents, pageNumber, limit, "")
-		if err != nil {
-			//retry
-			zap.S().Errorf("failed to get txs, height=%d, page=%d, pageTotal=%d, err=%s", height, pageNumber, pageTotal, err)
-			time.Sleep(time.Second * 2)
-			continue
-		}
-		pageNumber = int(paginatedResult.PageNumber + 1)
-		pageTotal = paginatedResult.PageTotal
-		result.Count += paginatedResult.Count
-		result.Txs = append(result.Txs, paginatedResult.Txs...)
-
-		if pageNumber > int(pageTotal) {
-			break
-		}
+		RETRY:
+			txs[i], err = ex.Client.CliCtx.GetTx(gHex)
+			if err != nil {
+				zap.S().Errorf("failed to get tx height=%d, hash=%s, err=%v", h, gHex, err)
+				time.Sleep(6 * time.Second)
+				goto RETRY
+			}
+		}(idx, hex)
 	}
+	wg.Wait()
 
-	return &result
-
+	return block, txs, nil
 }
+
+// // getBlockAndTxsFromNode returns block and transactions from node.
+// func (ex *Exporter) getBlockAndTxsFromNode(h int64) (*tmctypes.ResultBlock, []*sdktypes.TxResponse, error) {
+// 	block, err := ex.Client.RPC.GetBlock(h)
+// 	if err != nil {
+// 		return &tmctypes.ResultBlock{}, []*sdktypes.TxResponse{}, fmt.Errorf("failed to get block : %s", err)
+// 	}
+// 	zap.S().Infof("number of Transactions : %d", len(block.Block.Txs))
+
+// 	result := ex.getTxsInHeight(block.Block.Header.Height)
+
+// 	return block, result.Txs, nil
+// }
+
+// func (ex *Exporter) getTxsInHeight(height int64) *sdktypes.SearchTxsResult {
+// 	limit := 100
+// 	pageNumber := 1
+// 	var pageTotal uint64
+// 	tmEvents := []string{fmt.Sprintf("tx.height=%d", height)}
+
+// 	var result sdktypes.SearchTxsResult
+
+// 	for {
+// 		paginatedResult, err := authtx.QueryTxsByEvents(ex.App.Client.CliCtx.Context, tmEvents, pageNumber, limit, "")
+// 		if err != nil {
+// 			//retry
+// 			zap.S().Errorf("failed to get txs, height=%d, page=%d, pageTotal=%d, err=%s", height, pageNumber, pageTotal, err)
+// 			time.Sleep(time.Second * 2)
+// 			continue
+// 		}
+// 		pageNumber = int(paginatedResult.PageNumber + 1)
+// 		pageTotal = paginatedResult.PageTotal
+// 		result.Count += paginatedResult.Count
+// 		result.Txs = append(result.Txs, paginatedResult.Txs...)
+
+// 		if pageNumber > int(pageTotal) {
+// 			break
+// 		}
+// 	}
+
+// 	return &result
+
+// }
