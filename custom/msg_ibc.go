@@ -38,7 +38,7 @@ const (
 	IBCChannelMsgChannelCloseConfirm = "ibcchannel/channel_close_confirm"
 	IBCChannelMsgRecvPacket          = "ibcchannel/recv_packet"
 	IBCChannelMsgTimeout             = "ibcchannel/timeout"
-	IBCChannelMsgTimeoutOnClose      = "ibcchannel/timeout_onclose"
+	IBCChannelMsgTimeoutOnClose      = "ibcchannel/timeout_on_close"
 	IBCChannelMsgAcknowledgement     = "ibcchannel/acknowledgement"
 )
 
