@@ -46,15 +46,15 @@ func TestRecoverVoteFromExec(t *testing.T) {
 		t.Log("bid : ", bid, " len of txs : ", len(txResps), " len of msgs :", cnt_msgs)
 		proposals, deposits, votes, err := ex.getGovernance(nil, txResps)
 		require.NoError(t, err)
-		// powerEvents, err := ex.getPowerEventHistoryNew(txResps)
-		// require.NoError(t, err)
+		powerEvents, err := ex.getPowerEventHistoryNew(txResps)
+		require.NoError(t, err)
 		basic := new(mdschema.BasicData)
 		basic.Deposits = deposits
 		basic.Votes = votes
-		// basic.ValidatorsPowerEventHistory = powerEvents
-		sum := len(proposals) + len(deposits) + len(votes) //+ len(powerEvents)
+		basic.ValidatorsPowerEventHistory = powerEvents
+		sum := len(proposals) + len(deposits) + len(votes) + len(powerEvents)
 		if sum > 0 {
-			t.Log("p :", len(proposals), " d :", len(deposits), " v :", len(votes)) //, " power :", len(powerEvents))
+			t.Log("p :", len(proposals), " d :", len(deposits), " v :", len(votes), " power :", len(powerEvents))
 			err = ex.DB.InsertExportedData(basic)
 			require.NoError(t, err)
 		}

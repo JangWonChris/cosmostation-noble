@@ -47,7 +47,7 @@ func (ex *Exporter) getPowerEventHistoryNew( /*block *tmctypes.ResultBlock,*/ tx
 	powerEventHistory := make([]mdschema.PowerEventHistory, 0)
 
 	if len(txResp) <= 0 {
-		return powerEventHistory, nil
+		return []mdschema.PowerEventHistory{}, nil
 	}
 
 	for _, tx := range txResp {
@@ -56,7 +56,11 @@ func (ex *Exporter) getPowerEventHistoryNew( /*block *tmctypes.ResultBlock,*/ tx
 			continue
 		}
 
-		timestamp, _ := time.Parse(time.RFC3339, tx.Timestamp) // 임시
+		timestamp, err := time.Parse(time.RFC3339, tx.Timestamp) // 임시
+		if err != nil {
+			zap.S().Errorf("failed parse timestamp : %s", err)
+			return []mdschema.PowerEventHistory{}, nil
+		}
 
 		msgs := tx.GetTx().GetMsgs()
 
