@@ -7,7 +7,7 @@ require (
 	github.com/cosmos/gaia/v7 v7.0.0
 	github.com/cosmos/ibc-go/v3 v3.0.0
 	github.com/cosmostation/mintscan-backend-library v0.0.0-20220721115933-03028496eb92
-	github.com/cosmostation/mintscan-database v1.0.4
+	github.com/cosmostation/mintscan-database v1.0.5
 	github.com/cosmostation/mintscan-prometheus v0.0.0-20210628093844-2404f3c78830
 	github.com/go-pg/pg/v10 v10.9.3
 	github.com/go-resty/resty/v2 v2.4.0
