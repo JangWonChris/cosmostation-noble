@@ -121,7 +121,8 @@ func (ex *Exporter) sync(op int) error {
 		return fmt.Errorf("failed to query the latest block height on the active network: %s", err)
 	}
 
-	if dbHeight == 0 && initialHeight != 0 {
+	// genesis의 initial-height != 1 일 때 사용
+	if initialHeight != 0 {
 		dbHeight = initialHeight - 1
 		rawDBHeight = initialHeight - 1
 		zap.S().Info("initial Height set : ", initialHeight)
@@ -202,6 +203,8 @@ func (ex *Exporter) process(block *tmctypes.ResultBlock, txs []*sdktypes.TxRespo
 		return fmt.Errorf("failed to get evidence: %s", err)
 	}
 
+	// lastcommit.height is always zero if the state is genesis regardless of their initial block height
+	// ref : juno-1 block height = 2578099, 4136532(genesis initial height)
 	if block.Block.LastCommit.Height != 0 {
 		prevBlock, err := ex.Client.RPC.GetBlock(block.Block.LastCommit.Height)
 		if err != nil {
