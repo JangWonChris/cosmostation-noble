@@ -73,13 +73,17 @@ func (c *Client) GetAllProposals() (result []mdschema.Proposal, err error) {
 				proposalType = i.ProposalType()
 			case *distributiontypes.CommunityPoolSpendProposal:
 				proposalType = i.ProposalType()
-			case *ibccoretypes.ClientUpdateProposal:
-				proposalType = i.ProposalType()
 			case *paramstypesproposal.ParameterChangeProposal:
 				proposalType = i.ProposalType()
 			case *upgradetypes.SoftwareUpgradeProposal:
 				proposalType = i.ProposalType()
 			case *upgradetypes.CancelSoftwareUpgradeProposal:
+				proposalType = i.ProposalType()
+
+			// ibc
+			case *ibccoretypes.ClientUpdateProposal:
+				proposalType = i.ProposalType()
+			case *ibccoretypes.UpgradeProposal:
 				proposalType = i.ProposalType()
 			default:
 				proposalType = custom.GetProposalType(i)
@@ -160,13 +164,17 @@ func (c *Client) GetProposalsByStatus(s govtypes.ProposalStatus) (result []mdsch
 				proposalType = i.ProposalType()
 			case *distributiontypes.CommunityPoolSpendProposal:
 				proposalType = i.ProposalType()
-			case *ibccoretypes.ClientUpdateProposal:
-				proposalType = i.ProposalType()
 			case *paramstypesproposal.ParameterChangeProposal:
 				proposalType = i.ProposalType()
 			case *upgradetypes.SoftwareUpgradeProposal:
 				proposalType = i.ProposalType()
 			case *upgradetypes.CancelSoftwareUpgradeProposal:
+				proposalType = i.ProposalType()
+
+			// ibc
+			case *ibccoretypes.ClientUpdateProposal:
+				proposalType = i.ProposalType()
+			case *ibccoretypes.UpgradeProposal:
 				proposalType = i.ProposalType()
 			default:
 				proposalType = custom.GetProposalType(i)
@@ -233,14 +241,19 @@ func (c *Client) GetProposal(id uint64) (result *mdschema.Proposal, err error) {
 		proposalType = i.ProposalType()
 	case *distributiontypes.CommunityPoolSpendProposal:
 		proposalType = i.ProposalType()
-	case *ibccoretypes.ClientUpdateProposal:
-		proposalType = i.ProposalType()
 	case *paramstypesproposal.ParameterChangeProposal:
 		proposalType = i.ProposalType()
 	case *upgradetypes.SoftwareUpgradeProposal:
 		proposalType = i.ProposalType()
 	case *upgradetypes.CancelSoftwareUpgradeProposal:
 		proposalType = i.ProposalType()
+
+	// ibc
+	case *ibccoretypes.ClientUpdateProposal:
+		proposalType = i.ProposalType()
+	case *ibccoretypes.UpgradeProposal:
+		proposalType = i.ProposalType()
+
 	default:
 		proposalType = custom.GetProposalType(i)
 	}
