@@ -65,6 +65,7 @@ func (ex *Exporter) getGovernance(blockTimeStamp *time.Time, txResp []*sdktypes.
 	proposals := make([]mdschema.Proposal, 0)
 	deposits := make([]mdschema.Deposit, 0)
 	votes := make([]mdschema.Vote, 0)
+	distinctVotes := make(map[string]map[uint64][]mdschema.Vote, 0)
 
 	if len(txResp) <= 0 {
 		return proposals, deposits, votes, nil
@@ -89,17 +90,38 @@ func (ex *Exporter) getGovernance(blockTimeStamp *time.Time, txResp []*sdktypes.
 		msgs := tx.GetTx().GetMsgs()
 
 		for i, msg := range msgs {
+			votesInMsg := make([]mdschema.Vote, 0)
 			switch m := msg.(type) {
 			case *authztypes.MsgExec:
 				for j := range m.Msgs {
 					var msgExecAuthorized sdktypes.Msg
 					custom.AppCodec.UnpackAny(m.Msgs[j], &msgExecAuthorized)
-					ex.govRoute(&proposals, &deposits, &votes, ts, msgExecAuthorized, i, tx)
+					ex.govRoute(&proposals, &deposits, &votesInMsg, ts, msgExecAuthorized, i, tx)
 				}
 
 			default:
-				ex.govRoute(&proposals, &deposits, &votes, ts, msg, i, tx)
+				ex.govRoute(&proposals, &deposits, &votesInMsg, ts, msg, i, tx)
 			}
+
+			// votes 결과를 덮어쓴다.(최신 보트만 유지)
+			for i := range votesInMsg {
+				voterMap, ok := distinctVotes[votesInMsg[i].Voter]
+				if !ok {
+					voterMap = make(map[uint64][]mdschema.Vote)
+					distinctVotes[votesInMsg[i].Voter] = voterMap
+				}
+				voterMap[votesInMsg[i].ProposalID] = votesInMsg
+			}
+		}
+		// get effective votes : map[address]map[id]vote
+		// 같은 tx 내 메세지에 대해 index 순으로 덮어쓰고, 그 다음 tx에 대해 덮어 쓴다.
+		// vote -> vote
+		// vote -> weighted_vote -> vote
+	}
+	// 최종 보트
+	for _, voterMap := range distinctVotes {
+		for _, vote := range voterMap {
+			votes = append(votes, vote...)
 		}
 	}
 
