@@ -203,7 +203,7 @@ func (ex *Exporter) refineSync() error {
 	zap.S().Infof("dbHeight %d\n", dbHeight)
 
 	for h := beginHeight + 1; h <= latestBlockHeight; h++ {
-		block, txs, err := ex.getBlockAndTxsFromNode(h)
+		block, txs, err := ex.Client.RPC.GetBlockAndTxsFromNode(custom.EncodingConfig.Marshaler, h)
 		if err != nil {
 			return fmt.Errorf("failed to get block and txs from node : %s", err)
 		}
