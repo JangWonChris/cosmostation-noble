@@ -95,7 +95,7 @@ func AccountExporterFromIBCMsg(msg *sdktypes.Msg, txHash string) (msgType string
 		msgType = IBCChannelMsgChannelCloseConfirm
 	case *ibcchanneltypes.MsgRecvPacket:
 		msgType = IBCChannelMsgRecvPacket
-		switch msg.Packet.SourcePort {
+		switch msg.Packet.DestinationPort {
 		case "transfer":
 			var pd ibctransfertypes.FungibleTokenPacketData
 			AppCodec.UnmarshalJSON(msg.Packet.GetData(), &pd)
