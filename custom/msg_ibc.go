@@ -13,8 +13,6 @@ import (
 	ibcchanneltypes "github.com/cosmos/ibc-go/v3/modules/core/04-channel/types"
 )
 
-const addrLength = 255
-
 const (
 	// ibc (1)
 	IBCTransferMsgTransfer = "ibctransfer/transfer"
@@ -99,7 +97,7 @@ func AccountExporterFromIBCMsg(msg *sdktypes.Msg, txHash string) (msgType string
 		case "transfer":
 			var pd ibctransfertypes.FungibleTokenPacketData
 			AppCodec.UnmarshalJSON(msg.Packet.GetData(), &pd)
-			accounts = mbltypes.AddNotNullAccount(validateAddress(pd.Receiver))
+			accounts = mbltypes.AddNotNullAccount(pd.Receiver)
 		case "icahost":
 			var pd interchainaccountstypes.InterchainAccountPacketData
 			AppCodec.UnmarshalJSON(msg.Packet.GetData(), &pd)
@@ -128,12 +126,12 @@ func AccountExporterFromIBCMsg(msg *sdktypes.Msg, txHash string) (msgType string
 		msgType = IBCChannelMsgTimeout
 		var pd ibctransfertypes.FungibleTokenPacketData
 		AppCodec.UnmarshalJSON(msg.Packet.GetData(), &pd)
-		accounts = mbltypes.AddNotNullAccount(validateAddress(pd.Sender))
+		accounts = mbltypes.AddNotNullAccount(pd.Sender)
 	case *ibcchanneltypes.MsgTimeoutOnClose:
 		msgType = IBCChannelMsgTimeoutOnClose
 		var pd ibctransfertypes.FungibleTokenPacketData
 		AppCodec.UnmarshalJSON(msg.Packet.GetData(), &pd)
-		accounts = mbltypes.AddNotNullAccount(validateAddress(pd.Sender))
+		accounts = mbltypes.AddNotNullAccount(pd.Sender)
 	case *ibcchanneltypes.MsgAcknowledgement:
 		msgType = IBCChannelMsgAcknowledgement
 
@@ -142,13 +140,4 @@ func AccountExporterFromIBCMsg(msg *sdktypes.Msg, txHash string) (msgType string
 	}
 
 	return
-}
-
-func validateAddress(addr string) string {
-	if len(addr) > addrLength {
-		zap.S().Infof("AccountExporterFromIBCMsg: length over 255: %s", addr)
-		return ""
-	}
-
-	return addr
 }
