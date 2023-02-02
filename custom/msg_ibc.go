@@ -57,6 +57,7 @@ func AccountExporterFromIBCMsg(msg *sdktypes.Msg, txHash string) (msgType string
 	//ibc transfer (1)
 	case *ibctransfertypes.MsgTransfer:
 		msgType = IBCTransferMsgTransfer
+		accounts = mbltypes.AddNotNullAccount(msg.Sender)
 
 	// ibc 02-client (4)
 	case *ibcclienttypes.MsgCreateClient:
@@ -93,7 +94,7 @@ func AccountExporterFromIBCMsg(msg *sdktypes.Msg, txHash string) (msgType string
 		msgType = IBCChannelMsgChannelCloseConfirm
 	case *ibcchanneltypes.MsgRecvPacket:
 		msgType = IBCChannelMsgRecvPacket
-		switch msg.Packet.SourcePort {
+		switch msg.Packet.DestinationPort {
 		case "transfer":
 			var pd ibctransfertypes.FungibleTokenPacketData
 			AppCodec.UnmarshalJSON(msg.Packet.GetData(), &pd)
@@ -117,8 +118,8 @@ func AccountExporterFromIBCMsg(msg *sdktypes.Msg, txHash string) (msgType string
 						break
 					}
 					customMsgType, account := customTxParser(&icaMsgs[i], txHash)
-					_ = customMsgType
-					accounts = append(accounts, account...)
+					icaMsgType = customMsgType
+					accounts = append(accounts, mbltypes.AddNotNullAccount(account...)...)
 				}
 			}
 		}
