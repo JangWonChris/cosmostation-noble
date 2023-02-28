@@ -1,24 +1,23 @@
-module github.com/cosmostation/cosmostation-cosmos
+module github.com/cosmostation/cosmostation-noble
 
-go 1.18
+go 1.19
 
 require (
-	github.com/cosmos/cosmos-sdk v0.45.9
-	github.com/cosmos/gaia/v7 v7.1.0
-	github.com/cosmos/ibc-go/v3 v3.0.0
+	github.com/cosmos/cosmos-sdk v0.45.13
+	github.com/strangelove-ventures/noble v0.3.0
+	github.com/cosmos/ibc-go/v3 v3.4.0
 	github.com/cosmostation/mintscan-backend-library v0.0.0-20221022105314-d49c44feac9a
 	github.com/cosmostation/mintscan-database v1.0.7
 	github.com/cosmostation/mintscan-prometheus v0.0.0-20210628093844-2404f3c78830
 	github.com/go-pg/pg/v10 v10.9.3
 	github.com/go-resty/resty/v2 v2.4.0
 	github.com/gorilla/mux v1.8.0
-	github.com/gravity-devs/liquidity v1.5.1
-	github.com/prometheus/client_golang v1.12.2
+	github.com/prometheus/client_golang v1.14.0
 	github.com/stretchr/testify v1.8.0
-	github.com/tendermint/tendermint v0.34.21
+	github.com/tendermint/tendermint v0.34.26
 	github.com/tomasen/realip v0.0.0-20180522021738-f0c99a92ddce
 	go.uber.org/zap v1.21.0
-	google.golang.org/grpc v1.48.0
+	google.golang.org/grpc v1.52.0
 )
 
 require (
@@ -136,6 +135,8 @@ require (
 
 replace (
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
-	github.com/keybase/go-keychain => github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4
+
+	// use informal system fork of tendermint
+	github.com/tendermint/tendermint => github.com/informalsystems/tendermint v0.34.26
 	google.golang.org/grpc => google.golang.org/grpc v1.33.2
 )
