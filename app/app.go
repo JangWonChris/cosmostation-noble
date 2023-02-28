@@ -6,9 +6,9 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"github.com/cosmostation/cosmostation-cosmos/client"
-	"github.com/cosmostation/cosmostation-cosmos/custom"
-	"github.com/cosmostation/cosmostation-cosmos/db"
+	"github.com/cosmostation/cosmostation-noble/client"
+	"github.com/cosmostation/cosmostation-noble/custom"
+	"github.com/cosmostation/cosmostation-noble/db"
 	mdschema "github.com/cosmostation/mintscan-database/schema"
 	"go.uber.org/zap"
 

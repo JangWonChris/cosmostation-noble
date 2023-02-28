@@ -5,7 +5,7 @@ import (
 	"time"
 
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmostation/cosmostation-cosmos/custom"
+	"github.com/cosmostation/cosmostation-noble/custom"
 	mdschema "github.com/cosmostation/mintscan-database/schema"
 	tmctypes "github.com/tendermint/tendermint/rpc/core/types"
 	"go.uber.org/zap"

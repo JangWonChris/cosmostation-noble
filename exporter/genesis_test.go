@@ -9,7 +9,7 @@ import (
 	"time"
 
 	//internal
-	"github.com/cosmostation/cosmostation-cosmos/custom"
+	"github.com/cosmostation/cosmostation-noble/custom"
 	mdschema "github.com/cosmostation/mintscan-database/schema"
 
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -28,7 +28,7 @@ func TestGetGenesisStateFromGenesisFile(t *testing.T) {
 	// genesisFile := os.Getenv("PWD") + "/genesis.json"
 	baseConfig := tmconfig.DefaultBaseConfig()
 	genesisFile := filepath.Join(chainapp.DefaultNodeHome, baseConfig.Genesis)
-	// genesisFile := "/Users/jeonghwan/dev/cosmostation/cosmostation-cosmos/genesis.json"
+	// genesisFile := "/Users/jeonghwan/dev/cosmostation/cosmostation-noble/genesis.json"
 	log.Println("genesis file path :", genesisFile)
 	genesisFile = "../ignoredir/cosmoshub-test-stargate-e.json"
 	genDoc, err := tmtypes.GenesisDocFromFile(genesisFile)

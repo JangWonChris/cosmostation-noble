@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/cosmostation/cosmostation-cosmos/app"
-	"github.com/cosmostation/cosmostation-cosmos/exporter"
+	"github.com/cosmostation/cosmostation-noble/app"
+	"github.com/cosmostation/cosmostation-noble/exporter"
 	"go.uber.org/zap"
 )
 

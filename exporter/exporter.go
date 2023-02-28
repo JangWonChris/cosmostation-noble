@@ -8,8 +8,8 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/cosmostation/cosmostation-cosmos/app"
-	"github.com/cosmostation/cosmostation-cosmos/custom"
+	"github.com/cosmostation/cosmostation-noble/app"
+	"github.com/cosmostation/cosmostation-noble/custom"
 
 	// mbl
 

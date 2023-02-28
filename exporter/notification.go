@@ -12,8 +12,8 @@ import (
 
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	"github.com/cosmostation/cosmostation-cosmos/notification"
-	"github.com/cosmostation/cosmostation-cosmos/types"
+	"github.com/cosmostation/cosmostation-noble/notification"
+	"github.com/cosmostation/cosmostation-noble/types"
 	mbltypes "github.com/cosmostation/mintscan-backend-library/types"
 	mdschema "github.com/cosmostation/mintscan-database/schema"
 
