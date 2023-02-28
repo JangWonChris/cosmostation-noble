@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/cosmostation/cosmostation-cosmos/custom"
+	"github.com/cosmostation/cosmostation-noble/custom"
 	mbltypes "github.com/cosmostation/mintscan-backend-library/types"
 	mdschema "github.com/cosmostation/mintscan-database/schema"
 

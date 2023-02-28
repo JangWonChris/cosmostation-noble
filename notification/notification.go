@@ -3,8 +3,8 @@ package notification
 import (
 	"time"
 
-	"github.com/cosmostation/cosmostation-cosmos/db"
-	"github.com/cosmostation/cosmostation-cosmos/types"
+	"github.com/cosmostation/cosmostation-noble/db"
+	"github.com/cosmostation/cosmostation-noble/types"
 
 	mblconfig "github.com/cosmostation/mintscan-backend-library/config"
 	"go.uber.org/zap"

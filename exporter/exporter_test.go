@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/cosmostation/cosmostation-cosmos/app"
+	"github.com/cosmostation/cosmostation-noble/app"
 )
 
 var (

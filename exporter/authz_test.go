@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	sdktypes "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmostation/cosmostation-cosmos/custom"
+	"github.com/cosmostation/cosmostation-noble/custom"
 	mdschema "github.com/cosmostation/mintscan-database/schema"
 	"github.com/stretchr/testify/require"
 )

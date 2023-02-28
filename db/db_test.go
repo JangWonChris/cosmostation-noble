@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	//mbl
-	"github.com/cosmostation/cosmostation-cosmos/custom"
+	"github.com/cosmostation/cosmostation-noble/custom"
 	mblconfig "github.com/cosmostation/mintscan-backend-library/config"
 	mdschema "github.com/cosmostation/mintscan-database/schema"
 

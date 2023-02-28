@@ -3,8 +3,8 @@ VERSION               := $(shell echo $(shell git describe --tags) | sed 's/^v//
 COMMIT                := $(shell git log -1 --format='%H')
 DESTDIR         	  ?= $(GOPATH)/bin/${NAME}
 BUILD_FLAGS 		  := -ldflags "-w -s \
-	-X github.com/cosmostation/cosmostation-cosmos/chain-exporter/exporter.Version=${VERSION} \
-	-X github.com/cosmostation/cosmostation-cosmos/chain-exporter/exporter.Commit=${COMMIT}"
+	-X github.com/cosmostation/cosmostation-noble/chain-exporter/exporter.Version=${VERSION} \
+	-X github.com/cosmostation/cosmostation-noble/chain-exporter/exporter.Commit=${COMMIT}"
 
 ## Show all make target commands.
 help:

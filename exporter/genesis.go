@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/cosmostation/cosmostation-cosmos/custom"
+	"github.com/cosmostation/cosmostation-noble/custom"
 	mbltypes "github.com/cosmostation/mintscan-backend-library/types"
 	mdschema "github.com/cosmostation/mintscan-database/schema"
 	"go.uber.org/zap"
@@ -43,7 +43,7 @@ func (ex *Exporter) GetGenesisStateFromGenesisFile(genesisPath string) (err erro
 	if genesisPath == "" {
 		genesisPath = genesisFile
 	}
-	// genesisFile := "/Users/jeonghwan/dev/cosmostation/cosmostation-cosmos/genesis.json"
+	// genesisFile := "/Users/jeonghwan/dev/cosmostation/cosmostation-noble/genesis.json"
 	genDoc, err := tmtypes.GenesisDocFromFile(genesisPath)
 	if err != nil {
 		log.Println(err, "failed to read genesis doc file %s", genesisPath)

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/cosmostation/cosmostation-cosmos/custom"
+	"github.com/cosmostation/cosmostation-noble/custom"
 	mdschema "github.com/cosmostation/mintscan-database/schema"
 	"go.uber.org/zap"
 

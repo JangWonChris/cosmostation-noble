@@ -3,7 +3,7 @@ package custom
 import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	chainapp "github.com/strangelove-ventures/noble/app"
-	chainparams "github.com/strangelove-ventures/noble/app/params"
+	chainparams "github.com/strangelove-ventures/noble/cmd"
 )
 
 // Codec is the application-wide Amino codec and is initialized upon package loading.
@@ -14,7 +14,7 @@ var (
 )
 
 func init() {
-	EncodingConfig = chainapp.MakeEncodingConfig()
+	EncodingConfig = chainparams.MakeEncodingConfig(chainapp.ModuleBasics)
 	AppCodec = EncodingConfig.Marshaler
 	AminoCodec = EncodingConfig.Amino
 }
