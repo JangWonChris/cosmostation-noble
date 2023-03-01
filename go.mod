@@ -10,7 +10,6 @@ require (
 	github.com/cosmostation/mintscan-prometheus v0.0.0-20210628093844-2404f3c78830
 	github.com/go-pg/pg/v10 v10.9.3
 	github.com/go-resty/resty/v2 v2.4.0
-	github.com/gravity-devs/liquidity v1.5.3
 	github.com/prometheus/client_golang v1.14.0
 	github.com/strangelove-ventures/noble v0.3.0
 	github.com/stretchr/testify v1.8.1
@@ -72,7 +71,6 @@ require (
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.0.1 // indirect
 	github.com/gsterjov/go-libsecret v0.0.0-20161001094733-a6f4afe4910c // indirect
 	github.com/gtank/merlin v0.1.1 // indirect
 	github.com/gtank/ristretto255 v0.1.2 // indirect
