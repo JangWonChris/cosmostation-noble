@@ -6,10 +6,11 @@ require (
 	github.com/cosmos/cosmos-sdk v0.45.13
 	github.com/cosmos/ibc-go/v3 v3.4.0
 	github.com/cosmostation/mintscan-backend-library v0.0.0-20221022105314-d49c44feac9a
-	github.com/cosmostation/mintscan-database v1.0.7
+	github.com/cosmostation/mintscan-database v1.0.11
 	github.com/cosmostation/mintscan-prometheus v0.0.0-20210628093844-2404f3c78830
 	github.com/go-pg/pg/v10 v10.9.3
 	github.com/go-resty/resty/v2 v2.4.0
+	github.com/gogo/protobuf v1.3.3
 	github.com/prometheus/client_golang v1.14.0
 	github.com/strangelove-ventures/noble v0.3.0
 	github.com/stretchr/testify v1.8.1
@@ -60,7 +61,6 @@ require (
 	github.com/go-pg/zerochecker v0.2.0 // indirect
 	github.com/godbus/dbus v0.0.0-20190726142602-4481cbc300e2 // indirect
 	github.com/gogo/gateway v1.1.0 // indirect
-	github.com/gogo/protobuf v1.3.3 // indirect
 	github.com/golang/glog v1.0.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect

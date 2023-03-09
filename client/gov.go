@@ -61,6 +61,10 @@ func (c *Client) GetAllProposals() (result []mdschema.Proposal, err error) {
 		keyExists = len(nextKey) > 0
 
 		for _, proposal := range resp.Proposals {
+			chunk, err := custom.AppCodec.MarshalJSON(&proposal)
+			if err != nil {
+				return result, fmt.Errorf("failed to marshal proposal: %s", err)
+			}
 			var contentI govtypes.Content
 			err = custom.AppCodec.UnpackAny(proposal.Content, &contentI)
 			if err != nil {
@@ -119,6 +123,7 @@ func (c *Client) GetAllProposals() (result []mdschema.Proposal, err error) {
 				TotalDepositDenom:  totalDepositDenom,
 				VotingStartTime:    proposal.VotingStartTime,
 				VotingEndTime:      proposal.VotingEndTime,
+				Chunk:              chunk,
 			}
 
 			result = append(result, p)
@@ -228,6 +233,11 @@ func (c *Client) GetProposal(id uint64) (result *mdschema.Proposal, err error) {
 		return &mdschema.Proposal{}, fmt.Errorf("failed to request gov proposals: %s", err)
 	}
 
+	chunk, err := custom.AppCodec.MarshalJSON(&resp.Proposal)
+	if err != nil {
+		return result, fmt.Errorf("failed to marshal proposal: %s", err)
+	}
+
 	var contentI govtypes.Content
 	err = custom.AppCodec.UnpackAny(resp.Proposal.Content, &contentI)
 	if err != nil {
@@ -288,6 +298,7 @@ func (c *Client) GetProposal(id uint64) (result *mdschema.Proposal, err error) {
 		TotalDepositDenom:  totalDepositDenom,
 		VotingStartTime:    resp.Proposal.VotingStartTime,
 		VotingEndTime:      resp.Proposal.VotingEndTime,
+		Chunk:              chunk,
 	}
 
 	return p, nil

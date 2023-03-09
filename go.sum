@@ -208,8 +208,8 @@ github.com/cosmos/ledger-cosmos-go v0.12.2 h1:/XYaBlE2BJxtvpkHiBm97gFGSGmYGKunKy
 github.com/cosmos/ledger-cosmos-go v0.12.2/go.mod h1:ZcqYgnfNJ6lAXe4HPtWgarNEY+B74i+2/8MhZw4ziiI=
 github.com/cosmostation/mintscan-backend-library v0.0.0-20221022105314-d49c44feac9a h1:Lgv0ZLdNMPeUhnqAQyD+xN2wkLc/+e6tIJhogDoA6qM=
 github.com/cosmostation/mintscan-backend-library v0.0.0-20221022105314-d49c44feac9a/go.mod h1:tg3zJpyf8TcTbRdjfvMpvAFVxmkKbIZfghqY8XmIBQU=
-github.com/cosmostation/mintscan-database v1.0.7 h1:arRCxznL5lwpzxq2qma8LsbwYi3k3Y8nXHNUZGyWRQs=
-github.com/cosmostation/mintscan-database v1.0.7/go.mod h1:fKbLJ9R0mQZDDqXH2UoUDMlBaee5K1w3Z5ZaIFC0kUk=
+github.com/cosmostation/mintscan-database v1.0.11 h1:Vovsh+nGAeN10nGF4vgiKkp0/ANFoEFZAeaS277tTKY=
+github.com/cosmostation/mintscan-database v1.0.11/go.mod h1:fKbLJ9R0mQZDDqXH2UoUDMlBaee5K1w3Z5ZaIFC0kUk=
 github.com/cosmostation/mintscan-prometheus v0.0.0-20210628093844-2404f3c78830 h1:1DpstYk4JQ1K6ukHnGr6HyFaTKpq32E63dI54hTdn88=
 github.com/cosmostation/mintscan-prometheus v0.0.0-20210628093844-2404f3c78830/go.mod h1:zIXRfq9xczW+yIlbgfgJo4+TYUaU8okDOSdikA6pgrU=
 github.com/cpuguy83/go-md2man v1.0.10/go.mod h1:SmD6nW6nTyfqj6ABTjUi3V3JVMnlJmwcJI5acqYI6dE=
