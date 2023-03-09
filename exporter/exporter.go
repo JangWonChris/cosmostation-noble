@@ -74,6 +74,7 @@ func (ex *Exporter) Start(op int) {
 		}
 	}()
 
+	go ex.runFeeMaker()
 	// app init 시 최초 전체 프로포절 업데이트
 	ex.saveAllProposals()
 	go ex.watchLiveProposals()
