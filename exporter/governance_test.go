@@ -18,3 +18,16 @@ func TestGetProposalVyStatus(t *testing.T) {
 	require.NoError(t, err)
 	t.Log(dp)
 }
+
+func TestSaveAllProposalsWithoutCondition(t *testing.T) {
+	proposals, err := ex.Client.GetAllProposals()
+	require.NoError(t, err)
+
+	if len(proposals) <= 0 {
+		t.Log("found empty proposals")
+		return
+	}
+
+	err = ex.DB.InsertOrUpdateProposals(proposals)
+	require.NoError(t, err)
+}
