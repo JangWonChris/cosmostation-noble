@@ -12,7 +12,7 @@ require (
 	github.com/go-resty/resty/v2 v2.4.0
 	github.com/gogo/protobuf v1.3.3
 	github.com/prometheus/client_golang v1.14.0
-	github.com/strangelove-ventures/noble v0.3.0
+	github.com/strangelove-ventures/noble v0.4.1
 	github.com/stretchr/testify v1.8.1
 	github.com/tendermint/tendermint v0.34.26
 	go.uber.org/zap v1.23.0
@@ -115,7 +115,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.14.0 // indirect
 	github.com/strangelove-ventures/packet-forward-middleware/v3 v3.1.4 // indirect
-	github.com/strangelove-ventures/paramauthority v0.1.1-0.20230120184403-39a8bf5f845d // indirect
+	github.com/strangelove-ventures/paramauthority v0.1.1 // indirect
 	github.com/subosito/gotenv v1.4.1 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7 // indirect
 	github.com/tendermint/go-amino v0.16.0 // indirect
