@@ -51,13 +51,14 @@ func NewApp(fileBaseName string) *App {
 
 	app.Client = client.NewClient(&app.Config.Client)
 
-	app.DB = db.Connect(&app.Config.DB)
-	err := app.DB.Ping()
-	if err != nil {
-		panic(err)
-	}
-
 	if fileBaseName == "chain-exporter" {
+
+		app.DB = db.Connect(&app.Config.DB)
+		err := app.DB.Ping()
+		if err != nil {
+			panic(err)
+		}
+
 		app.RawDB = db.RawDBConnect(&app.Config.RAWDB)
 		err = app.RawDB.Ping()
 		if err != nil {
@@ -75,10 +76,10 @@ func NewApp(fileBaseName string) *App {
 				}
 			}()
 		}
+		mdschema.SetCommonSchema(app.Config.DB.CommonSchema)
+		mdschema.SetChainSchema(app.Config.DB.ChainSchema)
 
 	}
-	mdschema.SetCommonSchema(app.Config.DB.CommonSchema)
-	mdschema.SetChainSchema(app.Config.DB.ChainSchema)
 
 	// app.DB.AddQueryHook(dbLogger{})    // debugging 용
 	// app.RawDB.AddQueryHook(dbLogger{}) // debugging 용
