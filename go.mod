@@ -13,7 +13,7 @@ require (
 	github.com/gogo/protobuf v1.3.3
 	github.com/gorilla/mux v1.8.0
 	github.com/prometheus/client_golang v1.14.0
-	github.com/strangelove-ventures/noble v1.0.0
+	github.com/strangelove-ventures/noble v1.0.1-0.20230328175015-7d605f326067
 	github.com/stretchr/testify v1.8.1
 	github.com/tendermint/tendermint v0.34.26
 	github.com/tomasen/realip v0.0.0-20180522021738-f0c99a92ddce
