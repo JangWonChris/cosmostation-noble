@@ -1,0 +1,3 @@
+[submodule "cosmostation-noble2"]
+	path = cosmostation-noble2
+	url = https://github.com/cosmostation/cosmostation-noble.git
