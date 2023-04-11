@@ -3,8 +3,8 @@ module github.com/cosmostation/cosmostation-noble
 go 1.19
 
 require (
-	github.com/cosmos/cosmos-sdk v0.45.13
-	github.com/cosmos/ibc-go/v3 v3.4.0
+	github.com/cosmos/cosmos-sdk v0.45.12
+	github.com/cosmos/ibc-go/v3 v3.3.9
 	github.com/cosmostation/mintscan-backend-library v0.0.0-20221022105314-d49c44feac9a
 	github.com/cosmostation/mintscan-database v1.0.12
 	github.com/cosmostation/mintscan-prometheus v0.0.0-20210628093844-2404f3c78830
